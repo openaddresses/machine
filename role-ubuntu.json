@@ -1,5 +1,9 @@
 {
     "run_list":
     [
+        "openaddr-source",
+        "openaddr-download",
+        "openaddr-cache",
+        "openaddr-conform"
     ]
 }
