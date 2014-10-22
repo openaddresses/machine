@@ -1,6 +1,7 @@
 from threading import Thread, Lock
-from logging import getLogger, StreamHandler, Formatter, DEBUG
+from logging import getLogger, FileHandler, StreamHandler, Formatter, DEBUG
 from multiprocessing import cpu_count
+from argparse import ArgumentParser
 from openaddr import conform
 
 def run_thread(lock, source_files):
@@ -15,24 +16,43 @@ def run_thread(lock, source_files):
     
         conform(path, 'out')
 
-handler = StreamHandler()
-handler.setFormatter(Formatter('%(threadName)10s %(relativeCreated)10.1f %(levelname)06s: %(message)s'))
-getLogger('openaddr').addHandler(handler)
-getLogger('openaddr').setLevel(DEBUG)
+def setup_logger(logfile):
+    ''' Set up logging stream and optional file for 'openaddr' logger.
+    '''
+    format = '%(threadName)10s  {0} %(levelname)06s: %(message)s'
+    getLogger('openaddr').setLevel(DEBUG)
+    
+    handler1 = StreamHandler()
+    handler1.setFormatter(Formatter(format.format('%(relativeCreated)10.1f')))
+    getLogger('openaddr').addHandler(handler1)
 
-source_files = [
-    '/var/opt/openaddresses/sources/us-ca-san_francisco.json',
-    '/var/opt/openaddresses/sources/us-ca-oakland.json',
-    '/var/opt/openaddresses/sources/us-ca-berkeley.json'
-    ]
+    if logfile:
+        handler2 = FileHandler(logfile, mode='w')
+        handler2.setFormatter(Formatter(format.format('%(asctime)s')))
+        getLogger('openaddr').addHandler(handler2)
 
-lock = Lock()
+parser = ArgumentParser(description='Run some source files.')
+parser.add_argument('-l', '--logfile', help='Optional log file name.')
 
-threads = [Thread(target=run_thread, args=(lock, source_files))
-           for i in range(cpu_count() + 1)]
+if __name__ == '__main__':
 
-for thread in threads:
-    thread.start()
+    args = parser.parse_args()
+    setup_logger(args.logfile)
 
-for thread in threads:
-    thread.join()
+    source_files = [
+        '/var/opt/openaddresses/sources/us-ca-san_francisco.json',
+        '/var/opt/openaddresses/sources/us-ca-alameda_county.json',
+        '/var/opt/openaddresses/sources/us-ca-oakland.json',
+        '/var/opt/openaddresses/sources/us-ca-berkeley.json'
+        ]
+
+    lock = Lock()
+
+    threads = [Thread(target=run_thread, args=(lock, source_files))
+               for i in range(cpu_count() + 1)]
+
+    for thread in threads:
+        thread.start()
+
+    for thread in threads:
+        thread.join()
