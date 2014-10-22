@@ -1,20 +1,24 @@
 from threading import Thread, Lock
+from collections import OrderedDict
 from logging import getLogger, FileHandler, StreamHandler, Formatter, DEBUG
 from multiprocessing import cpu_count
 from argparse import ArgumentParser
 from openaddr import conform
 
-def run_thread(lock, source_files):
+def run_thread(lock, source_files, destination_files):
     '''
     '''
     while True:
         with lock:
             if not source_files:
-                break
+                return
             path = source_files.pop()
-            getLogger('openaddr').info(path)
     
-        conform(path, 'out')
+        getLogger('openaddr').info(path)
+        csv_path = conform(path, 'out')
+        
+        with lock:
+            destination_files[path] = csv_path
 
 def setup_logger(logfile):
     ''' Set up logging stream and optional file for 'openaddr' logger.
@@ -41,14 +45,15 @@ if __name__ == '__main__':
 
     source_files = [
         '/var/opt/openaddresses/sources/us-ca-san_francisco.json',
-        '/var/opt/openaddresses/sources/us-ca-alameda_county.json',
+        #'/var/opt/openaddresses/sources/us-ca-alameda_county.json',
         '/var/opt/openaddresses/sources/us-ca-oakland.json',
         '/var/opt/openaddresses/sources/us-ca-berkeley.json'
         ]
 
-    lock = Lock()
+    destination_files = OrderedDict()
+    args = Lock(), source_files, destination_files
 
-    threads = [Thread(target=run_thread, args=(lock, source_files))
+    threads = [Thread(target=run_thread, args=args)
                for i in range(cpu_count() + 1)]
 
     for thread in threads:
@@ -56,3 +61,5 @@ if __name__ == '__main__':
 
     for thread in threads:
         thread.join()
+    
+    print destination_files

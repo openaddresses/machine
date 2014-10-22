@@ -9,6 +9,8 @@ def conform(srcjson, destdir):
 
         Generates all data in a temporary working
         directory, and does not use cached files.
+        
+        Return path to output CSV file in destdir.
     '''
     source, _ = splitext(basename(srcjson))
     workdir = mkdtemp(prefix='conform-')
@@ -40,12 +42,17 @@ def conform(srcjson, destdir):
     #
     # Move resulting files to destination directory.
     #
+    zip_path = join(destdir, source+'.zip')
+    csv_path = join(destdir, source+'.csv')
+    
     if exists(join(workdir, source+'.zip')):
-        move(join(workdir, source+'.zip'), join(destdir, source+'.zip'))
-        logger.debug(join(destdir, source+'.zip'))
+        move(join(workdir, source+'.zip'), zip_path)
+        logger.debug(zip_path)
 
     if exists(join(workdir, source, 'out.csv')):
-        move(join(workdir, source, 'out.csv'), join(destdir, source+'.csv'))
-        logger.debug(join(destdir, source+'.csv'))
+        move(join(workdir, source, 'out.csv'), csv_path)
+        logger.debug(csv_path)
 
     rmtree(workdir)
+    
+    return realpath(csv_path) if exists(csv_path) else None
