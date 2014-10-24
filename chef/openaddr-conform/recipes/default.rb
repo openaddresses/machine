@@ -1,6 +1,6 @@
 git '/var/opt/openaddresses-conform' do
   repository 'https://github.com/openaddresses/openaddresses-conform.git'
-  reference 'fix-cache-truncation'
+  reference 'master'
 end
 
 execute 'npm install' do
