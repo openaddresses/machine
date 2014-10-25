@@ -4,6 +4,8 @@ from os.path import realpath, join, basename, splitext, exists
 from shutil import move, rmtree
 from logging import getLogger
 
+from . import paths
+
 def conform(srcjson, destdir):
     ''' Python wrapper for openaddresses-conform.
 
@@ -26,7 +28,7 @@ def conform(srcjson, destdir):
     outpath = join(destdir, source+'.stdout')
 
     with open(errpath, 'w') as stderr, open(outpath, 'w') as stdout:
-        index_js = '/var/opt/openaddresses-conform/index.js'
+        index_js = join(paths.conform, 'index.js')
         cmd_args = dict(cwd=workdir, stderr=stderr, stdout=stdout)
 
         logger.debug('openaddresses-conform {0} {1}'.format(srcjson, workdir))

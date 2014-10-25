@@ -3,8 +3,10 @@ from collections import OrderedDict
 from logging import getLogger, FileHandler, StreamHandler, Formatter, DEBUG
 from multiprocessing import cpu_count
 from argparse import ArgumentParser
-from openaddr import conform
+from openaddr import conform, paths
+from os.path import join
 from time import sleep
+from glob import glob
 
 def run_conform(lock, source_files, destination_files):
     '''
@@ -53,13 +55,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     setup_logger(args.logfile)
 
-    source_files = [
-        '/var/opt/openaddresses/sources/us-ca-san_francisco.json',
-        '/var/opt/openaddresses/sources/us-ca-alameda_county.json',
-        '/var/opt/openaddresses/sources/us-ca-oakland.json',
-        '/var/opt/openaddresses/sources/us-ca-berkeley.json'
-        ]
-
+    source_files = glob(join(paths.sources, '*.json'))
     destination_files = OrderedDict()
     args = Lock(), source_files, destination_files
 
