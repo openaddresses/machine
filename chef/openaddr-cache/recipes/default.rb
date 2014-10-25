@@ -1,6 +1,6 @@
 git '/var/opt/openaddresses-cache' do
   repository 'https://github.com/openaddresses/openaddresses-cache.git'
-  reference 'configure-bucketname'
+  reference 'pending-fixes'
 end
 
 execute 'npm install' do
