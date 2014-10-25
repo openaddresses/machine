@@ -79,7 +79,7 @@ def conform(srcjson, destdir):
 
         logger.debug('openaddresses-conform {0} {1}'.format(srcjson, workdir))
 
-        cmd = Popen(('node', index_js, srcjson, workdir), **cmd_args)
+        cmd = Popen(('node', index_js, srcjson, workdir, 'openaddresses-cfa'), **cmd_args)
         cmd.wait()
 
         with open(join(destdir, source+'-conform.status'), 'w') as file:
