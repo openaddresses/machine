@@ -19,7 +19,7 @@ if __name__ == '__main__':
     destination_files = OrderedDict()
     args = Lock(), source_files, destination_files
 
-    threads = [Thread(target=jobs.run_conform, args=args)
+    threads = [Thread(target=jobs.run_cache, args=args)
                for i in range(cpu_count() + 1)]
     
     threads.append(Thread(target=jobs.run_timer, args=(source_files, 15)))

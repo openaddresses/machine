@@ -1,7 +1,22 @@
 from logging import getLogger, FileHandler, StreamHandler, Formatter, DEBUG
 from time import sleep
 
-from . import conform
+from . import cache, conform
+
+def run_cache(lock, source_files, destination_files):
+    '''
+    '''
+    while True:
+        with lock:
+            if not source_files:
+                return
+            path = source_files.pop(0)
+    
+        getLogger('openaddr').info(path)
+        csv_path = cache(path, 'out')
+        
+        with lock:
+            destination_files[path] = csv_path
 
 def run_conform(lock, source_files, destination_files):
     '''
