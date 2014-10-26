@@ -54,10 +54,12 @@ def cache(srcjson, destdir, bucketname='openaddresses'):
 def conform(srcjson, destdir, bucketname='openaddresses'):
     ''' Python wrapper for openaddresses-conform.
 
-        Generates all data in a temporary working
-        directory, and does not use cached files.
+        Return a dictionary of conformed details, a CSV URL and local path:
         
-        Return path to output CSV file in destdir.
+          {
+            "processed": URL of conformed CSV,
+            "path": Local filesystem path to conformed CSV
+          }
     '''
     source, _ = splitext(basename(srcjson))
     workdir = mkdtemp(prefix='conform-')
@@ -102,4 +104,8 @@ def conform(srcjson, destdir, bucketname='openaddresses'):
 
     rmtree(workdir)
     
-    return realpath(csv_path) if exists(csv_path) else None
+    with open(srcjson) as file:
+        data = json.load(file)
+        
+        return dict(processed=data.get('processed', None),
+                    path=(realpath(csv_path) if exists(csv_path) else None))

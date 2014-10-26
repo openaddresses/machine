@@ -44,10 +44,13 @@ class TestCache (unittest.TestCase):
         for (source, conform) in conformed.items():
             # OpenAddresses-Conform will add a processed key to the
             # source file, if the conform data was present initially.
+            self.assertTrue('processed' in conform)
+            self.assertTrue('path' in conform)
+            print source, '-->', conform
             if 'san_francisco' in source or 'alameda_county' in source:
-                self.assertTrue(type(conform) is str)
+                self.assertTrue(type(conform['processed']) in (str, unicode))
             else:
-                self.assertTrue(conform is None)
+                self.assertTrue(conform['processed'] is None)
 
     def test_serial(self):
         source = glob(join(self.src_dir, '*.json'))[0]
@@ -71,12 +74,8 @@ class TestCache (unittest.TestCase):
         with open(source) as file:
             data = json.load(file)
             
-            # OpenAddresses-Conform will add a processed key to the
-            # source file, if the conform data was present initially.
-            if 'conform' in data:
-                self.assertTrue('processed' in data)
-            else:
-                self.assertFalse('processed' in data)
+            # OpenAddresses-Conform will add a two keys to the source file.
+            self.assertTrue('processed' in data)
             print data.get('processed', None)
 
 if __name__ == '__main__':
