@@ -1,0 +1,13 @@
+{
+    "coverage": {
+        "US Census": {"geoid": "0606000", "place": "Berkeley", "state": "California"},
+        "country": "us",
+        "state": "ca",
+        "place": "Berkeley"
+    },
+    "data": "http://s3.amazonaws.com/openaddresses-tests/sources/us-ca-berkeley-excerpt.zip",
+    "website": "http://www.ci.berkeley.ca.us/datacatalog/",
+    "type": "http",
+    "compression": "zip",
+    "note": "Metadata at http://www.ci.berkeley.ca.us/uploadedFiles/IT/GIS/Parcels.shp(1).xml"
+}

@@ -1,0 +1,13 @@
+{
+    "coverage": {
+        "US Census": {"geoid": "0653000", "place": "Oakland city", "state": "California"},
+        "country": "us",
+        "state": "ca",
+        "place": "Oakland"
+    },
+    "data": "http://s3.amazonaws.com/openaddresses-tests/sources/us-ca-oakland-excerpt.zip",
+    "website": "http://data.openoakland.org/dataset/property-parcels/resource/df20b818-0d16-4da8-a9c1-a7b8b720ff49",
+    "year": "2013",
+    "type": "http",
+    "compression": "zip"
+}
