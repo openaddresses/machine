@@ -49,7 +49,6 @@ def cache(srcjson, destdir):
         
         return dict(cache=data.get('cache', None),
                     fingerprint=data.get('fingerprint', None),
-                    processed=data.get('processed', None),
                     version=data.get('version', None))
 
 def conform(srcjson, destdir):
