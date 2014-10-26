@@ -1,7 +1,7 @@
 from subprocess import Popen
 from tempfile import mkdtemp
 from os.path import realpath, join, basename, splitext, exists
-from shutil import move, rmtree
+from shutil import copy, move, rmtree
 from logging import getLogger
 import json
 
@@ -22,6 +22,10 @@ def cache(srcjson, destdir, bucketname='openaddresses'):
     workdir = mkdtemp(prefix='cache-')
     logger = getLogger('openaddr')
 
+    # Work on a copy of source JSON
+    tmpjson = join(workdir, basename(srcjson))
+    copy(srcjson, tmpjson)
+
     #
     # Run openaddresses-cache from a fresh working directory.
     #
@@ -32,9 +36,9 @@ def cache(srcjson, destdir, bucketname='openaddresses'):
         index_js = join(paths.cache, 'index.js')
         cmd_args = dict(cwd=workdir, stderr=stderr, stdout=stdout)
 
-        logger.debug('openaddresses-conform {0} {1}'.format(srcjson, workdir))
+        logger.debug('openaddresses-cache {0} {1}'.format(tmpjson, workdir))
 
-        cmd = Popen(('node', index_js, srcjson, workdir, bucketname), **cmd_args)
+        cmd = Popen(('node', index_js, tmpjson, workdir, bucketname), **cmd_args)
         cmd.wait()
 
         with open(join(destdir, source+'-cache.status'), 'w') as file:
@@ -42,16 +46,16 @@ def cache(srcjson, destdir, bucketname='openaddresses'):
 
     logger.debug('{0} --> {1}'.format(source, workdir))
 
-    rmtree(workdir)
-    
-    with open(srcjson) as file:
+    with open(tmpjson) as file:
         data = json.load(file)
         
-        return dict(cache=data.get('cache', None),
-                    fingerprint=data.get('fingerprint', None),
-                    version=data.get('version', None))
+    rmtree(workdir)
 
-def conform(srcjson, destdir, bucketname='openaddresses'):
+    return dict(cache=data.get('cache', None),
+                fingerprint=data.get('fingerprint', None),
+                version=data.get('version', None))
+
+def conform(srcjson, destdir, extras, bucketname='openaddresses'):
     ''' Python wrapper for openaddresses-conform.
 
         Return a dictionary of conformed details, a CSV URL and local path:
@@ -66,6 +70,16 @@ def conform(srcjson, destdir, bucketname='openaddresses'):
     logger = getLogger('openaddr')
 
     #
+    # Work on a copy of source JSON, with cache URL grafted in.
+    #
+    tmpjson = join(workdir, basename(srcjson))
+
+    with open(srcjson, 'r') as src_file, open(tmpjson, 'w') as tmp_file:
+        data = json.load(src_file)
+        data.update(extras)
+        json.dump(data, tmp_file)
+
+    #
     # Run openaddresses-conform from a fresh working directory.
     #
     # It tends to error silently and truncate data if it finds any existing
@@ -78,9 +92,9 @@ def conform(srcjson, destdir, bucketname='openaddresses'):
         index_js = join(paths.conform, 'index.js')
         cmd_args = dict(cwd=workdir, stderr=stderr, stdout=stdout)
 
-        logger.debug('openaddresses-conform {0} {1}'.format(srcjson, workdir))
+        logger.debug('openaddresses-conform {0} {1}'.format(tmpjson, workdir))
 
-        cmd = Popen(('node', index_js, srcjson, workdir, bucketname), **cmd_args)
+        cmd = Popen(('node', index_js, tmpjson, workdir, bucketname), **cmd_args)
         cmd.wait()
 
         with open(join(destdir, source+'-conform.status'), 'w') as file:
@@ -102,10 +116,10 @@ def conform(srcjson, destdir, bucketname='openaddresses'):
         move(join(workdir, source, 'out.csv'), csv_path)
         logger.debug(csv_path)
 
-    rmtree(workdir)
-    
-    with open(srcjson) as file:
+    with open(tmpjson) as file:
         data = json.load(file)
         
-        return dict(processed=data.get('processed', None),
-                    path=(realpath(csv_path) if exists(csv_path) else None))
+    rmtree(workdir)
+
+    return dict(processed=data.get('processed', None),
+                path=(realpath(csv_path) if exists(csv_path) else None))
