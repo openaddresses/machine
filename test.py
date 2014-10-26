@@ -30,7 +30,7 @@ class TestCache (unittest.TestCase):
     
     def test_what(self):
         for source in glob(join(self.src_dir, '*.json')):
-            cache(source, self.testdir)
+            cache(source, self.testdir, 'openaddresses-tests')
         
             with open(source) as file:
                 data = json.load(file)
@@ -46,7 +46,7 @@ class TestCache (unittest.TestCase):
         print ''
         
         for source in glob(join(self.src_dir, '*.json')):
-            conform(source, self.testdir)
+            conform(source, self.testdir, 'openaddresses-tests')
         
             with open(source) as file:
                 data = json.load(file)

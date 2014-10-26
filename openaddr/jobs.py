@@ -13,7 +13,7 @@ def run_cache(lock, source_files, destination_files):
             path = source_files.pop(0)
     
         getLogger('openaddr').info(path)
-        csv_path = cache(path, 'out')
+        csv_path = cache(path, 'out', 'openaddresses-cfa')
         
         with lock:
             destination_files[path] = csv_path
@@ -28,7 +28,7 @@ def run_conform(lock, source_files, destination_files):
             path = source_files.pop(0)
     
         getLogger('openaddr').info(path)
-        csv_path = conform(path, 'out')
+        csv_path = conform(path, 'out', 'openaddresses-cfa')
         
         with lock:
             destination_files[path] = csv_path

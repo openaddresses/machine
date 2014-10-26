@@ -7,7 +7,7 @@ import json
 
 from . import paths
 
-def cache(srcjson, destdir):
+def cache(srcjson, destdir, bucketname='openaddresses'):
     ''' Python wrapper for openaddress-cache.
     
         Return a dictionary of cache details, including URL and md5 hash:
@@ -34,7 +34,7 @@ def cache(srcjson, destdir):
 
         logger.debug('openaddresses-conform {0} {1}'.format(srcjson, workdir))
 
-        cmd = Popen(('node', index_js, srcjson, workdir, 'openaddresses-cfa'), **cmd_args)
+        cmd = Popen(('node', index_js, srcjson, workdir, bucketname), **cmd_args)
         cmd.wait()
 
         with open(join(destdir, source+'-cache.status'), 'w') as file:
@@ -51,7 +51,7 @@ def cache(srcjson, destdir):
                     fingerprint=data.get('fingerprint', None),
                     version=data.get('version', None))
 
-def conform(srcjson, destdir):
+def conform(srcjson, destdir, bucketname='openaddresses'):
     ''' Python wrapper for openaddresses-conform.
 
         Generates all data in a temporary working
@@ -78,7 +78,7 @@ def conform(srcjson, destdir):
 
         logger.debug('openaddresses-conform {0} {1}'.format(srcjson, workdir))
 
-        cmd = Popen(('node', index_js, srcjson, workdir, 'openaddresses-cfa'), **cmd_args)
+        cmd = Popen(('node', index_js, srcjson, workdir, bucketname), **cmd_args)
         cmd.wait()
 
         with open(join(destdir, source+'-conform.status'), 'w') as file:
