@@ -13,10 +13,10 @@ def run_all_caches(source_files, bucketname='openaddresses-cfa'):
     destination_files = OrderedDict()
     args = Lock(), source_queue, destination_files, bucketname
 
-    threads = [Thread(target=run_cache, args=args)
+    threads = [Thread(target=_run_cache, args=args)
                for i in range(cpu_count() + 1)]
     
-    threads.append(Thread(target=run_timer, args=(source_queue, 15)))
+    threads.append(Thread(target=_run_timer, args=(source_queue, 15)))
 
     for thread in threads:
         thread.start()
@@ -26,7 +26,7 @@ def run_all_caches(source_files, bucketname='openaddresses-cfa'):
     
     return destination_files
 
-def run_cache(lock, source_files, destination_files, bucketname):
+def _run_cache(lock, source_files, destination_files, bucketname):
     '''
     '''
     while True:
@@ -48,10 +48,10 @@ def run_all_conforms(source_files, source_extras, bucketname='openaddresses-cfa'
     destination_files = OrderedDict()
     args = Lock(), source_queue, source_extras, destination_files, bucketname
 
-    threads = [Thread(target=run_conform, args=args)
+    threads = [Thread(target=_run_conform, args=args)
                for i in range(cpu_count() + 1)]
     
-    threads.append(Thread(target=run_timer, args=(source_queue, 15)))
+    threads.append(Thread(target=_run_timer, args=(source_queue, 15)))
 
     for thread in threads:
         thread.start()
@@ -61,7 +61,7 @@ def run_all_conforms(source_files, source_extras, bucketname='openaddresses-cfa'
     
     return destination_files
 
-def run_conform(lock, source_files, source_extras, destination_files, bucketname):
+def _run_conform(lock, source_files, source_extras, destination_files, bucketname):
     '''
     '''
     while True:
@@ -77,7 +77,7 @@ def run_conform(lock, source_files, source_extras, destination_files, bucketname
         with lock:
             destination_files[path] = csv_path
 
-def run_timer(source_files, interval):
+def _run_timer(source_files, interval):
     '''
     '''
     sleep(interval)
