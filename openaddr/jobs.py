@@ -6,12 +6,12 @@ from time import sleep
 
 from . import cache, conform
 
-def run_all_caches(source_files, bucketname='openaddresses-cfa'):
+def run_all_caches(source_files, source_extras, bucketname='openaddresses-cfa'):
     '''
     '''
     source_queue = source_files[:]
     destination_files = OrderedDict()
-    args = Lock(), source_queue, destination_files, bucketname
+    args = Lock(), source_queue, source_extras, destination_files, bucketname
 
     threads = [Thread(target=_run_cache, args=args)
                for i in range(cpu_count() + 1)]
@@ -26,7 +26,7 @@ def run_all_caches(source_files, bucketname='openaddresses-cfa'):
     
     return destination_files
 
-def _run_cache(lock, source_files, destination_files, bucketname):
+def _run_cache(lock, source_files, source_extras, destination_files, bucketname):
     '''
     '''
     while True:
@@ -34,9 +34,10 @@ def _run_cache(lock, source_files, destination_files, bucketname):
             if not source_files:
                 return
             path = source_files.pop(0)
+            extras = source_extras.get(path, dict())
     
         getLogger('openaddr').info(path)
-        csv_path = cache(path, 'out', bucketname)
+        csv_path = cache(path, 'out', extras, bucketname)
         
         with lock:
             destination_files[path] = csv_path
@@ -69,7 +70,7 @@ def _run_conform(lock, source_files, source_extras, destination_files, bucketnam
             if not source_files:
                 return
             path = source_files.pop(0)
-            extras = source_extras[path]
+            extras = source_extras.get(path, dict())
     
         getLogger('openaddr').info(path)
         csv_path = conform(path, 'out', extras, bucketname)

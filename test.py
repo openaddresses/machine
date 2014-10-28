@@ -32,12 +32,13 @@ class TestCache (unittest.TestCase):
     
     def test_parallel(self):
         sources1 = glob(join(self.src_dir, '*.json'))
-        caches = jobs.run_all_caches(sources1, 'openaddresses-tests')
+        source_extras1 = dict([(s, dict()) for s in sources1])
+        caches = jobs.run_all_caches(sources1, source_extras1, 'openaddresses-tests')
         
         # Proceed only with sources that have a cache
         sources2 = [s for s in sources1 if caches[s]['cache']]
-        source_extras = dict([(s, caches[s]) for s in sources2])
-        conformed = jobs.run_all_conforms(sources2, source_extras, 'openaddresses-tests')
+        source_extras2 = dict([(s, caches[s]) for s in sources2])
+        conformed = jobs.run_all_conforms(sources2, source_extras2, 'openaddresses-tests')
     
         for (source, cache) in caches.items():
             # OpenAddresses-Cache will add three keys to the source file.
@@ -58,7 +59,7 @@ class TestCache (unittest.TestCase):
     def test_single_ac(self):
         source = join(self.src_dir, 'us-ca-alameda_county-{0}.json'.format(self.uuid))
 
-        result = cache(source, self.testdir, 'openaddresses-tests')
+        result = cache(source, self.testdir, dict(), 'openaddresses-tests')
         self.assertTrue(result['cache'] is not None)
         self.assertTrue(result['version'] is not None)
         self.assertTrue(result['fingerprint'] is not None)
@@ -70,7 +71,7 @@ class TestCache (unittest.TestCase):
     def test_single_oak(self):
         source = join(self.src_dir, 'us-ca-oakland-{0}.json'.format(self.uuid))
 
-        result = cache(source, self.testdir, 'openaddresses-tests')
+        result = cache(source, self.testdir, dict(), 'openaddresses-tests')
         self.assertTrue(result['cache'] is not None)
         self.assertTrue(result['version'] is not None)
         self.assertTrue(result['fingerprint'] is not None)

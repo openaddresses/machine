@@ -7,7 +7,7 @@ import json
 
 from . import paths
 
-def cache(srcjson, destdir, bucketname='openaddresses'):
+def cache(srcjson, destdir, extras, bucketname='openaddresses'):
     ''' Python wrapper for openaddress-cache.
     
         Return a dictionary of cache details, including URL and md5 hash:
@@ -22,9 +22,15 @@ def cache(srcjson, destdir, bucketname='openaddresses'):
     workdir = mkdtemp(prefix='cache-')
     logger = getLogger('openaddr')
 
-    # Work on a copy of source JSON
+    #
+    # Work on a copy of source JSON, with cache URL grafted in.
+    #
     tmpjson = join(workdir, basename(srcjson))
-    copy(srcjson, tmpjson)
+
+    with open(srcjson, 'r') as src_file, open(tmpjson, 'w') as tmp_file:
+        data = json.load(src_file)
+        data.update(extras)
+        json.dump(data, tmp_file)
 
     #
     # Run openaddresses-cache from a fresh working directory.
