@@ -1,8 +1,10 @@
 from argparse import ArgumentParser
 from os.path import join, basename, relpath
 from csv import writer, DictReader
+from StringIO import StringIO
 from glob import glob
 
+from boto import connect_s3
 from openaddr import paths, jobs
 
 parser = ArgumentParser(description='Run some source files.')
@@ -13,10 +15,15 @@ if __name__ == '__main__':
     args = parser.parse_args()
     jobs.setup_logger(args.logfile)
     
+    bucket = connect_s3().get_bucket('openaddresses-cfa')
+    
     # Find existing cache information
-    with open('state.txt', 'r') as file:
-        rows = DictReader(file, dialect='excel-tab')
-        source_extras1 = dict()
+    state_key = bucket.get_key('state.txt')
+    source_extras1 = dict()
+
+    if state_key:
+        state_file = StringIO(state_key.get_contents_as_string())
+        rows = DictReader(state_file, dialect='excel-tab')
         
         for row in rows:
             key = join(paths.sources, row['source'])
@@ -34,15 +41,19 @@ if __name__ == '__main__':
     results2 = jobs.run_all_conforms(source_files2, source_extras2, 'openaddresses-cfa')
     
     # Gather all results
-    with open('state.txt', 'w') as file:
-        out = writer(file, dialect='excel-tab')
-        
-        out.writerow(('source', 'cache', 'version', 'fingerprint', 'processed'))
-        
-        for source in source_files1:
-            result1 = results1[source]
-            result2 = results2.get(source, dict(processed=None, path=None))
-        
-            out.writerow((relpath(source, paths.sources), result1['cache'],
-                          result1['version'], result1['fingerprint'],
-                          result2['processed']))
+    state_file = StringIO()
+    out = writer(state_file, dialect='excel-tab')
+    
+    out.writerow(('source', 'cache', 'version', 'fingerprint', 'processed'))
+    
+    for source in source_files1:
+        result1 = results1[source]
+        result2 = results2.get(source, dict(processed=None, path=None))
+    
+        out.writerow((relpath(source, paths.sources), result1['cache'],
+                      result1['version'], result1['fingerprint'],
+                      result2['processed']))
+    
+    state_data = state_file.getvalue()
+    state_args = dict(policy='public-read', headers={'Content-Type': 'text/plain'})
+    bucket.new_key('state.txt').set_contents_from_string(state_data, **state_args)
