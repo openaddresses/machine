@@ -37,8 +37,11 @@ def _run_cache(lock, source_queue, source_extras, results, bucketname):
             path = source_queue.pop(0)
             extras = source_extras.get(path, dict())
     
-        getLogger('openaddr').info(path)
-        result = cache(path, 'out', extras, bucketname)
+        try:
+            getLogger('openaddr').info(path)
+            result = cache(path, 'out', extras, bucketname)
+        except:
+            result = dict(cache=None, fingerprint=None, version=None)
         
         with lock:
             results[path] = result
@@ -74,8 +77,11 @@ def _run_conform(lock, source_queue, source_extras, results, bucketname):
             path = source_queue.pop(0)
             extras = source_extras.get(path, dict())
     
-        getLogger('openaddr').info(path)
-        result = conform(path, 'out', extras, bucketname)
+        try:
+            getLogger('openaddr').info(path)
+            result = conform(path, 'out', extras, bucketname)
+        except:
+            result = dict(processed=None, path=None)
         
         with lock:
             results[path] = result
