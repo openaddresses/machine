@@ -1,6 +1,9 @@
+package 'nodejs'
+package 'npm'
+
 git '/var/opt/openaddresses-conform' do
   repository 'https://github.com/openaddresses/openaddresses-conform.git'
-  reference '1bd251363d281c289f2fc67cbba01f86e95e9d17'
+  reference 'ubuntu-bugfixes'
 end
 
 execute 'npm install' do
