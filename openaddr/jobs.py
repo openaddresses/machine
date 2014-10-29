@@ -7,11 +7,10 @@ from time import sleep
 from . import cache, conform
 
 def run_all_caches(source_files, source_extras, bucketname='openaddresses-cfa'):
+    ''' Run cache() for all source files in parallel, return a dict of results.
     '''
-    '''
-    source_queue = source_files[:]
-    destination_files = OrderedDict()
-    args = Lock(), source_queue, source_extras, destination_files, bucketname
+    source_queue, results = source_files[:], OrderedDict()
+    args = Lock(), source_queue, source_extras, results, bucketname
 
     threads = [Thread(target=_run_cache, args=args)
                for i in range(cpu_count() + 1)]
@@ -24,30 +23,31 @@ def run_all_caches(source_files, source_extras, bucketname='openaddresses-cfa'):
     for thread in threads:
         thread.join()
     
-    return destination_files
+    return results
 
-def _run_cache(lock, source_files, source_extras, destination_files, bucketname):
-    '''
+def _run_cache(lock, source_queue, source_extras, results, bucketname):
+    ''' Single queue worker for source files to conform().
+    
+        Keep going until source_queue is empty.
     '''
     while True:
         with lock:
-            if not source_files:
+            if not source_queue:
                 return
-            path = source_files.pop(0)
+            path = source_queue.pop(0)
             extras = source_extras.get(path, dict())
     
         getLogger('openaddr').info(path)
-        csv_path = cache(path, 'out', extras, bucketname)
+        result = cache(path, 'out', extras, bucketname)
         
         with lock:
-            destination_files[path] = csv_path
+            results[path] = result
 
 def run_all_conforms(source_files, source_extras, bucketname='openaddresses-cfa'):
+    ''' Run conform() for all source files in parallel, return a dict of results.
     '''
-    '''
-    source_queue = source_files[:]
-    destination_files = OrderedDict()
-    args = Lock(), source_queue, source_extras, destination_files, bucketname
+    source_queue, results = source_files[:], OrderedDict()
+    args = Lock(), source_queue, source_extras, results, bucketname
 
     threads = [Thread(target=_run_conform, args=args)
                for i in range(cpu_count() + 1)]
@@ -60,31 +60,33 @@ def run_all_conforms(source_files, source_extras, bucketname='openaddresses-cfa'
     for thread in threads:
         thread.join()
     
-    return destination_files
+    return results
 
-def _run_conform(lock, source_files, source_extras, destination_files, bucketname):
-    '''
+def _run_conform(lock, source_queue, source_extras, results, bucketname):
+    ''' Single queue worker for source files to conform().
+    
+        Keep going until source_queue is empty.
     '''
     while True:
         with lock:
-            if not source_files:
+            if not source_queue:
                 return
-            path = source_files.pop(0)
+            path = source_queue.pop(0)
             extras = source_extras.get(path, dict())
     
         getLogger('openaddr').info(path)
-        csv_path = conform(path, 'out', extras, bucketname)
+        result = conform(path, 'out', extras, bucketname)
         
         with lock:
-            destination_files[path] = csv_path
+            results[path] = result
 
-def _run_timer(source_files, interval):
-    '''
+def _run_timer(source_queue, interval):
+    ''' Natter on and on about how much of the queue is left.
     '''
     sleep(interval)
 
-    while source_files:
-        getLogger('openaddr').debug('{0} source files remain'.format(len(source_files)))
+    while source_queue:
+        getLogger('openaddr').debug('{0} source files remain'.format(len(source_queue)))
         sleep(interval)
 
 def setup_logger(logfile):
