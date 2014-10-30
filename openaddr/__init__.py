@@ -33,7 +33,7 @@ def cache(srcjson, destdir, extras, bucketname='openaddresses'):
             data.update(extras)
             json.dump(data, tmp_file)
         except:
-            # source files are not always reliable JSON
+            # Crowdsourced files are not always reliable JSON
             return dict(cache=None, fingerprint=None, version=None)
 
     #
@@ -58,7 +58,11 @@ def cache(srcjson, destdir, extras, bucketname='openaddresses'):
     logger.debug('{0} --> {1}'.format(source, workdir))
 
     with open(tmpjson) as file:
-        data = json.load(file)
+        try:
+            data = json.load(file)
+        except:
+            # Node-made source files are not always reliable JSON
+            return dict(cache=None, fingerprint=None, version=None)
         
     rmtree(workdir)
     
@@ -96,7 +100,7 @@ def conform(srcjson, destdir, extras, bucketname='openaddresses'):
             data.update(extras)
             json.dump(data, tmp_file)
         except:
-            # source files are not always reliable JSON
+            # Crowdsourced files are not always reliable JSON
             return dict(processed=None, path=None)
 
     #
@@ -138,7 +142,11 @@ def conform(srcjson, destdir, extras, bucketname='openaddresses'):
         logger.debug(csv_path)
 
     with open(tmpjson) as file:
-        data = json.load(file)
+        try:
+            data = json.load(file)
+        except:
+            # Node-made source files are not always reliable JSON
+            return dict(cache=None, fingerprint=None, version=None)
         
     rmtree(workdir)
     
