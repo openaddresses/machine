@@ -17,11 +17,7 @@ def run_all_caches(source_files, source_extras, bucketname='openaddresses-cfa'):
     
     threads.append(Thread(target=_run_timer, args=(source_queue, 15)))
 
-    for thread in threads:
-        thread.start()
-
-    for thread in threads:
-        thread.join()
+    _wait_for_threads(threads, source_queue)
     
     return results
 
@@ -57,11 +53,7 @@ def run_all_conforms(source_files, source_extras, bucketname='openaddresses-cfa'
     
     threads.append(Thread(target=_run_timer, args=(source_queue, 15)))
 
-    for thread in threads:
-        thread.start()
-
-    for thread in threads:
-        thread.join()
+    _wait_for_threads(threads, source_queue)
     
     return results
 
@@ -109,3 +101,24 @@ def setup_logger(logfile):
         handler2 = FileHandler(logfile, mode='w')
         handler2.setFormatter(Formatter(format.format('%(asctime)s')))
         getLogger('openaddr').addHandler(handler2)
+
+def _wait_for_threads(threads, queue):
+    ''' Run all the threads and wait for them, but catch interrupts.
+        
+        If a keyboard interrupt is caught, empty the queue and let threads finish.
+    '''
+    try:
+        # Start all the threads.
+        for thread in threads:
+            thread.start()
+
+        # Check with each thread once per second, to stay interruptible.
+        while True:
+            for thread in threads:
+                thread.join(1)
+    except (KeyboardInterrupt, SystemExit):
+        getLogger('openaddr').info('Cancel with {0} tasks left'.format(len(queue)))
+        while queue:
+            # Empty the queue to stop the threads.
+            source_queue.pop()
+        raise
