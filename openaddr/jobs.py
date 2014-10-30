@@ -107,9 +107,14 @@ def _wait_for_threads(threads, queue):
             thread.start()
 
         # Check with each thread once per second, to stay interruptible.
-        while True:
+        while threads:
             for thread in threads:
                 thread.join(1)
+                if not thread.isAlive():
+                    # Bury the dead.
+                    threads.remove(thread)
+                    break
+
     except (KeyboardInterrupt, SystemExit):
         getLogger('openaddr').info('Cancel with {0} tasks left'.format(len(queue)))
         while queue:
