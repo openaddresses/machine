@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 from os.path import join, basename, relpath
 from csv import writer, DictReader
 from StringIO import StringIO
+from logging import getLogger
 from glob import glob
 
 from boto import connect_s3
@@ -30,6 +31,8 @@ if __name__ == '__main__':
             source_extras1[key] = dict(cache=row['cache'],
                                        version=row['version'],
                                        fingerprint=row['fingerprint'])
+    
+    getLogger('openaddr').info('Loaded {} sources from state.txt'.format(len(source_extras1)))
 
     # Cache data, if necessary
     source_files1 = glob(join(paths.sources, '*.json'))
@@ -57,3 +60,5 @@ if __name__ == '__main__':
     state_data = state_file.getvalue()
     state_args = dict(policy='public-read', headers={'Content-Type': 'text/plain'})
     bucket.new_key('state.txt').set_contents_from_string(state_data, **state_args)
+    
+    getLogger('openaddr').info('Wrote {} sources to state.txt'.format(len(source_files1)))
