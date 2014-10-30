@@ -28,9 +28,13 @@ def cache(srcjson, destdir, extras, bucketname='openaddresses'):
     tmpjson = join(workdir, basename(srcjson))
 
     with open(srcjson, 'r') as src_file, open(tmpjson, 'w') as tmp_file:
-        data = json.load(src_file)
-        data.update(extras)
-        json.dump(data, tmp_file)
+        try:
+            data = json.load(src_file)
+            data.update(extras)
+            json.dump(data, tmp_file)
+        except:
+            # source files are not always reliable JSON
+            return dict(cache=None, fingerprint=None, version=None)
 
     #
     # Run openaddresses-cache from a fresh working directory.
@@ -87,9 +91,13 @@ def conform(srcjson, destdir, extras, bucketname='openaddresses'):
     tmpjson = join(workdir, basename(srcjson))
 
     with open(srcjson, 'r') as src_file, open(tmpjson, 'w') as tmp_file:
-        data = json.load(src_file)
-        data.update(extras)
-        json.dump(data, tmp_file)
+        try:
+            data = json.load(src_file)
+            data.update(extras)
+            json.dump(data, tmp_file)
+        except:
+            # source files are not always reliable JSON
+            return dict(processed=None, path=None)
 
     #
     # Run openaddresses-conform from a fresh working directory.
