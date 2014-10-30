@@ -4,7 +4,7 @@ package 'npm'
 
 git '/var/opt/openaddresses-conform' do
   repository 'https://github.com/openaddresses/openaddresses-conform.git'
-  reference 'ubuntu-bugfixes'
+  reference 'machine-ready'
 end
 
 # One package used here is tetchy about node vs. nodejs
