@@ -3,6 +3,7 @@ from tempfile import mkdtemp
 from os.path import realpath, join, basename, splitext, exists
 from shutil import copy, move, rmtree
 from logging import getLogger
+from os import mkdir
 import json
 
 from . import paths
@@ -23,9 +24,10 @@ def cache(srcjson, destdir, extras, bucketname='openaddresses'):
     logger = getLogger('openaddr')
 
     #
-    # Work on a copy of source JSON, with cache URL grafted in.
+    # Work on a copy of source JSON in a safe directory, with extras grafted in.
     #
-    tmpjson = join(workdir, basename(srcjson))
+    mkdir(join(workdir, 'source'))
+    tmpjson = join(workdir, 'source', basename(srcjson))
 
     with open(srcjson, 'r') as src_file, open(tmpjson, 'w') as tmp_file:
         try:
@@ -58,11 +60,7 @@ def cache(srcjson, destdir, extras, bucketname='openaddresses'):
     logger.debug('{0} --> {1}'.format(source, workdir))
 
     with open(tmpjson) as file:
-        try:
-            data = json.load(file)
-        except:
-            # Node-made source files are not always reliable JSON
-            return dict(cache=None, fingerprint=None, version=None)
+        data = json.load(file)
         
     rmtree(workdir)
     
@@ -90,9 +88,10 @@ def conform(srcjson, destdir, extras, bucketname='openaddresses'):
     logger = getLogger('openaddr')
 
     #
-    # Work on a copy of source JSON, with cache URL grafted in.
+    # Work on a copy of source JSON in a safe directory, with extras grafted in.
     #
-    tmpjson = join(workdir, basename(srcjson))
+    mkdir(join(workdir, 'source'))
+    tmpjson = join(workdir, 'source', basename(srcjson))
 
     with open(srcjson, 'r') as src_file, open(tmpjson, 'w') as tmp_file:
         try:
@@ -142,11 +141,7 @@ def conform(srcjson, destdir, extras, bucketname='openaddresses'):
         logger.debug(csv_path)
 
     with open(tmpjson) as file:
-        try:
-            data = json.load(file)
-        except:
-            # Node-made source files are not always reliable JSON
-            return dict(cache=None, fingerprint=None, version=None)
+        data = json.load(file)
         
     rmtree(workdir)
     
