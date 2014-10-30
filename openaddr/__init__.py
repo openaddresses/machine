@@ -37,6 +37,7 @@ def cache(srcjson, destdir, extras, bucketname='openaddresses'):
     #
     errpath = join(destdir, source+'-cache.stderr')
     outpath = join(destdir, source+'-cache.stdout')
+    st_path = join(destdir, source+'-cache.status')
 
     with open(errpath, 'w') as stderr, open(outpath, 'w') as stdout:
         index_js = join(paths.cache, 'index.js')
@@ -47,7 +48,7 @@ def cache(srcjson, destdir, extras, bucketname='openaddresses'):
         cmd = Popen(('node', index_js, tmpjson, workdir, bucketname), **cmd_args)
         cmd.wait()
 
-        with open(join(destdir, source+'-cache.status'), 'w') as file:
+        with open(st_path, 'w') as file:
             file.write(str(cmd.returncode))
 
     logger.debug('{0} --> {1}'.format(source, workdir))
@@ -56,10 +57,15 @@ def cache(srcjson, destdir, extras, bucketname='openaddresses'):
         data = json.load(file)
         
     rmtree(workdir)
+    
+    with open(st_path) as status, open(errpath) as err, open(outpath) as out:
+        args = status.read().strip(), err.read().strip(), out.read().strip()
+        results = '{}\n\nSTDERR:\n\n{}\n\nSTDOUT:\n\n{}\n'.format(*args)
 
     return dict(cache=data.get('cache', None),
                 fingerprint=data.get('fingerprint', None),
-                version=data.get('version', None))
+                version=data.get('version', None),
+                results=results)
 
 def conform(srcjson, destdir, extras, bucketname='openaddresses'):
     ''' Python wrapper for openaddresses-conform.
@@ -93,6 +99,7 @@ def conform(srcjson, destdir, extras, bucketname='openaddresses'):
     #
     errpath = join(destdir, source+'-conform.stderr')
     outpath = join(destdir, source+'-conform.stdout')
+    st_path = join(destdir, source+'-conform.status')
 
     with open(errpath, 'w') as stderr, open(outpath, 'w') as stdout:
         index_js = join(paths.conform, 'index.js')
@@ -103,7 +110,7 @@ def conform(srcjson, destdir, extras, bucketname='openaddresses'):
         cmd = Popen(('node', index_js, tmpjson, workdir, bucketname), **cmd_args)
         cmd.wait()
 
-        with open(join(destdir, source+'-conform.status'), 'w') as file:
+        with open(st_path, 'w') as file:
             file.write(str(cmd.returncode))
 
     logger.debug('{0} --> {1}'.format(source, workdir))
@@ -126,6 +133,11 @@ def conform(srcjson, destdir, extras, bucketname='openaddresses'):
         data = json.load(file)
         
     rmtree(workdir)
+    
+    with open(st_path) as status, open(errpath) as err, open(outpath) as out:
+        args = status.read().strip(), err.read().strip(), out.read().strip()
+        results = '{}\n\nSTDERR:\n\n{}\n\nSTDOUT:\n\n{}\n'.format(*args)
 
     return dict(processed=data.get('processed', None),
-                path=(realpath(csv_path) if exists(csv_path) else None))
+                path=(realpath(csv_path) if exists(csv_path) else None),
+                results=results)
