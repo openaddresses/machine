@@ -6,7 +6,7 @@ from logging import getLogger
 from glob import glob
 
 from boto import connect_s3
-from openaddr import paths, jobs
+from openaddr import paths, jobs, ConformResult
 
 parser = ArgumentParser(description='Run some source files.')
 parser.add_argument('-l', '--logfile', help='Optional log file name.')
@@ -51,11 +51,11 @@ if __name__ == '__main__':
     
     for source in source_files1:
         result1 = results1[source]
-        result2 = results2.get(source, dict(processed=None, path=None))
+        result2 = results2.get(source, ConformResult(None, None, None))
     
         out.writerow((relpath(source, paths.sources), result1.cache,
                       result1.version, result1.fingerprint,
-                      result2['processed']))
+                      result2.processed))
     
     state_data = state_file.getvalue()
     state_args = dict(policy='public-read', headers={'Content-Type': 'text/plain'})

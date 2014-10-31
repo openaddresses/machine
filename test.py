@@ -38,7 +38,7 @@ class TestCache (unittest.TestCase):
         # Proceed only with sources that have a cache
         sources2 = [s for s in sources1 if results1[s].cache]
         source_extras2 = dict([(s, results1[s].todict()) for s in sources2])
-        conformed = jobs.run_all_conforms(sources2, source_extras2, 'openaddresses-tests')
+        results2 = jobs.run_all_conforms(sources2, source_extras2, 'openaddresses-tests')
     
         for (source, result) in results1.items():
             # OpenAddresses-Cache will add three keys to the source file.
@@ -46,15 +46,15 @@ class TestCache (unittest.TestCase):
             self.assertTrue(hasattr(result, 'version'))
             self.assertTrue(hasattr(result, 'fingerprint'))
     
-        for (source, conform) in conformed.items():
+        for (source, result) in results2.items():
             # OpenAddresses-Conform will add a processed key to the
             # source file, if the conform data was present initially.
-            self.assertTrue('processed' in conform)
-            self.assertTrue('path' in conform)
+            self.assertTrue(hasattr(result, 'processed'))
+            self.assertTrue(hasattr(result, 'path'))
             if 'san_francisco' in source or 'alameda_county' in source:
-                self.assertTrue(type(conform['processed']) in (str, unicode))
+                self.assertTrue(type(result.processed) in (str, unicode))
             else:
-                self.assertTrue(conform['processed'] is None)
+                self.assertTrue(result.processed is None)
 
     def test_single_ac(self):
         source = join(self.src_dir, 'us-ca-alameda_county-{0}.json'.format(self.uuid))
@@ -65,8 +65,8 @@ class TestCache (unittest.TestCase):
         self.assertTrue(result.fingerprint is not None)
         
         result = conform(source, self.testdir, result.todict(), 'openaddresses-tests')
-        self.assertTrue(result['processed'] is not None)
-        self.assertTrue(result['path'] is not None)
+        self.assertTrue(result.processed is not None)
+        self.assertTrue(result.path is not None)
 
     def test_single_oak(self):
         source = join(self.src_dir, 'us-ca-oakland-{0}.json'.format(self.uuid))
@@ -77,8 +77,8 @@ class TestCache (unittest.TestCase):
         self.assertTrue(result.fingerprint is not None)
         
         result = conform(source, self.testdir, result.todict(), 'openaddresses-tests')
-        self.assertTrue(result['processed'] is None)
-        self.assertTrue(result['path'] is None)
+        self.assertTrue(result.processed is None)
+        self.assertTrue(result.path is None)
 
 if __name__ == '__main__':
     unittest.main()
