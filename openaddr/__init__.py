@@ -12,13 +12,13 @@ class CacheResult:
     cache = None
     fingerprint = None
     version = None
-    results = None
+    output = None
 
-    def __init__(self, cache, fingerprint, version, results):
+    def __init__(self, cache, fingerprint, version, output):
         self.cache = cache
         self.fingerprint = fingerprint
         self.version = version
-        self.results = results
+        self.output = output
     
     def todict(self):
         return dict(cache=self.cache, fingerprint=self.fingerprint, version=self.version)
@@ -26,15 +26,15 @@ class CacheResult:
 class ConformResult:
     processed = None
     path = None
-    results = None
+    output = None
 
-    def __init__(self, processed, path, results):
+    def __init__(self, processed, path, output):
         self.processed = processed
         self.path = path
-        self.results = results
+        self.output = output
     
     def todict(self):
-        return dict(processed=self.processed, path=self.path, results=self.results)
+        return dict(processed=self.processed, path=self.path)
 
 def cache(srcjson, destdir, extras, bucketname='openaddresses'):
     ''' Python wrapper for openaddress-cache.
@@ -58,13 +58,9 @@ def cache(srcjson, destdir, extras, bucketname='openaddresses'):
     tmpjson = join(workdir, 'source', basename(srcjson))
 
     with open(srcjson, 'r') as src_file, open(tmpjson, 'w') as tmp_file:
-        try:
-            data = json.load(src_file)
-            data.update(extras)
-            json.dump(data, tmp_file)
-        except:
-            # Crowdsourced files are not always reliable JSON
-            return CacheResult(None, None, None, None)
+        data = json.load(src_file)
+        data.update(extras)
+        json.dump(data, tmp_file)
 
     #
     # Run openaddresses-cache from a fresh working directory.
@@ -94,12 +90,12 @@ def cache(srcjson, destdir, extras, bucketname='openaddresses'):
     
     with open(st_path) as status, open(errpath) as err, open(outpath) as out:
         args = status.read().strip(), err.read().strip(), out.read().strip()
-        results = '{}\n\nSTDERR:\n\n{}\n\nSTDOUT:\n\n{}\n'.format(*args)
+        output = '{}\n\nSTDERR:\n\n{}\n\nSTDOUT:\n\n{}\n'.format(*args)
 
     return CacheResult(data.get('cache', None),
                        data.get('fingerprint', None),
                        data.get('version', None),
-                       results)
+                       output)
 
 def conform(srcjson, destdir, extras, bucketname='openaddresses'):
     ''' Python wrapper for openaddresses-conform.
@@ -122,13 +118,9 @@ def conform(srcjson, destdir, extras, bucketname='openaddresses'):
     tmpjson = join(workdir, 'source', basename(srcjson))
 
     with open(srcjson, 'r') as src_file, open(tmpjson, 'w') as tmp_file:
-        try:
-            data = json.load(src_file)
-            data.update(extras)
-            json.dump(data, tmp_file)
-        except:
-            # Crowdsourced files are not always reliable JSON
-            return ConformResult(None, None, None)
+        data = json.load(src_file)
+        data.update(extras)
+        json.dump(data, tmp_file)
 
     #
     # Run openaddresses-conform from a fresh working directory.
@@ -175,8 +167,8 @@ def conform(srcjson, destdir, extras, bucketname='openaddresses'):
     
     with open(st_path) as status, open(errpath) as err, open(outpath) as out:
         args = status.read().strip(), err.read().strip(), out.read().strip()
-        results = '{}\n\nSTDERR:\n\n{}\n\nSTDOUT:\n\n{}\n'.format(*args)
+        output = '{}\n\nSTDERR:\n\n{}\n\nSTDOUT:\n\n{}\n'.format(*args)
 
     return ConformResult(data.get('processed', None),
                          (realpath(csv_path) if exists(csv_path) else None),
-                         results)
+                         output)

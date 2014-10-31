@@ -4,7 +4,7 @@ from multiprocessing import cpu_count
 from logging import getLogger, FileHandler, StreamHandler, Formatter, DEBUG
 from time import sleep
 
-from . import cache, conform
+from . import cache, conform, CacheResult, ConformResult
 
 def run_all_caches(source_files, source_extras, bucketname='openaddresses-cfa'):
     ''' Run cache() for all source files in parallel, return a dict of results.
@@ -33,8 +33,11 @@ def _run_cache(lock, source_queue, source_extras, results, bucketname):
             path = source_queue.pop(0)
             extras = source_extras.get(path, dict())
     
-        getLogger('openaddr').info(path)
-        result = cache(path, 'out', extras, bucketname)
+        try:
+            getLogger('openaddr').info(path)
+            result = cache(path, 'out', extras, bucketname)
+        except:
+            result = CacheResult(None, None, None, None)
         
         with lock:
             results[path] = result
@@ -66,8 +69,11 @@ def _run_conform(lock, source_queue, source_extras, results, bucketname):
             path = source_queue.pop(0)
             extras = source_extras.get(path, dict())
     
-        getLogger('openaddr').info(path)
-        result = conform(path, 'out', extras, bucketname)
+        try:
+            getLogger('openaddr').info(path)
+            result = conform(path, 'out', extras, bucketname)
+        except:
+            result = ConformResult(None, None, None)
         
         with lock:
             results[path] = result
