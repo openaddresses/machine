@@ -39,10 +39,10 @@ if __name__ == '__main__':
     results1 = jobs.run_all_caches(source_files1, source_extras1, 'openaddresses-cfa')
     
     # Proceed only with sources that have a cache
-    source_files2 = [s for s in source_files1 if results1[s]['cache']]
-    source_extras2 = dict([(s, results1[s]) for s in source_files2])
+    source_files2 = [s for s in source_files1 if results1[s].cache]
+    source_extras2 = dict([(s, results1[s].todict()) for s in source_files2])
     results2 = jobs.run_all_conforms(source_files2, source_extras2, 'openaddresses-cfa')
-    
+
     # Gather all results
     state_file = StringIO()
     out = writer(state_file, dialect='excel-tab')
@@ -53,8 +53,8 @@ if __name__ == '__main__':
         result1 = results1[source]
         result2 = results2.get(source, dict(processed=None, path=None))
     
-        out.writerow((relpath(source, paths.sources), result1['cache'],
-                      result1['version'], result1['fingerprint'],
+        out.writerow((relpath(source, paths.sources), result1.cache,
+                      result1.version, result1.fingerprint,
                       result2['processed']))
     
     state_data = state_file.getvalue()

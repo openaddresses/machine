@@ -33,18 +33,18 @@ class TestCache (unittest.TestCase):
     def test_parallel(self):
         sources1 = glob(join(self.src_dir, '*.json'))
         source_extras1 = dict([(s, dict()) for s in sources1])
-        caches = jobs.run_all_caches(sources1, source_extras1, 'openaddresses-tests')
+        results1 = jobs.run_all_caches(sources1, source_extras1, 'openaddresses-tests')
         
         # Proceed only with sources that have a cache
-        sources2 = [s for s in sources1 if caches[s]['cache']]
-        source_extras2 = dict([(s, caches[s]) for s in sources2])
+        sources2 = [s for s in sources1 if results1[s].cache]
+        source_extras2 = dict([(s, results1[s].todict()) for s in sources2])
         conformed = jobs.run_all_conforms(sources2, source_extras2, 'openaddresses-tests')
     
-        for (source, cache) in caches.items():
+        for (source, result) in results1.items():
             # OpenAddresses-Cache will add three keys to the source file.
-            self.assertTrue('cache' in cache)
-            self.assertTrue('version' in cache)
-            self.assertTrue('fingerprint' in cache)
+            self.assertTrue(hasattr(result, 'cache'))
+            self.assertTrue(hasattr(result, 'version'))
+            self.assertTrue(hasattr(result, 'fingerprint'))
     
         for (source, conform) in conformed.items():
             # OpenAddresses-Conform will add a processed key to the
@@ -60,11 +60,11 @@ class TestCache (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-alameda_county-{0}.json'.format(self.uuid))
 
         result = cache(source, self.testdir, dict(), 'openaddresses-tests')
-        self.assertTrue(result['cache'] is not None)
-        self.assertTrue(result['version'] is not None)
-        self.assertTrue(result['fingerprint'] is not None)
+        self.assertTrue(result.cache is not None)
+        self.assertTrue(result.version is not None)
+        self.assertTrue(result.fingerprint is not None)
         
-        result = conform(source, self.testdir, result, 'openaddresses-tests')
+        result = conform(source, self.testdir, result.todict(), 'openaddresses-tests')
         self.assertTrue(result['processed'] is not None)
         self.assertTrue(result['path'] is not None)
 
@@ -72,11 +72,11 @@ class TestCache (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-oakland-{0}.json'.format(self.uuid))
 
         result = cache(source, self.testdir, dict(), 'openaddresses-tests')
-        self.assertTrue(result['cache'] is not None)
-        self.assertTrue(result['version'] is not None)
-        self.assertTrue(result['fingerprint'] is not None)
+        self.assertTrue(result.cache is not None)
+        self.assertTrue(result.version is not None)
+        self.assertTrue(result.fingerprint is not None)
         
-        result = conform(source, self.testdir, result, 'openaddresses-tests')
+        result = conform(source, self.testdir, result.todict(), 'openaddresses-tests')
         self.assertTrue(result['processed'] is None)
         self.assertTrue(result['path'] is None)
 
