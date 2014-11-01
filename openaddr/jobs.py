@@ -6,11 +6,11 @@ from time import sleep
 
 from . import cache, conform, CacheResult, ConformResult
 
-def run_all_caches(source_files, source_extras, bucketname='openaddresses-cfa'):
+def run_all_caches(source_files, source_extras, s3):
     ''' Run cache() for all source files in parallel, return a dict of results.
     '''
     source_queue, results = source_files[:], OrderedDict()
-    args = Lock(), source_queue, source_extras, results, bucketname
+    args = Lock(), source_queue, source_extras, results, s3
 
     threads = [Thread(target=_run_cache, args=args)
                for i in range(cpu_count() + 1)]
@@ -21,7 +21,7 @@ def run_all_caches(source_files, source_extras, bucketname='openaddresses-cfa'):
     
     return results
 
-def _run_cache(lock, source_queue, source_extras, results, bucketname):
+def _run_cache(lock, source_queue, source_extras, results, s3):
     ''' Single queue worker for source files to conform().
     
         Keep going until source_queue is empty.
@@ -35,18 +35,18 @@ def _run_cache(lock, source_queue, source_extras, results, bucketname):
     
         try:
             getLogger('openaddr').info(path)
-            result = cache(path, 'out', extras, bucketname)
+            result = cache(path, 'out', extras, s3)
         except:
             result = CacheResult.empty()
         
         with lock:
             results[path] = result
 
-def run_all_conforms(source_files, source_extras, bucketname='openaddresses-cfa'):
+def run_all_conforms(source_files, source_extras, s3):
     ''' Run conform() for all source files in parallel, return a dict of results.
     '''
     source_queue, results = source_files[:], OrderedDict()
-    args = Lock(), source_queue, source_extras, results, bucketname
+    args = Lock(), source_queue, source_extras, results, s3
 
     threads = [Thread(target=_run_conform, args=args)
                for i in range(cpu_count() + 1)]
@@ -57,7 +57,7 @@ def run_all_conforms(source_files, source_extras, bucketname='openaddresses-cfa'
     
     return results
 
-def _run_conform(lock, source_queue, source_extras, results, bucketname):
+def _run_conform(lock, source_queue, source_extras, results, s3):
     ''' Single queue worker for source files to conform().
     
         Keep going until source_queue is empty.
@@ -71,7 +71,7 @@ def _run_conform(lock, source_queue, source_extras, results, bucketname):
     
         try:
             getLogger('openaddr').info(path)
-            result = conform(path, 'out', extras, bucketname)
+            result = conform(path, 'out', extras, s3)
         except:
             result = ConformResult.empty()
         

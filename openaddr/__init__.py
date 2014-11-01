@@ -4,9 +4,10 @@ from os.path import realpath, join, basename, splitext, exists
 from shutil import copy, move, rmtree
 from logging import getLogger
 from datetime import datetime
-from os import mkdir
+from os import mkdir, environ
 import json
 
+from boto import connect_s3
 from . import paths
 
 class CacheResult:
@@ -49,7 +50,23 @@ class ConformResult:
     def todict(self):
         return dict(processed=self.processed, path=self.path)
 
-def cache(srcjson, destdir, extras, bucketname='openaddresses'):
+class S3:
+    bucketname = None
+
+    def __init__(self, key, secret, bucketname):
+        self.key, self.secret = key, secret
+        self.connection = connect_s3(key, secret)
+        self.bucketname = bucketname
+    
+    def toenv(self):
+        env = dict(environ)
+        env.update(AWS_ACCESS_KEY_ID=self.key, AWS_SECRET_ACCESS_KEY=self.secret)
+        return env
+    
+    def get_bucket(self):
+        return self.connection.get_bucket(self.bucketname)
+
+def cache(srcjson, destdir, extras, s3):
     ''' Python wrapper for openaddress-cache.
     
         Return a dictionary of cache details, including URL and md5 hash:
@@ -85,11 +102,11 @@ def cache(srcjson, destdir, extras, bucketname='openaddresses'):
 
     with open(errpath, 'w') as stderr, open(outpath, 'w') as stdout:
         index_js = join(paths.cache, 'index.js')
-        cmd_args = dict(cwd=workdir, stderr=stderr, stdout=stdout)
+        cmd_args = dict(cwd=workdir, env=s3.toenv(), stderr=stderr, stdout=stdout)
 
         logger.debug('openaddresses-cache {0} {1}'.format(tmpjson, workdir))
 
-        cmd = Popen(('node', index_js, tmpjson, workdir, bucketname), **cmd_args)
+        cmd = Popen(('node', index_js, tmpjson, workdir, s3.bucketname), **cmd_args)
         cmd.wait()
 
         with open(st_path, 'w') as file:
@@ -112,7 +129,7 @@ def cache(srcjson, destdir, extras, bucketname='openaddresses'):
                        datetime.now() - start,
                        output)
 
-def conform(srcjson, destdir, extras, bucketname='openaddresses'):
+def conform(srcjson, destdir, extras, s3):
     ''' Python wrapper for openaddresses-conform.
 
         Return a dictionary of conformed details, a CSV URL and local path:
@@ -150,11 +167,11 @@ def conform(srcjson, destdir, extras, bucketname='openaddresses'):
 
     with open(errpath, 'w') as stderr, open(outpath, 'w') as stdout:
         index_js = join(paths.conform, 'index.js')
-        cmd_args = dict(cwd=workdir, stderr=stderr, stdout=stdout)
+        cmd_args = dict(cwd=workdir, env=s3.toenv(), stderr=stderr, stdout=stdout)
 
         logger.debug('openaddresses-conform {0} {1}'.format(tmpjson, workdir))
 
-        cmd = Popen(('node', index_js, tmpjson, workdir, bucketname), **cmd_args)
+        cmd = Popen(('node', index_js, tmpjson, workdir, s3.bucketname), **cmd_args)
         cmd.wait()
 
         with open(st_path, 'w') as file:

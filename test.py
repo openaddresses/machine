@@ -3,10 +3,11 @@ import shutil
 import tempfile
 import json
 from uuid import uuid4
+from os import environ
 from os.path import dirname, join, splitext
 from glob import glob
 
-from openaddr import cache, conform, jobs
+from openaddr import cache, conform, jobs, S3
 
 class TestCache (unittest.TestCase):
     
@@ -26,6 +27,8 @@ class TestCache (unittest.TestCase):
         for path in glob(join(self.src_dir, '*.json')):
             base, ext = splitext(path)
             shutil.move(path, '{0}-{1}{2}'.format(base, self.uuid, ext))
+        
+        self.s3 = S3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'openaddresses-tests')
     
     def tearDown(self):
         shutil.rmtree(self.testdir)
@@ -33,12 +36,12 @@ class TestCache (unittest.TestCase):
     def test_parallel(self):
         sources1 = glob(join(self.src_dir, '*.json'))
         source_extras1 = dict([(s, dict()) for s in sources1])
-        results1 = jobs.run_all_caches(sources1, source_extras1, 'openaddresses-tests')
+        results1 = jobs.run_all_caches(sources1, source_extras1, self.s3)
         
         # Proceed only with sources that have a cache
         sources2 = [s for s in sources1 if results1[s].cache]
         source_extras2 = dict([(s, results1[s].todict()) for s in sources2])
-        results2 = jobs.run_all_conforms(sources2, source_extras2, 'openaddresses-tests')
+        results2 = jobs.run_all_conforms(sources2, source_extras2, self.s3)
     
         for (source, result) in results1.items():
             # OpenAddresses-Cache will add three keys to the source file.
@@ -59,24 +62,24 @@ class TestCache (unittest.TestCase):
     def test_single_ac(self):
         source = join(self.src_dir, 'us-ca-alameda_county-{0}.json'.format(self.uuid))
 
-        result = cache(source, self.testdir, dict(), 'openaddresses-tests')
+        result = cache(source, self.testdir, dict(), self.s3)
         self.assertTrue(result.cache is not None)
         self.assertTrue(result.version is not None)
         self.assertTrue(result.fingerprint is not None)
         
-        result = conform(source, self.testdir, result.todict(), 'openaddresses-tests')
+        result = conform(source, self.testdir, result.todict(), self.s3)
         self.assertTrue(result.processed is not None)
         self.assertTrue(result.path is not None)
 
     def test_single_oak(self):
         source = join(self.src_dir, 'us-ca-oakland-{0}.json'.format(self.uuid))
 
-        result = cache(source, self.testdir, dict(), 'openaddresses-tests')
+        result = cache(source, self.testdir, dict(), self.s3)
         self.assertTrue(result.cache is not None)
         self.assertTrue(result.version is not None)
         self.assertTrue(result.fingerprint is not None)
         
-        result = conform(source, self.testdir, result.todict(), 'openaddresses-tests')
+        result = conform(source, self.testdir, result.todict(), self.s3)
         self.assertTrue(result.processed is None)
         self.assertTrue(result.path is None)
 
