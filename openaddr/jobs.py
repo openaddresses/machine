@@ -37,7 +37,7 @@ def _run_cache(lock, source_queue, source_extras, results, bucketname):
             getLogger('openaddr').info(path)
             result = cache(path, 'out', extras, bucketname)
         except:
-            result = CacheResult(None, None, None, None)
+            result = CacheResult.empty()
         
         with lock:
             results[path] = result
@@ -73,7 +73,7 @@ def _run_conform(lock, source_queue, source_extras, results, bucketname):
             getLogger('openaddr').info(path)
             result = conform(path, 'out', extras, bucketname)
         except:
-            result = ConformResult(None, None, None)
+            result = ConformResult.empty()
         
         with lock:
             results[path] = result

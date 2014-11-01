@@ -3,6 +3,7 @@ from tempfile import mkdtemp
 from os.path import realpath, join, basename, splitext, exists
 from shutil import copy, move, rmtree
 from logging import getLogger
+from datetime import datetime
 from os import mkdir
 import json
 
@@ -12,27 +13,39 @@ class CacheResult:
     cache = None
     fingerprint = None
     version = None
+    elapsed = None
     output = None
-
-    def __init__(self, cache, fingerprint, version, output):
+    
+    def __init__(self, cache, fingerprint, version, elapsed, output):
         self.cache = cache
         self.fingerprint = fingerprint
         self.version = version
+        self.elapsed = elapsed
         self.output = output
     
+    @staticmethod
+    def empty():
+        return CacheResult(None, None, None, None, None)
+
     def todict(self):
         return dict(cache=self.cache, fingerprint=self.fingerprint, version=self.version)
 
 class ConformResult:
     processed = None
     path = None
+    elapsed = None
     output = None
 
-    def __init__(self, processed, path, output):
+    def __init__(self, processed, path, elapsed, output):
         self.processed = processed
         self.path = path
+        self.elapsed = elapsed
         self.output = output
     
+    @staticmethod
+    def empty():
+        return ConformResult(None, None, None, None)
+
     def todict(self):
         return dict(processed=self.processed, path=self.path)
 
@@ -47,6 +60,7 @@ def cache(srcjson, destdir, extras, bucketname='openaddresses'):
             "version": data version as date?
           }
     '''
+    start = datetime.now()
     source, _ = splitext(basename(srcjson))
     workdir = mkdtemp(prefix='cache-')
     logger = getLogger('openaddr')
@@ -95,6 +109,7 @@ def cache(srcjson, destdir, extras, bucketname='openaddresses'):
     return CacheResult(data.get('cache', None),
                        data.get('fingerprint', None),
                        data.get('version', None),
+                       datetime.now() - start,
                        output)
 
 def conform(srcjson, destdir, extras, bucketname='openaddresses'):
@@ -107,6 +122,7 @@ def conform(srcjson, destdir, extras, bucketname='openaddresses'):
             "path": Local filesystem path to conformed CSV
           }
     '''
+    start = datetime.now()
     source, _ = splitext(basename(srcjson))
     workdir = mkdtemp(prefix='conform-')
     logger = getLogger('openaddr')
@@ -171,4 +187,5 @@ def conform(srcjson, destdir, extras, bucketname='openaddresses'):
 
     return ConformResult(data.get('processed', None),
                          (realpath(csv_path) if exists(csv_path) else None),
+                         datetime.now() - start,
                          output)

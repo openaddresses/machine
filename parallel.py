@@ -47,15 +47,15 @@ if __name__ == '__main__':
     state_file = StringIO()
     out = writer(state_file, dialect='excel-tab')
     
-    out.writerow(('source', 'cache', 'version', 'fingerprint', 'processed'))
+    out.writerow(('source', 'cache', 'version', 'fingerprint', 'cache time', 'processed', 'process time'))
     
     for source in source_files1:
         result1 = results1[source]
-        result2 = results2.get(source, ConformResult(None, None, None))
+        result2 = results2.get(source, ConformResult.empty())
     
         out.writerow((relpath(source, paths.sources), result1.cache,
-                      result1.version, result1.fingerprint,
-                      result2.processed))
+                      result1.version, result1.fingerprint, result1.elapsed,
+                      result2.processed, result2.elapsed))
     
     state_data = state_file.getvalue()
     state_args = dict(policy='public-read', headers={'Content-Type': 'text/plain'})
