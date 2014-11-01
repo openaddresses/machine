@@ -32,7 +32,9 @@ if __name__ == '__main__':
     
     # Find existing cache information
     state_key = bucket.get_key('state.txt')
-    source_extras1 = defaultdict(lambda: dict(cache_time=None, process_time=None))
+    
+    # Use default times of 'zzz' because we're pessimistic about the unknown.
+    source_extras1 = defaultdict(lambda: dict(cache_time='zzz', process_time='zzz'))
 
     if state_key:
         state_file = StringIO(state_key.get_contents_as_string())

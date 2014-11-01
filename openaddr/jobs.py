@@ -2,7 +2,9 @@ from threading import Thread, Lock
 from collections import OrderedDict
 from multiprocessing import cpu_count
 from logging import getLogger, FileHandler, StreamHandler, Formatter, DEBUG
+from os.path import isdir
 from time import sleep
+from os import mkdir
 
 from . import cache, conform, CacheResult, ConformResult
 
@@ -36,6 +38,9 @@ def _run_cache(lock, source_queue, source_extras, results, s3):
             extras = source_extras.get(path, dict())
     
         try:
+            if not isdir('out'):
+                mkdir('out')
+        
             getLogger('openaddr').info(path)
             result = cache(path, 'out', extras, s3)
         except:
@@ -74,6 +79,9 @@ def _run_conform(lock, source_queue, source_extras, results, s3):
             extras = source_extras.get(path, dict())
     
         try:
+            if not isdir('out'):
+                mkdir('out')
+        
             getLogger('openaddr').info(path)
             result = conform(path, 'out', extras, s3)
         except:
