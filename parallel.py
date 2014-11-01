@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+from collections import defaultdict
 from os.path import join, basename, relpath
 from csv import writer, DictReader
 from StringIO import StringIO
@@ -31,7 +32,7 @@ if __name__ == '__main__':
     
     # Find existing cache information
     state_key = bucket.get_key('state.txt')
-    source_extras1 = dict()
+    source_extras1 = defaultdict(lambda: dict(cache_time=None, process_time=None))
 
     if state_key:
         state_file = StringIO(state_key.get_contents_as_string())
@@ -41,16 +42,20 @@ if __name__ == '__main__':
             key = join(paths.sources, row['source'])
             source_extras1[key] = dict(cache=row['cache'],
                                        version=row['version'],
-                                       fingerprint=row['fingerprint'])
+                                       fingerprint=row['fingerprint'],
+                                       cache_time=row['cache time'],
+                                       process_time=row['process time'])
     
     getLogger('openaddr').info('Loaded {} sources from state.txt'.format(len(source_extras1)))
 
     # Cache data, if necessary
     source_files1 = glob(join(paths.sources, '*.json'))
+    source_files1.sort(key=lambda s: source_extras1[s]['cache_time'], reverse=True)
     results1 = jobs.run_all_caches(source_files1, source_extras1, s3)
     
     # Proceed only with sources that have a cache
     source_files2 = [s for s in source_files1 if results1[s].cache]
+    source_files2.sort(key=lambda s: source_extras1[s]['process_time'], reverse=True)
     source_extras2 = dict([(s, results1[s].todict()) for s in source_files2])
     results2 = jobs.run_all_conforms(source_files2, source_extras2, s3)
 
