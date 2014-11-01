@@ -20,10 +20,9 @@ moment the paths defined in `openaddr.paths` point to a restricted subset on
 my own personal testing machine. Modify `openaddr/paths.py` with a new `sources`
 entry to use the full set; I'll be [fixing this](https://github.com/openaddresses/machine/issues/1).
 
-OpenAddresses requires Amazon S3 to work. You must have the environment variables
-`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` defined, and currently they must
-work with the bucket `openaddresses-cfa`. I will make it possible to
-[configure the destination bucket](https://github.com/openaddresses/machine/issues/2).
+OpenAddresses requires Amazon S3 to work. You can set the environment variables
+`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` or provide values as arguments
+to `parallel.py`.
 
 Test the complete process with `test.py`:
 
@@ -31,4 +30,4 @@ Test the complete process with `test.py`:
 
 Run the complete process with `parallel.py`:
 
-    python parallel.py
+    python parallel.py -a <AWS key> -s <AWS secret> -l <log> openaddresses

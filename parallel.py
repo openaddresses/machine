@@ -9,6 +9,16 @@ from glob import glob
 from openaddr import paths, jobs, ConformResult, S3
 
 parser = ArgumentParser(description='Run some source files.')
+
+parser.add_argument('bucketname',
+                    help='Required S3 bucket name.')
+
+parser.add_argument('-a', '--access-key', default=environ['AWS_ACCESS_KEY_ID'],
+                    help='Optional AWS access key name. Defaults to value of AWS_ACCESS_KEY_ID environment variable.')
+
+parser.add_argument('-s', '--secret-key', default=environ['AWS_SECRET_ACCESS_KEY'],
+                    help='Optional AWS secret key name. Defaults to value of AWS_SECRET_ACCESS_KEY environment variable.')
+
 parser.add_argument('-l', '--logfile', help='Optional log file name.')
 
 if __name__ == '__main__':
@@ -16,7 +26,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     jobs.setup_logger(args.logfile)
     
-    s3 = S3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'openaddresses-cfa')
+    s3 = S3(args.access_key, args.secret_key, args.bucketname)
     bucket = s3.connection.get_bucket(s3.bucketname)
     
     # Find existing cache information
