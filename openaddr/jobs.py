@@ -11,11 +11,13 @@ def run_all_caches(source_files, source_extras, s3):
     '''
     source_queue, results = source_files[:], OrderedDict()
     args = Lock(), source_queue, source_extras, results, s3
+    thread_count = min(cpu_count() * 2, len(source_files))
 
     threads = [Thread(target=_run_cache, args=args)
-               for i in range(cpu_count() + 1)]
+               for i in range(thread_count)]
     
-    threads.append(Thread(target=_run_timer, args=(source_queue, 15)))
+    if len(source_files) > thread_count:
+        threads.append(Thread(target=_run_timer, args=(source_queue, 15)))
 
     _wait_for_threads(threads, source_queue)
     
@@ -47,11 +49,13 @@ def run_all_conforms(source_files, source_extras, s3):
     '''
     source_queue, results = source_files[:], OrderedDict()
     args = Lock(), source_queue, source_extras, results, s3
+    thread_count = min(cpu_count() + 1, len(source_files))
 
     threads = [Thread(target=_run_conform, args=args)
-               for i in range(cpu_count() + 1)]
+               for i in range(thread_count)]
     
-    threads.append(Thread(target=_run_timer, args=(source_queue, 15)))
+    if len(source_files) > thread_count:
+        threads.append(Thread(target=_run_timer, args=(source_queue, 15)))
 
     _wait_for_threads(threads, source_queue)
     
