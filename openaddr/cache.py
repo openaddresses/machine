@@ -3,6 +3,7 @@ import os
 import urllib2
 import socket
 
+from logging import getLogger
 from urllib import urlencode
 from urlparse import urlparse
 from zipfile import ZipFile
@@ -56,7 +57,7 @@ class Urllib2DownloadTask(DownloadTask):
     USER_AGENT = 'openaddresses-extract/1.0 (https://github.com/openaddresses/openaddresses)'
     CHUNK = 16 * 1024
 
-    logger = logger.getChild('urllib2')
+    logger = getLogger().getChild('urllib2')
 
     def download(self, source_key, source_urls):
         output_files = []
@@ -100,7 +101,7 @@ class Urllib2DownloadTask(DownloadTask):
 class EsriRestDownloadTask(DownloadTask):
     USER_AGENT = 'openaddresses-extract/1.0 (https://github.com/openaddresses/openaddresses)'
 
-    logger = logger.getChild('urllib2')
+    logger = getLogger().getChild('urllib2')
 
     def convert_esrijson_to_geojson(self, geom_type, esri_feature):
         if geom_type == 'esriGeometryPoint':
@@ -233,7 +234,7 @@ class NoopDecompressTask(DecompressionTask):
 
 class ZipDecompressTask(DecompressionTask):
 
-    logger = logger.getChild('unzip')
+    logger = getLogger().getChild('unzip')
 
     def decompress(self, source_key, source_paths):
         output_files = []
@@ -251,7 +252,7 @@ class ZipDecompressTask(DecompressionTask):
 
 class ConvertToCsvTask(object):
 
-    logger = logger.getChild('convert')
+    logger = getLogger().getChild('convert')
 
     known_types = ('.shp', '.json', '.csv', '.kml')
 

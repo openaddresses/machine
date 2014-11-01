@@ -17,6 +17,27 @@ from boto import connect_s3
 from . import paths
 from openaddr.cache import DownloadTask, DecompressionTask, ConvertToCsvTask
 
+class CacheResult:
+    cache = None
+    fingerprint = None
+    version = None
+    elapsed = None
+    output = None
+    
+    def __init__(self, cache, fingerprint, version, elapsed, output):
+        self.cache = cache
+        self.fingerprint = fingerprint
+        self.version = version
+        self.elapsed = elapsed
+        self.output = output
+    
+    @staticmethod
+    def empty():
+        return CacheResult(None, None, None, None, None)
+
+    def todict(self):
+        return dict(cache=self.cache, fingerprint=self.fingerprint, version=self.version)
+
 class ConformResult:
     processed = None
     path = None
