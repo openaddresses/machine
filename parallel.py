@@ -14,10 +14,10 @@ parser = ArgumentParser(description='Run some source files.')
 parser.add_argument('bucketname',
                     help='Required S3 bucket name.')
 
-parser.add_argument('-a', '--access-key', default=environ['AWS_ACCESS_KEY_ID'],
+parser.add_argument('-a', '--access-key', default=environ.get('AWS_ACCESS_KEY_ID', None),
                     help='Optional AWS access key name. Defaults to value of AWS_ACCESS_KEY_ID environment variable.')
 
-parser.add_argument('-s', '--secret-key', default=environ['AWS_SECRET_ACCESS_KEY'],
+parser.add_argument('-s', '--secret-key', default=environ.get('AWS_SECRET_ACCESS_KEY', None),
                     help='Optional AWS secret key name. Defaults to value of AWS_SECRET_ACCESS_KEY environment variable.')
 
 parser.add_argument('-l', '--logfile', help='Optional log file name.')
