@@ -81,17 +81,7 @@ def cache(srcjson, destdir, extras, s3):
     source, _ = splitext(basename(srcjson))
     workdir = mkdtemp(prefix='cache-')
     logger = getLogger('openaddr')
-
-    #
-    # Work on a copy of source JSON in a safe directory, with extras grafted in.
-    #
-    mkdir(join(workdir, 'source'))
-    tmpjson = join(workdir, 'source', basename(srcjson))
-
-    with open(srcjson, 'r') as src_file, open(tmpjson, 'w') as tmp_file:
-        data = json.load(src_file)
-        data.update(extras)
-        json.dump(data, tmp_file)
+    tmpjson = _tmp_json(workdir, srcjson, extras)
 
     #
     # Run openaddresses-cache from a fresh working directory.
@@ -143,17 +133,7 @@ def conform(srcjson, destdir, extras, s3):
     source, _ = splitext(basename(srcjson))
     workdir = mkdtemp(prefix='conform-')
     logger = getLogger('openaddr')
-
-    #
-    # Work on a copy of source JSON in a safe directory, with extras grafted in.
-    #
-    mkdir(join(workdir, 'source'))
-    tmpjson = join(workdir, 'source', basename(srcjson))
-
-    with open(srcjson, 'r') as src_file, open(tmpjson, 'w') as tmp_file:
-        data = json.load(src_file)
-        data.update(extras)
-        json.dump(data, tmp_file)
+    tmpjson = _tmp_json(workdir, srcjson, extras)
 
     #
     # Run openaddresses-conform from a fresh working directory.
@@ -206,3 +186,18 @@ def conform(srcjson, destdir, extras, s3):
                          (realpath(csv_path) if exists(csv_path) else None),
                          datetime.now() - start,
                          output)
+
+def _tmp_json(workdir, srcjson, extras):
+    ''' Work on a copy of source JSON in a safe directory, with extras grafted in.
+    
+        Return path to the new JSON file.
+    '''
+    mkdir(join(workdir, 'source'))
+    tmpjson = join(workdir, 'source', basename(srcjson))
+
+    with open(srcjson, 'r') as src_file, open(tmpjson, 'w') as tmp_file:
+        data = json.load(src_file)
+        data.update(extras)
+        json.dump(data, tmp_file)
+    
+    return tmpjson
