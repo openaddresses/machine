@@ -28,10 +28,9 @@ if __name__ == '__main__':
     jobs.setup_logger(args.logfile)
     
     s3 = S3(args.access_key, args.secret_key, args.bucketname)
-    bucket = s3.connection.get_bucket(s3.bucketname)
     
     # Find existing cache information
-    state_key = bucket.get_key('state.txt')
+    state_key = s3.get_key('state.txt')
     
     # Use default times of 'zzz' because we're pessimistic about the unknown.
     source_extras1 = defaultdict(lambda: dict(cache_time='zzz', process_time='zzz'))
@@ -77,6 +76,6 @@ if __name__ == '__main__':
     
     state_data = state_file.getvalue()
     state_args = dict(policy='public-read', headers={'Content-Type': 'text/plain'})
-    bucket.new_key('state.txt').set_contents_from_string(state_data, **state_args)
+    s3.new_key('state.txt').set_contents_from_string(state_data, **state_args)
     
     getLogger('openaddr').info('Wrote {} sources to state.txt'.format(len(source_files1)))

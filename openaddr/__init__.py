@@ -54,17 +54,20 @@ class S3:
     bucketname = None
 
     def __init__(self, key, secret, bucketname):
-        self.key, self.secret = key, secret
-        self.connection = connect_s3(key, secret)
+        self._key, self._secret = key, secret
         self.bucketname = bucketname
+        self._bucket = connect_s3(key, secret).get_bucket(bucketname)
     
     def toenv(self):
         env = dict(environ)
-        env.update(AWS_ACCESS_KEY_ID=self.key, AWS_SECRET_ACCESS_KEY=self.secret)
+        env.update(AWS_ACCESS_KEY_ID=self._key, AWS_SECRET_ACCESS_KEY=self._secret)
         return env
     
-    def get_bucket(self):
-        return self.connection.get_bucket(self.bucketname)
+    def get_key(self, name):
+        return self._bucket.get_key(name)
+    
+    def new_key(self, name):
+        return self._bucket.new_key(name)
 
 def cache(srcjson, destdir, extras, s3):
     ''' Python wrapper for openaddress-cache.
