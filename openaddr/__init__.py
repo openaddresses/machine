@@ -15,27 +15,7 @@ from osgeo import ogr
 from requests import get
 from boto import connect_s3
 from . import paths
-
-class CacheResult:
-    cache = None
-    fingerprint = None
-    version = None
-    elapsed = None
-    output = None
-    
-    def __init__(self, cache, fingerprint, version, elapsed, output):
-        self.cache = cache
-        self.fingerprint = fingerprint
-        self.version = version
-        self.elapsed = elapsed
-        self.output = output
-    
-    @staticmethod
-    def empty():
-        return CacheResult(None, None, None, None, None)
-
-    def todict(self):
-        return dict(cache=self.cache, fingerprint=self.fingerprint, version=self.version)
+from openaddr.cache import DownloadTask, DecompressionTask, ConvertToCsvTask
 
 class ConformResult:
     processed = None
@@ -48,7 +28,7 @@ class ConformResult:
         self.path = path
         self.elapsed = elapsed
         self.output = output
-    
+
     @staticmethod
     def empty():
         return ConformResult(None, None, None, None)
@@ -90,9 +70,9 @@ class S3:
 
 def cache(srcjson, destdir, extras, s3):
     ''' Python wrapper for openaddress-cache.
-    
+
         Return a dictionary of cache details, including URL and md5 hash:
-        
+
           {
             "cache": URL of cached data,
             "fingerprint": md5 hash of data,
@@ -104,6 +84,11 @@ def cache(srcjson, destdir, extras, s3):
     workdir = mkdtemp(prefix='cache-')
     logger = getLogger('openaddr')
     tmpjson = _tmp_json(workdir, srcjson, extras)
+
+    task = DownloadTask.from_type_string(data.get('type'))
+    result = task.download()
+    task = DecompressionTask.from_type_string(data.get('compression'))
+    result = task.decompress()
 
     #
     # Run openaddresses-cache from a fresh working directory.
@@ -128,9 +113,9 @@ def cache(srcjson, destdir, extras, s3):
 
     with open(tmpjson) as file:
         data = json.load(file)
-        
+
     rmtree(workdir)
-    
+
     with open(st_path) as status, open(errpath) as err, open(outpath) as out:
         args = status.read().strip(), err.read().strip(), out.read().strip()
         output = '{}\n\nSTDERR:\n\n{}\n\nSTDOUT:\n\n{}\n'.format(*args)
@@ -145,7 +130,7 @@ def conform(srcjson, destdir, extras, s3):
     ''' Python wrapper for openaddresses-conform.
 
         Return a dictionary of conformed details, a CSV URL and local path:
-        
+
           {
             "processed": URL of conformed CSV,
             "path": Local filesystem path to conformed CSV
@@ -186,7 +171,7 @@ def conform(srcjson, destdir, extras, s3):
     #
     zip_path = join(destdir, source+'.zip')
     csv_path = join(destdir, source+'.csv')
-    
+
     if exists(join(workdir, source+'.zip')):
         move(join(workdir, source+'.zip'), zip_path)
         logger.debug(zip_path)
@@ -197,9 +182,9 @@ def conform(srcjson, destdir, extras, s3):
 
     with open(tmpjson) as file:
         data = json.load(file)
-        
+
     rmtree(workdir)
-    
+
     with open(st_path) as status, open(errpath) as err, open(outpath) as out:
         args = status.read().strip(), err.read().strip(), out.read().strip()
         output = '{}\n\nSTDERR:\n\n{}\n\nSTDOUT:\n\n{}\n'.format(*args)
