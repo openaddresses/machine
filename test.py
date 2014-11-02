@@ -17,15 +17,15 @@ class TestOA (unittest.TestCase):
         ''' Prepare a clean temporary directory, and copy sources there.
         '''
         jobs.setup_logger(False)
-        
+
         self.testdir = tempfile.mkdtemp(prefix='test-')
         self.src_dir = join(self.testdir, 'sources')
         sources_dir = join(dirname(__file__), 'tests', 'sources')
         shutil.copytree(sources_dir, self.src_dir)
-        
+
         # Rename sources with random characters so S3 keys are unique.
         self.uuid = uuid4().hex
-        
+
         for path in glob(join(self.src_dir, '*.json')):
             base, ext = splitext(path)
             shutil.move(path, '{0}-{1}{2}'.format(base, self.uuid, ext))
@@ -34,7 +34,7 @@ class TestOA (unittest.TestCase):
     
     def tearDown(self):
         shutil.rmtree(self.testdir)
-    
+
     def test_parallel(self):
         process.process(self.s3, self.src_dir, 'test')
         

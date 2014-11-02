@@ -113,7 +113,7 @@ def cache(srcjson, destdir, extras, s3):
         version = datetime.utcnow().strftime('%Y%m%d')
         key = '/{}/{}'.format(version, basename(filepath_to_upload))
 
-        k = upload_to_s3(bucketname, key, filepath_to_upload)
+        k = upload_to_s3(s3.bucketname, key, filepath_to_upload)
 
         data['cache'] = k.generate_url(expires_in=0, query_auth=False)
         data['fingerprint'] = k.md5

@@ -11,9 +11,6 @@ from urllib import urlencode
 from urlparse import urlparse
 from zipfile import ZipFile
 
-from osgeo import ogr, osr
-ogr.UseExceptions()
-
 
 def mkdirsp(path):
     try:
@@ -271,6 +268,9 @@ class ConvertToCsvTask(object):
     known_types = ('.shp', '.json', '.csv', '.kml')
 
     def convert(self, source_paths, workdir):
+        from osgeo import ogr, osr
+        ogr.UseExceptions()
+
         output_files = []
         convert_path = os.path.join(workdir, 'converted')
         mkdirsp(convert_path)
