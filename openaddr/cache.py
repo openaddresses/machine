@@ -27,18 +27,16 @@ class CacheResult:
     fingerprint = None
     version = None
     elapsed = None
-    output = None
 
-    def __init__(self, cache, fingerprint, version, elapsed, output):
+    def __init__(self, cache, fingerprint, version, elapsed):
         self.cache = cache
         self.fingerprint = fingerprint
         self.version = version
         self.elapsed = elapsed
-        self.output = output
 
     @staticmethod
     def empty():
-        return CacheResult(None, None, None, None, None)
+        return CacheResult(None, None, None, None)
 
     def todict(self):
         return dict(cache=self.cache, fingerprint=self.fingerprint, version=self.version)

@@ -136,8 +136,7 @@ def cache(srcjson, destdir, extras, s3):
     return CacheResult(data.get('cache', None),
                        data.get('fingerprint', None),
                        data.get('version', None),
-                       datetime.now() - start,
-                       output)
+                       datetime.now() - start)
 
 def conform(srcjson, destdir, extras, s3):
     ''' Python wrapper for openaddresses-conform.
