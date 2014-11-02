@@ -1,6 +1,7 @@
 {
     "run_list":
     [
+        "python",
         "openaddr-source",
         "openaddr-download",
         "openaddr-cache",
