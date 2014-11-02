@@ -24,27 +24,6 @@ from openaddr.cache import (
     upload_to_s3
 )
 
-class CacheResult:
-    cache = None
-    fingerprint = None
-    version = None
-    elapsed = None
-    output = None
-    
-    def __init__(self, cache, fingerprint, version, elapsed, output):
-        self.cache = cache
-        self.fingerprint = fingerprint
-        self.version = version
-        self.elapsed = elapsed
-        self.output = output
-    
-    @staticmethod
-    def empty():
-        return CacheResult(None, None, None, None, None)
-
-    def todict(self):
-        return dict(cache=self.cache, fingerprint=self.fingerprint, version=self.version)
-
 class ConformResult:
     processed = None
     path = None
@@ -140,13 +119,17 @@ def cache(srcjson, destdir, extras, s3):
         data['fingerprint'] = k.md5
         data['version'] = version
 
-        with open(json)
+        with open(json_filepath, 'w') as j:
+            json.dump(data, j)
 
     p = Process(target=thread_work, args=(tmpjson, source), name='oa-cache-'+source)
     p.start()
     # FIXME: We could add an integer argument to join() for the number of seconds
     # to wait for this process to finish
     p.join()
+
+    with open(tmpjson, 'r') as tmp_file:
+        data = json.load(tmp_file)
 
     rmtree(workdir)
 
