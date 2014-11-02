@@ -119,7 +119,7 @@ parser.add_argument('--width', dest='width', type=int,
 
 parser.add_argument('filename', help='Output PNG filename.')
 
-if __name__ == '__main__':
+def main():
     args = parser.parse_args()
 
     # Prepare output surface
@@ -165,3 +165,6 @@ if __name__ == '__main__':
 
     # Output
     surface.write_to_png(args.filename)
+
+if __name__ == '__main__':
+    exit(main())
