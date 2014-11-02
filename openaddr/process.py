@@ -7,7 +7,7 @@ from logging import getLogger
 from os import environ
 from glob import glob
 
-from openaddr import paths, jobs, ConformResult, S3
+from . import paths, jobs, ConformResult, S3
 
 parser = ArgumentParser(description='Run some source files.')
 
@@ -22,13 +22,17 @@ parser.add_argument('-s', '--secret-key', default=environ.get('AWS_SECRET_ACCESS
 
 parser.add_argument('-l', '--logfile', help='Optional log file name.')
 
-if __name__ == '__main__':
-
+def main():
     args = parser.parse_args()
-    jobs.setup_logger(args.logfile)
     
+    jobs.setup_logger(args.logfile)
     s3 = S3(args.access_key, args.secret_key, args.bucketname)
     
+    return process(s3)
+
+def process(s3):
+    '''
+    '''
     # Find existing cache information
     state_key = s3.get_key('state.txt')
     
@@ -79,3 +83,6 @@ if __name__ == '__main__':
     s3.new_key('state.txt').set_contents_from_string(state_data, **state_args)
     
     getLogger('openaddr').info('Wrote {} sources to state.txt'.format(len(source_files1)))
+
+if __name__ == '__main__':
+    exit(main())

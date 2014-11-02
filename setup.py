@@ -14,7 +14,8 @@ setup(
     entry_points = dict(
         console_scripts = [
             'openaddr-render-us = openaddr.render:main',
-            'openaddr-summarize = openaddr.summarize:main'
+            'openaddr-summarize = openaddr.summarize:main',
+            'openaddr-process = openaddr.process:main'
         ]
     )
 )

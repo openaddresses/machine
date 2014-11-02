@@ -21,10 +21,23 @@ OpenAddresses requires Amazon S3 to work. You can set the environment variables
 `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` or provide values as arguments
 to `parallel.py`.
 
-Test the complete process with `test.py`:
+Run the complete process with `openaddr-process`:
+
+    openaddr-process -a <AWS key> -s <AWS secret> -l <log> openaddresses
+
+Development
+-----------
+
+Modify the contents of [`openaddr/paths.py`](openaddr/paths.py) with locations
+of your local [openaddresses](https://github.com/openaddresses/openaddresses),
+[openaddresses-conform](https://github.com/openaddresses/openaddresses-conform),
+[openaddresses-cache](https://github.com/openaddresses/openaddresses-cache),
+and other components of OpenAddresses.
+
+Test the OpenAddresses with `test.py`:
 
     python test.py
 
-Run the complete process with `parallel.py`:
+Run the complete process from the `openaddr` module:
 
-    python parallel.py -a <AWS key> -s <AWS secret> -l <log> openaddresses
+    python -m openaddr.process -a <AWS key> -s <AWS secret> -l <log> openaddresses-tests
