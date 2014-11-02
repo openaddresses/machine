@@ -1,0 +1,25 @@
+<style lang="text/css">
+
+    li
+    {
+        background-color: rgb(252,141,89);
+        list-style-type: none;
+        padding: 5px;
+        margin: 0;
+        display: inline-block;
+    }
+    
+    li.cached { background-color: rgb(255,255,191) }
+    li.processed { background-color: rgb(145,207,96) }
+    li a { color: black; text-decoration: none }
+
+</style>
+<ul>
+{% for state in states %}
+    {% if state.href %}
+        <li class="{{ state.class }}"><a href="{{ state.href }}">{{ state.shortname }}</a></li>
+    {% else %}
+        <li class="{{ state.class }}">{{ state.shortname }}</li>
+    {% endif %}
+{% endfor %}
+</ul>

@@ -121,12 +121,16 @@ parser.add_argument('filename', help='Output PNG filename.')
 
 def main():
     args = parser.parse_args()
+    return render(paths.sources, args.width, args.resolution, args.filename)
 
+def render(sources, width, resolution, filename):
+    '''
+    '''
     # Prepare output surface
-    surface, context, scale = make_context(args.width, args.resolution)
+    surface, context, scale = make_context(width, resolution)
 
     # Load data
-    geoids = load_geoids(paths.sources)
+    geoids = load_geoids(sources)
 
     geodata = join(dirname(__file__), 'geodata')
     nation_ds = ogr.Open(join(geodata, 'cb_2013_us_nation_20m-2163.shp'))
@@ -158,13 +162,13 @@ def main():
 
     # Outline states and nation
     context.set_source_rgb(0, 0, 0)
-    context.set_line_width(.5 * args.resolution / scale)
+    context.set_line_width(.5 * resolution / scale)
     stroke_geometries(context, state_borders)
-    context.set_line_width(1 * args.resolution / scale)
+    context.set_line_width(1 * resolution / scale)
     stroke_features(context, nation_features)
 
     # Output
-    surface.write_to_png(args.filename)
+    surface.write_to_png(filename)
 
 if __name__ == '__main__':
     exit(main())
