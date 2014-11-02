@@ -4,12 +4,14 @@ import tempfile
 import json
 from uuid import uuid4
 from os import environ
+from StringIO import StringIO
 from os.path import dirname, join, splitext
+from csv import DictReader
 from glob import glob
 
-from openaddr import cache, conform, jobs, S3
+from openaddr import cache, conform, jobs, S3, process
 
-class TestCache (unittest.TestCase):
+class TestOA (unittest.TestCase):
     
     def setUp(self):
         ''' Prepare a clean temporary directory, and copy sources there.
@@ -28,37 +30,29 @@ class TestCache (unittest.TestCase):
             base, ext = splitext(path)
             shutil.move(path, '{0}-{1}{2}'.format(base, self.uuid, ext))
         
-        self.s3 = S3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'openaddresses-tests')
+        self.s3 = FakeS3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'openaddresses-tests')
     
     def tearDown(self):
         shutil.rmtree(self.testdir)
     
     def test_parallel(self):
-        sources1 = glob(join(self.src_dir, '*.json'))
-        source_extras1 = dict([(s, dict()) for s in sources1])
-        results1 = jobs.run_all_caches(sources1, source_extras1, self.s3)
+        process.process(self.s3, self.src_dir)
         
-        # Proceed only with sources that have a cache
-        sources2 = [s for s in sources1 if results1[s].cache]
-        source_extras2 = dict([(s, results1[s].todict()) for s in sources2])
-        results2 = jobs.run_all_conforms(sources2, source_extras2, self.s3)
-    
-        for (source, result) in results1.items():
-            # OpenAddresses-Cache will add three keys to the source file.
-            self.assertTrue(hasattr(result, 'cache'))
-            self.assertTrue(hasattr(result, 'version'))
-            self.assertTrue(hasattr(result, 'fingerprint'))
-    
-        for (source, result) in results2.items():
-            # OpenAddresses-Conform will add a processed key to the
-            # source file, if the conform data was present initially.
-            self.assertTrue(hasattr(result, 'processed'))
-            self.assertTrue(hasattr(result, 'path'))
-            if 'san_francisco' in source or 'alameda_county' in source:
-                self.assertTrue(type(result.processed) in (str, unicode))
-            else:
-                self.assertTrue(result.processed is None)
+        # Go looking for state.txt in fake S3.
+        buffer = StringIO(self.s3.keys['state.txt'])
+        states = dict([(row['source'], row) for row
+                       in DictReader(buffer, dialect='excel-tab')])
+        
+        for (source, state) in states.items():
+            self.assertTrue(bool(state['cache']))
+            self.assertTrue(bool(state['version']))
+            self.assertTrue(bool(state['fingerprint']))
 
+            if 'san_francisco' in source or 'alameda_county' in source:
+                self.assertTrue(bool(state['processed']))
+            else:
+                self.assertFalse(bool(state['processed']))
+    
     def test_single_ac(self):
         source = join(self.src_dir, 'us-ca-alameda_county-{0}.json'.format(self.uuid))
 
@@ -82,6 +76,34 @@ class TestCache (unittest.TestCase):
         result = conform(source, self.testdir, result.todict(), self.s3)
         self.assertTrue(result.processed is None)
         self.assertTrue(result.path is None)
+
+class FakeS3 (S3):
+    ''' Just enough S3 to work for tests.
+    '''
+    keys = None
+    
+    def __init__(self, *args, **kwargs):
+        self.keys = dict()
+        S3.__init__(self, *args, **kwargs)
+    
+    def get_key(self, name):
+        if name != 'state.txt':
+            raise NotImplementedError()
+        # No pre-existing state for testing.
+        return None
+        
+    def new_key(self, name):
+        return FakeKey(name, self)
+
+class FakeKey:
+    ''' Just enough S3 to work for tests.
+    '''
+    def __init__(self, name, fake_s3):
+        self.name = name
+        self.s3 = fake_s3
+
+    def set_contents_from_string(self, string, **kwargs):
+        self.s3.keys[self.name] = string
 
 if __name__ == '__main__':
     unittest.main()

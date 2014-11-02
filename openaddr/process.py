@@ -28,9 +28,9 @@ def main():
     jobs.setup_logger(args.logfile)
     s3 = S3(args.access_key, args.secret_key, args.bucketname)
     
-    return process(s3)
+    return process(s3, paths.sources)
 
-def process(s3):
+def process(s3, sourcedir):
     '''
     '''
     # Find existing cache information
@@ -44,7 +44,7 @@ def process(s3):
         rows = DictReader(state_file, dialect='excel-tab')
         
         for row in rows:
-            key = join(paths.sources, row['source'])
+            key = join(sourcedir, row['source'])
             source_extras1[key] = dict(cache=row['cache'],
                                        version=row['version'],
                                        fingerprint=row['fingerprint'],
@@ -54,7 +54,7 @@ def process(s3):
     getLogger('openaddr').info('Loaded {} sources from state.txt'.format(len(source_extras1)))
 
     # Cache data, if necessary
-    source_files1 = glob(join(paths.sources, '*.json'))
+    source_files1 = glob(join(sourcedir, '*.json'))
     source_files1.sort(key=lambda s: source_extras1[s]['cache_time'], reverse=True)
     results1 = jobs.run_all_caches(source_files1, source_extras1, s3)
     
@@ -74,7 +74,7 @@ def process(s3):
         result1 = results1[source]
         result2 = results2.get(source, ConformResult.empty())
     
-        out.writerow((relpath(source, paths.sources), result1.cache,
+        out.writerow((relpath(source, sourcedir), result1.cache,
                       result1.version, result1.fingerprint, result1.elapsed,
                       result2.processed, result2.elapsed))
     
