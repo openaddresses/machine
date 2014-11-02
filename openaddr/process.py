@@ -5,6 +5,7 @@ from csv import writer, DictReader
 from StringIO import StringIO
 from logging import getLogger
 from os import environ
+from time import time
 from glob import glob
 
 from . import paths, jobs, ConformResult, S3
@@ -28,29 +29,43 @@ def main():
     jobs.setup_logger(args.logfile)
     s3 = S3(args.access_key, args.secret_key, args.bucketname)
     
-    return process(s3, paths.sources)
+    run_name = '{:.3f}'.format(time())
+    
+    return process(s3, paths.sources, run_name)
 
-def process(s3, sourcedir):
+def read_state(s3, sourcedir):
     '''
     '''
-    # Find existing cache information
     state_key = s3.get_key('state.txt')
     
+    if state_key:
+        state_link = state_key.get_contents_as_string()
+        state_key = s3.get_key(state_link.strip())
+    
     # Use default times of 'zzz' because we're pessimistic about the unknown.
-    source_extras1 = defaultdict(lambda: dict(cache_time='zzz', process_time='zzz'))
+    states = defaultdict(lambda: dict(cache_time='zzz', process_time='zzz'))
 
     if state_key:
+        getLogger('openaddr').debug('Found state in {}'.format(state_key.name))
+
         state_file = StringIO(state_key.get_contents_as_string())
         rows = DictReader(state_file, dialect='excel-tab')
         
         for row in rows:
             key = join(sourcedir, row['source'])
-            source_extras1[key] = dict(cache=row['cache'],
-                                       version=row['version'],
-                                       fingerprint=row['fingerprint'],
-                                       cache_time=row['cache time'],
-                                       process_time=row['process time'])
+            states[key] = dict(cache=row['cache'],
+                               version=row['version'],
+                               fingerprint=row['fingerprint'],
+                               cache_time=row['cache time'],
+                               process_time=row['process time'])
     
+    return states
+
+def process(s3, sourcedir, run_name):
+    '''
+    '''
+    # Find existing cache information
+    source_extras1 = read_state(s3, sourcedir)
     getLogger('openaddr').info('Loaded {} sources from state.txt'.format(len(source_extras1)))
 
     # Cache data, if necessary
@@ -65,6 +80,11 @@ def process(s3, sourcedir):
     results2 = jobs.run_all_conforms(source_files2, source_extras2, s3)
 
     # Gather all results
+    write_state(s3, sourcedir, run_name, source_files1, results1, results2)
+
+def write_state(s3, sourcedir, run_name, source_files1, results1, results2):
+    '''
+    '''
     state_file = StringIO()
     out = writer(state_file, dialect='excel-tab')
     
@@ -79,8 +99,11 @@ def process(s3, sourcedir):
                       result2.processed, result2.elapsed))
     
     state_data = state_file.getvalue()
+    state_link = 'runs/{}/state.txt'.format(run_name)
     state_args = dict(policy='public-read', headers={'Content-Type': 'text/plain'})
-    s3.new_key('state.txt').set_contents_from_string(state_data, **state_args)
+
+    s3.new_key(state_link).set_contents_from_string(state_data, **state_args)
+    s3.new_key('state.txt').set_contents_from_string(state_link, **state_args)
     
     getLogger('openaddr').info('Wrote {} sources to state.txt'.format(len(source_files1)))
 
