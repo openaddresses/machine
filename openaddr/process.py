@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 from collections import defaultdict
-from os.path import join, basename, relpath
+from os.path import join, basename, relpath, splitext
 from csv import writer, DictReader
 from StringIO import StringIO
 from logging import getLogger
@@ -86,24 +86,34 @@ def write_state(s3, sourcedir, run_name, source_files1, results1, results2):
     '''
     '''
     state_file = StringIO()
+    state_args = dict(policy='public-read', headers={'Content-Type': 'text/plain'})
+
     out = writer(state_file, dialect='excel-tab')
     
-    out.writerow(('source', 'cache', 'version', 'fingerprint', 'cache time', 'processed', 'process time'))
+    out.writerow(('source', 'cache', 'version', 'fingerprint', 'cache time',
+                  'processed', 'process time', 'output'))
     
     for source in source_files1:
         result1 = results1[source]
         result2 = results2.get(source, ConformResult.empty())
+
+        source_name = relpath(source, sourcedir)
+        output_name = '{0}.txt'.format(*splitext(source_name))
     
-        out.writerow((relpath(source, sourcedir), result1.cache,
+        out.writerow((source_name, result1.cache,
                       result1.version, result1.fingerprint, result1.elapsed,
-                      result2.processed, result2.elapsed))
+                      result2.processed, result2.elapsed,
+                      output_name))
+        
+        output_path = join('runs', run_name, output_name)
+        output_data = '{}\n\n\n{}'.format(result1.output, result2.output)
+        s3.new_key(output_path).set_contents_from_string(output_data, **state_args)
     
     state_data = state_file.getvalue()
-    state_link = 'runs/{}/state.txt'.format(run_name)
-    state_args = dict(policy='public-read', headers={'Content-Type': 'text/plain'})
+    state_path = join('runs', run_name, 'state.txt')
 
-    s3.new_key(state_link).set_contents_from_string(state_data, **state_args)
-    s3.new_key('state.txt').set_contents_from_string(state_link, **state_args)
+    s3.new_key(state_path).set_contents_from_string(state_data, **state_args)
+    s3.new_key('state.txt').set_contents_from_string(state_path, **state_args)
     
     getLogger('openaddr').info('Wrote {} sources to state.txt'.format(len(source_files1)))
 
