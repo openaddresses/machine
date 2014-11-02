@@ -36,10 +36,10 @@ class TestOA (unittest.TestCase):
         shutil.rmtree(self.testdir)
     
     def test_parallel(self):
-        process.process(self.s3, self.src_dir)
+        process.process(self.s3, self.src_dir, 'test')
         
         # Go looking for state.txt in fake S3.
-        buffer = StringIO(self.s3.keys['state.txt'])
+        buffer = StringIO(self.s3.keys['runs/test/state.txt'])
         states = dict([(row['source'], row) for row
                        in DictReader(buffer, dialect='excel-tab')])
         
@@ -87,7 +87,7 @@ class FakeS3 (S3):
         S3.__init__(self, *args, **kwargs)
     
     def get_key(self, name):
-        if name != 'state.txt':
+        if not name.endswith('state.txt'):
             raise NotImplementedError()
         # No pre-existing state for testing.
         return None
