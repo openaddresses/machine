@@ -30,7 +30,7 @@ class TestOA (unittest.TestCase):
             base, ext = splitext(path)
             shutil.move(path, '{0}-{1}{2}'.format(base, self.uuid, ext))
         
-        self.s3 = FakeS3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'openaddresses-tests')
+        self.s3 = FakeS3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'data-test.openaddresses.io')
     
     def tearDown(self):
         shutil.rmtree(self.testdir)

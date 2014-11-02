@@ -9,7 +9,7 @@
         "state": "ca",
         "county": "Alameda"
     },
-    "data": "http://s3.amazonaws.com/openaddresses-tests/sources/us-ca-alameda_county-excerpt.zip",
+    "data": "http://s3.amazonaws.com/data-test.openaddresses.io/sources/us-ca-alameda_county-excerpt.zip",
     "license": "http://www.acgov.org/acdata/terms.htm",
     "year": "",
     "type": "http",

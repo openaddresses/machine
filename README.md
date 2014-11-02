@@ -40,4 +40,4 @@ Test the OpenAddresses with `test.py`:
 
 Run the complete process from the `openaddr` module:
 
-    python -m openaddr.process -a <AWS key> -s <AWS secret> -l <log> openaddresses-tests
+    python -m openaddr.process -a <AWS key> -s <AWS secret> -l <log> data.openaddresses.io

@@ -4,7 +4,7 @@
         "state": "ca",
         "city": "San Francisco"
     },
-    "data": "http://s3.amazonaws.com/openaddresses-tests/sources/us-ca-san_francisco-excerpt.zip",
+    "data": "http://s3.amazonaws.com/data-test.openaddresses.io/sources/us-ca-san_francisco-excerpt.zip",
     "license": "",
     "year": "",
     "type": "http",
