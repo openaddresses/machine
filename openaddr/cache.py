@@ -1,7 +1,10 @@
+import boto
 import json
 import os
+import errno
 import urllib2
 import socket
+import csv
 
 from logging import getLogger
 from urllib import urlencode
@@ -10,6 +13,17 @@ from zipfile import ZipFile
 
 from osgeo import ogr, osr
 ogr.UseExceptions()
+
+
+def mkdirsp(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc:
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
+
 
 class CacheResult:
     cache = None
@@ -49,7 +63,7 @@ class DownloadTask(object):
         else:
             raise KeyError("I don't know how to extract for type {}".format(type_string))
 
-    def download(self, source_urls):
+    def download(self, source_urls, workdir):
         raise NotImplementedError()
 
 
@@ -59,9 +73,9 @@ class Urllib2DownloadTask(DownloadTask):
 
     logger = getLogger().getChild('urllib2')
 
-    def download(self, source_key, source_urls):
+    def download(self, source_urls, workdir):
         output_files = []
-        download_path = os.path.join('.', 'workdir', source_key, 'http')
+        download_path = os.path.join(workdir, 'http')
         mkdirsp(download_path)
 
         for source_url in source_urls:
@@ -137,9 +151,9 @@ class EsriRestDownloadTask(DownloadTask):
             "geometry": geometry
         }
 
-    def download(self, source_key, source_urls):
+    def download(self, source_urls, workdir):
         output_files = []
-        download_path = os.path.join('.', 'workdir', source_key, 'esri')
+        download_path = os.path.join(workdir, 'esri')
         mkdirsp(download_path)
 
         for source_url in source_urls:
@@ -228,7 +242,7 @@ class DecompressionTask(object):
 
 
 class NoopDecompressTask(DecompressionTask):
-    def decompress(self, source_key, source_paths):
+    def decompress(self, source_paths, workdir):
         return source_paths
 
 
@@ -236,9 +250,9 @@ class ZipDecompressTask(DecompressionTask):
 
     logger = getLogger().getChild('unzip')
 
-    def decompress(self, source_key, source_paths):
+    def decompress(self, source_paths, workdir):
         output_files = []
-        expand_path = os.path.join('.', 'workdir', source_key, 'unzipped')
+        expand_path = os.path.join(workdir, 'unzipped')
         mkdirsp(expand_path)
 
         for source_path in source_paths:
@@ -256,9 +270,9 @@ class ConvertToCsvTask(object):
 
     known_types = ('.shp', '.json', '.csv', '.kml')
 
-    def convert(self, source_key, source_paths):
+    def convert(self, source_paths, workdir):
         output_files = []
-        convert_path = os.path.join('.', 'workdir', source_key, 'converted')
+        convert_path = os.path.join(workdir, 'converted')
         mkdirsp(convert_path)
 
         for source_path in source_paths:
@@ -316,3 +330,11 @@ class ConvertToCsvTask(object):
             output_files.append(file_path)
 
         return output_files
+
+def upload_to_s3(bucket_name, key, file_path):
+    s3 = boto.connect_s3()
+    b = s3.get_bucket(bucket_name)
+    k = b.new_key(key)
+    k.set_contents_from_filename(file_path, reduced_redundancy=True)
+    k.set_acl('public-read')
+    return k

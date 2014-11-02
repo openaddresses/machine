@@ -1,4 +1,5 @@
 from subprocess import Popen
+from multiprocessing import Process
 from tempfile import mkdtemp
 from os.path import realpath, join, basename, splitext, exists
 from shutil import copy, move, rmtree
@@ -15,7 +16,13 @@ from osgeo import ogr
 from requests import get
 from boto import connect_s3
 from . import paths
-from openaddr.cache import DownloadTask, DecompressionTask, ConvertToCsvTask
+from openaddr.cache import (
+    CacheResult,
+    DownloadTask,
+    DecompressionTask,
+    ConvertToCsvTask,
+    upload_to_s3
+)
 
 class CacheResult:
     cache = None
@@ -106,40 +113,42 @@ def cache(srcjson, destdir, extras, s3):
     logger = getLogger('openaddr')
     tmpjson = _tmp_json(workdir, srcjson, extras)
 
-    task = DownloadTask.from_type_string(data.get('type'))
-    result = task.download()
-    task = DecompressionTask.from_type_string(data.get('compression'))
-    result = task.decompress()
+    def thread_work(json_filepath, source_key):
+        with open(json_filepath, 'r') as j:
+            data = json.load(j)
 
-    #
-    # Run openaddresses-cache from a fresh working directory.
-    #
-    errpath = join(destdir, source+'-cache.stderr')
-    outpath = join(destdir, source+'-cache.stdout')
-    st_path = join(destdir, source+'-cache.status')
+        source_urls = data.get('data')
+        if not isinstance(source_urls, list):
+            source_urls = [source_urls]
 
-    with open(errpath, 'w') as stderr, open(outpath, 'w') as stdout:
-        index_js = join(paths.cache, 'index.js')
-        cmd_args = dict(cwd=workdir, env=s3.toenv(), stderr=stderr, stdout=stdout)
+        task = DownloadTask.from_type_string(data.get('type'))
+        downloaded_files = task.download(source_urls, workdir)
 
-        logger.debug('openaddresses-cache {0} {1}'.format(tmpjson, workdir))
+        # FIXME: I wrote the download stuff to assume multiple files because
+        # sometimes a Shapefile fileset is splayed across multiple files instead
+        # of zipped up nicely. When the downloader downloads multiple files,
+        # we should zip them together before uploading to S3 instead of picking
+        # the first one only.
+        filepath_to_upload = downloaded_files[0]
 
-        cmd = Popen(('node', index_js, tmpjson, workdir, s3.bucketname), **cmd_args)
-        _wait_for_it(cmd, 7200)
+        version = datetime.utcnow().strftime('%Y%m%d')
+        key = '/{}/{}'.format(version, basename(filepath_to_upload))
 
-        with open(st_path, 'w') as file:
-            file.write(str(cmd.returncode))
+        k = upload_to_s3(bucketname, key, filepath_to_upload)
 
-    logger.debug('{0} --> {1}'.format(source, workdir))
+        data['cache'] = k.generate_url(expires_in=0, query_auth=False)
+        data['fingerprint'] = k.md5
+        data['version'] = version
 
-    with open(tmpjson) as file:
-        data = json.load(file)
+        with open(json)
+
+    p = Process(target=thread_work, args=(tmpjson, source), name='oa-cache-'+source)
+    p.start()
+    # FIXME: We could add an integer argument to join() for the number of seconds
+    # to wait for this process to finish
+    p.join()
 
     rmtree(workdir)
-
-    with open(st_path) as status, open(errpath) as err, open(outpath) as out:
-        args = status.read().strip(), err.read().strip(), out.read().strip()
-        output = '{}\n\nSTDERR:\n\n{}\n\nSTDOUT:\n\n{}\n'.format(*args)
 
     return CacheResult(data.get('cache', None),
                        data.get('fingerprint', None),
