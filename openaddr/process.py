@@ -8,7 +8,7 @@ from os import environ
 from time import time
 from glob import glob
 
-from . import paths, jobs, ConformResult, S3
+from . import paths, jobs, ConformResult, S3, render, summarize
 
 parser = ArgumentParser(description='Run some source files.')
 
@@ -29,9 +29,31 @@ def main():
     jobs.setup_logger(args.logfile)
     s3 = S3(args.access_key, args.secret_key, args.bucketname)
     
+    #
+    # Do the work
+    #
     run_name = '{:.3f}'.format(time())
+    process(s3, paths.sources, run_name)
     
-    return process(s3, paths.sources, run_name)
+    #
+    # Talk about the work
+    #
+    render.render(paths.sources, 960, 2, 'render-{}.png'.format(run_name))
+    render_data = open('render-{}.png'.format(run_name)).read()
+    render_key = s3.new_key(join('runs', run_name, 'render.png'))
+    render_key.set_contents_from_string(render_data, policy='public-read',
+                                        headers={'Content-Type': 'image/png'})
+
+    summary_html = summarize.summarize(s3)
+    summary_link = join('runs', run_name, 'index.html')
+    summary_key = s3.new_key(summary_link)
+    summary_key.set_contents_from_string(summary_html, policy='public-read',
+                                         headers={'Content-Type': 'text/html'})
+
+    index_html = '<a href="{0}">{0}</a>'.format(summary_link)
+    index_key = s3.new_key('index.html')
+    index_key.set_contents_from_string(index_html, policy='public-read',
+                                       headers={'Content-Type': 'text/html'})
 
 def read_state(s3, sourcedir):
     '''

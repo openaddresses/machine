@@ -124,7 +124,7 @@ def main():
     return render(paths.sources, args.width, args.resolution, args.filename)
 
 def render(sources, width, resolution, filename):
-    '''
+    ''' Resolution: 1 for 100%, 2 for 200%, etc.
     '''
     # Prepare output surface
     surface, context, scale = make_context(width, resolution)

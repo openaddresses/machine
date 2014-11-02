@@ -14,6 +14,10 @@ def load_states(s3):
     states = list()
 
     if state_key:
+        state_link = state_key.get_contents_as_string()
+        state_key = s3.get_key(state_link.strip())
+    
+    if state_key:
         state_file = StringIO(state_key.get_contents_as_string())
         rows = DictReader(state_file, dialect='excel-tab')
         
@@ -32,10 +36,14 @@ def load_states(s3):
 
 def main():
     s3 = S3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'openaddresses-cfa')
-    
+    print summarize(s3)
+
+def summarize(s3):
+    ''' Return summary HTML.
+    '''
     env = Environment(loader=FileSystemLoader(join(dirname(__file__), 'templates')))
     template = env.get_template('state.html')
-    print template.render(states=load_states(s3))
+    return template.render(states=load_states(s3))
 
 if __name__ == '__main__':
     exit(main())
