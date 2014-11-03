@@ -63,7 +63,6 @@ class TestOA (unittest.TestCase):
         
         result = conform(source, self.testdir, result.todict(), self.s3)
         self.assertTrue(result.processed is not None)
-        self.assertTrue(result.path is not None)
 
     def test_single_oak(self):
         source = join(self.src_dir, 'us-ca-oakland-{0}.json'.format(self.uuid))
@@ -75,7 +74,6 @@ class TestOA (unittest.TestCase):
         
         result = conform(source, self.testdir, result.todict(), self.s3)
         self.assertTrue(result.processed is None)
-        self.assertTrue(result.path is None)
 
 class FakeS3 (S3):
     ''' Just enough S3 to work for tests.

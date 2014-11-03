@@ -11,6 +11,7 @@ from os import mkdir, environ
 from time import sleep, time
 from zipfile import ZipFile
 import json
+import boto
 
 from osgeo import ogr
 from requests import get
@@ -19,29 +20,22 @@ from . import paths
 from openaddr.cache import (
     CacheResult,
     DownloadTask,
-    DecompressionTask,
-    ConvertToCsvTask,
-    upload_to_s3
+    Urllib2DownloadTask,
 )
 
-class ConformResult:
-    processed = None
-    path = None
-    elapsed = None
-    output = None
+from openaddr.conform import (
+    ConformResult,
+    DecompressionTask,
+    ConvertToCsvTask,
+)
 
-    def __init__(self, processed, path, elapsed, output):
-        self.processed = processed
-        self.path = path
-        self.elapsed = elapsed
-        self.output = output
-
-    @staticmethod
-    def empty():
-        return ConformResult(None, None, None, None)
-
-    def todict(self):
-        return dict(processed=self.processed, path=self.path)
+def upload_to_s3(bucket_name, key, file_path):
+    s3 = boto.connect_s3()
+    b = s3.get_bucket(bucket_name)
+    k = b.new_key(key)
+    k.set_contents_from_filename(file_path, reduced_redundancy=True)
+    k.set_acl('public-read')
+    return k
 
 class ExcerptResult:
     sample_data = None
@@ -92,7 +86,7 @@ def cache(srcjson, destdir, extras, s3):
     logger = getLogger('openaddr')
     tmpjson = _tmp_json(workdir, srcjson, extras)
 
-    def thread_work(json_filepath, source_key):
+    def thread_work(json_filepath, workdir):
         with open(json_filepath, 'r') as j:
             data = json.load(j)
 
@@ -122,7 +116,7 @@ def cache(srcjson, destdir, extras, s3):
         with open(json_filepath, 'w') as j:
             json.dump(data, j)
 
-    p = Process(target=thread_work, args=(tmpjson, source), name='oa-cache-'+source)
+    p = Process(target=thread_work, args=(tmpjson, workdir), name='oa-cache-'+source)
     p.start()
     # FIXME: We could add an integer argument to join() for the number of seconds
     # to wait for this process to finish
@@ -154,57 +148,46 @@ def conform(srcjson, destdir, extras, s3):
     logger = getLogger('openaddr')
     tmpjson = _tmp_json(workdir, srcjson, extras)
 
-    #
-    # Run openaddresses-conform from a fresh working directory.
-    #
-    # It tends to error silently and truncate data if it finds any existing
-    # data. Also, it wants to be able to write a file called ./tmp.csv.
-    #
-    errpath = join(destdir, source+'-conform.stderr')
-    outpath = join(destdir, source+'-conform.stdout')
-    st_path = join(destdir, source+'-conform.status')
+    def thread_work(json_filepath, workdir, source_key):
+        with open(json_filepath, 'r') as j:
+            data = json.load(j)
 
-    with open(errpath, 'w') as stderr, open(outpath, 'w') as stdout:
-        index_js = join(paths.conform, 'index.js')
-        cmd_args = dict(cwd=workdir, env=s3.toenv(), stderr=stderr, stdout=stdout)
+        source_urls = data.get('cache')
+        if not isinstance(source_urls, list):
+            source_urls = [source_urls]
 
-        logger.debug('openaddresses-conform {0} {1}'.format(tmpjson, workdir))
+        task = Urllib2DownloadTask()
+        downloaded_path = task.download(source_urls, workdir)
 
-        cmd = Popen(('node', index_js, tmpjson, workdir, s3.bucketname), **cmd_args)
-        _wait_for_it(cmd, 7200)
+        task = DecompressionTask.from_type_string(data.get('compression'))
+        decompressed_paths = task.decompress(downloaded_path, workdir)
 
-        with open(st_path, 'w') as file:
-            file.write(str(cmd.returncode))
+        task = ConvertToCsvTask()
+        csv_paths = task.convert(decompressed_paths, workdir)
 
-    logger.debug('{0} --> {1}'.format(source, workdir))
+        version = datetime.utcnow().strftime('%Y%m%d')
+        key = '/{}/{}.csv'.format(version, source_key)
 
-    #
-    # Move resulting files to destination directory.
-    #
-    zip_path = join(destdir, source+'.zip')
-    csv_path = join(destdir, source+'.csv')
+        k = upload_to_s3(bucketname, key, csv_paths[0])
 
-    if exists(join(workdir, source+'.zip')):
-        move(join(workdir, source+'.zip'), zip_path)
-        logger.debug(zip_path)
+        data['processed'] = k.generate_url(expires_in=0, query_auth=False)
 
-    if exists(join(workdir, source, 'out.csv')):
-        move(join(workdir, source, 'out.csv'), csv_path)
-        logger.debug(csv_path)
+        with open(json_filepath, 'w') as j:
+            json.dump(data, j)
 
-    with open(tmpjson) as file:
-        data = json.load(file)
+    p = Process(target=thread_work, args=(tmpjson, workdir, source), name='oa-conform-'+source)
+    p.start()
+    # FIXME: We could add an integer argument to join() for the number of seconds
+    # to wait for this process to finish
+    p.join()
+
+    with open(tmpjson, 'r') as tmp_file:
+        data = json.load(tmp_file)
 
     rmtree(workdir)
 
-    with open(st_path) as status, open(errpath) as err, open(outpath) as out:
-        args = status.read().strip(), err.read().strip(), out.read().strip()
-        output = '{}\n\nSTDERR:\n\n{}\n\nSTDOUT:\n\n{}\n'.format(*args)
-
     return ConformResult(data.get('processed', None),
-                         (realpath(csv_path) if exists(csv_path) else None),
-                         datetime.now() - start,
-                         output)
+                         datetime.now() - start)
 
 def excerpt(srcjson, destdir, extras, s3):
     ''' 
