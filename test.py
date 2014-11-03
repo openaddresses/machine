@@ -49,9 +49,9 @@ class TestOA (unittest.TestCase):
             self.assertTrue(bool(state['fingerprint']))
 
             if 'san_francisco' in source or 'alameda_county' in source:
-                self.assertTrue(bool(state['processed']))
+                self.assertTrue(bool(state['processed']), "state['processed'] should not be empty in {}".format(source))
             else:
-                self.assertFalse(bool(state['processed']))
+                self.assertFalse(bool(state['processed']), "state['processed'] should be empty in {}".format(source))
     
     def test_single_ac(self):
         source = join(self.src_dir, 'us-ca-alameda_county-{0}.json'.format(self.uuid))

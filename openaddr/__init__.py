@@ -168,7 +168,7 @@ def conform(srcjson, destdir, extras, s3):
         version = datetime.utcnow().strftime('%Y%m%d')
         key = '/{}/{}.csv'.format(version, source_key)
 
-        k = upload_to_s3(bucketname, key, csv_paths[0])
+        k = upload_to_s3(s3.bucketname, key, csv_paths[0])
 
         data['processed'] = k.generate_url(expires_in=0, query_auth=False)
 

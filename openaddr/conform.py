@@ -22,6 +22,9 @@ def mkdirsp(path):
 class ConformResult:
     processed = None
     elapsed = None
+    
+    # needed by openaddr.process.write_state(), for now.
+    output = ''
 
     def __init__(self, processed, elapsed):
         self.processed = processed
