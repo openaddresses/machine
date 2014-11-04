@@ -29,14 +29,6 @@ from openaddr.conform import (
     ConvertToCsvTask,
 )
 
-def upload_to_s3(bucket_name, key, file_path):
-    s3 = boto.connect_s3()
-    b = s3.get_bucket(bucket_name)
-    k = b.new_key(key)
-    k.set_contents_from_filename(file_path, reduced_redundancy=True)
-    k.set_acl('public-read')
-    return k
-
 class ExcerptResult:
     sample_data = None
 
@@ -107,7 +99,9 @@ def cache(srcjson, destdir, extras, s3):
         version = datetime.utcnow().strftime('%Y%m%d')
         key = '/{}/{}'.format(version, basename(filepath_to_upload))
 
-        k = upload_to_s3(s3.bucketname, key, filepath_to_upload)
+        k = s3.new_key(key)
+        kwargs = dict(policy='public-read', reduced_redundancy=True)
+        k.set_contents_from_filename(filepath_to_upload, **kwargs)
 
         data['cache'] = k.generate_url(expires_in=0, query_auth=False)
         data['fingerprint'] = k.md5
@@ -168,7 +162,9 @@ def conform(srcjson, destdir, extras, s3):
         version = datetime.utcnow().strftime('%Y%m%d')
         key = '/{}/{}.csv'.format(version, source_key)
 
-        k = upload_to_s3(s3.bucketname, key, csv_paths[0])
+        k = s3.new_key(key)
+        kwargs = dict(policy='public-read', reduced_redundancy=True)
+        k.set_contents_from_filename(csv_paths[0], **kwargs)
 
         data['processed'] = k.generate_url(expires_in=0, query_auth=False)
 
