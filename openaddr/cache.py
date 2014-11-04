@@ -8,6 +8,7 @@ from logging import getLogger
 from urllib import urlencode
 from urlparse import urlparse
 
+import requests
 
 def mkdirsp(path):
     try:
@@ -85,19 +86,14 @@ class Urllib2DownloadTask(DownloadTask):
             headers = {'User-Agent': self.USER_AGENT}
 
             try:
-                req = urllib2.Request(source_url, headers=headers)
-                resp = urllib2.urlopen(req)
+                resp = requests.get(source_url, headers=headers, stream=True)
             except urllib2.URLError as e:
                 raise DownloadError("Could not connect to URL", e)
 
-
             size = 0
             with open(file_path, 'wb') as fp:
-                while True:
-                    chunk = resp.read(self.CHUNK)
+                for chunk in resp.iter_content(self.CHUNK):
                     size += len(chunk)
-                    if not chunk:
-                        break
                     fp.write(chunk)
 
             output_files.append(file_path)
