@@ -137,6 +137,15 @@ class EsriRestDownloadTask(DownloadTask):
                     ] for ring in esri_feature['geometry']['rings']
                 ]
             }
+        elif geom_type == 'esriGeometryPolyline':
+            geometry = {
+                "type": "MultiLineString",
+                "coordinates": [
+                    [
+                        [geom[0], geom[1]] for geom in path
+                    ] for path in esri_feature['geometry']['paths']
+                ]
+            }
         else:
             raise KeyError("Don't know how to convert esri geometry type {}".format(geom_type))
 
