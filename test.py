@@ -2,8 +2,9 @@ import unittest
 import shutil
 import tempfile
 import json
+import pickle
 from uuid import uuid4
-from os import environ
+from os import environ, close
 from StringIO import StringIO
 from urlparse import urlparse
 from os.path import dirname, join, splitext
@@ -47,10 +48,15 @@ class TestOA (unittest.TestCase):
             with open(join(dirname(__file__), local_path)) as file:
                 return response(200, file.read())
         
-        elif path.endswith('/us-ca-oakland-excerpt.zip'):
-            return response(200, self.s3.keys[path])
+        elif path.endswith('sources/us-ca-alameda_county-excerpt.zip'):
+            local_path = join('tests', 'data', 'us-ca-alameda_county-excerpt.zip')
+            with open(join(dirname(__file__), local_path)) as file:
+                return response(200, file.read())
         
-        raise NotImplementedError(host, path, self.s3.keys.keys())
+        elif path.endswith('-excerpt.zip'):
+            return response(200, self.s3._read_fake_key(path))
+        
+        raise NotImplementedError(host, path)
     
     def test_parallel(self):
         process.process(self.s3, self.src_dir, 'test')
@@ -71,15 +77,16 @@ class TestOA (unittest.TestCase):
                 self.assertFalse(bool(state['processed']), "state['processed'] should be empty in {}".format(source))
     
     def test_single_ac(self):
-        source = join(self.src_dir, 'us-ca-alameda_county-{0}.json'.format(self.uuid))
+        with HTTMock(self.response_content):
+            source = join(self.src_dir, 'us-ca-alameda_county-{0}.json'.format(self.uuid))
 
-        result = cache(source, self.testdir, dict(), self.s3)
-        self.assertTrue(result.cache is not None)
-        self.assertTrue(result.version is not None)
-        self.assertTrue(result.fingerprint is not None)
+            result = cache(source, self.testdir, dict(), self.s3)
+            self.assertTrue(result.cache is not None)
+            self.assertTrue(result.version is not None)
+            self.assertTrue(result.fingerprint is not None)
         
-        result = conform(source, self.testdir, result.todict(), self.s3)
-        self.assertTrue(result.processed is not None)
+            result = conform(source, self.testdir, result.todict(), self.s3)
+            self.assertTrue(result.processed is not None)
 
     def test_single_oak(self):
         with HTTMock(self.response_content):
@@ -96,11 +103,31 @@ class TestOA (unittest.TestCase):
 class FakeS3 (S3):
     ''' Just enough S3 to work for tests.
     '''
-    keys = None
+    _fake_keys = None
     
     def __init__(self, *args, **kwargs):
-        self.keys = dict()
+        handle, self._fake_keys = tempfile.mkstemp(prefix='fakeS3-', suffix='.pickle')
+        close(handle)
+        
+        with open(self._fake_keys, 'w') as file:
+            pickle.dump(dict(), file)
+
         S3.__init__(self, *args, **kwargs)
+    
+    def _write_fake_key(self, name, string):
+        with open(self._fake_keys, 'r') as file:
+            data = pickle.load(file)
+            
+        data[name] = string
+        
+        with open(self._fake_keys, 'w') as file:
+            pickle.dump(data, file)
+    
+    def _read_fake_key(self, name):
+        with open(self._fake_keys, 'r') as file:
+            data = pickle.load(file)
+            
+        return data[name]
     
     def get_key(self, name):
         if not name.endswith('state.txt'):
@@ -119,15 +146,16 @@ class FakeKey:
     def __init__(self, name, fake_s3):
         self.name = name
         self.s3 = fake_s3
+    
+    def generate_url(self, **kwargs):
+        return 'http://example.local' + self.name
 
     def set_contents_from_string(self, string, **kwargs):
-        print 'set_contents_from_string', self.name, len(string), 'bytes', id(self.s3)
-        self.s3.keys[self.name] = string
-
+        self.s3._write_fake_key(self.name, string)
+        
     def set_contents_from_filename(self, filename, **kwargs):
         with open(filename) as file:
-            self.s3.keys[self.name] = file.read()
-            print 'set_contents_from_filename', self.name, len(self.s3.keys[self.name]), 'bytes', id(self.s3)
+            self.s3._write_fake_key(self.name, file.read())
 
 if __name__ == '__main__':
     unittest.main()
