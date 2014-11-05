@@ -5,9 +5,12 @@ import json
 from uuid import uuid4
 from os import environ
 from StringIO import StringIO
+from urlparse import urlparse
 from os.path import dirname, join, splitext
 from csv import DictReader
 from glob import glob
+
+from httmock import response, HTTMock
 
 from openaddr import cache, conform, jobs, S3, process
 
@@ -35,6 +38,17 @@ class TestOA (unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.testdir)
 
+    def response_content(self, url, request):
+        
+        _, host, path, _, _, _ = urlparse(url.geturl())
+        
+        if path.endswith('sources/us-ca-oakland-excerpt.zip'):
+            local_path = join('tests', 'data', 'us-ca-oakland-excerpt.zip')
+            with open(join(dirname(__file__), local_path)) as file:
+                return response(200, file.read())
+        
+        raise NotImplementedError(host, path, self.s3.keys.keys())
+    
     def test_parallel(self):
         process.process(self.s3, self.src_dir, 'test')
         
@@ -65,15 +79,16 @@ class TestOA (unittest.TestCase):
         self.assertTrue(result.processed is not None)
 
     def test_single_oak(self):
-        source = join(self.src_dir, 'us-ca-oakland-{0}.json'.format(self.uuid))
+        with HTTMock(self.response_content):
+            source = join(self.src_dir, 'us-ca-oakland-{0}.json'.format(self.uuid))
 
-        result = cache(source, self.testdir, dict(), self.s3)
-        self.assertTrue(result.cache is not None)
-        self.assertTrue(result.version is not None)
-        self.assertTrue(result.fingerprint is not None)
+            result = cache(source, self.testdir, dict(), self.s3)
+            self.assertTrue(result.cache is not None)
+            self.assertTrue(result.version is not None)
+            self.assertTrue(result.fingerprint is not None)
         
-        result = conform(source, self.testdir, result.todict(), self.s3)
-        self.assertTrue(result.processed is None)
+            result = conform(source, self.testdir, result.todict(), self.s3)
+            self.assertTrue(result.processed is None)
 
 class FakeS3 (S3):
     ''' Just enough S3 to work for tests.
