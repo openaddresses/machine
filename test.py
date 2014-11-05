@@ -47,6 +47,9 @@ class TestOA (unittest.TestCase):
             with open(join(dirname(__file__), local_path)) as file:
                 return response(200, file.read())
         
+        elif path.endswith('/us-ca-oakland-excerpt.zip'):
+            return response(200, self.s3.keys[path])
+        
         raise NotImplementedError(host, path, self.s3.keys.keys())
     
     def test_parallel(self):
@@ -111,12 +114,20 @@ class FakeS3 (S3):
 class FakeKey:
     ''' Just enough S3 to work for tests.
     '''
+    md5 = '0xDEADBEEF'
+    
     def __init__(self, name, fake_s3):
         self.name = name
         self.s3 = fake_s3
 
     def set_contents_from_string(self, string, **kwargs):
+        print 'set_contents_from_string', self.name, len(string), 'bytes', id(self.s3)
         self.s3.keys[self.name] = string
+
+    def set_contents_from_filename(self, filename, **kwargs):
+        with open(filename) as file:
+            self.s3.keys[self.name] = file.read()
+            print 'set_contents_from_filename', self.name, len(self.s3.keys[self.name]), 'bytes', id(self.s3)
 
 if __name__ == '__main__':
     unittest.main()
