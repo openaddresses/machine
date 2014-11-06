@@ -43,12 +43,11 @@ class ExcerptResult:
         return dict(sample_data=self.sample_data)
 
 class S3:
-    bucketname = None
+    _bucket = None
 
     def __init__(self, key, secret, bucketname):
         self._key, self._secret = key, secret
         self.bucketname = bucketname
-        self._bucket = connect_s3(key, secret).get_bucket(bucketname)
     
     def toenv(self):
         env = dict(environ)
@@ -56,9 +55,13 @@ class S3:
         return env
     
     def get_key(self, name):
+        if not self._bucket:
+            self._bucket = connect_s3(key, secret).get_bucket(bucketname)
         return self._bucket.get_key(name)
     
     def new_key(self, name):
+        if not self._bucket:
+            self._bucket = connect_s3(key, secret).get_bucket(bucketname)
         return self._bucket.new_key(name)
 
 def cache(srcjson, destdir, extras, s3):
