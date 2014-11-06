@@ -4,15 +4,13 @@ import tempfile
 import json
 import pickle
 import re
-from uuid import uuid4
-from os import environ, close
+from os import close
 from StringIO import StringIO
 from urlparse import urlparse
-from os.path import dirname, join, splitext
+from os.path import dirname, join
 from fcntl import lockf, LOCK_EX, LOCK_UN
 from contextlib import contextmanager
 from csv import DictReader
-from glob import glob
 
 from httmock import response, HTTMock
 
@@ -30,20 +28,14 @@ class TestOA (unittest.TestCase):
         sources_dir = join(dirname(__file__), 'tests', 'sources')
         shutil.copytree(sources_dir, self.src_dir)
 
-        # Rename sources with random characters so S3 keys are unique.
-        self.uuid = uuid4().hex
-
-        for path in glob(join(self.src_dir, '*.json')):
-            base, ext = splitext(path)
-            shutil.move(path, '{0}-{1}{2}'.format(base, self.uuid, ext))
-        
         self.s3 = FakeS3()
     
     def tearDown(self):
         shutil.rmtree(self.testdir)
 
     def response_content(self, url, request):
-    
+        ''' Fake HTTP responses for use with HTTMock in tests.
+        '''
         _, host, path, _, _, _ = urlparse(url.geturl())
         
         source_match = re.match(r'.*\bsources/(.+-excerpt.zip)$', path)
@@ -58,7 +50,9 @@ class TestOA (unittest.TestCase):
         
         raise NotImplementedError(host, path)
     
-    def test_parallel(self):
+    def test_process(self):
+        ''' Test process.process(), with complete threaded behavior.
+        '''
         with HTTMock(self.response_content):
             process.process(self.s3, self.src_dir, 'test')
         
@@ -79,8 +73,10 @@ class TestOA (unittest.TestCase):
                 self.assertTrue(bool(state['processed']), "state['processed'] should be empty in {}".format(source))
     
     def test_single_ac(self):
+        ''' Test cache() and conform() on Alameda County sample data.
+        '''
         with HTTMock(self.response_content):
-            source = join(self.src_dir, 'us-ca-alameda_county-{0}.json'.format(self.uuid))
+            source = join(self.src_dir, 'us-ca-alameda_county.json')
 
             result = cache(source, self.testdir, dict(), self.s3)
             self.assertTrue(result.cache is not None)
@@ -94,8 +90,10 @@ class TestOA (unittest.TestCase):
             self.assertTrue('2000 BROADWAY' in self.s3._read_fake_key(path))
 
     def test_single_oak(self):
+        ''' Test cache() and conform() on Oakland sample data.
+        '''
         with HTTMock(self.response_content):
-            source = join(self.src_dir, 'us-ca-oakland-{0}.json'.format(self.uuid))
+            source = join(self.src_dir, 'us-ca-oakland.json')
 
             result = cache(source, self.testdir, dict(), self.s3)
             self.assertTrue(result.cache is not None)
