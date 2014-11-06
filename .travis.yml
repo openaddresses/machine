@@ -4,11 +4,15 @@ python:
 virtualenv:
   system_site_packages: true
 before_install: 
-  - sudo mv /etc/apt/sources.list.d/pgdg-source.list* /tmp
-  - sudo apt-get remove -y libgdal1
-  - sudo add-apt-repository -y ppa:ubuntugis/ubuntugis-unstable
-  - sudo apt-get update -y
-  - sudo apt-get install -y python-gdal
+  - sudo apt-get install -qq libgdal1h
+  - sudo apt-get install -qq python-numpy python-scientific
+  - sudo apt-get install -qq python-shapely
+  - sudo apt-get install -qq python-qt4
+  - sudo apt-get install -qq proj
+  - sudo apt-get install -qq gmsh
+  - sudo apt-get install -qq gmt
+  - sudo apt-get install -qq python-gdal
+  - sudo apt-get install -qq python-cairo
 install:
   - pip install . 'httmock >= 1.2'
 script:  python test.py
