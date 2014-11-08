@@ -116,7 +116,8 @@ def cache(srcjson, destdir, extras, s3):
     p = Process(target=thread_work, args=(tmpjson, workdir), name='oa-cache-'+source)
     p.start()
     # FIXME: We could add an integer argument to join() for the number of seconds
-    # to wait for this process to finish
+    # to wait for this process to finish. On Mac OS X 10.9.4, this step often
+    # stalls out unpredictably. Can't duplicate this behavior on Ubuntu 14.04.
     p.join()
 
     with open(tmpjson, 'r') as tmp_file:
@@ -177,7 +178,8 @@ def conform(srcjson, destdir, extras, s3):
     p = Process(target=thread_work, args=(tmpjson, workdir, source), name='oa-conform-'+source)
     p.start()
     # FIXME: We could add an integer argument to join() for the number of seconds
-    # to wait for this process to finish
+    # to wait for this process to finish. On Mac OS X 10.9.4, this step often
+    # stalls out unpredictably. Can't duplicate this behavior on Ubuntu 14.04.
     p.join()
 
     with open(tmpjson, 'r') as tmp_file:
