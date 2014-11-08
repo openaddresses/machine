@@ -3,6 +3,7 @@ import os
 import errno
 import urllib2
 import socket
+import mimetypes
 
 from logging import getLogger
 from urllib import urlencode
@@ -68,6 +69,22 @@ class Urllib2DownloadTask(DownloadTask):
     CHUNK = 16 * 1024
 
     logger = getLogger().getChild('urllib2')
+    
+    def get_file_path(self, url, dir_path):
+        ''' Return a local file path in a directory for a URL.
+        
+            May need to fill in a filename extension based on HTTP Content-Type.
+        '''
+        _, _, path, _, _, _ = urlparse(url)
+        path_base, path_ext = os.path.splitext(os.path.basename(path))
+        self.logger.debug('Downloading {} to {}{}'.format(path, path_base, path_ext))
+        
+        if not path_ext:
+            resp = requests.head(url)
+            path_ext = mimetypes.guess_extension(resp.headers['content-type'])
+            self.logger.debug('Guessing {}{} for {}'.format(path_base, path_ext, resp.headers['content-type']))
+        
+        return os.path.join(dir_path, path_base + path_ext)
 
     def download(self, source_urls, workdir):
         output_files = []
@@ -75,7 +92,7 @@ class Urllib2DownloadTask(DownloadTask):
         mkdirsp(download_path)
 
         for source_url in source_urls:
-            file_path = os.path.join(download_path, source_url.split('/')[-1])
+            file_path = self.get_file_path(source_url, download_path)
 
             if os.path.exists(file_path):
                 output_files.append(file_path)

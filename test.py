@@ -6,6 +6,7 @@ import pickle
 import re
 from os import close
 from StringIO import StringIO
+from mimetypes import guess_type
 from urlparse import urlparse, parse_qs
 from os.path import dirname, join
 from fcntl import lockf, LOCK_EX, LOCK_UN
@@ -63,8 +64,9 @@ class TestOA (unittest.TestCase):
                 local_path = join(data_dirname, 'us-ca-carson-1.json')
         
         if local_path:
+            type, _ = guess_type(local_path)
             with open(local_path) as file:
-                return response(200, file.read())
+                return response(200, file.read(), headers={'Content-Type': type})
         
         raise NotImplementedError(url.geturl())
     
