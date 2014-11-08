@@ -81,16 +81,18 @@ class TestOA (unittest.TestCase):
         states = dict([(row['source'], row) for row
                        in DictReader(buffer, dialect='excel-tab')])
         
+        print self.s3._read_fake_key('runs/test/state.txt')
+        
         for (source, state) in states.items():
-            self.assertTrue(bool(state['cache']))
-            self.assertTrue(bool(state['version']))
-            self.assertTrue(bool(state['fingerprint']))
+            self.assertTrue(bool(state['cache']), 'Checking for cache in {}'.format(source))
+            self.assertTrue(bool(state['version']), 'Checking for version in {}'.format(source))
+            self.assertTrue(bool(state['fingerprint']), 'Checking for fingerprint in {}'.format(source))
 
             if 'san_francisco' in source or 'alameda_county' in source:
-                self.assertTrue(bool(state['processed']), "state['processed'] should not be empty in {}".format(source))
+                self.assertTrue(bool(state['processed']), "Checking for processed in {}".format(source))
             else:
                 # This might actually need to be false?
-                self.assertTrue(bool(state['processed']), "state['processed'] should be empty in {}".format(source))
+                self.assertTrue(bool(state['processed']), "Checking for processed in {}".format(source))
     
     def test_single_ac(self):
         ''' Test cache() and conform() on Alameda County sample data.
