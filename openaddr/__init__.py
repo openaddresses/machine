@@ -89,7 +89,7 @@ def cache(srcjson, destdir, extras, s3):
         if not isinstance(source_urls, list):
             source_urls = [source_urls]
 
-        task = DownloadTask.from_type_string(data.get('type'))
+        task = DownloadTask.from_type_string(data.get('type'), source)
         downloaded_files = task.download(source_urls, workdir)
 
         # FIXME: I wrote the download stuff to assume multiple files because
@@ -153,7 +153,7 @@ def conform(srcjson, destdir, extras, s3):
         if not isinstance(source_urls, list):
             source_urls = [source_urls]
 
-        task = URLDownloadTask()
+        task = URLDownloadTask(source)
         downloaded_path = task.download(source_urls, workdir)
 
         task = DecompressionTask.from_type_string(data.get('compression'))

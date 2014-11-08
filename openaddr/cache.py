@@ -7,6 +7,7 @@ import mimetypes
 from logging import getLogger
 from urllib import urlencode
 from urlparse import urlparse
+from hashlib import sha1
 
 import requests
 
@@ -48,14 +49,18 @@ class DownloadError(Exception):
 
 
 class DownloadTask(object):
+
+    def __init__(self, source_prefix):
+        self.source_prefix = source_prefix
+    
     @classmethod
-    def from_type_string(clz, type_string):
+    def from_type_string(clz, type_string, source_prefix=None):
         if type_string.lower() == 'http':
-            return URLDownloadTask()
+            return URLDownloadTask(source_prefix)
         elif type_string.lower() == 'ftp':
-            return URLDownloadTask()
+            return URLDownloadTask(source_prefix)
         elif type_string.lower() == 'esri':
-            return EsriRestDownloadTask()
+            return EsriRestDownloadTask(source_prefix)
         else:
             raise KeyError("I don't know how to extract for type {}".format(type_string))
 
@@ -74,16 +79,25 @@ class URLDownloadTask(DownloadTask):
         
             May need to fill in a filename extension based on HTTP Content-Type.
         '''
-        _, _, path, _, _, _ = urlparse(url)
-        path_base, path_ext = os.path.splitext(os.path.basename(path))
-        self.logger.debug('Downloading {} to {}{}'.format(path, path_base, path_ext))
+        _, host, path, _, _, _ = urlparse(url)
+        path_base, path_ext = os.path.splitext(path)
+        
+        if self.source_prefix is None:
+            # With no source prefix like "us-ca-oakland" use the name as given.
+            name_base = os.path.basename(path_base)
+        else:
+            # With a source prefix, create a safe and unique filename with a hash.
+            hash = sha1(host + path_base)
+            name_base = '{}-{}'.format(self.source_prefix, hash.hexdigest()[:8])
         
         if not path_ext:
             resp = requests.head(url)
             path_ext = mimetypes.guess_extension(resp.headers['content-type'])
-            self.logger.debug('Guessing {}{} for {}'.format(path_base, path_ext, resp.headers['content-type']))
+            self.logger.debug('Guessing {}{} for {}'.format(name_base, path_ext, resp.headers['content-type']))
         
-        return os.path.join(dir_path, path_base + path_ext)
+        self.logger.debug('Downloading {} to {}{}'.format(path, name_base, path_ext))
+        
+        return os.path.join(dir_path, name_base + path_ext)
 
     def download(self, source_urls, workdir):
         output_files = []
@@ -167,6 +181,19 @@ class EsriRestDownloadTask(DownloadTask):
             "geometry": geometry
         }
 
+    def get_file_path(self, url, dir_path):
+        ''' Return a local file path in a directory for a URL.
+        '''
+        _, host, path, _, _, _ = urlparse(url)
+        hash, path_ext = sha1(host + path), '.json'
+        
+        # With no source prefix like "us-ca-oakland" use the host as a hint.
+        name_base = '{}-{}'.format(self.source_prefix or host, hash.hexdigest()[:8])
+        
+        self.logger.debug('Downloading {} to {}{}'.format(path, name_base, path_ext))
+        
+        return os.path.join(dir_path, name_base + path_ext)
+
     def download(self, source_urls, workdir):
         output_files = []
         download_path = os.path.join(workdir, 'esri')
@@ -174,8 +201,7 @@ class EsriRestDownloadTask(DownloadTask):
 
         for source_url in source_urls:
             size = 0
-            parts = urlparse(source_url)
-            file_path = os.path.join(download_path, parts.netloc + '.json')
+            file_path = self.get_file_path(source_url, download_path)
 
             if os.path.exists(file_path):
                 output_files.append(file_path)
