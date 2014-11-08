@@ -2,7 +2,7 @@ import unittest
 import shutil
 import tempfile
 import json
-import pickle
+import cPickle
 import re
 from os import close
 from StringIO import StringIO
@@ -161,22 +161,22 @@ class FakeS3 (S3):
         close(handle)
         
         with open(self._fake_keys, 'w') as file:
-            pickle.dump(dict(), file)
+            cPickle.dump(dict(), file)
 
         S3.__init__(self, 'Fake Key', 'Fake Secret', 'data-test.openaddresses.io')
     
     def _write_fake_key(self, name, string):
         with locked_open(self._fake_keys) as file:
-            data = pickle.load(file)
+            data = cPickle.load(file)
             data[name] = string
             
             file.seek(0)
             file.truncate()
-            pickle.dump(data, file)
+            cPickle.dump(data, file)
     
     def _read_fake_key(self, name):
         with locked_open(self._fake_keys) as file:
-            data = pickle.load(file)
+            data = cPickle.load(file)
             
         return data[name]
     
