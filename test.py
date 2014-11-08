@@ -143,10 +143,10 @@ class TestOA (unittest.TestCase):
             self.assertTrue('555 E CARSON ST' in self.s3._read_fake_key(path))
 
 @contextmanager
-def locked_open(filename, mode):
+def locked_open(filename):
     ''' Open and lock a file, for use with threads and processes.
     '''
-    with open(filename, mode) as file:
+    with open(filename, 'r+') as file:
         lockf(file, LOCK_EX)
         yield file
         lockf(file, LOCK_UN)
@@ -166,7 +166,7 @@ class FakeS3 (S3):
         S3.__init__(self, 'Fake Key', 'Fake Secret', 'data-test.openaddresses.io')
     
     def _write_fake_key(self, name, string):
-        with locked_open(self._fake_keys, 'r+') as file:
+        with locked_open(self._fake_keys) as file:
             data = pickle.load(file)
             data[name] = string
             
@@ -175,7 +175,7 @@ class FakeS3 (S3):
             pickle.dump(data, file)
     
     def _read_fake_key(self, name):
-        with open(self._fake_keys, 'r') as file:
+        with locked_open(self._fake_keys) as file:
             data = pickle.load(file)
             
         return data[name]
