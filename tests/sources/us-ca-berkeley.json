@@ -5,7 +5,7 @@
         "state": "ca",
         "place": "Berkeley"
     },
-    "data": "http://s3.amazonaws.com/data-test.openaddresses.io/sources/us-ca-berkeley-excerpt.zip",
+    "data": "http://www.ci.berkeley.ca.us/uploadedFiles/IT/GIS/Parcels.zip",
     "website": "http://www.ci.berkeley.ca.us/datacatalog/",
     "type": "http",
     "compression": "zip",

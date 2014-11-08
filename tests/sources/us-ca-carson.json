@@ -1,0 +1,18 @@
+{
+    "coverage": {
+        "country": "us",
+        "state": "ca",
+        "city": "carson"
+    },
+    "data": "http://www.carsonproperty.info/ArcGIS/rest/services/basemap/MapServer/1",
+    "website": "http://ci.carson.ca.us/",
+    "type": "ESRI",
+    "conform": {
+        "lon": "x",
+        "lat": "y",
+        "number": "SITENUMBER",
+        "street": "SITESTREET",
+        "type": "geojson",
+        "postal_code": "sitezip"
+    }
+}

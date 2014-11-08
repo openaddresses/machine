@@ -4,7 +4,7 @@
         "state": "ca",
         "city": "San Francisco"
     },
-    "data": "http://s3.amazonaws.com/data-test.openaddresses.io/sources/us-ca-san_francisco-excerpt.zip",
+    "data": "https://data.sfgov.org/download/kvej-w5kb/ZIPPED%20SHAPEFILE",
     "license": "",
     "year": "",
     "type": "http",

@@ -186,9 +186,7 @@ class EsriRestDownloadTask(DownloadTask):
                     headers = {'User-Agent': self.USER_AGENT}
 
                     try:
-                        req = urllib2.Request(query_url, headers=headers)
-                        resp = urllib2.urlopen(req, timeout=10)
-                        data = json.load(resp)
+                        data = requests.get(query_url, headers=headers).json()
                     except urllib2.URLError as e:
                         raise DownloadError("Could not connect to URL", e)
                     except socket.timeout as e:

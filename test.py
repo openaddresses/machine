@@ -6,7 +6,7 @@ import pickle
 import re
 from os import close
 from StringIO import StringIO
-from urlparse import urlparse
+from urlparse import urlparse, parse_qs
 from os.path import dirname, join
 from fcntl import lockf, LOCK_EX, LOCK_UN
 from contextlib import contextmanager
@@ -36,19 +36,37 @@ class TestOA (unittest.TestCase):
     def response_content(self, url, request):
         ''' Fake HTTP responses for use with HTTMock in tests.
         '''
-        _, host, path, _, _, _ = urlparse(url.geturl())
+        _, host, path, _, query, _ = urlparse(url.geturl())
+        data_dirname = join(dirname(__file__), 'tests', 'data')
+        local_path = None
         
-        source_match = re.match(r'.*\bsources/(.+-excerpt.zip)$', path)
-        
-        if source_match:
-            local_path = join('tests', 'data', source_match.group(1))
-            with open(join(dirname(__file__), local_path)) as file:
-                return response(200, file.read())
-        
-        elif path.endswith('-excerpt.zip'):
+        if host == 'example.local':
             return response(200, self.s3._read_fake_key(path))
         
-        raise NotImplementedError(host, path)
+        if (host, path) == ('data.acgov.org', '/api/geospatial/8e4s-7f4v'):
+            local_path = join(data_dirname, 'us-ca-alameda_county-excerpt.zip')
+        
+        if (host, path) == ('www.ci.berkeley.ca.us', '/uploadedFiles/IT/GIS/Parcels.zip'):
+            local_path = join(data_dirname, 'us-ca-berkeley-excerpt.zip')
+        
+        if (host, path) == ('data.openoakland.org', '/sites/default/files/OakParcelsGeo2013_0.zip'):
+            local_path = join(data_dirname, 'us-ca-oakland-excerpt.zip')
+        
+        if (host, path) == ('data.sfgov.org', '/download/kvej-w5kb/ZIPPED%20SHAPEFILE'):
+            local_path = join(data_dirname, 'us-ca-san_francisco-excerpt.zip')
+        
+        if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1/query'):
+            where_clause = parse_qs(query)['where'][0]
+            if where_clause == 'objectid >= 0 and objectid < 500':
+                local_path = join(data_dirname, 'us-ca-carson-0.json')
+            elif where_clause == 'objectid >= 500 and objectid < 1000':
+                local_path = join(data_dirname, 'us-ca-carson-1.json')
+        
+        if local_path:
+            with open(local_path) as file:
+                return response(200, file.read())
+        
+        raise NotImplementedError(url.geturl())
     
     def test_process(self):
         ''' Test process.process(), with complete threaded behavior.
@@ -104,6 +122,23 @@ class TestOA (unittest.TestCase):
             
             # the content of result.processed does not currently have addresses.
             self.assertFalse(result.processed is None)
+
+    def test_single_car(self):
+        ''' Test cache() and conform() on Carson sample data.
+        '''
+        with HTTMock(self.response_content):
+            source = join(self.src_dir, 'us-ca-carson.json')
+
+            result = cache(source, self.testdir, dict(), self.s3)
+            self.assertTrue(result.cache is not None)
+            self.assertTrue(result.version is not None)
+            self.assertTrue(result.fingerprint is not None)
+        
+            result = conform(source, self.testdir, result.todict(), self.s3)
+            self.assertTrue(result.processed is not None)
+            
+            _, _, path, _, _, _ = urlparse(result.processed)
+            self.assertTrue('555 E CARSON ST' in self.s3._read_fake_key(path))
 
 @contextmanager
 def locked_open(filename, mode):
