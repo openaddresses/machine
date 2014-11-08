@@ -1,7 +1,6 @@
 import json
 import os
 import errno
-import urllib2
 import socket
 import mimetypes
 
@@ -52,9 +51,9 @@ class DownloadTask(object):
     @classmethod
     def from_type_string(clz, type_string):
         if type_string.lower() == 'http':
-            return Urllib2DownloadTask()
+            return URLDownloadTask()
         elif type_string.lower() == 'ftp':
-            return Urllib2DownloadTask()
+            return URLDownloadTask()
         elif type_string.lower() == 'esri':
             return EsriRestDownloadTask()
         else:
@@ -64,7 +63,7 @@ class DownloadTask(object):
         raise NotImplementedError()
 
 
-class Urllib2DownloadTask(DownloadTask):
+class URLDownloadTask(DownloadTask):
     USER_AGENT = 'openaddresses-extract/1.0 (https://github.com/openaddresses/openaddresses)'
     CHUNK = 16 * 1024
 
@@ -104,7 +103,7 @@ class Urllib2DownloadTask(DownloadTask):
 
             try:
                 resp = requests.get(source_url, headers=headers, stream=True)
-            except urllib2.URLError as e:
+            except:
                 raise DownloadError("Could not connect to URL", e)
 
             size = 0
@@ -204,12 +203,12 @@ class EsriRestDownloadTask(DownloadTask):
 
                     try:
                         data = requests.get(query_url, headers=headers).json()
-                    except urllib2.URLError as e:
-                        raise DownloadError("Could not connect to URL", e)
                     except socket.timeout as e:
                         raise DownloadError("Timeout when connecting to URL", e)
                     except ValueError as e:
                         raise DownloadError("Could not parse JSON", e)
+                    except:
+                        raise DownloadError("Could not connect to URL", e)
                     finally:
                         # Wipe out whatever we had written out so far
                         f.truncate()

@@ -20,7 +20,7 @@ from . import paths
 from openaddr.cache import (
     CacheResult,
     DownloadTask,
-    Urllib2DownloadTask,
+    URLDownloadTask,
 )
 
 from openaddr.conform import (
@@ -153,7 +153,7 @@ def conform(srcjson, destdir, extras, s3):
         if not isinstance(source_urls, list):
             source_urls = [source_urls]
 
-        task = Urllib2DownloadTask()
+        task = URLDownloadTask()
         downloaded_path = task.download(source_urls, workdir)
 
         task = DecompressionTask.from_type_string(data.get('compression'))

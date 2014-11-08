@@ -148,6 +148,9 @@ def setup_logger(logfile):
     format = '%(threadName)11s  {0} %(levelname)06s: %(message)s'
     getLogger('openaddr').setLevel(DEBUG)
     
+    for old_handler in getLogger('openaddr').handlers:
+        getLogger('openaddr').removeHandler(old_handler)
+    
     handler1 = StreamHandler()
     handler1.setFormatter(Formatter(format.format('%(relativeCreated)10.1f')))
     getLogger('openaddr').addHandler(handler1)
