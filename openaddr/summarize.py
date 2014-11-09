@@ -15,7 +15,9 @@ def load_states(s3):
 
     if state_key:
         state_link = state_key.get_contents_as_string()
-        state_key = s3.get_key(state_link.strip())
+        if '\t' not in state_link:
+            # it's probably a link to someplace else.
+            state_key = s3.get_key(state_link.strip())
     
     if state_key:
         state_file = StringIO(state_key.get_contents_as_string())
