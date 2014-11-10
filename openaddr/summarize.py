@@ -1,3 +1,4 @@
+import json
 from csv import DictReader
 from StringIO import StringIO
 from operator import itemgetter
@@ -21,18 +22,32 @@ def load_states(s3):
     
     if state_key:
         state_file = StringIO(state_key.get_contents_as_string())
-        rows = DictReader(state_file, dialect='excel-tab')
         
-        for row in sorted(rows, key=itemgetter('source')):
+        for row in DictReader(state_file, dialect='excel-tab'):
             row['shortname'], _ = splitext(row['source'])
             row['href'] = row['processed'] or row['cache'] or None
+            row['href'] = 'https://github.com/openaddresses/openaddresses/blob/master/sources/' + row['source']
+            
+            if row['version']:
+                v = row['version']
+                row['cache_date'] = '{}-{}-{}'.format(v[0:4], v[4:6], v[6:8])
+            else:
+                row['cache_date'] = None
 
             row['class'] = ' '.join([
                 'cached' if row['cache'] else '',
                 'processed' if row['processed'] else '',
                 ])
             
+            with open(join(paths.sources, row['source'])) as file:
+                data = json.load(file)
+            
+                row['type'] = data.get('type', '').lower()
+                row['conform'] = bool(data.get('conform', False))
+            
             states.append(row)
+    
+    states.sort(key=lambda s: (bool(s['cache']), bool(s['processed']), s['source']))
     
     return states
 

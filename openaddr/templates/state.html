@@ -1,26 +1,101 @@
+<html>
+
+<head>
+<meta charset=utf-8 />
+<title>OpenAddresses</title>
+<link href="http://fonts.googleapis.com/css?family=Titillium+Web" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=Raleway" rel="stylesheet" type="text/css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<link href="http://openaddresses.io/site.css" rel="stylesheet" />
+<link href="http://openaddresses.io/style.css" rel="stylesheet" />
+<link rel="shortcut icon" href="http://openaddresses.io/17.png">
+<link rel="apple-touch-icon-precomposed" href="http://openaddresses.io/17.png">
 <style lang="text/css">
 
-    li
+    body { margin-bottom: 2em }
+
+    body>*
     {
-        background-color: rgb(252,141,89);
-        list-style-type: none;
-        padding: 5px;
-        margin: 0;
-        display: inline-block;
+        margin: 1em auto;
+        width: 960px;
+    }
+
+    table { border-collapse: collapse }
+    
+    table tr th,
+    table tr td.type,
+    table tr td.cached,
+    table tr td.reasons
+    {
+        font-size: 65%;
     }
     
-    li.cached { background-color: rgb(255,255,191) }
-    li.processed { background-color: rgb(145,207,96) }
-    li a { color: black; text-decoration: none }
+    table tr th, table tr td
+    {
+        text-align: left;
+        padding: 3px 10px;
+    }
+    
+    table tr td a
+    {
+        display: block;
+        margin: -3px -10px;
+        padding: 3px 10px;
+        text-decoration: none;
+    }
+    
+    tr:nth-child(odd) td { background-color: #ffffff }
+    tr:nth-child(even) td { background-color: #f8f8f8 }
 
 </style>
-<img src="render.png" width="960">
-<ul>
-{% for state in states %}
-    {% if state.href %}
-        <li class="{{ state.class }}"><a href="{{ state.href }}">{{ state.shortname }}</a></li>
-    {% else %}
-        <li class="{{ state.class }}">{{ state.shortname }}</li>
-    {% endif %}
-{% endfor %}
-</ul>
+</head>
+
+<body>
+<p><img src="render.png" width="960"></p>
+<table>
+    <tr>
+        <th class="name">Name</th>
+        <th class="type">Type</th>
+        <th class="cached">Cached?</th>
+        <th class="processed">Processed?</th>
+        <th class="reasons">Reasons</th>
+    </tr>
+    {% for state in states %}
+      <tr>
+        <td class="name">
+            <a href="{{ state.href }}">{{ state.shortname }}</a>
+        </td>
+        <td class="type">
+            {{ state.type }}
+        </td>
+        <td class="cached">
+          {% if state.cache %}
+            <a href="{{ state.cache }}">{{ state.cache_date }}</a>
+          {% elif state.cache_date %}
+            <strike>{{ state.cache_date }}</strike>
+          {% endif %}
+        </td>
+        <td class="processed">
+          {% if state.processed %}
+            <a href="{{ state.processed }}">csv</a>
+          {% else %}
+            
+          {% endif %}
+        </td>
+        <td class="reasons">
+          {% if not state.processed %}
+            {% if not state.cache %}
+            cache failed
+            {% elif not state.conform %}
+            <a href="{{ state.href }}">missing conform</a>
+            {% else %}
+            unknown
+            {% endif %}
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>
