@@ -50,7 +50,11 @@ def main():
     summary_key.set_contents_from_string(summary_html, policy='public-read',
                                          headers={'Content-Type': 'text/html'})
 
-    index_html = '<a href="{0}">{0}</a>'.format(summary_link)
+    index_html = '''<html>
+        <head><meta http-equiv="refresh" content="0; url={0}"></head>
+        <body><a href="{0}">{0}</a></body>
+        </html>'''.format(summary_link)
+
     index_key = s3.new_key('index.html')
     index_key.set_contents_from_string(index_html, policy='public-read',
                                        headers={'Content-Type': 'text/html'})
