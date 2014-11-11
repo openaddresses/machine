@@ -25,6 +25,7 @@ from .cache import (
 from .conform import (
     ConformResult,
     DecompressionTask,
+    ExcerptDataTask,
     ConvertToCsvTask,
 )
 
@@ -159,6 +160,9 @@ def conform(srcjson, destdir, extras, s3):
         task = DecompressionTask.from_type_string(data.get('compression'))
         decompressed_paths = task.decompress(downloaded_path, workdir)
 
+        task3 = ExcerptDataTask()
+        data['sample'] = task3.excerpt(decompressed_paths, workdir)
+
         task = ConvertToCsvTask()
         csv_paths = task.convert(decompressed_paths, workdir)
 
@@ -187,6 +191,7 @@ def conform(srcjson, destdir, extras, s3):
     rmtree(workdir)
 
     return ConformResult(data.get('processed', None),
+                         data.get('sample', None),
                          datetime.now() - start)
 
 def excerpt(srcjson, destdir, extras, s3):

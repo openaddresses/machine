@@ -21,21 +21,23 @@ def mkdirsp(path):
 
 class ConformResult:
     processed = None
+    sample = None
     elapsed = None
     
     # needed by openaddr.process.write_state(), for now.
     output = ''
 
-    def __init__(self, processed, elapsed):
+    def __init__(self, processed, sample, elapsed):
         self.processed = processed
+        self.sample = sample
         self.elapsed = elapsed
 
     @staticmethod
     def empty():
-        return ConformResult(None, None)
+        return ConformResult(None, None, None)
 
     def todict(self):
-        return dict(processed=self.processed)
+        return dict(processed=self.processed, sample=self.sample)
 
 
 class DecompressionError(Exception):
@@ -78,6 +80,39 @@ class ZipDecompressTask(DecompressionTask):
                     output_files.append(expanded_file_path)
         return output_files
 
+class ExcerptDataTask(object):
+    ''' Task for sampling three rows of data from datasource.
+    '''
+    logger = getLogger().getChild('excerpt')
+    known_types = ('.shp', '.json', '.csv', '.kml')
+
+    def excerpt(self, source_paths, workdir):
+        '''
+        '''
+        known_paths = [source_path for source_path in source_paths
+                       if os.path.splitext(source_path)[1] in self.known_types]
+        
+        if not known_paths:
+            # we know nothing.
+            return None
+        
+        datasource = ogr.Open(known_paths[0], 0)
+        layer = datasource.GetLayer()
+
+        layer_defn = layer.GetLayerDefn()
+        fieldnames = [layer_defn.GetFieldDefn(i).GetName()
+                      for i in range(layer_defn.GetFieldCount())]
+
+        data_sample = [fieldnames]
+        
+        for feature in layer:
+            data_sample.append([feature.GetField(i) for i
+                                in range(layer_defn.GetFieldCount())])
+
+            if len(data_sample) == 4:
+                break
+        
+        return data_sample
 
 class ConvertToCsvTask(object):
 

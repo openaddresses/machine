@@ -107,6 +107,8 @@ class TestOA (unittest.TestCase):
         
             result = conform(source, self.testdir, result.todict(), self.s3)
             self.assertTrue(result.processed is not None)
+            self.assertTrue(result.sample is not None)
+            self.assertTrue('FID_PARCEL' in result.sample[0])
             
             _, _, path, _, _, _ = urlparse(result.processed)
             self.assertTrue('2000 BROADWAY' in self.s3._read_fake_key(path))
@@ -126,6 +128,8 @@ class TestOA (unittest.TestCase):
             
             # the content of result.processed does not currently have addresses.
             self.assertFalse(result.processed is None)
+            self.assertFalse(result.sample is None)
+            self.assertTrue('FID_PARCEL' in result.sample[0])
 
     def test_single_car(self):
         ''' Test cache() and conform() on Carson sample data.
@@ -140,6 +144,8 @@ class TestOA (unittest.TestCase):
         
             result = conform(source, self.testdir, result.todict(), self.s3)
             self.assertTrue(result.processed is not None)
+            self.assertTrue(result.sample is not None)
+            self.assertTrue('SITEFRAC' in result.sample[0])
             
             _, _, path, _, _, _ = urlparse(result.processed)
             self.assertTrue('555 E CARSON ST' in self.s3._read_fake_key(path))
