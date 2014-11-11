@@ -11,19 +11,18 @@ from os import mkdir, environ
 from time import sleep, time
 from zipfile import ZipFile
 import json
-import boto
 
 from osgeo import ogr
 from requests import get
 from boto import connect_s3
 from . import paths
-from openaddr.cache import (
+from .cache import (
     CacheResult,
     DownloadTask,
     URLDownloadTask,
 )
 
-from openaddr.conform import (
+from .conform import (
     ConformResult,
     DecompressionTask,
     ConvertToCsvTask,
@@ -81,8 +80,8 @@ def cache(srcjson, destdir, extras, s3):
     logger = getLogger('openaddr')
     tmpjson = _tmp_json(workdir, srcjson, extras)
 
-    def thread_work(json_filepath, workdir):
-        with open(json_filepath, 'r') as j:
+    def thread_work():
+        with open(tmpjson, 'r') as j:
             data = json.load(j)
 
         source_urls = data.get('data')
@@ -110,10 +109,10 @@ def cache(srcjson, destdir, extras, s3):
         data['fingerprint'] = k.md5
         data['version'] = version
 
-        with open(json_filepath, 'w') as j:
+        with open(tmpjson, 'w') as j:
             json.dump(data, j)
 
-    p = Process(target=thread_work, args=(tmpjson, workdir), name='oa-cache-'+source)
+    p = Process(target=thread_work, name='oa-cache-'+source)
     p.start()
     # FIXME: We could add an integer argument to join() for the number of seconds
     # to wait for this process to finish. On Mac OS X 10.9.4, this step often
@@ -146,8 +145,8 @@ def conform(srcjson, destdir, extras, s3):
     logger = getLogger('openaddr')
     tmpjson = _tmp_json(workdir, srcjson, extras)
 
-    def thread_work(json_filepath, workdir, source_key):
-        with open(json_filepath, 'r') as j:
+    def thread_work():
+        with open(tmpjson, 'r') as j:
             data = json.load(j)
 
         source_urls = data.get('cache')
@@ -164,7 +163,7 @@ def conform(srcjson, destdir, extras, s3):
         csv_paths = task.convert(decompressed_paths, workdir)
 
         version = datetime.utcnow().strftime('%Y%m%d')
-        key = '/{}/{}.csv'.format(version, source_key)
+        key = '/{}/{}.csv'.format(version, source)
 
         k = s3.new_key(key)
         kwargs = dict(policy='public-read', reduced_redundancy=True)
@@ -172,10 +171,10 @@ def conform(srcjson, destdir, extras, s3):
 
         data['processed'] = k.generate_url(expires_in=0, query_auth=False)
 
-        with open(json_filepath, 'w') as j:
+        with open(tmpjson, 'w') as j:
             json.dump(data, j)
 
-    p = Process(target=thread_work, args=(tmpjson, workdir, source), name='oa-conform-'+source)
+    p = Process(target=thread_work, name='oa-conform-'+source)
     p.start()
     # FIXME: We could add an integer argument to join() for the number of seconds
     # to wait for this process to finish. On Mac OS X 10.9.4, this step often
