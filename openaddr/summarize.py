@@ -53,7 +53,7 @@ def load_states(s3):
 
 def main():
     s3 = S3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'openaddresses-cfa')
-    print summarize(s3)
+    print summarize(s3).encode('utf8')
 
 def summarize(s3):
     ''' Return summary HTML.

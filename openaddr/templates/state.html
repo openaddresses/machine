@@ -10,14 +10,24 @@
 <link href="http://openaddresses.io/style.css" rel="stylesheet" />
 <link rel="shortcut icon" href="http://openaddresses.io/17.png">
 <link rel="apple-touch-icon-precomposed" href="http://openaddresses.io/17.png">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style lang="text/css">
 
-    body { margin-bottom: 2em }
+    body
+    {
+        margin-bottom: 2em;
+        font-size: 1em;
+    }
 
     body>*
     {
         margin: 1em auto;
         width: 960px;
+    }
+    
+    @media (max-width: 960px)
+    {
+        body>* { width: 96% }
     }
 
     table { border-collapse: collapse }
@@ -51,7 +61,7 @@
 </head>
 
 <body>
-<p><img src="render.png" width="960"></p>
+<p><img src="render.png" width="100%"></p>
 <table>
     <tr>
         <th class="name">Name</th>
@@ -73,13 +83,15 @@
             <a href="{{ state.cache }}">{{ state.cache_date }}</a>
           {% elif state.cache_date %}
             <strike>{{ state.cache_date }}</strike>
+          {% else %}
+            –
           {% endif %}
         </td>
         <td class="processed">
           {% if state.processed %}
             <a href="{{ state.processed }}">csv</a>
           {% else %}
-            
+            –
           {% endif %}
         </td>
         <td class="reasons">
