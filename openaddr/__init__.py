@@ -50,6 +50,19 @@ class ConformResult:
     def todict(self):
         return dict(processed=self.processed, path=self.path)
 
+class ExcerptResult:
+    output = None
+
+    def __init__(self, output):
+        self.output = output
+    
+    @staticmethod
+    def empty():
+        return ExcerptResult(None)
+
+    def todict(self):
+        return dict()
+
 class S3:
     bucketname = None
 
@@ -189,6 +202,37 @@ def conform(srcjson, destdir, extras, s3):
                          (realpath(csv_path) if exists(csv_path) else None),
                          datetime.now() - start,
                          output)
+
+def excerpt(srcjson, destdir, extras, s3):
+    ''' 
+    '''
+    start = datetime.now()
+    source, _ = splitext(basename(srcjson))
+    workdir = mkdtemp(prefix='excerpt-')
+    logger = getLogger('openaddr')
+    tmpjson = _tmp_json(workdir, srcjson, extras)
+
+    #
+    errpath = join(destdir, source+'-conform.stderr')
+    outpath = join(destdir, source+'-conform.stdout')
+    st_path = join(destdir, source+'-conform.status')
+
+    with open(errpath, 'w') as stderr, open(outpath, 'w') as stdout:
+        pass
+
+    logger.debug('{0} --> {1}'.format(source, workdir))
+
+    #
+    with open(tmpjson) as file:
+        data = json.load(file)
+        
+    rmtree(workdir)
+    
+    with open(st_path) as status, open(errpath) as err, open(outpath) as out:
+        args = status.read().strip(), err.read().strip(), out.read().strip()
+        output = '{}\n\nSTDERR:\n\n{}\n\nSTDOUT:\n\n{}\n'.format(*args)
+
+    return ExcerptResult(output)
 
 def _tmp_json(workdir, srcjson, extras):
     ''' Work on a copy of source JSON in a safe directory, with extras grafted in.
