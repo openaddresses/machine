@@ -51,17 +51,17 @@ class ConformResult:
         return dict(processed=self.processed, path=self.path)
 
 class ExcerptResult:
-    output = None
+    sample_data = None
 
-    def __init__(self, output):
-        self.output = output
+    def __init__(self, sample_data):
+        self.sample_data = sample_data
     
     @staticmethod
     def empty():
         return ExcerptResult(None)
 
     def todict(self):
-        return dict()
+        return dict(sample_data=self.sample_data)
 
 class S3:
     bucketname = None
@@ -213,26 +213,51 @@ def excerpt(srcjson, destdir, extras, s3):
     tmpjson = _tmp_json(workdir, srcjson, extras)
 
     #
-    errpath = join(destdir, source+'-conform.stderr')
-    outpath = join(destdir, source+'-conform.stdout')
-    st_path = join(destdir, source+'-conform.status')
-
-    with open(errpath, 'w') as stderr, open(outpath, 'w') as stdout:
-        pass
-
-    logger.debug('{0} --> {1}'.format(source, workdir))
-
-    #
-    with open(tmpjson) as file:
-        data = json.load(file)
+    sample_data = None
+    
+    from requests import get
+    from osgeo import ogr
+    from mimetypes import guess_extension
+    from StringIO import StringIO
+    from zipfile import ZipFile
+    
+    got = get(extras['cache'])
+    _, ext = splitext(got.url)
+    
+    if not ext:
+        ext = guess_extension(got.headers['content-type'])
+    
+    if ext == '.zip':
+        zbuff = StringIO(got.content)
+        zf = ZipFile(zbuff, 'r')
         
+        for name in zf.namelist():
+            _, ext = splitext(name)
+            
+            if ext in ('.shp', '.shx', '.dbf'):
+                with open(join(workdir, 'cache'+ext), 'w') as file:
+                    file.write(zf.read(name))
+        
+        if exists(join(workdir, 'cache.shp')):
+            ds = ogr.Open(join(workdir, 'cache.shp'))
+
+        layer = ds.GetLayer(0)
+        defn = layer.GetLayerDefn()
+        field_count = defn.GetFieldCount()
+        sample_data = [[defn.GetFieldDefn(i).name for i in range(field_count)]]
+        
+        for feature in layer:
+            sample_data += [[feature.GetField(i) for i in range(field_count)]]
+            
+            if len(sample_data) == 4:
+                break
+    
+    else:
+        pass
+    
     rmtree(workdir)
     
-    with open(st_path) as status, open(errpath) as err, open(outpath) as out:
-        args = status.read().strip(), err.read().strip(), out.read().strip()
-        output = '{}\n\nSTDERR:\n\n{}\n\nSTDOUT:\n\n{}\n'.format(*args)
-
-    return ExcerptResult(output)
+    return ExcerptResult(sample_data)
 
 def _tmp_json(workdir, srcjson, extras):
     ''' Work on a copy of source JSON in a safe directory, with extras grafted in.

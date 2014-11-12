@@ -10,7 +10,7 @@ setup(
             'geodata/*.cpg', 'templates/*.html'
         ]
     },
-    install_requires = ['boto >= 2.0.0', 'Jinja2 >= 2.7.0'],
+    install_requires = ['boto >= 2.0.0', 'Jinja2 >= 2.7.0', 'requests'],
     entry_points = dict(
         console_scripts = [
             'openaddr-render-us = openaddr.render:main',

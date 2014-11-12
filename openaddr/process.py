@@ -109,6 +109,10 @@ def process(s3, sourcedir, run_name):
     source_files3 = [s for s in source_files2 if results1[s].cache]
     source_extras3 = dict([(s, results1[s].todict()) for s in source_files3])
     results3 = jobs.run_all_excerpts(source_files3, source_extras3, s3)
+    
+    for (source, result) in results3.items():
+        print source, '-'
+        print result.sample_data
 
     # Gather all results
     write_state(s3, sourcedir, run_name, source_files1, results1, results2)
