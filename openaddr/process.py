@@ -10,6 +10,8 @@ from glob import glob
 
 from . import paths, jobs, ConformResult, S3, render, summarize
 
+from . import ExcerptResult
+
 parser = ArgumentParser(description='Run some source files.')
 
 parser.add_argument('bucketname',
@@ -110,14 +112,10 @@ def process(s3, sourcedir, run_name):
     source_extras3 = dict([(s, results1[s].todict()) for s in source_files3])
     results3 = jobs.run_all_excerpts(source_files3, source_extras3, s3)
     
-    for (source, result) in results3.items():
-        print source, '-'
-        print result.sample_data
-
     # Gather all results
-    write_state(s3, sourcedir, run_name, source_files1, results1, results2)
+    write_state(s3, sourcedir, run_name, source_files1, results1, results2, results3)
 
-def write_state(s3, sourcedir, run_name, source_files1, results1, results2):
+def write_state(s3, sourcedir, run_name, source_files1, results1, results2, results3):
     '''
     '''
     state_file = StringIO()
@@ -125,17 +123,18 @@ def write_state(s3, sourcedir, run_name, source_files1, results1, results2):
 
     out = writer(state_file, dialect='excel-tab')
     
-    out.writerow(('source', 'cache', 'version', 'fingerprint', 'cache time',
+    out.writerow(('source', 'cache', 'sample', 'version', 'fingerprint', 'cache time',
                   'processed', 'process time', 'output'))
     
     for source in source_files1:
         result1 = results1[source]
         result2 = results2.get(source, ConformResult.empty())
+        result3 = results3.get(source, ExcerptResult.empty())
 
         source_name = relpath(source, sourcedir)
         output_name = '{0}.txt'.format(*splitext(source_name))
     
-        out.writerow((source_name, result1.cache,
+        out.writerow((source_name, result1.cache, result3.sample_data,
                       result1.version, result1.fingerprint, result1.elapsed,
                       result2.processed, result2.elapsed,
                       output_name))

@@ -257,7 +257,11 @@ def excerpt(srcjson, destdir, extras, s3):
     
     rmtree(workdir)
     
-    return ExcerptResult(sample_data)
+    key = s3.new_key(join('samples', source+'.json'))
+    args = dict(policy='public-read', headers={'Content-Type': 'text/json'})
+    key.set_contents_from_string(json.dumps(sample_data, indent=2), **args)
+    
+    return ExcerptResult('http://s3.amazonaws.com/{}/{}'.format(s3.bucketname, key.name))
 
 def _tmp_json(workdir, srcjson, extras):
     ''' Work on a copy of source JSON in a safe directory, with extras grafted in.
