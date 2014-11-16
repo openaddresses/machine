@@ -3,6 +3,7 @@ from csv import DictReader
 from StringIO import StringIO
 from operator import itemgetter
 from os.path import join, dirname, splitext
+from dateutil.parser import parse as parse_datetime
 from os import environ
 
 from jinja2 import Environment, FileSystemLoader
@@ -21,6 +22,7 @@ def load_states(s3):
             state_key = s3.get_key(state_link.strip())
     
     if state_key:
+        last_modified = parse_datetime(state_key.last_modified)
         state_file = StringIO(state_key.get_contents_as_string())
         
         for row in DictReader(state_file, dialect='excel-tab'):
@@ -49,7 +51,7 @@ def load_states(s3):
     
     states.sort(key=lambda s: (bool(s['cache']), bool(s['processed']), s['source']))
     
-    return states
+    return last_modified, states
 
 def main():
     s3 = S3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'openaddresses-cfa')
@@ -60,7 +62,8 @@ def summarize(s3):
     '''
     env = Environment(loader=FileSystemLoader(join(dirname(__file__), 'templates')))
     template = env.get_template('state.html')
-    return template.render(states=load_states(s3))
+    last_modified, states = load_states(s3)
+    return template.render(states=states, last_modified=last_modified)
 
 if __name__ == '__main__':
     exit(main())
