@@ -7,6 +7,7 @@ from dateutil.parser import parse as parse_datetime
 from os import environ
 
 from jinja2 import Environment, FileSystemLoader
+from requests import get
 
 from . import S3, paths
 
@@ -30,7 +31,7 @@ def load_states(s3):
             row['href'] = row['processed'] or row['cache'] or None
             row['href'] = 'https://github.com/openaddresses/openaddresses/blob/master/sources/' + row['source']
             
-            if row['version']:
+            if row.get('version', False):
                 v = row['version']
                 row['cache_date'] = '{}-{}-{}'.format(v[0:4], v[4:6], v[6:8])
             else:
@@ -47,6 +48,9 @@ def load_states(s3):
                 row['type'] = data.get('type', '').lower()
                 row['conform'] = bool(data.get('conform', False))
             
+            if row.get('sample', False):
+                row['sample_data'] = get(row['sample']).json()
+            
             states.append(row)
     
     states.sort(key=lambda s: (bool(s['cache']), bool(s['processed']), s['source']))
@@ -61,6 +65,7 @@ def summarize(s3):
     ''' Return summary HTML.
     '''
     env = Environment(loader=FileSystemLoader(join(dirname(__file__), 'templates')))
+    env.filters['tojson'] = lambda value: json.dumps(value)
     template = env.get_template('state.html')
     last_modified, states = load_states(s3)
     return template.render(states=states, last_modified=last_modified)

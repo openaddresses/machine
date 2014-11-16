@@ -35,7 +35,9 @@
     table tr th,
     table tr td.type,
     table tr td.cached,
-    table tr td.reasons
+    table tr td.reasons,
+    table tr td.sample,
+    table tr td table tr td
     {
         font-size: 65%;
     }
@@ -46,7 +48,7 @@
         padding: 3px 10px;
     }
     
-    table tr td a
+    table tr td>a
     {
         display: block;
         margin: -3px -10px;
@@ -54,10 +56,43 @@
         text-decoration: none;
     }
     
-    tr:nth-child(odd) td { background-color: #ffffff }
-    tr:nth-child(even) td { background-color: #f8f8f8 }
+    table tr:nth-child(4n-2) td, table tr:nth-child(4n-1) td { background-color: #f8f8f8 }
+    table tr:nth-child(4n+0) td, table tr:nth-child(4n+1) td { background-color: #ffffff }
+
+    table tr td table { margin: 1em 0 }
+    table tr td table { margin: 1em 0 }
+    table tr td table tr th { color: #666 }
+
+    table tr td table tr th,
+    table tr td table tr td
+    {
+        font-family: monospace;
+        background-color: transparent !important;
+        line-height: 1.5em;
+        padding: 1px 10px;
+    }
 
 </style>
+<script type="text/javascript">
+
+    function showhide(button, row_id)
+    {
+        var row = document.getElementById(row_id),
+            style = getComputedStyle(row);
+    
+        if(row && style.display == 'none') {
+            row.style.display = 'table-row';
+            button.innerText = 'Hide sample data';
+
+        } else if(row) {
+            row.style.display = 'none';
+            button.innerText = 'Show sample data';
+        }
+
+        return false;
+    }
+
+</script>
 </head>
 
 <body>
@@ -70,6 +105,7 @@
         <th class="cached">Cached?</th>
         <th class="processed">Processed?</th>
         <th class="reasons">Reasons</th>
+        <th class="sample"> </th>
     </tr>
     {% for state in states %}
       <tr>
@@ -104,6 +140,34 @@
             {% else %}
             unknown
             {% endif %}
+          {% endif %}
+        </td>
+        <td class="sample">
+          {% if state.sample %}
+            <button onclick="return showhide(this, '{{ state.shortname }}-sample-data')">Show sample data</button>
+          {% else %}
+            No sample data
+          {% endif %}
+        </td>
+      </tr>
+      <tr id="{{ state.shortname }}-sample-data" style="display: none">
+        <td colspan="6">
+          {% if state.sample %}
+            <p>
+              Sample data for first {{ state.sample_data|length - 1 }}
+              rows of <a href="{{ state.cache }}">{{ state.shortname }}</a>:
+            </p>
+            <table>
+              {#
+                Brief sample data header, with text "Column", "Row 0", etc.
+              #}
+              <tr>{% for i in range(state.sample_data|length) %}<th>{% if i == 0 %}Column{% else %}Row {{ i }}{% endif %}</th>{% endfor %}</tr>
+              {#
+                Rotate sample data for readability, so that each
+                HTML table row is a single column from source data.
+              #}
+              {% for j in range(state.sample_data[0]|length) %}<tr>{% for i in range(state.sample_data|length) %}<td>{% if i == 0 %}{{ state.sample_data[i][j] }}{% else %}{{ state.sample_data[i][j]|tojson }}{% endif %}</td>{% endfor %}</tr>{% endfor %}
+            </table>
           {% endif %}
         </td>
       </tr>

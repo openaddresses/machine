@@ -257,7 +257,8 @@ def excerpt(srcjson, destdir, extras, s3):
     
     rmtree(workdir)
     
-    key = s3.new_key(join('samples', source+'.json'))
+    dir = datetime.now().strftime('%Y%m%d')
+    key = s3.new_key(join(dir, 'samples', source+'.json'))
     args = dict(policy='public-read', headers={'Content-Type': 'text/json'})
     key.set_contents_from_string(json.dumps(sample_data, indent=2), **args)
     
