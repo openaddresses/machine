@@ -51,6 +51,9 @@ def load_states(s3):
             if row.get('sample', False):
                 row['sample_data'] = get(row['sample']).json()
             
+            if not row.get('sample_data', False):
+                row['sample_data'] = list()
+            
             states.append(row)
     
     states.sort(key=lambda s: (bool(s['cache']), bool(s['processed']), s['source']))

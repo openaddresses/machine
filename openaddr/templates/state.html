@@ -143,7 +143,7 @@
           {% endif %}
         </td>
         <td class="sample">
-          {% if state.sample %}
+          {% if state.sample and state.sample_data %}
             <button onclick="return showhide(this, '{{ state.shortname }}-sample-data')">Show sample data</button>
           {% else %}
             No sample data
@@ -152,7 +152,7 @@
       </tr>
       <tr id="{{ state.shortname }}-sample-data" style="display: none">
         <td colspan="6">
-          {% if state.sample %}
+          {% if state.sample and state.sample_data %}
             <p>
               Sample data for first {{ state.sample_data|length - 1 }}
               rows of <a href="{{ state.cache }}">{{ state.shortname }}</a>:
