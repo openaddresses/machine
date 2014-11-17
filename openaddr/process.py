@@ -59,7 +59,8 @@ def main():
 
     index_key = s3.new_key('index.html')
     index_key.set_contents_from_string(index_html, policy='public-read',
-                                       headers={'Content-Type': 'text/html'})
+                  headers={'Cache-Control': 'non-cache, no-store, max-age=0',
+                           'Content-Type': 'text/html'})
 
 def read_state(s3, sourcedir):
     '''
