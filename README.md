@@ -9,6 +9,9 @@ and other components of OpenAddresses to work.
 Status
 ------
 
+This code is being used to process the complete OA dataset on an expected-weekly
+basis, with output visible at [data.openaddresses.io](http://data.openaddresses.io).
+
 Installation scripts for preparing a fresh install of Ubuntu 14.04 can be found
 in `chef`. Run them from a Git checkout like this:
 
@@ -19,7 +22,7 @@ Complete sources will be checked out to `/var/opt/openaddresses/sources`.
 
 OpenAddresses requires Amazon S3 to work. You can set the environment variables
 `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` or provide values as arguments
-to `parallel.py`.
+to `openaddr-process`.
 
 Run the complete process with `openaddr-process`:
 
@@ -34,7 +37,7 @@ of your local [openaddresses](https://github.com/openaddresses/openaddresses),
 [openaddresses-cache](https://github.com/openaddresses/openaddresses-cache),
 and other components of OpenAddresses.
 
-Test the OpenAddresses with `test.py`:
+Test the OpenAddresses machine with `test.py`:
 
     python test.py
 
