@@ -10,7 +10,12 @@ setup(
             'geodata/*.cpg', 'templates/*.html'
         ]
     },
-    install_requires = ['boto >= 2.0.0', 'Jinja2 >= 2.7.0', 'dateutils >= 0.6', 'requests'],
+    install_requires = [
+        'boto >= 2.0.0', 'Jinja2 >= 2.7.0', 'dateutils >= 0.6',
+        
+        # https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1306991/comments/10
+        'requests==2.2.1'
+        ],
     entry_points = dict(
         console_scripts = [
             'openaddr-render-us = openaddr.render:main',
