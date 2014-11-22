@@ -5,6 +5,7 @@ from shutil import copy, move, rmtree
 from logging import getLogger
 from datetime import datetime
 from os import mkdir, environ
+from time import sleep, time
 import json
 
 from boto import connect_s3
@@ -113,7 +114,7 @@ def cache(srcjson, destdir, extras, s3):
         logger.debug('openaddresses-cache {0} {1}'.format(tmpjson, workdir))
 
         cmd = Popen(('node', index_js, tmpjson, workdir, s3.bucketname), **cmd_args)
-        cmd.wait()
+        _wait_for_it(cmd, 7200)
 
         with open(st_path, 'w') as file:
             file.write(str(cmd.returncode))
@@ -168,7 +169,7 @@ def conform(srcjson, destdir, extras, s3):
         logger.debug('openaddresses-conform {0} {1}'.format(tmpjson, workdir))
 
         cmd = Popen(('node', index_js, tmpjson, workdir, s3.bucketname), **cmd_args)
-        cmd.wait()
+        _wait_for_it(cmd, 7200)
 
         with open(st_path, 'w') as file:
             file.write(str(cmd.returncode))
@@ -263,6 +264,24 @@ def excerpt(srcjson, destdir, extras, s3):
     key.set_contents_from_string(json.dumps(sample_data, indent=2), **args)
     
     return ExcerptResult('http://s3.amazonaws.com/{}/{}'.format(s3.bucketname, key.name))
+
+def _wait_for_it(command, seconds):
+    ''' Run command for a limited number of seconds, then kill it.
+    '''
+    due = time() + seconds
+    
+    while True:
+        if command.poll() is not None:
+            # Command complete
+            break
+        
+        elif time() > due:
+            # Went overtime
+            command.kill()
+
+        else:
+            # Keep waiting
+            sleep(.5)
 
 def _tmp_json(workdir, srcjson, extras):
     ''' Work on a copy of source JSON in a safe directory, with extras grafted in.
