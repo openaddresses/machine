@@ -201,8 +201,7 @@
         <td colspan="6">
           {% if state.sample and state.sample_data %}
             <p>
-              Sample data for first {{ state.sample_data|length - 1 }}
-              rows of <a href="{{ state.cache }}">{{ state.shortname }}</a>:
+              Sample data for first rows of <a href="{{ state.cache }}">{{ state.shortname }}</a>:
             </p>
             <table>
               {#

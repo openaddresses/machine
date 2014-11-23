@@ -2,12 +2,17 @@ from subprocess import Popen
 from tempfile import mkdtemp
 from os.path import realpath, join, basename, splitext, exists
 from shutil import copy, move, rmtree
+from mimetypes import guess_extension
+from StringIO import StringIO
 from logging import getLogger
 from datetime import datetime
 from os import mkdir, environ
 from time import sleep, time
+from zipfile import ZipFile
 import json
 
+from osgeo import ogr
+from requests import get
 from boto import connect_s3
 from . import paths
 
@@ -215,13 +220,6 @@ def excerpt(srcjson, destdir, extras, s3):
 
     #
     sample_data = None
-    
-    from requests import get
-    from osgeo import ogr
-    from mimetypes import guess_extension
-    from StringIO import StringIO
-    from zipfile import ZipFile
-    
     got = get(extras['cache'])
     _, ext = splitext(got.url)
     
@@ -262,7 +260,7 @@ def excerpt(srcjson, destdir, extras, s3):
         for feature in layer:
             sample_data += [[feature.GetField(i) for i in range(field_count)]]
             
-            if len(sample_data) == 4:
+            if len(sample_data) == 6:
                 break
     
     rmtree(workdir)
