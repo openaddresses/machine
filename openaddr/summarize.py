@@ -68,7 +68,7 @@ def summarize(s3):
     ''' Return summary HTML.
     '''
     env = Environment(loader=FileSystemLoader(join(dirname(__file__), 'templates')))
-    env.filters['tojson'] = lambda value: json.dumps(value)
+    env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
     template = env.get_template('state.html')
     last_modified, states = load_states(s3)
     return template.render(states=states, last_modified=last_modified)
