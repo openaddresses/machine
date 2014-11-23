@@ -241,7 +241,19 @@ def excerpt(srcjson, destdir, extras, s3):
         
         if exists(join(workdir, 'cache.shp')):
             ds = ogr.Open(join(workdir, 'cache.shp'))
-
+        else:
+            ds = None
+    
+    elif ext == '.json':
+        with open(join(workdir, 'cache.json'), 'w') as file:
+            file.write(got.content)
+        
+        ds = ogr.Open(join(workdir, 'cache.json'))
+    
+    else:
+        ds = None
+    
+    if ds:
         layer = ds.GetLayer(0)
         defn = layer.GetLayerDefn()
         field_count = defn.GetFieldCount()
@@ -252,9 +264,6 @@ def excerpt(srcjson, destdir, extras, s3):
             
             if len(sample_data) == 4:
                 break
-    
-    else:
-        pass
     
     rmtree(workdir)
     
