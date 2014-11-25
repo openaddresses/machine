@@ -262,6 +262,8 @@ def excerpt(srcjson, destdir, extras, s3):
             
             if len(sample_data) == 6:
                 break
+        
+        ds.Close()
     
     rmtree(workdir)
     
