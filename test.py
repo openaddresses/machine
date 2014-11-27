@@ -9,7 +9,7 @@ from os.path import dirname, join, splitext
 from csv import DictReader
 from glob import glob
 
-from openaddr import cache, conform, jobs, S3, process
+from openaddr import cache, conform, jobs, S3, process, sample
 
 class TestOA (unittest.TestCase):
     
@@ -76,6 +76,24 @@ class TestOA (unittest.TestCase):
         result = conform(source, self.testdir, result.todict(), self.s3)
         self.assertTrue(result.processed is None)
         self.assertTrue(result.path is None)
+
+class TestSample (unittest.TestCase):
+    
+    def test_sample(self):
+        geojson_input = '''{ "type": "FeatureCollection", "features": [
+                           { "type": "Feature", "geometry": {"type": "Point", "coordinates": [102.0, 0.5]}, "properties": {"prop0": "value0"} },
+                           { "type": "Feature", "geometry": { "type": "LineString", "coordinates": [ [102.0, 0.0], [103.0, 1.0], [104.0, 0.0], [105.0, 1.0] ] }, "properties": { "prop0": "value0", "prop1": 0.0 } },
+                           { "type": "Feature", "geometry": { "type": "Polygon", "coordinates": [ [ [100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0] ] ] }, "properties": { "prop0": "value0", "prop1": {"this": "that"}, "prop2": true, "prop3": null } }
+                           ] }'''
+        
+        geojson1 = json.loads(sample.sample_geojson(StringIO(geojson_input), max_features=2))
+        self.assertEqual(len(geojson1['features']), 2)
+        
+        geojson2 = json.loads(sample.sample_geojson(StringIO(geojson_input), max_features=3))
+        self.assertEqual(len(geojson2['features']), 3)
+        
+        geojson3 = json.loads(sample.sample_geojson(StringIO(geojson_input), max_features=4))
+        self.assertEqual(len(geojson3['features']), 3)
 
 class FakeS3 (S3):
     ''' Just enough S3 to work for tests.

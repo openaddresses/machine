@@ -1,4 +1,4 @@
-import json, ijson, httplib
+import json, ijson
 from itertools import chain
 
 def _build_value(data):
@@ -59,48 +59,40 @@ def _build_map(data):
     
     return output
 
-def sample_geojson(stream, max_features=2):
+def sample_geojson(stream, max_features):
+    ''' Read a stream of input GeoJSON and return a string with a limited feature count.
     '''
-    '''
-    features = list()
-    data = ijson.parse(stream)
+    data, features = ijson.parse(stream), list()
 
-    for (prefix, event, value) in data:
-        if event != 'start_map':
+    for (prefix1, event1, value1) in data:
+        if event1 != 'start_map':
             # A root GeoJSON object is a map.
-            raise ValueError((prefix, event, value))
+            raise ValueError((prefix1, event1, value1))
 
-        for (prefix, event, value) in data:
-            if event == 'map_key' and value == 'type':
-                prefix, event, value = data.next()
+        for (prefix2, event2, value2) in data:
+            if event2 == 'map_key' and value2 == 'type':
+                prefix3, event3, value3 = data.next()
             
-                if event != 'string' and value != 'FeatureCollection':
+                if event3 != 'string' and value3 != 'FeatureCollection':
                     # We only want GeoJSON feature collections
-                    raise ValueError((prefix, event, value))
+                    raise ValueError((prefix3, event3, value3))
             
-            elif event == 'map_key' and value == 'features':
-                prefix, event, value = data.next()
+            elif event2 == 'map_key' and value2 == 'features':
+                prefix4, event4, value4 = data.next()
             
-                if event != 'start_array':
+                if event4 != 'start_array':
                     # We only want lists of features here.
-                    raise ValueError((prefix, event, value))
+                    raise ValueError((prefix4, event4, value4))
             
-                for (prefix, event, value) in data:
-                    if event == 'end_array' or len(features) == max_features:
+                for (prefix5, event5, value5) in data:
+                    if event5 == 'end_array' or len(features) == max_features:
                         break
                 
                     # let _build_value() handle the feature.
-                    _data = chain([(prefix, event, value)], data)
+                    _data = chain([(prefix5, event5, value5)], data)
                     features.append(_build_value(_data))
 
                 geojson = dict(type='FeatureCollection', features=features)
-                return json.dumps(geojson, indent=2)
+                return json.dumps(geojson)
     
     raise ValueError()
-
-# http://s3.amazonaws.com/data.openaddresses.io/20141122/us-fl-palm_beach.json
-conn = httplib.HTTPConnection('s3.amazonaws.com')
-conn.request('GET', '/data.openaddresses.io/20141122/us-fl-palm_beach.json')
-resp = conn.getresponse()
-
-print sample_geojson(resp)
