@@ -1,12 +1,15 @@
-import ijson, csv, pprint, httplib
+import json, ijson, httplib
 from itertools import chain
 
 def _build_value(data):
     ''' Build a value (number, array, whatever) from an ijson stream.
     '''
     for (prefix, event, value) in data:
-        if event in ('string', 'number', 'null', 'boolean'):
+        if event in ('string', 'null', 'boolean'):
             return value
+        
+        elif event == 'number':
+            return int(value) if (int(value) == float(value)) else float(value)
         
         elif event == 'start_array':
             return _build_list(data)
@@ -90,7 +93,8 @@ def sample_geojson(stream, max_features=2):
                     _data = chain([(prefix, event, value)], data)
                     features.append(_build_value(_data))
 
-                return dict(type='FeatureCollection', features=features)
+                geojson = dict(type='FeatureCollection', features=features)
+                return json.dumps(geojson, indent=2)
     
     raise ValueError()
 
@@ -99,4 +103,4 @@ conn = httplib.HTTPConnection('s3.amazonaws.com')
 conn.request('GET', '/data.openaddresses.io/20141122/us-fl-palm_beach.json')
 resp = conn.getresponse()
 
-pprint.pprint(sample_geojson(resp))
+print sample_geojson(resp)
