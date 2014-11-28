@@ -9,7 +9,7 @@ from os.path import dirname, join, splitext
 from csv import DictReader
 from glob import glob
 
-from openaddr import cache, conform, jobs, S3, process
+from openaddr import cache, conform, excerpt, jobs, S3, process
 from openaddr.sample import TestSample
 
 class TestOA (unittest.TestCase):
@@ -57,14 +57,25 @@ class TestOA (unittest.TestCase):
     def test_single_ac(self):
         source = join(self.src_dir, 'us-ca-alameda_county-{0}.json'.format(self.uuid))
 
-        result = cache(source, self.testdir, dict(), self.s3)
-        self.assertTrue(result.cache is not None)
-        self.assertTrue(result.version is not None)
-        self.assertTrue(result.fingerprint is not None)
+        result1 = cache(source, self.testdir, dict(), self.s3)
+        self.assertTrue(result1.cache is not None)
+        self.assertTrue(result1.version is not None)
+        self.assertTrue(result1.fingerprint is not None)
         
-        result = conform(source, self.testdir, result.todict(), self.s3)
-        self.assertTrue(result.processed is not None)
-        self.assertTrue(result.path is not None)
+        result2 = conform(source, self.testdir, result1.todict(), self.s3)
+        self.assertTrue(result2.processed is not None)
+        self.assertTrue(result2.path is not None)
+
+        result3 = excerpt(source, self.testdir, result1.todict(), self.s3)
+        self.assertTrue(result3.sample_data is not None)
+        
+        sample_key = '/'.join(result3.sample_data.split('/')[-3:])
+        sample_data = json.loads(self.s3.keys[sample_key])
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('ZIPCODE' in sample_data[0])
+        self.assertTrue('OAKLAND' in sample_data[1])
+        self.assertTrue('94612' in sample_data[1])
 
     def test_single_oak(self):
         source = join(self.src_dir, 'us-ca-oakland-{0}.json'.format(self.uuid))

@@ -244,7 +244,7 @@ def excerpt(srcjson, destdir, extras, s3):
             _, ext = splitext(name)
             
             if ext in ('.shp', '.shx', '.dbf'):
-                with open(cachefile, 'w') as file:
+                with open(join(workdir, 'cache'+ext), 'w') as file:
                     file.write(zf.read(name))
         
         if exists(join(workdir, 'cache.shp')):
