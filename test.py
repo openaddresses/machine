@@ -48,8 +48,9 @@ class TestOA (unittest.TestCase):
             self.assertTrue(bool(state['cache']))
             self.assertTrue(bool(state['version']))
             self.assertTrue(bool(state['fingerprint']))
+            self.assertTrue(bool(state['sample']))
 
-            if 'san_francisco' in source or 'alameda_county' in source:
+            if 'san_francisco' in source or 'alameda_county' in source or 'polk' in source:
                 self.assertTrue(bool(state['processed']))
             else:
                 self.assertFalse(bool(state['processed']))
@@ -69,13 +70,35 @@ class TestOA (unittest.TestCase):
         result3 = excerpt(source, self.testdir, result1.todict(), self.s3)
         self.assertTrue(result3.sample_data is not None)
         
-        sample_key = '/'.join(result3.sample_data.split('/')[-3:])
+        sample_key = '/'.join(result3.sample_data.split('/')[4:])
         sample_data = json.loads(self.s3.keys[sample_key])
         
         self.assertEqual(len(sample_data), 6)
         self.assertTrue('ZIPCODE' in sample_data[0])
         self.assertTrue('OAKLAND' in sample_data[1])
         self.assertTrue('94612' in sample_data[1])
+
+    def test_single_polk(self):
+        source = join(self.src_dir, 'us-ia-polk-{0}.json'.format(self.uuid))
+
+        result1 = cache(source, self.testdir, dict(), self.s3)
+        self.assertTrue(result1.cache is not None)
+        self.assertTrue(result1.version is not None)
+        self.assertTrue(result1.fingerprint is not None)
+        
+        result2 = conform(source, self.testdir, result1.todict(), self.s3)
+        self.assertTrue(result2.processed is not None)
+        self.assertTrue(result2.path is not None)
+
+        result3 = excerpt(source, self.testdir, result1.todict(), self.s3)
+        self.assertTrue(result3.sample_data is not None)
+        
+        sample_key = '/'.join(result3.sample_data.split('/')[4:])
+        sample_data = json.loads(self.s3.keys[sample_key])
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('zip' in sample_data[0])
+        self.assertTrue('IA' in sample_data[1])
 
     def test_single_oak(self):
         source = join(self.src_dir, 'us-ca-oakland-{0}.json'.format(self.uuid))
