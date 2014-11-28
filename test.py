@@ -48,6 +48,7 @@ class TestOA (unittest.TestCase):
             self.assertTrue(bool(state['cache']))
             self.assertTrue(bool(state['version']))
             self.assertTrue(bool(state['fingerprint']))
+            self.assertTrue(bool(state['geometry type']))
             self.assertTrue(bool(state['sample']))
 
             if 'san_francisco' in source or 'alameda_county' in source or 'polk' in source:
@@ -69,6 +70,7 @@ class TestOA (unittest.TestCase):
 
         result3 = excerpt(source, self.testdir, result1.todict(), self.s3)
         self.assertTrue(result3.sample_data is not None)
+        self.assertEqual(result3.geometry_type, 'Point')
         
         sample_key = '/'.join(result3.sample_data.split('/')[4:])
         sample_data = json.loads(self.s3.keys[sample_key])

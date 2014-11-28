@@ -19,6 +19,25 @@ from boto import connect_s3
 from .sample import sample_geojson
 from . import paths
 
+geometry_types = {
+    ogr.wkbPoint: 'Point',
+    ogr.wkbPoint25D: 'Point 2.5D',
+    ogr.wkbLineString: 'LineString',
+    ogr.wkbLineString25D: 'LineString 2.5D',
+    ogr.wkbLinearRing: 'LinearRing',
+    ogr.wkbPolygon: 'Polygon',
+    ogr.wkbPolygon25D: 'Polygon 2.5D',
+    ogr.wkbMultiPoint: 'MultiPoint',
+    ogr.wkbMultiPoint25D: 'MultiPoint 2.5D',
+    ogr.wkbMultiLineString: 'MultiLineString',
+    ogr.wkbMultiLineString25D: 'MultiLineString 2.5D',
+    ogr.wkbMultiPolygon: 'MultiPolygon',
+    ogr.wkbMultiPolygon25D: 'MultiPolygon 2.5D',
+    ogr.wkbGeometryCollection: 'GeometryCollection',
+    ogr.wkbGeometryCollection25D: 'GeometryCollection 2.5D',
+    ogr.wkbUnknown: 'Unknown'
+    }
+
 class CacheResult:
     cache = None
     fingerprint = None
@@ -61,13 +80,15 @@ class ConformResult:
 
 class ExcerptResult:
     sample_data = None
+    geometry_type = None
 
-    def __init__(self, sample_data):
+    def __init__(self, sample_data, geometry_type):
         self.sample_data = sample_data
+        self.geometry_type = geometry_type
     
     @staticmethod
     def empty():
-        return ExcerptResult(None)
+        return ExcerptResult(None, None)
 
     def todict(self):
         return dict(sample_data=self.sample_data)
@@ -274,6 +295,7 @@ def excerpt(srcjson, destdir, extras, s3):
         defn = layer.GetLayerDefn()
         field_count = defn.GetFieldCount()
         sample_data = [[defn.GetFieldDefn(i).name for i in range(field_count)]]
+        geometry_type = geometry_types.get(defn.GetGeomType(), None)
         
         for feature in layer:
             sample_data += [[feature.GetField(i) for i in range(field_count)]]
@@ -296,7 +318,8 @@ def excerpt(srcjson, destdir, extras, s3):
     args = dict(policy='public-read', headers={'Content-Type': 'text/json'})
     key.set_contents_from_string(json.dumps(sample_data, indent=2), **args)
     
-    return ExcerptResult('http://s3.amazonaws.com/{}/{}'.format(s3.bucketname, key.name))
+    return ExcerptResult('http://s3.amazonaws.com/{}/{}'.format(s3.bucketname, key.name),
+                         geometry_type)
 
 def _wait_for_it(command, seconds):
     ''' Run command for a limited number of seconds, then kill it.
