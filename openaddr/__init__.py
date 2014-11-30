@@ -10,11 +10,14 @@ from datetime import datetime
 from os import mkdir, environ
 from time import sleep, time
 from zipfile import ZipFile
+from urlparse import urlparse
+from httplib import HTTPConnection
 import json
 
 from osgeo import ogr
 from requests import get
 from boto import connect_s3
+from .sample import sample_geojson
 from . import paths
 from .cache import (
     CacheResult,
@@ -205,21 +208,28 @@ def excerpt(srcjson, destdir, extras, s3):
 
     #
     sample_data = None
-    got = get(extras['cache'])
+    got = get(extras['cache'], stream=True)
     _, ext = splitext(got.url)
     
     if not ext:
         ext = guess_extension(got.headers['content-type'])
     
+    cachefile = join(workdir, 'cache'+ext)
+    
     if ext == '.zip':
-        zbuff = StringIO(got.content)
-        zf = ZipFile(zbuff, 'r')
+        logger.debug('Downloading all of {cache}'.format(**extras))
+
+        with open(cachefile, 'w') as file:
+            for chunk in got.iter_content(1024**2):
+                file.write(chunk)
+    
+        zf = ZipFile(cachefile, 'r')
         
         for name in zf.namelist():
             _, ext = splitext(name)
             
             if ext in ('.shp', '.shx', '.dbf'):
-                with open(join(workdir, 'cache'+ext), 'w') as file:
+                with open(cachefile, 'w') as file:
                     file.write(zf.read(name))
         
         if exists(join(workdir, 'cache.shp')):
@@ -228,10 +238,18 @@ def excerpt(srcjson, destdir, extras, s3):
             ds = None
     
     elif ext == '.json':
-        with open(join(workdir, 'cache.json'), 'w') as file:
-            file.write(got.content)
+        logger.debug('Downloading part of {cache}'.format(**extras))
+
+        _, host, path, query, _, _ = urlparse(got.url)
         
-        ds = ogr.Open(join(workdir, 'cache.json'))
+        conn = HTTPConnection(host, 80)
+        conn.request('GET', path + ('?' if query else '') + query)
+        resp = conn.getresponse()
+        
+        with open(cachefile, 'w') as file:
+            file.write(sample_geojson(resp, 10))
+    
+        ds = ogr.Open(cachefile)
     
     else:
         ds = None
