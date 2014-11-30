@@ -1,0 +1,13 @@
+{
+    "data": "http://fake-web/lake-man.zip",
+    "cache": "http://fake-cache/lake-man.zip",
+    "type": "http",
+    "compression": "zip",
+    "conform": {
+        "lon": "x",
+        "lat": "y",
+        "number": "number",
+        "street": "strname",
+        "type": "shapefile"
+    }
+}

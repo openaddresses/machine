@@ -219,6 +219,27 @@ class TestConform (unittest.TestCase):
         
         return cmd
     
+    def test_lake_man(self):
+        source_path, cache_dir = self._copy_shapefile('lake-man')
+        
+        cmd = self._run_node_conform(source_path)
+        self.assertEqual(cmd.returncode, 0)
+        
+        with open(join(cache_dir, 'out.csv')) as file:
+            rows = list(DictReader(file, dialect='excel'))
+            self.assertEqual(rows[0]['NUMBER'], '5115')
+            self.assertEqual(rows[0]['STREET'], 'Fruited Plains Lane')
+            self.assertEqual(rows[1]['NUMBER'], '5121')
+            self.assertEqual(rows[1]['STREET'], 'Fruited Plains Lane')
+            self.assertEqual(rows[2]['NUMBER'], '5133')
+            self.assertEqual(rows[2]['STREET'], 'Fruited Plains Lane')
+            self.assertEqual(rows[3]['NUMBER'], '5126')
+            self.assertEqual(rows[3]['STREET'], 'Fruited Plains Lane')
+            self.assertEqual(rows[4]['NUMBER'], '5120')
+            self.assertEqual(rows[4]['STREET'], 'Fruited Plains Lane')
+            self.assertEqual(rows[5]['NUMBER'], '5115')
+            self.assertEqual(rows[5]['STREET'], 'Old Mill Road')
+    
     def test_lake_man_split(self):
         source_path, cache_dir = self._copy_shapefile('lake-man-split')
         
