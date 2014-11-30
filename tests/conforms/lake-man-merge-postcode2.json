@@ -1,0 +1,18 @@
+{
+    "data": "http://fake-web/lake-man-merge-postcode2.zip",
+    "cache": "http://fake-cache/lake-man-merge-postcode2.zip",
+    "type": "http",
+    "compression": "zip",
+    "conform": {
+        "merge": [
+            "feanme",
+            "featyp"
+        ],
+        "lon": "x",
+        "lat": "y",
+        "number": "st_num",
+        "street": "auto_street",
+        "type": "shapefile",
+        "postcode": "zipcode"
+    }
+}

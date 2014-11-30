@@ -289,6 +289,27 @@ class TestConform (unittest.TestCase):
             self.assertEqual(rows[4]['STREET'], 'Eklutna Lake Road')
             self.assertEqual(rows[5]['NUMBER'], '31401')
             self.assertEqual(rows[5]['STREET'], 'Eklutna Lake Road')
+    
+    def test_lake_man_merge_postcode2(self):
+        source_path, cache_dir = self._copy_shapefile('lake-man-merge-postcode2')
+        
+        cmd = self._run_node_conform(source_path)
+        self.assertEqual(cmd.returncode, 0)
+        
+        with open(join(cache_dir, 'out.csv')) as file:
+            rows = list(DictReader(file, dialect='excel'))
+            self.assertEqual(rows[0]['NUMBER'], '85')
+            self.assertEqual(rows[0]['STREET'], 'Maitland Drive')
+            self.assertEqual(rows[1]['NUMBER'], '81')
+            self.assertEqual(rows[1]['STREET'], 'Maitland Drive')
+            self.assertEqual(rows[2]['NUMBER'], '92')
+            self.assertEqual(rows[2]['STREET'], 'Maitland Drive')
+            self.assertEqual(rows[3]['NUMBER'], '92')
+            self.assertEqual(rows[3]['STREET'], 'Maitland Drive')
+            self.assertEqual(rows[4]['NUMBER'], '92')
+            self.assertEqual(rows[4]['STREET'], 'Maitland Drive')
+            self.assertEqual(rows[5]['NUMBER'], '92')
+            self.assertEqual(rows[5]['STREET'], 'Maitland Drive')
 
 class FakeS3 (S3):
     ''' Just enough S3 to work for tests.
