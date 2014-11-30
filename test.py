@@ -11,11 +11,13 @@ from urlparse import urlparse, parse_qs
 from os.path import dirname, join
 from fcntl import lockf, LOCK_EX, LOCK_UN
 from contextlib import contextmanager
+from subprocess import Popen, PIPE
 from csv import DictReader
 
 from httmock import response, HTTMock
-
-from openaddr import cache, conform, jobs, S3, process
+        
+from openaddr import paths, cache, conform, excerpt, jobs, S3, process
+from openaddr.sample import TestSample
 
 class TestOA (unittest.TestCase):
     
@@ -183,28 +185,44 @@ class TestConform (unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.testdir)
     
-    def test_lake_man_split(self):
-        source_path = join(self.testdir, 'lake-man-split.json')
-        cache_dir = join(self.testdir, 'lake-man-split')
+    def _copy_source(self, source_name):
+        '''
+        '''
+        source_path = join(self.testdir, source_name+'.json')
+        cache_dir = join(self.testdir, source_name)
         
-        shutil.copyfile(join(self.conforms_dir, 'lake-man-split.json'),
+        shutil.copyfile(join(self.conforms_dir, source_name+'.json'),
                         source_path)
         
         mkdir(cache_dir)
 
+        return source_path, cache_dir
+    
+    def _copy_shapefile(self, source_name):
+        '''
+        '''
+        source_path, cache_dir = self._copy_source(source_name)
+
         for ext in ('.shp', '.shx', '.dbf', '.prj'):
-            filename = 'lake-man-split'+ext
+            filename = source_name+ext
             shutil.copyfile(join(self.conforms_dir, filename),
                             join(cache_dir, filename))
         
-        from subprocess import Popen, PIPE
-        from openaddr import paths
-        from csv import DictReader
-        
+        return source_path, cache_dir
+    
+    def _run_node_conform(self, source_path):
+        '''
+        '''
         args = dict(cwd=self.testdir, stderr=PIPE, stdout=PIPE)
         cmd = Popen(('node', paths.conform, source_path, self.testdir), **args)
         cmd.wait()
         
+        return cmd
+    
+    def test_lake_man_split(self):
+        source_path, cache_dir = self._copy_shapefile('lake-man-split')
+        
+        cmd = self._run_node_conform(source_path)
         self.assertEqual(cmd.returncode, 0)
         
         with open(join(cache_dir, 'out.csv')) as file:
@@ -223,24 +241,12 @@ class TestConform (unittest.TestCase):
             self.assertEqual(rows[5]['STREET'], 'Scofield Avenue')
     
     def test_lake_man_split2(self):
-        source_path = join(self.testdir, 'lake-man-split2.json')
-        cache_dir = join(self.testdir, 'lake-man-split2')
-        
-        shutil.copyfile(join(self.conforms_dir, 'lake-man-split2.json'),
-                        source_path)
-        
-        mkdir(cache_dir)
+        source_path, cache_dir = self._copy_source('lake-man-split2')
 
         shutil.copyfile(join(self.conforms_dir, 'lake-man-split2.geojson'),
                         join(cache_dir, 'lake-man-split2.json'))
         
-        from subprocess import Popen, PIPE
-        from openaddr import paths
-        from csv import DictReader
-        
-        args = dict(cwd=self.testdir, stderr=PIPE, stdout=PIPE)
-        cmd = Popen(('node', paths.conform, source_path, self.testdir), **args)
-        cmd.wait()
+        cmd = self._run_node_conform(source_path)
         
         # No clue why Node errors here. TODO: figure it out.
         return
@@ -264,27 +270,9 @@ class TestConform (unittest.TestCase):
             self.assertEqual(rows[5]['STREET'], 'Spectrum Pointe Dr #320')
     
     def test_lake_man_merge_postcode(self):
-        source_path = join(self.testdir, 'lake-man-merge-postcode.json')
-        cache_dir = join(self.testdir, 'lake-man-merge-postcode')
+        source_path, cache_dir = self._copy_shapefile('lake-man-merge-postcode')
         
-        shutil.copyfile(join(self.conforms_dir, 'lake-man-merge-postcode.json'),
-                        source_path)
-        
-        mkdir(cache_dir)
-
-        for ext in ('.shp', '.shx', '.dbf', '.prj'):
-            filename = 'lake-man-merge-postcode'+ext
-            shutil.copyfile(join(self.conforms_dir, filename),
-                            join(cache_dir, filename))
-        
-        from subprocess import Popen, PIPE
-        from openaddr import paths
-        from csv import DictReader
-        
-        args = dict(cwd=self.testdir, stderr=PIPE, stdout=PIPE)
-        cmd = Popen(('node', paths.conform, source_path, self.testdir), **args)
-        cmd.wait()
-        
+        cmd = self._run_node_conform(source_path)
         self.assertEqual(cmd.returncode, 0)
         
         with open(join(cache_dir, 'out.csv')) as file:
