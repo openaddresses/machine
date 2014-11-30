@@ -1,9 +1,4 @@
 {
-    "coverage": {
-        "country": "ca",
-        "state": "on",
-        "city": "windsor"
-    },
     "data": "http://fake-web/lake-man-split2",
     "cache": "http://fake-cache/lake-man-split2.json",
     "type": "ESRI",

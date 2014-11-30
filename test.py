@@ -262,6 +262,45 @@ class TestConform (unittest.TestCase):
             self.assertEqual(rows[4]['STREET'], 'Spectrum Pointe Dr #320')
             self.assertEqual(rows[5]['NUMBER'], '1')
             self.assertEqual(rows[5]['STREET'], 'Spectrum Pointe Dr #320')
+    
+    def test_lake_man_merge_postcode(self):
+        source_path = join(self.testdir, 'lake-man-merge-postcode.json')
+        cache_dir = join(self.testdir, 'lake-man-merge-postcode')
+        
+        shutil.copyfile(join(self.conforms_dir, 'lake-man-merge-postcode.json'),
+                        source_path)
+        
+        mkdir(cache_dir)
+
+        for ext in ('.shp', '.shx', '.dbf', '.prj'):
+            filename = 'lake-man-merge-postcode'+ext
+            shutil.copyfile(join(self.conforms_dir, filename),
+                            join(cache_dir, filename))
+        
+        from subprocess import Popen, PIPE
+        from openaddr import paths
+        from csv import DictReader
+        
+        args = dict(cwd=self.testdir, stderr=PIPE, stdout=PIPE)
+        cmd = Popen(('node', paths.conform, source_path, self.testdir), **args)
+        cmd.wait()
+        
+        self.assertEqual(cmd.returncode, 0)
+        
+        with open(join(cache_dir, 'out.csv')) as file:
+            rows = list(DictReader(file, dialect='excel'))
+            self.assertEqual(rows[0]['NUMBER'], '35845')
+            self.assertEqual(rows[0]['STREET'], 'Eklutna Lake Road')
+            self.assertEqual(rows[1]['NUMBER'], '35850')
+            self.assertEqual(rows[1]['STREET'], 'Eklutna Lake Road')
+            self.assertEqual(rows[2]['NUMBER'], '35900')
+            self.assertEqual(rows[2]['STREET'], 'Eklutna Lake Road')
+            self.assertEqual(rows[3]['NUMBER'], '35870')
+            self.assertEqual(rows[3]['STREET'], 'Eklutna Lake Road')
+            self.assertEqual(rows[4]['NUMBER'], '32551')
+            self.assertEqual(rows[4]['STREET'], 'Eklutna Lake Road')
+            self.assertEqual(rows[5]['NUMBER'], '31401')
+            self.assertEqual(rows[5]['STREET'], 'Eklutna Lake Road')
 
 class FakeS3 (S3):
     ''' Just enough S3 to work for tests.
