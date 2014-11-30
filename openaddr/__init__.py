@@ -209,7 +209,7 @@ def excerpt(srcjson, destdir, extras, s3):
     #
     sample_data = None
     got = get(extras['cache'], stream=True)
-    _, ext = splitext(got.url)
+    _, ext = splitext(got.url or extras['cache'])
     
     if not ext:
         ext = guess_extension(got.headers['content-type'])
