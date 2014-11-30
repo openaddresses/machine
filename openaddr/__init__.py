@@ -247,6 +247,14 @@ def excerpt(srcjson, destdir, extras, s3):
             
             if len(sample_data) == 6:
                 break
+        
+        #
+        # Close it like in
+        # http://trac.osgeo.org/gdal/wiki/PythonGotchas#Savingandclosingdatasetsdatasources
+        #
+        defn = None
+        layer = None
+        ds = None
     
     rmtree(workdir)
     

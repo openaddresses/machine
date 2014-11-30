@@ -183,5 +183,5 @@ def _wait_for_threads(threads, queue):
         getLogger('openaddr').info('Cancel with {0} tasks left'.format(len(queue)))
         while queue:
             # Empty the queue to stop the threads.
-            source_queue.pop()
+            queue.pop()
         raise
