@@ -35,7 +35,7 @@
     table tr th,
     table tr td.type,
     table tr td.cached,
-    table tr td.reasons,
+    table tr td.problems,
     table tr td.sample,
     table tr td table tr td
     {
@@ -151,7 +151,7 @@
         <th class="type">Type</th>
         <th class="cached">Cached?</th>
         <th class="processed">Processed?</th>
-        <th class="reasons">Reasons</th>
+        <th class="problems">Problems</th>
         <th class="sample"> </th>
     </tr>
     {% for state in states %}
@@ -178,14 +178,15 @@
             –
           {% endif %}
         </td>
-        <td class="reasons">
+        <td class="problems">
           {% if not state.processed %}
             {% if not state.cache %}
             cache failed
             {% elif not state.conform %}
-            <a href="{{ state.href }}">missing conform</a>
+            <a href="{{ state.href }}">source</a> is
+            <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#conform-object">missing conform</a>
             {% else %}
-            unknown
+
             {% endif %}
           {% endif %}
         </td>
