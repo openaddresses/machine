@@ -117,7 +117,7 @@ class URLDownloadTask(DownloadTask):
 
             try:
                 resp = requests.get(source_url, headers=headers, stream=True)
-            except:
+            except Exception, e:
                 raise DownloadError("Could not connect to URL", e)
 
             size = 0

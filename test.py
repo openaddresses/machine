@@ -18,7 +18,6 @@ from requests import get
 from httmock import response, HTTMock
         
 from openaddr import paths, cache, conform, excerpt, jobs, S3, process
-from openaddr.sample import TestSample
 
 class TestOA (unittest.TestCase):
     
