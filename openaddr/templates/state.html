@@ -183,7 +183,8 @@
             {% if not state.cache %}
             cache failed
             {% elif not state.conform %}
-            <a href="{{ state.href }}">missing conform</a>
+            <a href="{{ state.href }}">source</a> is
+            <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#conform-object">missing conform</a>
             {% else %}
             unknown
             {% endif %}
