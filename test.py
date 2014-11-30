@@ -90,8 +90,9 @@ class TestOA (unittest.TestCase):
             self.assertTrue(bool(state['cache']), 'Checking for cache in {}'.format(source))
             self.assertTrue(bool(state['version']), 'Checking for version in {}'.format(source))
             self.assertTrue(bool(state['fingerprint']), 'Checking for fingerprint in {}'.format(source))
+            self.assertTrue(bool(state['sample']), 'Checking for sample in {}'.format(source))
 
-            if 'san_francisco' in source or 'alameda_county' in source:
+            if 'san_francisco' in source or 'alameda_county' in source or 'polk' in source:
                 self.assertTrue(bool(state['processed']), "Checking for processed in {}".format(source))
             else:
                 # This might actually need to be false?
@@ -103,18 +104,48 @@ class TestOA (unittest.TestCase):
         with HTTMock(self.response_content):
             source = join(self.src_dir, 'us-ca-alameda_county.json')
 
-            result = cache(source, self.testdir, dict(), self.s3)
-            self.assertTrue(result.cache is not None)
-            self.assertTrue(result.version is not None)
-            self.assertTrue(result.fingerprint is not None)
-        
-            result = conform(source, self.testdir, result.todict(), self.s3)
-            self.assertTrue(result.processed is not None)
-            self.assertTrue(result.sample is not None)
-            self.assertTrue('FID_PARCEL' in result.sample[0])
+            result1 = cache(source, self.testdir, dict(), self.s3)
+            self.assertTrue(result1.cache is not None)
+            self.assertTrue(result1.version is not None)
+            self.assertTrue(result1.fingerprint is not None)
             
-            _, _, path, _, _, _ = urlparse(result.processed)
-            self.assertTrue('2000 BROADWAY' in self.s3._read_fake_key(path))
+            result2 = conform(source, self.testdir, result1.todict(), self.s3)
+            self.assertTrue(result2.processed is not None)
+            self.assertTrue(result2.sample is not None)
+            self.assertTrue('FID_PARCEL' in result2.sample[0])
+
+            result3 = excerpt(source, self.testdir, result1.todict(), self.s3)
+            self.assertTrue(result3.sample_data is not None)
+            
+            sample_key = '/'.join(result3.sample_data.split('/')[4:])
+            sample_data = json.loads(self.s3.keys[sample_key])
+            
+            self.assertEqual(len(sample_data), 6)
+            self.assertTrue('ZIPCODE' in sample_data[0])
+            self.assertTrue('OAKLAND' in sample_data[1])
+            self.assertTrue('94612' in sample_data[1])
+
+    def test_single_polk(self):
+        source = join(self.src_dir, 'us-ia-polk-{0}.json'.format(self.uuid))
+
+        result1 = cache(source, self.testdir, dict(), self.s3)
+        self.assertTrue(result1.cache is not None)
+        self.assertTrue(result1.version is not None)
+        self.assertTrue(result1.fingerprint is not None)
+        
+        result2 = conform(source, self.testdir, result1.todict(), self.s3)
+        self.assertTrue(result2.processed is not None)
+        self.assertTrue(result2.path is not None)
+
+        result3 = excerpt(source, self.testdir, result1.todict(), self.s3)
+        self.assertTrue(result3.sample_data is not None)
+        
+        sample_key = '/'.join(result3.sample_data.split('/')[4:])
+        sample_data = json.loads(self.s3.keys[sample_key])
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('zip' in sample_data[0])
+        self.assertTrue('IA' in sample_data[1])
 
     def test_single_oak(self):
         ''' Test cache() and conform() on Oakland sample data.
