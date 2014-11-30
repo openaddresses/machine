@@ -124,8 +124,8 @@ def write_state(s3, sourcedir, run_name, source_files1, results1, results2, resu
 
     out = writer(state_file, dialect='excel-tab')
     
-    out.writerow(('source', 'cache', 'sample', 'version', 'fingerprint', 'cache time',
-                  'processed', 'process time', 'output'))
+    out.writerow(('source', 'cache', 'sample', 'geometry type', 'version',
+                  'fingerprint', 'cache time', 'processed', 'process time', 'output'))
     
     for source in source_files1:
         result1 = results1[source]
@@ -136,8 +136,8 @@ def write_state(s3, sourcedir, run_name, source_files1, results1, results2, resu
         output_name = '{0}.txt'.format(*splitext(source_name))
     
         out.writerow((source_name, result1.cache, result3.sample_data,
-                      result1.version, result1.fingerprint, result1.elapsed,
-                      result2.processed, result2.elapsed,
+                      result3.geometry_type, result1.version, result1.fingerprint,
+                      result1.elapsed, result2.processed, result2.elapsed,
                       output_name))
         
         output_path = join('runs', run_name, output_name)
