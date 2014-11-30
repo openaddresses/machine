@@ -13,6 +13,7 @@ from fcntl import lockf, LOCK_EX, LOCK_UN
 from contextlib import contextmanager
 from subprocess import Popen, PIPE
 from csv import DictReader
+from threading import Lock
 
 from requests import get
 from httmock import response, HTTMock
@@ -412,6 +413,8 @@ class FakeS3 (S3):
     def __init__(self):
         handle, self._fake_keys = tempfile.mkstemp(prefix='fakeS3-', suffix='.pickle')
         close(handle)
+
+        self._threadlock = Lock()
         
         with open(self._fake_keys, 'w') as file:
             cPickle.dump(dict(), file)
@@ -419,7 +422,7 @@ class FakeS3 (S3):
         S3.__init__(self, 'Fake Key', 'Fake Secret', 'data-test.openaddresses.io')
     
     def _write_fake_key(self, name, string):
-        with locked_open(self._fake_keys) as file:
+        with locked_open(self._fake_keys) as file, self._threadlock:
             data = cPickle.load(file)
             data[name] = string
             
@@ -428,7 +431,7 @@ class FakeS3 (S3):
             cPickle.dump(data, file)
     
     def _read_fake_key(self, name):
-        with locked_open(self._fake_keys) as file:
+        with locked_open(self._fake_keys) as file, self._threadlock:
             data = cPickle.load(file)
             
         return data[name]
