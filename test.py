@@ -180,7 +180,7 @@ class TestConform (unittest.TestCase):
         self.testdir = tempfile.mkdtemp(prefix='test-')
         self.conforms_dir = join(dirname(__file__), 'tests', 'conforms')
         
-        self.s3 = FakeS3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'data-test.openaddresses.io')
+        self.s3 = FakeS3()
     
     def tearDown(self):
         shutil.rmtree(self.testdir)
