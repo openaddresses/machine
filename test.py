@@ -8,12 +8,13 @@ from os import close, environ, mkdir
 from StringIO import StringIO
 from mimetypes import guess_type
 from urlparse import urlparse, parse_qs
-from os.path import dirname, join
+from os.path import dirname, join, basename
 from fcntl import lockf, LOCK_EX, LOCK_UN
 from contextlib import contextmanager
 from subprocess import Popen, PIPE
 from csv import DictReader
 
+from requests import get
 from httmock import response, HTTMock
         
 from openaddr import paths, cache, conform, excerpt, jobs, S3, process
@@ -183,7 +184,27 @@ class TestConform (unittest.TestCase):
         self.s3 = FakeS3()
     
     def tearDown(self):
-        shutil.rmtree(self.testdir)
+        pass # shutil.rmtree(self.testdir)
+    
+    def response_content(self, url, request):
+        ''' Fake HTTP responses for use with HTTMock in tests.
+        '''
+        _, host, path, _, query, _ = urlparse(url.geturl())
+        data_dirname = join(dirname(__file__), 'tests', 'data')
+        local_path = None
+        
+        if host == 'fake-cache':
+            local_path = join(self.conforms_dir, basename(path))
+        
+        if host == 'fake-s3':
+            return response(200, self.s3._read_fake_key(path))
+        
+        if local_path:
+            type, _ = guess_type(local_path)
+            with open(local_path) as file:
+                return response(200, file.read(), headers={'Content-Type': type})
+        
+        raise NotImplementedError(url.geturl())
     
     def _copy_source(self, source_name):
         '''
@@ -219,7 +240,7 @@ class TestConform (unittest.TestCase):
         
         return cmd
     
-    def test_lake_man(self):
+    def test_nodejs_lake_man(self):
         source_path, cache_dir = self._copy_shapefile('lake-man')
         
         cmd = self._run_node_conform(source_path)
@@ -239,6 +260,27 @@ class TestConform (unittest.TestCase):
             self.assertEqual(rows[4]['STREET'], 'Fruited Plains Lane')
             self.assertEqual(rows[5]['NUMBER'], '5115')
             self.assertEqual(rows[5]['STREET'], 'Old Mill Road')
+    
+    def test_python_lake_man(self):
+        source_path, cache_dir = self._copy_shapefile('lake-man')
+    
+        with HTTMock(self.response_content):
+            result = conform(source_path, self.testdir, {}, self.s3)
+            output = StringIO(get(result.processed).content)
+        
+        rows = list(DictReader(output, dialect='excel'))
+        self.assertEqual(rows[0]['NUMBER'], '5115')
+        self.assertEqual(rows[0]['STRNAME'], 'FRUITED PLAINS LN')
+        self.assertEqual(rows[1]['NUMBER'], '5121')
+        self.assertEqual(rows[1]['STRNAME'], 'FRUITED PLAINS LN')
+        self.assertEqual(rows[2]['NUMBER'], '5133')
+        self.assertEqual(rows[2]['STRNAME'], 'FRUITED PLAINS LN')
+        self.assertEqual(rows[3]['NUMBER'], '5126')
+        self.assertEqual(rows[3]['STRNAME'], 'FRUITED PLAINS LN')
+        self.assertEqual(rows[4]['NUMBER'], '5120')
+        self.assertEqual(rows[4]['STRNAME'], 'FRUITED PLAINS LN')
+        self.assertEqual(rows[5]['NUMBER'], '5115')
+        self.assertEqual(rows[5]['STRNAME'], 'OLD MILL RD')
     
     def test_lake_man_split(self):
         source_path, cache_dir = self._copy_shapefile('lake-man-split')
