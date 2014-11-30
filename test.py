@@ -4,7 +4,7 @@ import tempfile
 import json
 import cPickle
 import re
-from os import close
+from os import close, environ, mkdir
 from StringIO import StringIO
 from mimetypes import guess_type
 from urlparse import urlparse, parse_qs
@@ -158,6 +158,71 @@ def locked_open(filename):
         lockf(file, LOCK_EX)
         yield file
         lockf(file, LOCK_UN)
+
+class TestConform (unittest.TestCase):
+    '''
+    (u'lat', u'lon', u'number', u'split', u'street', u'type')
+    (u'lat', u'lon', u'merge', u'number', u'postcode', u'street', u'type')
+    (u'lat', u'lon', u'merge', u'number', u'street', u'type')
+    (u'lat', u'lon', u'number', u'street', u'type')
+    (u'advanced_merge', u'encoding', u'lat', u'lon', u'number', u'srs', u'street', u'type')
+    (u'lat', u'lon', u'number', u'postcode', u'split', u'street', u'type')
+    (u'lat', u'lon', u'number', u'postcode', u'street', u'type')
+    (u'file', u'lat', u'lon', u'number', u'street', u'type')
+    '''
+    def setUp(self):
+        ''' Prepare a clean temporary directory.
+        '''
+        jobs.setup_logger(False)
+        
+        self.testdir = tempfile.mkdtemp(prefix='test-')
+        self.conforms_dir = join(dirname(__file__), 'tests', 'conforms')
+        
+        self.s3 = FakeS3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'data-test.openaddresses.io')
+    
+    def tearDown(self):
+        shutil.rmtree(self.testdir)
+    
+    def test_lake_man_split(self):
+        source_path = join(self.testdir, 'lake-man-split.json')
+        cache_dir = join(self.testdir, 'lake-man-split')
+        
+        shutil.copyfile(join(self.conforms_dir, 'lake-man-split.json'),
+                        source_path)
+        
+        mkdir(cache_dir)
+
+        for ext in ('.shp', '.shx', '.dbf', '.prj'):
+            filename = 'lake-man-split'+ext
+            shutil.copyfile(join(self.conforms_dir, filename),
+                            join(cache_dir, filename))
+        
+        from subprocess import Popen, PIPE
+        from openaddr import paths
+        from csv import DictReader
+        
+        args = dict(cwd=self.testdir, stderr=PIPE, stdout=PIPE)
+        cmd = Popen(('node', paths.conform, source_path, self.testdir), **args)
+        cmd.wait()
+        
+        self.assertEqual(cmd.returncode, 0)
+        
+        with open(join(cache_dir, 'out.csv')) as file:
+            rows = list(DictReader(file, dialect='excel'))
+            self.assertEqual(rows[0]['NUMBER'], '915')
+            self.assertEqual(rows[0]['STREET'], 'Edward Avenue')
+            self.assertEqual(rows[1]['NUMBER'], '3273')
+            self.assertEqual(rows[1]['STREET'], 'Peter Street')
+            self.assertEqual(rows[2]['NUMBER'], '976')
+            self.assertEqual(rows[2]['STREET'], 'Ford Boulevard')
+            self.assertEqual(rows[3]['NUMBER'], '7055')
+            self.assertEqual(rows[3]['STREET'], 'Saint Rose Avenue')
+            self.assertEqual(rows[4]['NUMBER'], '534')
+            self.assertEqual(rows[4]['STREET'], 'Wallace Avenue')
+            self.assertEqual(rows[5]['NUMBER'], '531')
+            self.assertEqual(rows[5]['STREET'], 'Scofield Avenue')
+
+        print self.testdir
 
 class FakeS3 (S3):
     ''' Just enough S3 to work for tests.

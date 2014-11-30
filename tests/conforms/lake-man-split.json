@@ -1,0 +1,19 @@
+{
+    "coverage": {
+        "country": "ca",
+        "state": "on",
+        "city": "windsor"
+    },
+    "data": "http://fake-web/lake-man-split.zip",
+    "cache": "http://fake-cache/lake-man-split.zip",
+    "type": "http",
+    "compression": "zip",
+    "conform": {
+        "lon": "x",
+        "lat": "y",
+        "split": "ADD_RANGE",
+        "number": "auto_number",
+        "street": "auto_street",
+        "type": "shapefile"
+    }
+}
