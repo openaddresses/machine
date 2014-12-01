@@ -53,6 +53,18 @@
         display: block;
         margin: -3px -10px;
         padding: 3px 10px;
+        text-decoration: underline;
+    }
+    
+    table tr td.problems>a
+    {
+        display: inline;
+        margin: 0;
+        padding: 0;
+    }
+    
+    table tr td.name>a
+    {
         text-decoration: none;
     }
     
@@ -186,7 +198,7 @@
             <a href="{{ state.href }}">source</a> is
             <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#conform-object">missing conform</a>
             {% else %}
-
+            unknown ( <a href="{{ state.shortname }}.txt">log</a> )
             {% endif %}
           {% endif %}
         </td>
