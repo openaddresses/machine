@@ -85,8 +85,6 @@ class TestOA (unittest.TestCase):
         states = dict([(row['source'], row) for row
                        in DictReader(buffer, dialect='excel-tab')])
         
-        print self.s3._read_fake_key('runs/test/state.txt')
-        
         for (source, state) in states.items():
             self.assertTrue(bool(state['cache']), 'Checking for cache in {}'.format(source))
             self.assertTrue(bool(state['version']), 'Checking for version in {}'.format(source))
