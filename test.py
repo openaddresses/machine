@@ -199,8 +199,6 @@ class TestConform (unittest.TestCase):
         
         cmd = Popen('which node'.split(), stdout=PIPE)
         cmd.wait()
-        
-        self.run_nodejs = bool(cmd.stdout.read()) and exists(paths.conform)
     
     def tearDown(self):
         pass # shutil.rmtree(self.testdir)
@@ -260,9 +258,6 @@ class TestConform (unittest.TestCase):
         return cmd
     
     def test_nodejs_lake_man(self):
-        if not self.run_nodejs:
-            return
-    
         source_path, cache_dir = self._copy_shapefile('lake-man')
         
         cmd = self._run_node_conform(source_path)
@@ -305,9 +300,6 @@ class TestConform (unittest.TestCase):
         self.assertEqual(rows[5]['STRNAME'], 'OLD MILL RD')
     
     def test_lake_man_split(self):
-        if not self.run_nodejs:
-            return
-    
         source_path, cache_dir = self._copy_shapefile('lake-man-split')
         
         cmd = self._run_node_conform(source_path)
@@ -329,9 +321,6 @@ class TestConform (unittest.TestCase):
             self.assertEqual(rows[5]['STREET'], 'Scofield Avenue')
     
     def test_lake_man_split2(self):
-        if not self.run_nodejs:
-            return
-    
         source_path, cache_dir = self._copy_source('lake-man-split2')
 
         shutil.copyfile(join(self.conforms_dir, 'lake-man-split2.geojson'),
@@ -361,9 +350,6 @@ class TestConform (unittest.TestCase):
             self.assertEqual(rows[5]['STREET'], 'Spectrum Pointe Dr #320')
     
     def test_lake_man_merge_postcode(self):
-        if not self.run_nodejs:
-            return
-    
         source_path, cache_dir = self._copy_shapefile('lake-man-merge-postcode')
         
         cmd = self._run_node_conform(source_path)
@@ -385,9 +371,6 @@ class TestConform (unittest.TestCase):
             self.assertEqual(rows[5]['STREET'], 'Eklutna Lake Road')
     
     def test_lake_man_merge_postcode2(self):
-        if not self.run_nodejs:
-            return
-    
         source_path, cache_dir = self._copy_shapefile('lake-man-merge-postcode2')
         
         cmd = self._run_node_conform(source_path)
