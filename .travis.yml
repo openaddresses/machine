@@ -4,6 +4,7 @@ python:
 virtualenv:
   system_site_packages: true
 before_install: 
+  - sudo apt-get update -y
   - sudo apt-get install -qq libgdal1h
   - sudo apt-get install -qq python-numpy python-scientific
   - sudo apt-get install -qq python-shapely
@@ -14,5 +15,5 @@ before_install:
   - sudo apt-get install -qq python-gdal
   - sudo apt-get install -qq python-cairo
 install:
-  - pip install . 'httmock >= 1.2'
+  - sudo chef/run.sh
 script:  python test.py
