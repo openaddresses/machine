@@ -2,6 +2,7 @@
     "run_list":
     [
         "python",
+        "node",
         "openaddr-source",
         "openaddr-download",
         "openaddr-cache",
