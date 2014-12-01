@@ -1,15 +1,9 @@
 package 'gdal-bin'
-package 'nodejs'
-package 'npm'
+include_recipe 'node'
 
 git '/var/opt/openaddresses-conform' do
   repository 'https://github.com/openaddresses/openaddresses-conform.git'
   reference 'machine-ready'
-end
-
-# One package used here is tetchy about node vs. nodejs
-link '/usr/bin/node' do
-  to '/usr/bin/nodejs'
 end
 
 execute 'npm install' do
