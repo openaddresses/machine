@@ -16,4 +16,5 @@ before_install:
   - sudo apt-get install -qq python-cairo
 install:
   - sudo chef/run.sh
+  - pip install 'httmock >= 1.2'
 script:  python test.py
