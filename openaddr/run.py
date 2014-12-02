@@ -40,7 +40,7 @@ def main():
     with open(join(dirname(__file__), 'templates', 'user-data.sh')) as file:
         user_data = file.read().format(**args.__dict__)
     
-    getLogger('openaddr').info('Prepared {} bytes of instance user data\n\n{}'.format(len(user_data), user_data))
+    getLogger('openaddr').info('Prepared {} bytes of instance user data'.format(len(user_data)))
 
     #
     # Figure out how much we're willing to bid on a spot instance.
@@ -53,7 +53,7 @@ def main():
     getLogger('openaddr').info('Bidding ${:.4f}/hour for {} instance'.format(bid, args.instance_type))
     
     #
-    # Request a spot instance, then wait while it does its thing.
+    # Request a spot instance.
     #
     spot_args = dict(instance_type=args.instance_type, user_data=user_data,
                      key_name='cfa-keypair-2013', security_groups=['default'])
@@ -61,18 +61,33 @@ def main():
     spot_req = ec2.request_spot_instances(bid, args.machine_image, **spot_args)[0]
 
     getLogger('openaddr').info('https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#SpotInstances:search={}'.format(spot_req.id))
-    return wait_it_out(spot_req)
+    
+    #
+    # Wait while EC2 does its thing, unless the user interrupts.
+    #
+    try:
+        wait_it_out(spot_req)
+
+    except KeyboardInterrupt:
+        spot_req = ec2.get_all_spot_instance_requests(spot_req.id)[0]
+        
+        if spot_req.instance_id:
+            print 'Shutting down instance {} early'.format(spot_req.instance_id)
+            ec2.terminate_instances(spot_req.instance_id)
+        
+    finally:
+        spot_req.cancel()
 
 def wait_it_out(spot_req):
+    ''' Wait for EC2 to finish its work.
     '''
-    '''
-    ec2 = spot_req.connection
+    ec2, logger = spot_req.connection, getLogger('openaddr')
     
     while True:
+        sleep(15)
         spot_req = ec2.get_all_spot_instance_requests(spot_req.id)[0]
         if spot_req.state == 'open':
-            getLogger('openaddr').debug('Spot request {} is open'.format(spot_req.id))
-            sleep(15)
+            logger.debug('Spot request {} is open'.format(spot_req.id))
         else:
             break
     
@@ -80,24 +95,33 @@ def wait_it_out(spot_req):
         raise Exception('Unexpected spot request state "{}"'.format(spot_req.state))
     
     while True:
+        sleep(5)
         spot_req = ec2.get_all_spot_instance_requests(spot_req.id)[0]
         if spot_req.instance_id:
             break
         else:
-            getLogger('openaddr').debug('Waiting for instance ID')
-            sleep(5)
+            logger.debug('Waiting for instance ID')
     
     while True:
+        sleep(5)
         instance = ec2.get_only_instances(spot_req.instance_id)[0]
         if instance.public_dns_name:
             break
         else:
-            getLogger('openaddr').debug('Waiting for instance DNS name')
-            sleep(5)
-    
-    getLogger('openaddr').info('Found instance {} at {}'.format(instance.id, instance.public_dns_name))
-    sleep(10)
-    instance.terminate()
+            logger.debug('Waiting for instance DNS name')
+
+    logger.info('Found instance {} at {}'.format(instance.id, instance.public_dns_name))
+
+    while True:
+        sleep(30)
+        instance = ec2.get_only_instances(instance.id)[0]
+        if instance.state == 'terminated':
+            logger.debug('Instance {} has been terminated'.format(instance.id))
+            break
+        else:
+            logger.debug('Waiting for instance {} to do its work'.format(instance.id))
+
+    logger.info('Job complete')
 
 if __name__ == '__main__':
     exit(main())
