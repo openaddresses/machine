@@ -34,11 +34,17 @@ def main():
     args = parser.parse_args()
     jobs.setup_logger(None)
     
+    #
+    # Prepare init script for new EC2 instance to run.
+    #
     with open(join(dirname(__file__), 'templates', 'user-data.sh')) as file:
         user_data = file.read().format(**args.__dict__)
     
     getLogger('openaddr').info('Prepared {} bytes of instance user data\n\n{}'.format(len(user_data), user_data))
 
+    #
+    # Figure out how much we're willing to bid on a spot instance.
+    #
     ec2 = EC2Connection(args.ec2_access_key, args.ec2_secret_key)
     history = ec2.get_spot_price_history(instance_type=args.instance_type)
     median = sorted([h.price for h in history])[len(history)/2]
@@ -46,6 +52,9 @@ def main():
 
     getLogger('openaddr').info('Bidding ${:.4f}/hour'.format(bid))
     
+    #
+    # Request a spot instance, then wait while it does its thing.
+    #
     spot_args = dict(instance_type=args.instance_type, user_data=user_data,
                      key_name='cfa-keypair-2013', security_groups=['default'])
 
