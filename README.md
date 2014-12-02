@@ -26,7 +26,11 @@ to `openaddr-process`.
 
 Run the complete process with `openaddr-process`:
 
-    openaddr-process -a <AWS key> -s <AWS secret> -l <log> openaddresses
+    openaddr-process -a <AWS key> -s <AWS secret> -l <log> data.openaddresses.io
+
+Run it on an Amazon EC2 spot instance with `openaddr.run`:
+
+    python -m openaddr.run -a <AWS key> -s <AWS secret> data.openaddresses.io
 
 Development
 -----------
