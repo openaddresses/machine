@@ -3,7 +3,7 @@ apt-get update -y
 apt-get install -y git apache2
 
 echo 'cloning' > /var/www/html/state.txt
-git clone https://github.com/openaddresses/machine /tmp/machine
+git clone -b ditch-node https://github.com/openaddresses/machine /tmp/machine
 
 echo 'installing' > /var/www/html/state.txt
 apt-get install -y build-essential ruby ruby-dev # For now install chef here instead of run.sh,
