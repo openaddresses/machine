@@ -5,7 +5,7 @@
 #
 if [ ! `which chef-solo` ]; then
     apt-get install -y build-essential ruby ruby-dev
-    gem install chef ohai --no-rdoc --no-ri
+    gem install chef --no-rdoc --no-ri
 fi
 
 cd `dirname $0`
