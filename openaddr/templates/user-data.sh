@@ -14,13 +14,5 @@ gem install chef --no-rdoc --no-ri               # https://github.com/opscode/ch
 echo 'processing' > /var/www/html/state.txt
 openaddr-process -a {access_key} -s {secret_key} -l log.txt {bucketname}
 
-echo 'killing' > /var/www/html/state.txt
-python <<KILL
-
-from urllib import urlopen
-from boto.ec2 import EC2Connection
-
-instance = urlopen('http://169.254.169.254/latest/meta-data/instance-id').read().strip()
-EC2Connection('{ec2_access_key}', '{ec2_secret_key}').terminate_instances(instance)
-
-KILL
+echo 'terminating' > /var/www/html/state.txt
+openaddr-ec2-kill {ec2_access_key} {ec2_secret_key}

@@ -20,7 +20,8 @@ setup(
         console_scripts = [
             'openaddr-render-us = openaddr.render:main',
             'openaddr-summarize = openaddr.summarize:main',
-            'openaddr-process = openaddr.process:main'
+            'openaddr-process = openaddr.process:main',
+            'openaddr-ec2-kill = openaddr.run:kill'
         ]
     )
 )
