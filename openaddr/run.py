@@ -46,7 +46,9 @@ def main():
     #
     # Figure out how much we're willing to bid on a spot instance.
     #
-    ec2 = EC2Connection(args.ec2_access_key, args.ec2_secret_key)
+    ec2 = EC2Connection(args.ec2_access_key or args.access_key,
+                        args.ec2_secret_key or args.secret_key)
+
     history = ec2.get_spot_price_history(instance_type=args.instance_type)
     median = sorted([h.price for h in history])[len(history)/2]
     bid = median + .01
