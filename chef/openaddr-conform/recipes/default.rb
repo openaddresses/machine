@@ -1,4 +1,5 @@
 package 'gdal-bin'
+package 'unzip'
 include_recipe 'node'
 
 git '/var/opt/openaddresses-conform' do
