@@ -2,7 +2,7 @@ from os import environ
 from logging import getLogger
 from os.path import join, dirname
 from argparse import ArgumentParser
-from time import sleep
+from time import time, sleep
 
 from . import jobs
 from boto.ec2 import EC2Connection
@@ -74,27 +74,30 @@ def main():
     # Wait while EC2 does its thing, unless the user interrupts.
     #
     try:
-        wait_it_out(spot_req)
+        wait_it_out(spot_req, time() + 6 * 60 * 60)
 
-    except KeyboardInterrupt:
+    finally:
         spot_req = ec2.get_all_spot_instance_requests(spot_req.id)[0]
         
         if spot_req.instance_id:
             print 'Shutting down instance {} early'.format(spot_req.instance_id)
             ec2.terminate_instances(spot_req.instance_id)
         
-    finally:
         spot_req.cancel()
 
-def wait_it_out(spot_req):
+def wait_it_out(spot_req, due):
     ''' Wait for EC2 to finish its work.
     '''
     ec2, logger = spot_req.connection, getLogger('openaddr')
+
+    logger.info('Settling in for the long wait, up to {:.0f} hours.'.format((due - time()) / 3600))
     
     while True:
         sleep(15)
         spot_req = ec2.get_all_spot_instance_requests(spot_req.id)[0]
-        if spot_req.state == 'open':
+        if time() > due:
+            raise RuntimeError('Out of time')
+        elif spot_req.state == 'open':
             logger.debug('Spot request {} is open'.format(spot_req.id))
         else:
             break
@@ -105,7 +108,9 @@ def wait_it_out(spot_req):
     while True:
         sleep(5)
         spot_req = ec2.get_all_spot_instance_requests(spot_req.id)[0]
-        if spot_req.instance_id:
+        if time() > due:
+            raise RuntimeError('Out of time')
+        elif spot_req.instance_id:
             break
         else:
             logger.debug('Waiting for instance ID')
@@ -113,7 +118,9 @@ def wait_it_out(spot_req):
     while True:
         sleep(5)
         instance = ec2.get_only_instances(spot_req.instance_id)[0]
-        if instance.public_dns_name:
+        if time() > due:
+            raise RuntimeError('Out of time')
+        elif instance.public_dns_name:
             break
         else:
             logger.debug('Waiting for instance DNS name')
@@ -123,7 +130,9 @@ def wait_it_out(spot_req):
     while True:
         sleep(30)
         instance = ec2.get_only_instances(instance.id)[0]
-        if instance.state == 'terminated':
+        if time() > due:
+            raise RuntimeError('Out of time')
+        elif instance.state == 'terminated':
             logger.debug('Instance {} has been terminated'.format(instance.id))
             break
         else:
