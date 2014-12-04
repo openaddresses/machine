@@ -6,6 +6,7 @@ from time import sleep
 
 from . import jobs
 from boto.ec2 import EC2Connection
+from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from requests import get
 
 parser = ArgumentParser(description='Run some source files.')
@@ -56,10 +57,14 @@ def main():
     getLogger('openaddr').info('Bidding ${:.4f}/hour for {} instance'.format(bid, args.instance_type))
     
     #
-    # Request a spot instance.
+    # Request a spot instance with 99GB storage.
     #
+    device_sda1 = BlockDeviceType(size=99, delete_on_termination=True)
+    device_map = BlockDeviceMapping(); device_map['/dev/sda1'] = device_sda1
+    
     spot_args = dict(instance_type=args.instance_type, user_data=user_data,
-                     key_name='cfa-keypair-2013', security_groups=['default'])
+                     key_name='cfa-keypair-2013', security_groups=['default'],
+                     block_device_map=device_map)
 
     spot_req = ec2.request_spot_instances(bid, args.machine_image, **spot_args)[0]
 
