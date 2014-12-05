@@ -29,6 +29,12 @@ parser.add_argument('--ec2-secret-key',
 parser.add_argument('--instance-type', default='m3.xlarge',
                     help='EC2 instance type, defaults to m3.xlarge.')
 
+parser.add_argument('--ssh-keypair', default='oa-keypair',
+                    help='SSH key pair name, defaults to "oa-keypair".')
+
+parser.add_argument('--security-group', default='default',
+                    help='EC2 security group name, defaults to "default".')
+
 parser.add_argument('--machine-image', default='ami-4ae27e22',
                     help='AMI identifier, defaults to Alestic Ubuntu 14.04 (ami-4ae27e22).')
 
@@ -64,8 +70,8 @@ def main():
     device_map = BlockDeviceMapping(); device_map['/dev/sda1'] = device_sda1
     
     spot_args = dict(instance_type=args.instance_type, user_data=user_data,
-                     key_name='cfa-keypair-2013', security_groups=['default'],
-                     block_device_map=device_map)
+                     key_name=args.ssh_keypair, block_device_map=device_map,
+                     security_groups=[args.security_group])
 
     spot_req = ec2.request_spot_instances(bid, args.machine_image, **spot_args)[0]
 
