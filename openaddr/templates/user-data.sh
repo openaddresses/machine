@@ -12,4 +12,4 @@ echo 'processing' > /var/www/html/state.txt
 openaddr-process -a {access_key} -s {secret_key} -l log.txt {bucketname}
 
 echo 'terminating' > /var/www/html/state.txt
-openaddr-ec2-kill {ec2_access_key} {ec2_secret_key}
+shutdown -h now

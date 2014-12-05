@@ -147,19 +147,5 @@ def wait_it_out(spot_req, due):
 
     logger.info('Job complete')
 
-def kill():
-    parser = ArgumentParser(description='Kill EC2 instance from within.')
-
-    parser.add_argument('access_key',
-                        help='Required AWS access key.')
-
-    parser.add_argument('secret_key',
-                        help='Optional AWS secret key.')
-
-    args = parser.parse_args()
-
-    instance_id = get('http://169.254.169.254/latest/meta-data/instance-id').text.strip()
-    EC2Connection(args.access_key, args.secret_key).terminate_instances(instance_id)
-
 if __name__ == '__main__':
     exit(main())
