@@ -81,7 +81,7 @@ def main():
     # Wait while EC2 does its thing, unless the user interrupts.
     #
     try:
-        wait_it_out(spot_req, time() + 6 * 60 * 60)
+        wait_it_out(spot_req, time() + 9 * 60 * 60)
 
     finally:
         spot_req = ec2.get_all_spot_instance_requests(spot_req.id)[0]
