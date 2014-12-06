@@ -1,8 +1,8 @@
 from setuptools import setup
 
 setup(
-    name = 'OpenAddresses',
-    version = '0.1.0',
+    name = 'OpenAddresses-Machine',
+    version = '1.0.0-rc.1',
     packages = ['openaddr'],
     package_data = {
         'openaddr': [
@@ -11,7 +11,7 @@ setup(
         ]
     },
     install_requires = [
-        'boto >= 2.11.0', 'Jinja2 >= 2.7.0', 'dateutils >= 0.6', 'ijson >= 2.0', 
+        'boto >= 2.22.0', 'Jinja2 >= 2.7.0', 'dateutils >= 0.6', 'ijson >= 2.0',
         
         # https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1306991/comments/10
         'requests==2.2.1'
