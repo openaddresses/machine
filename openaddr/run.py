@@ -81,7 +81,7 @@ def main():
     # Wait while EC2 does its thing, unless the user interrupts.
     #
     try:
-        wait_it_out(spot_req, time() + 9 * 60 * 60)
+        wait_it_out(spot_req, time() + 12 * 60 * 60)
 
     finally:
         spot_req = ec2.get_all_spot_instance_requests(spot_req.id)[0]
@@ -135,7 +135,7 @@ def wait_it_out(spot_req, due):
     logger.info('Found instance {} at {}'.format(instance.id, instance.public_dns_name))
 
     while True:
-        sleep(30)
+        sleep(60)
         instance = ec2.get_only_instances(instance.id)[0]
         if time() > due:
             raise RuntimeError('Out of time')
