@@ -8,11 +8,11 @@ if [ ! `which chef-solo` ]; then
     if [ "$release" != "${release/12.04/}" ]; then
         # Ruby 1.9.3 install provided for Ubuntu 12.04
         apt-get install -y build-essential ruby1.9.3
-        gem1.9.3 install chef ohai --no-rdoc --no-ri
+        gem1.9.3 install chef -v 11.16.4 --no-rdoc --no-ri
     else
         # Otherwise, assume Ubuntu ~14+
         apt-get install -y build-essential ruby ruby-dev
-        gem install chef ohai --no-rdoc --no-ri
+        gem install chef -v 11.16.4 --no-rdoc --no-ri
     fi
 fi
 
