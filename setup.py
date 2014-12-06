@@ -1,8 +1,12 @@
 from setuptools import setup
+from os.path import join, dirname
+
+with open(join(dirname(__file__), 'openaddr', 'VERSION')) as file:
+    version = file.read().strip()
 
 setup(
     name = 'OpenAddresses-Machine',
-    version = '1.0.0-rc.1',
+    version = version,
     url = 'https://github.com/openaddresses/machine',
     author = 'Michal Migurski',
     author_email = 'mike-pypi@teczno.com',
@@ -10,7 +14,7 @@ setup(
     package_data = {
         'openaddr': [
             'geodata/*.shp', 'geodata/*.shx', 'geodata/*.prj', 'geodata/*.dbf',
-            'geodata/*.cpg', 'templates/*.html', 'templates/*.sh'
+            'geodata/*.cpg', 'templates/*.html', 'templates/*.sh', 'VERSION'
         ]
     },
     install_requires = [
