@@ -56,7 +56,7 @@ def run_all_conforms(source_files, source_extras, s3):
     '''
     source_queue, results = source_files[:], OrderedDict()
     args = Lock(), source_queue, source_extras, results, s3
-    thread_count = min(cpu_count() + 1, len(source_files))
+    thread_count = min(cpu_count(), len(source_files))
 
     threads = [Thread(target=_run_conform, args=args)
                for i in range(thread_count)]
@@ -97,7 +97,7 @@ def run_all_excerpts(source_files, source_extras, s3):
     '''
     source_queue, results = source_files[:], OrderedDict()
     args = Lock(), source_queue, source_extras, results, s3
-    thread_count = min(cpu_count() + 1, len(source_files))
+    thread_count = min(cpu_count(), len(source_files))
 
     threads = [Thread(target=_run_excerpt, args=args)
                for i in range(thread_count)]
