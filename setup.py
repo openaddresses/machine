@@ -3,6 +3,9 @@ from setuptools import setup
 setup(
     name = 'OpenAddresses-Machine',
     version = '1.0.0-rc.1',
+    url = 'https://github.com/openaddresses/machine',
+    author = 'Michal Migurski',
+    author_email = 'mike-pypi@teczno.com',
     packages = ['openaddr'],
     package_data = {
         'openaddr': [
