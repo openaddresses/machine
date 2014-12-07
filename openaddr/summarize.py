@@ -14,7 +14,7 @@ from . import S3, paths
 def load_states(s3):
     # Find existing cache information
     state_key = s3.get_key('state.txt')
-    states = list()
+    states, counts = list(), dict(processed=0, cached=0, sources=0)
 
     if state_key:
         state_link = state_key.get_contents_as_string()
@@ -37,6 +37,10 @@ def load_states(s3):
             else:
                 row['cache_date'] = None
 
+            counts['sources'] += 1
+            counts['cached'] += 1 if row['cache'] else 0
+            counts['processed'] += 1 if row['processed'] else 0
+
             with open(join(paths.sources, row['source'])) as file:
                 data = json.load(file)
             
@@ -54,7 +58,7 @@ def load_states(s3):
     
     states.sort(key=lambda s: (bool(s['cache']), bool(s['processed']), s['source']))
     
-    return last_modified, states
+    return last_modified, states, counts
 
 def main():
     s3 = S3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'openaddresses-cfa')
@@ -66,8 +70,9 @@ def summarize(s3):
     env = Environment(loader=FileSystemLoader(join(dirname(__file__), 'templates')))
     env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
     template = env.get_template('state.html')
-    last_modified, states = load_states(s3)
-    return template.render(states=states, last_modified=last_modified)
+
+    last_modified, states, counts = load_states(s3)
+    return template.render(states=states, last_modified=last_modified, counts=counts)
 
 if __name__ == '__main__':
     exit(main())

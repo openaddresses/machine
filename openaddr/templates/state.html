@@ -25,10 +25,14 @@
         width: 960px;
     }
     
+    body>p { line-height: 1.5em }
+    
     @media (max-width: 960px)
     {
         body>* { width: 96% }
     }
+    
+    a, .stat { white-space: nowrap }
 
     table { border-collapse: collapse }
     
@@ -155,7 +159,20 @@
 </head>
 
 <body>
-<p>{{ last_modified.strftime('%A, %b %d, %Y') }}</p>
+<p>
+    This is a summary view of <a href="http://openaddresses.io">OpenAddresses data</a>.
+    It was generated <span class="stat">{{ last_modified.strftime('%A, %b %d, %Y') }}</span>.
+    Out of <span class="stat">{{ counts.sources }} total sources</span>,
+    <a href="#first-processed" class="stat">{{ counts.processed }} were completed</a>.
+    <span class="stat">{{ counts.sources - counts.cached }} sources failed cache</span>,
+    <span class="stat">{{ counts.cached - counts.processed }} cached but not processed</span>.
+    To help complete more sources, look for “missing conform” below and add a
+    <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#conform-object">conform object</a>
+    based on the included sample data.
+</p>
+<p>
+    The latest summary can always be found at <a href="http://data.openaddresses.io">data.openaddresses.io</a>.
+</p>
 <p><img src="render.png" width="100%"></p>
 <table>
     <tr>
@@ -166,10 +183,16 @@
         <th class="problems">Problems</th>
         <th class="sample"> </th>
     </tr>
+    {% set first_processed = False %}
     {% for state in states %}
+      {% if not first_processed and state.processed %}
+        {% set first_processed = True %}
+      {% elif first_processed %}
+        {% set first_processed = False %}
+      {% endif %}
       <tr>
         <td class="name">
-            <a href="{{ state.href }}">{{ state.shortname }}</a>
+            <a href="{{ state.href }}" name="{% if first_processed %}first-processed{% endif %}">{{ state.shortname }}</a>
         </td>
         <td class="type">
             {{ state.type }}
