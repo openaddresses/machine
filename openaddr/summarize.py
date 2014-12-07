@@ -37,16 +37,12 @@ def load_states(s3):
             else:
                 row['cache_date'] = None
 
-            row['class'] = ' '.join([
-                'cached' if row['cache'] else '',
-                'processed' if row['processed'] else '',
-                ])
-            
             with open(join(paths.sources, row['source'])) as file:
                 data = json.load(file)
             
                 row['type'] = data.get('type', '').lower()
                 row['conform'] = bool(data.get('conform', False))
+                row['skip'] = bool(data.get('skip', False))
             
             if row.get('sample', False):
                 row['sample_data'] = get(row['sample']).json()

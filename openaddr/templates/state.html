@@ -192,8 +192,10 @@
         </td>
         <td class="problems">
           {% if not state.processed %}
-            {% if not state.cache %}
-            cache failed
+            {% if state.skip %}
+            <a href="{{ state.href }}">source</a> says to skip
+            {% elif not state.cache %}
+            cache failed ( <a href="{{ state.shortname }}.txt">log</a> )
             {% elif not state.conform %}
             <a href="{{ state.href }}">source</a> is
             <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#conform-object">missing conform</a>
