@@ -27,6 +27,13 @@
     
     body>p { line-height: 1.5em }
     
+    pre
+    {
+        font-family: monospace;
+        line-height: 1.5em;
+        margin-left: 1em;
+    }
+    
     @media (max-width: 960px)
     {
         body>* { width: 96% }
@@ -217,6 +224,7 @@
           {% endif %}
         </td>
         <td class="problems">
+          {% set suggest_conform = False %}
           {% if not state.processed %}
             {% if state.skip %}
             <a href="{{ state.href }}">source</a> says to skip
@@ -225,6 +233,7 @@
             {% elif not state.conform %}
             <a href="{{ state.href }}">source</a> is
             <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#conform-object">missing conform</a>
+            {% set suggest_conform = True %}
             {% else %}
             unknown ( <a href="{{ state.shortname }}.txt">log</a> )
             {% endif %}
@@ -240,6 +249,19 @@
       </tr>
       <tr id="{{ state.shortname }}-sample-data" style="display: none">
         <td colspan="6">
+          {% if suggest_conform %}
+            <p>
+              Possible <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#conform-object">conform object</a>
+              for <a href="{{ state.cache }}">{{ state.shortname }}</a>:
+            </p>
+<pre>"conform": {
+  "type": {{ state['conform type']|tojson }},
+  "number": &lt;number&gt;,
+  "street": &lt;street&gt;,
+  "lon": {% if state['conform type'] == 'csv' %}&lt;lon&gt;{% else %}"x"{% endif %},
+  "lat": {% if state['conform type'] == 'csv' %}&lt;lat&gt;{% else %}"y"{% endif %}
+}</pre>
+          {% endif %}
           {% if state.sample and state.sample_data %}
             <p>
               Sample data for first rows of <a href="{{ state.cache }}">{{ state.shortname }}</a>:

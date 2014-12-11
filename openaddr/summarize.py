@@ -54,6 +54,18 @@ def load_states(s3):
             if not row.get('sample_data', False):
                 row['sample_data'] = list()
             
+            if row['cache'].endswith('.zip'):
+                if row.get('geometry type', 'Point') in ('Polygon', 'MultiPolygon'):
+                    row['conform type'] = 'shapefile-polygon'
+                else:
+                    row['conform type'] = 'shapefile'
+            elif row['cache'].endswith('.json'):
+                row['conform type'] = 'geojson'
+            elif row['cache'].endswith('.csv'):
+                row['conform type'] = 'csv'
+            else:
+                row['conform type'] = None
+            
             states.append(row)
     
     states.sort(key=lambda s: (bool(s['cache']), bool(s['processed']), s['source']))
