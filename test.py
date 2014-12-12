@@ -4,6 +4,7 @@ import tempfile
 import json
 import cPickle
 import re
+import sys
 from os import close, environ, mkdir
 from StringIO import StringIO
 from mimetypes import guess_type
@@ -251,7 +252,9 @@ class TestConform (unittest.TestCase):
         '''
         args = dict(cwd=self.testdir, stderr=PIPE, stdout=PIPE)
         cmd = Popen(('node', paths.conform, source_path, self.testdir), **args)
-        cmd.wait()
+        stdoutData, stderrData = cmd.communicate()
+        if (cmd.returncode != 0):
+            sys.stderr.write("Conform failed %s\n%s%s\n" % (paths.conform, stdoutData, stderrData))
         
         return cmd
     
