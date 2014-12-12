@@ -326,12 +326,11 @@ class TestConform (unittest.TestCase):
 
         shutil.copyfile(join(self.conforms_dir, 'lake-man-split2.geojson'),
                         join(cache_dir, 'lake-man-split2.json'))
-        
-        cmd = self._run_node_conform(source_path)
-        
+
         # No clue why Node errors here. TODO: figure it out.
         return
-        
+
+        cmd = self._run_node_conform(source_path)
         self.assertEqual(cmd.returncode, 0)
         
         with open(join(cache_dir, 'out.csv')) as file:
