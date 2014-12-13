@@ -55,7 +55,23 @@ class TestOA (unittest.TestCase):
                 self.assertTrue(bool(state['processed']))
             else:
                 self.assertFalse(bool(state['processed']))
-    
+
+        #
+        # Check the JSON version of the data.
+        #
+        data = json.loads(self.s3.keys['state.json'])
+        self.assertEqual(data, 'runs/test/state.json')
+        
+        data = json.loads(self.s3.keys[data])
+        rows = [dict(zip(data[0], row)) for row in data[1:]]
+        
+        for state in rows:
+            self.assertTrue(bool(state['cache']))
+            self.assertTrue(bool(state['version']))
+            self.assertTrue(bool(state['fingerprint']))
+            self.assertTrue(bool(state['geometry type']))
+            self.assertTrue(bool(state['sample']))
+        
     def test_single_ac(self):
         source = join(self.src_dir, 'us-ca-alameda_county-{0}.json'.format(self.uuid))
 

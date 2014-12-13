@@ -5,6 +5,7 @@ from csv import writer, DictReader
 from StringIO import StringIO
 from logging import getLogger
 from os import environ
+from json import dumps
 from time import time
 from glob import glob
 
@@ -121,11 +122,14 @@ def write_state(s3, sourcedir, run_name, source_files1, results1, results2, resu
     '''
     state_file = StringIO()
     state_args = dict(policy='public-read', headers={'Content-Type': 'text/plain'})
-
-    out = writer(state_file, dialect='excel-tab')
+    json_args = dict(policy='public-read', headers={'Content-Type': 'application/json'})
     
-    out.writerow(('source', 'cache', 'sample', 'geometry type', 'version',
-                  'fingerprint', 'cache time', 'processed', 'process time', 'output'))
+    state_list = [('source', 'cache', 'sample', 'geometry type', 'version',
+                   'fingerprint', 'cache time', 'processed', 'process time',
+                   'output')]
+    
+    out = writer(state_file, dialect='excel-tab')
+    out.writerow(state_list[-1])
     
     for source in source_files1:
         result1 = results1[source]
@@ -135,10 +139,12 @@ def write_state(s3, sourcedir, run_name, source_files1, results1, results2, resu
         source_name = relpath(source, sourcedir)
         output_name = '{0}.txt'.format(*splitext(source_name))
     
-        out.writerow((source_name, result1.cache, result3.sample_data,
-                      result3.geometry_type, result1.version, result1.fingerprint,
-                      result1.elapsed, result2.processed, result2.elapsed,
-                      output_name))
+        state_list.append((source_name, result1.cache, result3.sample_data,
+                           result3.geometry_type, result1.version, result1.fingerprint,
+                           str(result1.elapsed), result2.processed, str(result2.elapsed),
+                           output_name))
+        
+        out.writerow(state_list[-1])
         
         output_path = join('runs', run_name, output_name)
         output_data = '{}\n\n\n{}'.format(result1.output, result2.output)
@@ -150,7 +156,13 @@ def write_state(s3, sourcedir, run_name, source_files1, results1, results2, resu
     s3.new_key(state_path).set_contents_from_string(state_data, **state_args)
     s3.new_key('state.txt').set_contents_from_string(state_path, **state_args)
     
-    getLogger('openaddr').info('Wrote {} sources to state.txt'.format(len(source_files1)))
+    json_data = dumps(state_list, indent=2)
+    json_path = join('runs', run_name, 'state.json')
+    
+    s3.new_key(json_path).set_contents_from_string(json_data, **json_args)
+    s3.new_key('state.json').set_contents_from_string(dumps(json_path), **json_args)
+    
+    getLogger('openaddr').info('Wrote {} sources to state'.format(len(source_files1)))
 
 if __name__ == '__main__':
     exit(main())
