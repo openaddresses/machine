@@ -7,7 +7,7 @@ from os.path import join, dirname
 import json
 
 from cairo import ImageSurface, Context, FORMAT_ARGB32
-from osgeo import ogr
+from osgeo import ogr, osr
 
 from . import paths
 
@@ -64,6 +64,31 @@ def load_alpha2s(directory):
     
     return alpha2s
 
+def load_geometries(directory):
+    ''' Load a set of GeoJSON geometries should be rendered.
+    '''
+    geometries = list()
+
+    sref_geo = osr.SpatialReference(); sref_geo.ImportFromEPSG(4326)
+    sref_map = osr.SpatialReference(); sref_map.ImportFromEPSG(54029)
+    project = osr.CoordinateTransformation(sref_geo, sref_map)
+
+    for path in glob(join(directory, '*.json')):
+        with open(path) as file:
+            data = json.load(file)
+    
+        if 'geometry' in data.get('coverage', {}):
+            geojson = json.dumps(data['coverage']['geometry'])
+            geometry = ogr.CreateGeometryFromJson(geojson)
+            
+            if not geometry:
+                continue
+
+            geometry.Transform(project)
+            geometries.append(geometry)
+    
+    return geometries
+
 def stroke_features(ctx, features):
     '''
     '''
@@ -102,9 +127,12 @@ def stroke_geometries(ctx, geometries):
 def fill_features(ctx, features):
     '''
     '''
-    for feature in features:
-        geometry = feature.GetGeometryRef()
+    return fill_geometries(ctx, [f.GetGeometryRef() for f in features])
     
+def fill_geometries(ctx, geometries):
+    '''
+    '''
+    for geometry in geometries:
         if geometry.GetGeometryType() == ogr.wkbMultiPolygon:
             parts = geometry
         elif geometry.GetGeometryType() == ogr.wkbPolygon:
@@ -150,6 +178,7 @@ def render(sources, width, resolution, filename):
     # Load data
     geoids = load_geoids(sources)
     alpha2s = load_alpha2s(sources)
+    geometries = load_geometries(sources)
 
     geodata = join(dirname(__file__), 'geodata')
     coastline_ds = ogr.Open(join(geodata, 'ne_50m_coastline-54029.shp'))
@@ -189,6 +218,10 @@ def render(sources, width, resolution, filename):
     # Fill populated U.S. counties
     context.set_source_rgb(0x1C/0xff, 0x89/0xff, 0x3F/0xff)
     fill_features(context, data_counties)
+
+    # Fill other given geometries
+    context.set_source_rgb(0x1C/0xff, 0x89/0xff, 0x3F/0xff)
+    fill_geometries(context, geometries)
 
     # Outline countries and boundaries, fill lakes
     context.set_source_rgb(0, 0, 0)
