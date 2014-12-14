@@ -37,7 +37,7 @@ def make_context(width=960, resolution=1):
     return surface, context, hscale
 
 def load_geoids(directory):
-    ''' Load a set of GEOIDs that should be rendered.
+    ''' Load a set of U.S. Census GEOIDs that should be rendered.
     '''
     geoids = set()
 
@@ -49,6 +49,20 @@ def load_geoids(directory):
             geoids.add(data['coverage']['US Census']['geoid'])
     
     return geoids
+
+def load_alpha2s(directory):
+    ''' Load a set of ISO Alpha 2s that should be rendered.
+    '''
+    alpha2s = set()
+
+    for path in glob(join(directory, '??.json')):
+        with open(path) as file:
+            data = json.load(file)
+    
+        if 'alpha2' in data.get('coverage', {}).get('ISO', {}):
+            alpha2s.add(data['coverage']['ISO']['alpha2'])
+    
+    return alpha2s
 
 def stroke_features(ctx, features):
     '''
@@ -135,6 +149,7 @@ def render(sources, width, resolution, filename):
 
     # Load data
     geoids = load_geoids(sources)
+    alpha2s = load_alpha2s(sources)
 
     geodata = join(dirname(__file__), 'geodata')
     coastline_ds = ogr.Open(join(geodata, 'ne_50m_coastline-54029.shp'))
@@ -152,6 +167,7 @@ def render(sources, width, resolution, filename):
     us_county_features = list(us_county_ds.GetLayer(0))
     data_states = [f for f in us_state_features if f.GetFieldAsString('GEOID') in geoids]
     data_counties = [f for f in us_county_features if f.GetFieldAsString('GEOID') in geoids]
+    data_countries = [f for f in countries_features if f.GetFieldAsString('iso_a2') in alpha2s]
     
     # Draw each border between neighboring states exactly once.
     state_borders = [s1.GetGeometryRef().Intersection(s2.GetGeometryRef())
@@ -161,6 +177,10 @@ def render(sources, width, resolution, filename):
     # Fill countries background
     context.set_source_rgb(0xdd/0xff, 0xdd/0xff, 0xdd/0xff)
     fill_features(context, countries_features)
+
+    # Fill populated countries
+    context.set_source_rgb(0x74/0xff, 0xA5/0xff, 0x78/0xff)
+    fill_features(context, data_countries)
 
     # Fill populated U.S. states
     context.set_source_rgb(0x74/0xff, 0xA5/0xff, 0x78/0xff)
