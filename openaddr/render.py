@@ -15,9 +15,11 @@ def make_context(width=960, resolution=1):
     ''' Get Cairo surface, context, and drawing scale.
     
         U.S. extent: (-2031905.05, -2114924.96) - (2516373.83, 732103.34)
+        
+        World extent: (-19918964.35, -8269767.91) - (19918964.18, 14041770.96)
     '''
-    left, top = -2040000, 740000
-    right, bottom = 2525000, -2130000
+    left, top = -20000000, 14050000
+    right, bottom = 20000000, -8280000
     aspect = (right - left) / (top - bottom)
 
     hsize = int(resolution * width)
@@ -133,39 +135,38 @@ def render(sources, width, resolution, filename):
     geoids = load_geoids(sources)
 
     geodata = join(dirname(__file__), 'geodata')
-    nation_ds = ogr.Open(join(geodata, 'cb_2013_us_nation_20m-2163.shp'))
-    state_ds = ogr.Open(join(geodata, 'cb_2013_us_state_20m-2163.shp'))
-    county_ds = ogr.Open(join(geodata, 'cb_2013_us_county_20m-2163.shp'))
+    coastline_ds = ogr.Open(join(geodata, 'ne_50m_coastline-54029.shp'))
+    countries_ds = ogr.Open(join(geodata, 'ne_50m_admin_0_countries-54029.shp'))
+    countries_borders_ds = ogr.Open(join(geodata, 'ne_50m_admin_0_boundary_lines_land-54029.shp'))
+    us_state_ds = ogr.Open(join(geodata, 'cb_2013_us_state_20m-54029.shp'))
+    us_county_ds = ogr.Open(join(geodata, 'cb_2013_us_county_20m-54029.shp'))
 
-    nation_features = list(nation_ds.GetLayer(0))
-    state_features = list(state_ds.GetLayer(0))
-    county_features = list(county_ds.GetLayer(0))
-    data_states = [f for f in state_features if f.GetFieldAsString('GEOID') in geoids]
-    data_counties = [f for f in county_features if f.GetFieldAsString('GEOID') in geoids]
+    coastline_features = list(coastline_ds.GetLayer(0))
+    countries_features = list(countries_ds.GetLayer(0))
+    countries_borders_features = list(countries_borders_ds.GetLayer(0))
+    us_state_features = list(us_state_ds.GetLayer(0))
+    us_county_features = list(us_county_ds.GetLayer(0))
+    data_states = [f for f in us_state_features if f.GetFieldAsString('GEOID') in geoids]
+    data_counties = [f for f in us_county_features if f.GetFieldAsString('GEOID') in geoids]
     
-    # Draw each border between neighboring states exactly once.
-    state_borders = [s1.GetGeometryRef().Intersection(s2.GetGeometryRef())
-                     for (s1, s2) in combinations(state_features, 2)
-                     if s1.GetGeometryRef().Intersects(s2.GetGeometryRef())]
-    
-    # Fill nation background
+    # Fill countries background
     context.set_source_rgb(0xdd/0xff, 0xdd/0xff, 0xdd/0xff)
-    fill_features(context, nation_features)
+    fill_features(context, countries_features)
 
-    # Fill populated states
+    # Fill populated U.S. states
     context.set_source_rgb(0x74/0xff, 0xA5/0xff, 0x78/0xff)
     fill_features(context, data_states)
 
-    # Fill populated counties
+    # Fill populated U.S. counties
     context.set_source_rgb(0x1C/0xff, 0x89/0xff, 0x3F/0xff)
     fill_features(context, data_counties)
 
-    # Outline states and nation
+    # Outline countries and boundaries
     context.set_source_rgb(0, 0, 0)
+    context.set_line_width(.25 * resolution / scale)
+    stroke_features(context, countries_borders_features)
     context.set_line_width(.5 * resolution / scale)
-    stroke_geometries(context, state_borders)
-    context.set_line_width(1 * resolution / scale)
-    stroke_features(context, nation_features)
+    stroke_features(context, coastline_features)
 
     # Output
     surface.write_to_png(filename)
