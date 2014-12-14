@@ -51,7 +51,7 @@ def load_geoids(directory):
     return geoids
 
 def load_alpha2s(directory):
-    ''' Load a set of ISO Alpha 2s that should be rendered.
+    ''' Load a set of ISO 3166 Alpha 2s that should be rendered.
     '''
     alpha2s = set()
 
@@ -59,8 +59,8 @@ def load_alpha2s(directory):
         with open(path) as file:
             data = json.load(file)
     
-        if 'alpha2' in data.get('coverage', {}).get('ISO', {}):
-            alpha2s.add(data['coverage']['ISO']['alpha2'])
+        if 'alpha2' in data.get('coverage', {}).get('ISO 3166', {}):
+            alpha2s.add(data['coverage']['ISO 3166']['alpha2'])
     
     return alpha2s
 
