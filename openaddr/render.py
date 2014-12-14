@@ -138,18 +138,25 @@ def render(sources, width, resolution, filename):
 
     geodata = join(dirname(__file__), 'geodata')
     coastline_ds = ogr.Open(join(geodata, 'ne_50m_coastline-54029.shp'))
+    lakes_ds = ogr.Open(join(geodata, 'ne_50m_lakes-54029.shp'))
     countries_ds = ogr.Open(join(geodata, 'ne_50m_admin_0_countries-54029.shp'))
     countries_borders_ds = ogr.Open(join(geodata, 'ne_50m_admin_0_boundary_lines_land-54029.shp'))
     us_state_ds = ogr.Open(join(geodata, 'cb_2013_us_state_20m-54029.shp'))
     us_county_ds = ogr.Open(join(geodata, 'cb_2013_us_county_20m-54029.shp'))
 
     coastline_features = list(coastline_ds.GetLayer(0))
+    lakes_features = list(lakes_ds.GetLayer(0))
     countries_features = list(countries_ds.GetLayer(0))
     countries_borders_features = list(countries_borders_ds.GetLayer(0))
     us_state_features = list(us_state_ds.GetLayer(0))
     us_county_features = list(us_county_ds.GetLayer(0))
     data_states = [f for f in us_state_features if f.GetFieldAsString('GEOID') in geoids]
     data_counties = [f for f in us_county_features if f.GetFieldAsString('GEOID') in geoids]
+    
+    # Draw each border between neighboring states exactly once.
+    state_borders = [s1.GetGeometryRef().Intersection(s2.GetGeometryRef())
+                     for (s1, s2) in combinations(us_state_features, 2)
+                     if s1.GetGeometryRef().Intersects(s2.GetGeometryRef())]
     
     # Fill countries background
     context.set_source_rgb(0xdd/0xff, 0xdd/0xff, 0xdd/0xff)
@@ -163,10 +170,16 @@ def render(sources, width, resolution, filename):
     context.set_source_rgb(0x1C/0xff, 0x89/0xff, 0x3F/0xff)
     fill_features(context, data_counties)
 
-    # Outline countries and boundaries
+    # Outline countries and boundaries, fill lakes
     context.set_source_rgb(0, 0, 0)
     context.set_line_width(.25 * resolution / scale)
+    stroke_geometries(context, state_borders)
     stroke_features(context, countries_borders_features)
+
+    context.set_source_rgb(0xff/0xff, 0xff/0xff, 0xff/0xff)
+    fill_features(context, lakes_features)
+
+    context.set_source_rgb(0, 0, 0)
     context.set_line_width(.5 * resolution / scale)
     stroke_features(context, coastline_features)
 
