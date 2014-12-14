@@ -237,6 +237,9 @@
             {% else %}
             unknown ( <a href="{{ state.shortname }}.txt">log</a> )
             {% endif %}
+          {% elif not state['coverage complete'] %}
+            <a href="{{ state.href }}">source</a> has
+            <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#coverage-object">incomplete coverage</a>
           {% endif %}
         </td>
         <td class="sample">

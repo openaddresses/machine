@@ -66,6 +66,12 @@ def load_states(s3):
             else:
                 row['conform type'] = None
             
+            row['coverage complete'] = False
+            if 'coverage' in data:
+                coverage = data['coverage']
+                if ('ISO 3166' in coverage or 'US Census' in coverage or 'geometry' in coverage):
+                    row['coverage complete'] = True
+            
             states.append(row)
     
     states.sort(key=lambda s: (bool(s['cache']), bool(s['processed']), s['source']))
