@@ -113,15 +113,10 @@ def stroke_geometries(ctx, geometries):
 
             for ring in rings:
                 points = ring.GetPoints()
-                
                 if geometry.GetGeometryType() in (ogr.wkbPolygon, ogr.wkbMultiPolygon):
-                    start, rest = points[-1], points
+                    draw_line(ctx, points[-1], points)
                 else:
-                    start, rest = points[0], points[1:]
-                
-                ctx.move_to(*start)
-                for point in rest:
-                    ctx.line_to(*point)
+                    draw_line(ctx, points[0], points[1:])
                 ctx.stroke()
 
 def fill_features(ctx, features):
@@ -143,12 +138,16 @@ def fill_geometries(ctx, geometries):
         for part in parts:
             for ring in part:
                 points = ring.GetPoints()
-                ctx.move_to(*points[-1])
-            
-                for point in points:
-                    ctx.line_to(*point)
-
+                draw_line(ctx, points[-1], points)
             ctx.fill()
+
+def draw_line(ctx, start, points):
+    '''
+    '''
+    ctx.move_to(*start)
+
+    for point in points:
+        ctx.line_to(*point)
 
 parser = ArgumentParser(description='Draw a map of continental U.S. address coverage.')
 
