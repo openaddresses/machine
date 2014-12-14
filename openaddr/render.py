@@ -14,12 +14,10 @@ from . import paths
 def make_context(width=960, resolution=1):
     ''' Get Cairo surface, context, and drawing scale.
     
-        U.S. extent: (-2031905.05, -2114924.96) - (2516373.83, 732103.34)
-        
         World extent: (-19918964.35, -8269767.91) - (19918964.18, 14041770.96)
     '''
-    left, top = -20000000, 14050000
-    right, bottom = 20000000, -8280000
+    left, top = -18000000, 14050000
+    right, bottom = 19500000, -7500000
     aspect = (right - left) / (top - bottom)
 
     hsize = int(resolution * width)
