@@ -76,11 +76,15 @@ def stroke_geometries(ctx, geometries):
 
             for ring in rings:
                 points = ring.GetPoints()
-                ctx.move_to(*points[-1])
-            
-                for point in points:
+                
+                if geometry.GetGeometryType() in (ogr.wkbPolygon, ogr.wkbMultiPolygon):
+                    start, rest = points[-1], points
+                else:
+                    start, rest = points[0], points[1:]
+                
+                ctx.move_to(*start)
+                for point in rest:
                     ctx.line_to(*point)
-
                 ctx.stroke()
 
 def fill_features(ctx, features):
