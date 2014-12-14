@@ -145,7 +145,7 @@ def render(sources, width, resolution, filename):
     us_county_ds = ogr.Open(join(geodata, 'cb_2013_us_county_20m-54029.shp'))
 
     coastline_features = list(coastline_ds.GetLayer(0))
-    lakes_features = list(lakes_ds.GetLayer(0))
+    lakes_features = [f for f in lakes_ds.GetLayer(0) if f.GetField('scalerank') == 0]
     countries_features = list(countries_ds.GetLayer(0))
     countries_borders_features = list(countries_borders_ds.GetLayer(0))
     us_state_features = list(us_state_ds.GetLayer(0))
