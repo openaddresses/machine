@@ -2,13 +2,13 @@ import unittest
 import shutil
 import tempfile
 import json
-import cPickle
 import re
 import sys
+from six.moves import cPickle
 from os import close, environ, mkdir
-from StringIO import StringIO
+from six import StringIO
 from mimetypes import guess_type
-from urlparse import urlparse, parse_qs
+from six.moves.urllib.parse import urlparse, parse_qs
 from os.path import dirname, join, basename, exists
 from fcntl import lockf, LOCK_EX, LOCK_UN
 from contextlib import contextmanager

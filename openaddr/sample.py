@@ -1,5 +1,5 @@
 import json, ijson, unittest
-from StringIO import StringIO
+from six import StringIO
 from itertools import chain
 
 def _build_value(data):

@@ -21,7 +21,8 @@ setup(
         'boto >= 2.22.0', 'Jinja2 >= 2.7.0', 'dateutils >= 0.6', 'ijson >= 2.0',
         
         # https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1306991/comments/10
-        'requests==2.2.1'
+        'requests==2.2.1',
+        'six >= 1.8.0'
         ],
     entry_points = dict(
         console_scripts = [

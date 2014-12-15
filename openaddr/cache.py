@@ -1,3 +1,5 @@
+from __future__ import (absolute_import, division, print_function, unicode_literals)
+
 import json
 import os
 import errno
@@ -6,8 +8,8 @@ import mimetypes
 import shutil
 
 from logging import getLogger
-from urllib import urlencode
-from urlparse import urlparse
+from six.moves.urllib.parse import urlencode
+from six.moves.urllib.parse import urlparse
 from hashlib import sha1
 
 import requests
@@ -125,7 +127,7 @@ class URLDownloadTask(DownloadTask):
 
             try:
                 resp = requests.get(source_url, headers=headers, stream=True)
-            except Exception, e:
+            except Exception as e:
                 raise DownloadError("Could not connect to URL", e)
 
             size = 0

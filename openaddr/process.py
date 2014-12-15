@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 from collections import defaultdict
 from os.path import join, basename, relpath, splitext, dirname
 from csv import writer, DictReader
-from StringIO import StringIO
+from six import StringIO
 from logging import getLogger
 from os import environ
 from json import dumps

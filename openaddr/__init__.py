@@ -8,7 +8,7 @@ from datetime import datetime
 from os import mkdir, environ
 from time import sleep, time
 from zipfile import ZipFile
-from urlparse import urlparse
+from six.moves.urllib.parse import urlparse
 import json
 
 from osgeo import ogr
