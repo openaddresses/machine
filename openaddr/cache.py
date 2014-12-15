@@ -90,7 +90,7 @@ class URLDownloadTask(DownloadTask):
             name_base = os.path.basename(path_base)
         else:
             # With a source prefix, create a safe and unique filename with a hash.
-            hash = sha1(host + path_base)
+            hash = sha1((host + path_base).encode('utf-8'))
             name_base = '{}-{}'.format(self.source_prefix, hash.hexdigest()[:8])
         
         if not path_ext:
@@ -195,7 +195,7 @@ class EsriRestDownloadTask(DownloadTask):
         ''' Return a local file path in a directory for a URL.
         '''
         _, host, path, _, _, _ = urlparse(url)
-        hash, path_ext = sha1(host + path), '.json'
+        hash, path_ext = sha1((host + path).encode('utf-8')), '.json'
         
         # With no source prefix like "us-ca-oakland" use the host as a hint.
         name_base = '{}-{}'.format(self.source_prefix or host, hash.hexdigest()[:8])
@@ -243,7 +243,7 @@ class EsriRestDownloadTask(DownloadTask):
                         raise DownloadError("Timeout when connecting to URL", e)
                     except ValueError as e:
                         raise DownloadError("Could not parse JSON", e)
-                    except:
+                    except Exception as e:
                         raise DownloadError("Could not connect to URL", e)
                     finally:
                         # Wipe out whatever we had written out so far
