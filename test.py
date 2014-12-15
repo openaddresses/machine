@@ -188,7 +188,7 @@ class TestOA (unittest.TestCase):
 def locked_open(filename):
     ''' Open and lock a file, for use with threads and processes.
     '''
-    with open(filename, 'r+') as file:
+    with open(filename, 'r+b') as file:
         lockf(file, LOCK_EX)
         yield file
         lockf(file, LOCK_UN)
@@ -421,7 +421,7 @@ class FakeS3 (S3):
 
         self._threadlock = Lock()
         
-        with open(self._fake_keys, 'w') as file:
+        with open(self._fake_keys, 'wb') as file:
             cPickle.dump(dict(), file)
 
         S3.__init__(self, 'Fake Key', 'Fake Secret', 'data-test.openaddresses.io')
