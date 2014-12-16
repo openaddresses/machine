@@ -1,7 +1,7 @@
 from subprocess import Popen
 from multiprocessing import Process
 from tempfile import mkdtemp
-from os.path import realpath, join, basename, splitext, exists
+from os.path import realpath, join, basename, splitext, exists, dirname
 from shutil import copy, move, rmtree
 from mimetypes import guess_extension
 from StringIO import StringIO
@@ -51,6 +51,9 @@ geometry_types = {
     ogr.wkbGeometryCollection25D: 'GeometryCollection 2.5D',
     ogr.wkbUnknown: 'Unknown'
     }
+
+with open(join(dirname(__file__), 'VERSION')) as file:
+    __version__ = file.read().strip()
 
 class ExcerptResult:
     sample_data = None

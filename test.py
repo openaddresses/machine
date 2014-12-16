@@ -101,7 +101,21 @@ class TestOA (unittest.TestCase):
             else:
                 # This might actually need to be false?
                 self.assertTrue(bool(state['processed']), "Checking for processed in {}".format(source))
-    
+
+        #
+        # Check the JSON version of the data.
+        #
+        data = json.loads(self.s3._read_fake_key('state.json'))
+        self.assertEqual(data, 'runs/test/state.json')
+        
+        data = json.loads(self.s3._read_fake_key(data))
+        rows = [dict(zip(data[0], row)) for row in data[1:]]
+        
+        for state in rows:
+            self.assertTrue(bool(state['cache']))
+            self.assertTrue(bool(state['version']))
+            self.assertTrue(bool(state['fingerprint']))
+        
     def test_single_ac(self):
         ''' Test cache() and conform() on Alameda County sample data.
         '''

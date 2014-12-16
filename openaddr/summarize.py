@@ -14,7 +14,7 @@ from . import S3, paths
 def load_states(s3):
     # Find existing cache information
     state_key = s3.get_key('state.txt')
-    states = list()
+    states, counts = list(), dict(processed=0, cached=0, sources=0)
 
     if state_key:
         state_link = state_key.get_contents_as_string()
@@ -37,16 +37,16 @@ def load_states(s3):
             else:
                 row['cache_date'] = None
 
-            row['class'] = ' '.join([
-                'cached' if row['cache'] else '',
-                'processed' if row['processed'] else '',
-                ])
-            
+            counts['sources'] += 1
+            counts['cached'] += 1 if row['cache'] else 0
+            counts['processed'] += 1 if row['processed'] else 0
+
             with open(join(paths.sources, row['source'])) as file:
                 data = json.load(file)
             
                 row['type'] = data.get('type', '').lower()
                 row['conform'] = bool(data.get('conform', False))
+                row['skip'] = bool(data.get('skip', False))
             
             if row.get('sample', False):
                 row['sample_data'] = get(row['sample']).json()
@@ -54,11 +54,29 @@ def load_states(s3):
             if not row.get('sample_data', False):
                 row['sample_data'] = list()
             
+            if row['cache'].endswith('.zip'):
+                if row.get('geometry type', 'Point') in ('Polygon', 'MultiPolygon'):
+                    row['conform type'] = 'shapefile-polygon'
+                else:
+                    row['conform type'] = 'shapefile'
+            elif row['cache'].endswith('.json'):
+                row['conform type'] = 'geojson'
+            elif row['cache'].endswith('.csv'):
+                row['conform type'] = 'csv'
+            else:
+                row['conform type'] = None
+            
+            row['coverage complete'] = False
+            if 'coverage' in data:
+                coverage = data['coverage']
+                if ('ISO 3166' in coverage or 'US Census' in coverage or 'geometry' in coverage):
+                    row['coverage complete'] = True
+            
             states.append(row)
     
     states.sort(key=lambda s: (bool(s['cache']), bool(s['processed']), s['source']))
     
-    return last_modified, states
+    return last_modified, states, counts
 
 def main():
     s3 = S3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'openaddresses-cfa')
@@ -70,8 +88,9 @@ def summarize(s3):
     env = Environment(loader=FileSystemLoader(join(dirname(__file__), 'templates')))
     env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
     template = env.get_template('state.html')
-    last_modified, states = load_states(s3)
-    return template.render(states=states, last_modified=last_modified)
+
+    last_modified, states, counts = load_states(s3)
+    return template.render(states=states, last_modified=last_modified, counts=counts)
 
 if __name__ == '__main__':
     exit(main())
