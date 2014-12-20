@@ -159,13 +159,21 @@ def cache(srcjson, destdir, extras, s3):
 
     with open(tmpjson) as file:
         data = json.load(file)
-        
-    if s3:
-        rmtree(workdir)
-    else:
-        for ext in ('.json', '.zip'):
-            if exists(join(workdir, source+ext)):
-                data['cache'] = 'file://' + abspath(join(workdir, source+ext))
+    
+    #
+    # Find the cached data and hold on to it.
+    #
+    for ext in ('.json', '.zip'):
+        cache_name = source+ext
+        if exists(join(workdir, cache_name)):
+            resultdir = join(destdir, 'cached')
+            mkdir(resultdir)
+            move(join(workdir, cache_name), join(resultdir, cache_name))
+            if not data['cache']:
+                data['cache'] = 'file://' + join(resultdir, cache_name)
+            break
+
+    rmtree(workdir)
     
     with open(st_path) as status, open(errpath) as err, open(outpath) as out:
         args = status.read().strip(), err.read().strip(), out.read().strip()
@@ -192,6 +200,13 @@ def conform(srcjson, destdir, extras, s3):
     workdir = mkdtemp(prefix='conform-')
     logger = getLogger('openaddr')
     tmpjson = _tmp_json(workdir, srcjson, extras)
+    
+    #
+    # When running without S3, the cached data might be a local path.
+    #
+    scheme, _, cache_path, _, _, _ = urlparse(extras.get('cache', ''))
+    if scheme == 'file':
+        copy(cache_path, workdir)
 
     #
     # Run openaddresses-conform from a fresh working directory.
@@ -205,11 +220,15 @@ def conform(srcjson, destdir, extras, s3):
 
     with open(errpath, 'w') as stderr, open(outpath, 'w') as stdout:
         index_js = join(paths.conform, 'index.js')
-        cmd_args = dict(cwd=workdir, env=s3.toenv(), stderr=stderr, stdout=stdout)
-
         logger.debug('openaddresses-conform {0} {1}'.format(tmpjson, workdir))
 
-        cmd = Popen(('node', index_js, tmpjson, workdir, s3.bucketname), **cmd_args)
+        if s3:
+            cmd_args = dict(cwd=workdir, env=s3.toenv(), stderr=stderr, stdout=stdout)
+            cmd = Popen(('node', index_js, tmpjson, workdir, s3.bucketname), **cmd_args)
+        else:
+            cmd_args = dict(cwd=workdir, env=environ, stderr=stderr, stdout=stdout)
+            cmd = Popen(('node', index_js, tmpjson, workdir), **cmd_args)
+
         _wait_for_it(cmd, 7200)
 
         with open(st_path, 'w') as file:

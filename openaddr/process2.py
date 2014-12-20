@@ -1,7 +1,8 @@
 from urlparse import urlparse
-from os.path import join, basename
+from os.path import join, basename, dirname, exists
 from shutil import copy, move
-from os import mkdir
+from logging import getLogger
+from os import mkdir, rmdir
 import tempfile
 
 from . import cache, conform, excerpt
@@ -16,17 +17,21 @@ def process(source, destination):
     
     result1 = cache(temp_src, temp_dir, dict(), False)
     
-    print result1.__dict__
+    scheme, _, cache_path1, _, _, _ = urlparse(result1.cache)
+    if scheme != 'file':
+        raise RuntimeError('Nothing cached? {}'.format(result1.cache))
     
-    scheme, _, cache_path, _, _, _ = urlparse(result1.cache)
+    getLogger('openaddr').info('Cached data in {}'.format(result1.cache))
+
+    #
+    #
+    #
+    result2 = conform(temp_src, temp_dir, result1.todict(), False)
     
-    conform_dir = join(temp_dir, 'conform')
+    if not exists(result2.path):
+        raise RuntimeError('Nothing processed? {}'.format(result2.path))
     
-    mkdir(conform_dir)
-    move(cache_path, join(conform_dir, basename(cache_path)))
-    
-    print temp_src
-    print join(conform_dir, basename(cache_path)), '!!!'
+    getLogger('openaddr').info('Processed data in {}'.format(result2.path))
     
     return 1
     
