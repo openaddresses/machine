@@ -1,6 +1,6 @@
 from subprocess import Popen
 from tempfile import mkdtemp
-from os.path import realpath, join, basename, splitext, exists, dirname
+from os.path import realpath, join, basename, splitext, exists, dirname, abspath
 from shutil import copy, move, rmtree
 from mimetypes import guess_extension
 from StringIO import StringIO
@@ -141,11 +141,15 @@ def cache(srcjson, destdir, extras, s3):
 
     with open(errpath, 'w') as stderr, open(outpath, 'w') as stdout:
         index_js = join(paths.cache, 'index.js')
-        cmd_args = dict(cwd=workdir, env=s3.toenv(), stderr=stderr, stdout=stdout)
-
         logger.debug('openaddresses-cache {0} {1}'.format(tmpjson, workdir))
+        
+        if s3:
+            cmd_args = dict(cwd=workdir, env=s3.toenv(), stderr=stderr, stdout=stdout)
+            cmd = Popen(('node', index_js, tmpjson, workdir, s3.bucketname), **cmd_args)
+        else:
+            cmd_args = dict(cwd=workdir, env=environ, stderr=stderr, stdout=stdout)
+            cmd = Popen(('node', index_js, tmpjson, workdir), **cmd_args)
 
-        cmd = Popen(('node', index_js, tmpjson, workdir, s3.bucketname), **cmd_args)
         _wait_for_it(cmd, 7200)
 
         with open(st_path, 'w') as file:
@@ -156,7 +160,12 @@ def cache(srcjson, destdir, extras, s3):
     with open(tmpjson) as file:
         data = json.load(file)
         
-    rmtree(workdir)
+    if s3:
+        rmtree(workdir)
+    else:
+        for ext in ('.json', '.zip'):
+            if exists(join(workdir, source+ext)):
+                data['cache'] = 'file://' + abspath(join(workdir, source+ext))
     
     with open(st_path) as status, open(errpath) as err, open(outpath) as out:
         args = status.read().strip(), err.read().strip(), out.read().strip()
