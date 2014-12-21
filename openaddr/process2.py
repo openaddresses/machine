@@ -1,5 +1,6 @@
 from urlparse import urlparse
 from os.path import join, basename, dirname, exists, splitext, relpath
+from argparse import ArgumentParser
 from shutil import copy, move
 from logging import getLogger
 from os import mkdir, rmdir
@@ -22,9 +23,10 @@ def process(source, destination):
     
     scheme, _, _, _, _, _ = urlparse(result1.cache)
     if scheme != 'file':
-        write_state(source, destination, result1, ConformResult.empty(), ExcerptResult.empty())
-        getLogger('openaddr').error('Nothing cached')
-        return 1
+        getLogger('openaddr').warning('Nothing cached')
+        print write_state(source, destination, result1,
+                          ConformResult.empty(), ExcerptResult.empty())
+        return
     
     getLogger('openaddr').info('Cached data in {}'.format(result1.cache))
 
@@ -33,10 +35,11 @@ def process(source, destination):
     #
     result2 = conform(temp_src, temp_dir, result1.todict())
     
-    if not exists(result2.path):
-        write_state(source, destination, result1, result2, ExcerptResult.empty())
-        getLogger('openaddr').error('Nothing processed')
-        return 1
+    if not result2.path:
+        getLogger('openaddr').warning('Nothing processed')
+        print write_state(source, destination, result1, result2,
+                          ExcerptResult.empty())
+        return
     
     getLogger('openaddr').info('Processed data in {}'.format(result2.path))
     
@@ -108,15 +111,20 @@ def write_state(source, destination, result1, result2, result3):
         getLogger('openaddr').info('Wrote to state: {}'.format(file.name))
         return file.name
 
+parser = ArgumentParser(description='Run one source file locally.')
+
+parser.add_argument('source', help='Required source file name.')
+parser.add_argument('destination', help='Required output directory name.')
+
+parser.add_argument('-l', '--logfile', help='Optional log file name.')
+
 def main():
     '''
     '''
-    source = 'tests/sources/us-ca-alameda_county.json'
-    destination = 'out'
-    
-    setup_logger(None)
-    
-    return process(source, destination)
+    args = parser.parse_args()
+    setup_logger(args.logfile)
+
+    return process(args.source, args.destination)
 
 if __name__ == '__main__':
     exit(main())
