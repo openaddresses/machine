@@ -199,7 +199,8 @@ def cache(srcjson, destdir, extras, s3=False):
         cache_name = source+ext
         if exists(join(workdir, cache_name)):
             resultdir = join(destdir, 'cached')
-            mkdir(resultdir)
+            if not exists(resultdir):
+                mkdir(resultdir)
             move(join(workdir, cache_name), join(resultdir, cache_name))
             if 'cache' not in data:
                 data['cache'] = 'file://' + join(resultdir, cache_name)
