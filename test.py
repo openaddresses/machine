@@ -19,7 +19,7 @@ from threading import Lock
 from requests import get
 from httmock import response, HTTMock
         
-from openaddr import paths, cache, conform, excerpt, jobs, S3, process
+from openaddr import paths, cache, conform, excerpt, jobs, S3, process, process2
 from openaddr.sample import TestSample
 
 class TestOA (unittest.TestCase):
@@ -179,6 +179,58 @@ class TestOA (unittest.TestCase):
             
             _, _, path, _, _, _ = urlparse(result.processed)
             self.assertTrue('555 E CARSON ST' in self.s3._read_fake_key(path))
+
+    def test_single_ac2(self):
+        source = join(self.src_dir, 'us-ca-alameda_county.json')
+        
+        state_path = process2.process(source, self.testdir)
+        
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        self.assertTrue(state['cache'] is not None)
+        self.assertTrue(state['processed'] is not None)
+        self.assertTrue(state['sample'] is not None)
+        self.assertEqual(state['geometry type'], 'Point')
+        
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('ZIPCODE' in sample_data[0])
+        self.assertTrue('OAKLAND' in sample_data[1])
+        self.assertTrue('94612' in sample_data[1])
+
+    def test_single_polk2(self):
+        source = join(self.src_dir, 'us-ia-polk.json')
+        
+        state_path = process2.process(source, self.testdir)
+        
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        self.assertTrue(state['cache'] is not None)
+        self.assertTrue(state['processed'] is not None)
+        self.assertTrue(state['sample'] is not None)
+        self.assertEqual(state['geometry type'], 'Polygon')
+        
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('zip' in sample_data[0])
+        self.assertTrue('IA' in sample_data[1])
+
+    def test_single_oak2(self):
+        source = join(self.src_dir, 'us-ca-oakland.json')
+        
+        state_path = process2.process(source, self.testdir)
+        
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        self.assertTrue(state['cache'] is not None)
+        self.assertTrue(state['processed'] is None)
 
 @contextmanager
 def locked_open(filename):

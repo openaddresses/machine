@@ -20,9 +20,13 @@ in `chef`. Run them from a Git checkout like this:
 
 Complete sources will be checked out to `/var/opt/openaddresses/sources`.
 
-OpenAddresses requires Amazon S3 to work. You can set the environment variables
-`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` or provide values as arguments
-to `openaddr-process`.
+Run a single source locally with `openaddr-process-one`:
+
+    openaddr-process-one -l <log> <path to source JSON> <output directory>
+
+For more than one source file, OpenAddresses requires Amazon S3 to work.
+You can set the environment variables `AWS_ACCESS_KEY_ID` and
+`AWS_SECRET_ACCESS_KEY` or provide values as arguments to `openaddr-process`.
 
 Run the complete process with `openaddr-process`:
 

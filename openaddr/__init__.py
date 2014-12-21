@@ -1,7 +1,7 @@
 from subprocess import Popen
 from multiprocessing import Process
 from tempfile import mkdtemp
-from os.path import realpath, join, basename, splitext, exists, dirname
+from os.path import realpath, join, basename, splitext, exists, dirname, abspath
 from shutil import copy, move, rmtree
 from mimetypes import guess_extension
 from StringIO import StringIO
@@ -92,16 +92,48 @@ class S3:
             self._bucket = connect_s3(key, secret).get_bucket(bucketname)
         return self._bucket.new_key(name)
 
-def cache(srcjson, destdir, extras, s3):
+class LocalResponse:
+    ''' Fake local response for a file:// request.
+    '''
+    _path = None
+    url = None
+
+    def __init__(self, path):
+        '''
+        '''
+        self._path = path
+        self.url = 'file://' + abspath(path)
+    
+    def iter_content(self, chunksize):
+        '''
+        '''
+        with open(self._path) as file:
+            while True:
+                chunk = file.read(chunksize)
+                if not chunk:
+                    break
+                yield chunk
+
+def get_cached_data(url):
+    ''' Wrapper for HTTP request to cached data.
+    '''
+    scheme, _, path, _, _, _ = urlparse(url)
+    
+    if scheme == 'file':
+        return LocalResponse(path)
+    
+    return get(url, stream=True)
+
+def cache(srcjson, destdir, extras, s3=False):
     ''' Python wrapper for openaddress-cache.
+    
+        Return a CacheResult object:
 
-        Return a dictionary of cache details, including URL and md5 hash:
-
-          {
-            "cache": URL of cached data,
-            "fingerprint": md5 hash of data,
-            "version": data version as date?
-          }
+          cache: URL of cached data, possibly with file:// schema
+          fingerprint: md5 hash of data,
+          version: data version as date?
+          elapsed: elapsed time as timedelta object
+          output: subprocess output as string
     '''
     start = datetime.now()
     source, _ = splitext(basename(srcjson))
@@ -151,6 +183,20 @@ def cache(srcjson, destdir, extras, s3):
     with open(tmpjson, 'r') as tmp_file:
         data = json.load(tmp_file)
 
+    #
+    # Find the cached data and hold on to it.
+    #
+    for ext in ('.json', '.zip'):
+        cache_name = source+ext
+        if exists(join(workdir, cache_name)):
+            resultdir = join(destdir, 'cached')
+            if not exists(resultdir):
+                mkdir(resultdir)
+            move(join(workdir, cache_name), join(resultdir, cache_name))
+            if 'cache' not in data:
+                data['cache'] = 'file://' + join(resultdir, cache_name)
+            break
+
     rmtree(workdir)
 
     return CacheResult(data.get('cache', None),
@@ -158,21 +204,28 @@ def cache(srcjson, destdir, extras, s3):
                        data.get('version', None),
                        datetime.now() - start)
 
-def conform(srcjson, destdir, extras, s3):
+def conform(srcjson, destdir, extras, s3=False):
     ''' Python wrapper for openaddresses-conform.
+    
+        Return a ConformResult object:
 
-        Return a dictionary of conformed details, a CSV URL and local path:
-
-          {
-            "processed": URL of conformed CSV,
-            "path": Local filesystem path to conformed CSV
-          }
+          processed: URL of processed data CSV
+          path: local path to CSV of processed data
+          elapsed: elapsed time as timedelta object
+          output: subprocess output as string
     '''
     start = datetime.now()
     source, _ = splitext(basename(srcjson))
     workdir = mkdtemp(prefix='conform-')
     logger = getLogger('openaddr')
     tmpjson = _tmp_json(workdir, srcjson, extras)
+    
+    #
+    # When running without S3, the cached data might be a local path.
+    #
+    scheme, _, cache_path, _, _, _ = urlparse(extras.get('cache', ''))
+    if scheme == 'file':
+        copy(cache_path, workdir)
 
     def thread_work():
         with open(tmpjson, 'r') as j:
@@ -222,7 +275,7 @@ def conform(srcjson, destdir, extras, s3):
                          data.get('sample', None),
                          datetime.now() - start)
 
-def excerpt(srcjson, destdir, extras, s3):
+def excerpt(srcjson, destdir, extras, s3=False):
     ''' 
     '''
     start = datetime.now()
@@ -233,7 +286,7 @@ def excerpt(srcjson, destdir, extras, s3):
 
     #
     sample_data = None
-    got = get(extras['cache'], stream=True)
+    got = get_cached_data(extras['cache'])
     _, ext = splitext(got.url or extras['cache'])
     
     if not ext:
@@ -265,11 +318,17 @@ def excerpt(srcjson, destdir, extras, s3):
     elif ext == '.json':
         logger.debug('Downloading part of {cache}'.format(**extras))
 
-        _, host, path, query, _, _ = urlparse(got.url)
+        scheme, host, path, query, _, _ = urlparse(got.url)
         
-        conn = HTTPConnection(host, 80)
-        conn.request('GET', path + ('?' if query else '') + query)
-        resp = conn.getresponse()
+        if scheme in ('http', 'https'):
+            conn = HTTPConnection(host, 80)
+            conn.request('GET', path + ('?' if query else '') + query)
+            resp = conn.getresponse()
+        elif scheme == 'file':
+            with open(path) as rawfile:
+                resp = StringIO(rawfile.read(1024*1024))
+        else:
+            raise RuntimeError('Unsure what to do with {}'.format(got.url))
         
         with open(cachefile, 'w') as file:
             file.write(sample_geojson(resp, 10))
@@ -302,13 +361,19 @@ def excerpt(srcjson, destdir, extras, s3):
     
     rmtree(workdir)
     
-    dir = datetime.now().strftime('%Y%m%d')
-    key = s3.new_key(join(dir, 'samples', source+'.json'))
-    args = dict(policy='public-read', headers={'Content-Type': 'text/json'})
-    key.set_contents_from_string(json.dumps(sample_data, indent=2), **args)
+    if s3:
+        dir = datetime.now().strftime('%Y%m%d')
+        key = s3.new_key(join(dir, 'samples', source+'.json'))
+        args = dict(policy='public-read', headers={'Content-Type': 'text/json'})
+        key.set_contents_from_string(json.dumps(sample_data, indent=2), **args)
+        sample_url = 'http://s3.amazonaws.com/{}/{}'.format(s3.bucketname, key.name)
     
-    return ExcerptResult('http://s3.amazonaws.com/{}/{}'.format(s3.bucketname, key.name),
-                         geometry_type)
+    else:
+        with open(join(destdir, 'sample.json'), 'w') as file:
+            json.dump(sample_data, file, indent=2)
+            sample_url = 'file://' + abspath(file.name)
+    
+    return ExcerptResult(sample_url, geometry_type)
 
 def _wait_for_it(command, seconds):
     ''' Run command for a limited number of seconds, then kill it.

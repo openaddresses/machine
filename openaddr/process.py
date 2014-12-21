@@ -139,10 +139,13 @@ def write_state(s3, sourcedir, run_name, source_files1, results1, results2, resu
         source_name = relpath(source, sourcedir)
         output_name = '{0}.txt'.format(*splitext(source_name))
     
+        # output nulls or strings
+        cache_time = result1.elapsed and str(result1.elapsed)
+        process_time = result2.elapsed and str(result2.elapsed)
+        
         state_list.append((source_name, result1.cache, result3.sample_data,
                            result3.geometry_type, result1.version, result1.fingerprint,
-                           str(result1.elapsed), result2.processed, str(result2.elapsed),
-                           output_name))
+                           cache_time, result2.processed, process_time, output_name))
         
         out.writerow(state_list[-1])
         
