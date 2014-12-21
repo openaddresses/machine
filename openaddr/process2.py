@@ -93,9 +93,9 @@ def write_state(source, destination, result1, result2, result3):
         ('geometry type', result3.geometry_type),
         ('version', result1.version),
         ('fingerprint', result1.fingerprint),
-        ('cache time', str(result1.elapsed)),
+        ('cache time', result1.elapsed and str(result1.elapsed)),
         ('processed', result2.path and relpath(processed_path2, statedir)),
-        ('process time', str(result2.elapsed)),
+        ('process time', result2.elapsed and str(result2.elapsed)),
         ('output', relpath(output_path, statedir))
         ]
     
