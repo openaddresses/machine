@@ -10,7 +10,9 @@ from . import cache, conform, excerpt, ConformResult, ExcerptResult
 from .jobs import setup_logger
 
 def process(source, destination):
-    '''
+    ''' Process a single source and destination, return path tab-separated state file.
+    
+        Creates a new directory and files under destination.
     '''
     temp_dir = tempfile.mkdtemp(prefix='process2-')
     temp_src = join(temp_dir, basename(source))
@@ -21,12 +23,10 @@ def process(source, destination):
     #
     result1 = cache(temp_src, temp_dir, dict())
     
-    scheme, _, _, _, _, _ = urlparse(result1.cache)
-    if scheme != 'file':
+    if not result1.cache:
         getLogger('openaddr').warning('Nothing cached')
-        print write_state(source, destination, result1,
-                          ConformResult.empty(), ExcerptResult.empty())
-        return
+        return write_state(source, destination, result1,
+                           ConformResult.empty(), ExcerptResult.empty())
     
     getLogger('openaddr').info('Cached data in {}'.format(result1.cache))
 
@@ -37,9 +37,8 @@ def process(source, destination):
     
     if not result2.path:
         getLogger('openaddr').warning('Nothing processed')
-        print write_state(source, destination, result1, result2,
-                          ExcerptResult.empty())
-        return
+        return write_state(source, destination, result1, result2,
+                           ExcerptResult.empty())
     
     getLogger('openaddr').info('Processed data in {}'.format(result2.path))
     
@@ -56,7 +55,7 @@ def process(source, destination):
     #
     # Write output
     #
-    print write_state(source, destination, result1, result2, result3)
+    return write_state(source, destination, result1, result2, result3)
 
 def write_state(source, destination, result1, result2, result3):
     '''
@@ -100,10 +99,10 @@ def write_state(source, destination, result1, result2, result3):
     with open(output_path, 'w') as file:
         file.write('{}\n\n\n{}'.format(result1.output, result2.output))
                
-    with open(join(statedir, 'state.json'), 'w') as file:
+    with open(join(statedir, 'index.json'), 'w') as file:
         json.dump(zip(*state), file, indent=2)
                
-    with open(join(statedir, 'state.txt'), 'w') as file:
+    with open(join(statedir, 'index.txt'), 'w') as file:
         out = csv.writer(file, dialect='excel-tab')
         for row in zip(*state):
             out.writerow(row)
@@ -111,7 +110,7 @@ def write_state(source, destination, result1, result2, result3):
         getLogger('openaddr').info('Wrote to state: {}'.format(file.name))
         return file.name
 
-parser = ArgumentParser(description='Run one source file locally.')
+parser = ArgumentParser(description='Run one source file locally, prints output path.')
 
 parser.add_argument('source', help='Required source file name.')
 parser.add_argument('destination', help='Required output directory name.')
@@ -124,7 +123,7 @@ def main():
     args = parser.parse_args()
     setup_logger(args.logfile)
 
-    return process(args.source, args.destination)
+    print process(args.source, args.destination)
 
 if __name__ == '__main__':
     exit(main())
