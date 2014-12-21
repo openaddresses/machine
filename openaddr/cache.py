@@ -3,6 +3,7 @@ import os
 import errno
 import socket
 import mimetypes
+import shutil
 
 from logging import getLogger
 from urllib import urlencode
@@ -106,6 +107,13 @@ class URLDownloadTask(DownloadTask):
 
         for source_url in source_urls:
             file_path = self.get_file_path(source_url, download_path)
+            
+            # FIXME: For URLs with file:// scheme, simply copy the file
+            # to the expected location so that os.path.exists() returns True.
+            # Instead, implement a FileDownloadTask class?
+            scheme, _, path, _, _, _ = urlparse(source_url)
+            if scheme == 'file':
+                shutil.copy(path, file_path)
 
             if os.path.exists(file_path):
                 output_files.append(file_path)

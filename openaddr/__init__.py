@@ -161,14 +161,17 @@ def cache(srcjson, destdir, extras, s3=False):
 
         version = datetime.utcnow().strftime('%Y%m%d')
         key = '/{}/{}'.format(version, basename(filepath_to_upload))
+        
+        if s3:
+            k = s3.new_key(key)
+            kwargs = dict(policy='public-read', reduced_redundancy=True)
+            k.set_contents_from_filename(filepath_to_upload, **kwargs)
 
-        k = s3.new_key(key)
-        kwargs = dict(policy='public-read', reduced_redundancy=True)
-        k.set_contents_from_filename(filepath_to_upload, **kwargs)
-
-        data['cache'] = k.generate_url(expires_in=0, query_auth=False)
-        data['fingerprint'] = k.md5
-        data['version'] = version
+            data['cache'] = k.generate_url(expires_in=0, query_auth=False)
+            data['fingerprint'] = k.md5
+            data['version'] = version
+        else:
+            data['filepath to upload'] = abspath(filepath_to_upload)
 
         with open(tmpjson, 'w') as j:
             json.dump(data, j)
@@ -186,16 +189,15 @@ def cache(srcjson, destdir, extras, s3=False):
     #
     # Find the cached data and hold on to it.
     #
-    for ext in ('.json', '.zip'):
-        cache_name = source+ext
-        if exists(join(workdir, cache_name)):
+    if 'filepath to upload' in data:
+        cache_name = basename(data['filepath to upload'])
+        if exists(data['filepath to upload']):
             resultdir = join(destdir, 'cached')
             if not exists(resultdir):
                 mkdir(resultdir)
-            move(join(workdir, cache_name), join(resultdir, cache_name))
+            move(data['filepath to upload'], join(resultdir, cache_name))
             if 'cache' not in data:
                 data['cache'] = 'file://' + join(resultdir, cache_name)
-            break
 
     rmtree(workdir)
 
@@ -246,15 +248,17 @@ def conform(srcjson, destdir, extras, s3=False):
 
         task = ConvertToCsvTask()
         csv_paths = task.convert(decompressed_paths, workdir)
+        data['csv path'] = csv_paths[0]
 
         version = datetime.utcnow().strftime('%Y%m%d')
         key = '/{}/{}.csv'.format(version, source)
 
-        k = s3.new_key(key)
-        kwargs = dict(policy='public-read', reduced_redundancy=True)
-        k.set_contents_from_filename(csv_paths[0], **kwargs)
+        if s3:
+            k = s3.new_key(key)
+            kwargs = dict(policy='public-read', reduced_redundancy=True)
+            k.set_contents_from_filename(csv_paths[0], **kwargs)
 
-        data['processed'] = k.generate_url(expires_in=0, query_auth=False)
+            data['processed'] = k.generate_url(expires_in=0, query_auth=False)
 
         with open(tmpjson, 'w') as j:
             json.dump(data, j)
@@ -269,10 +273,12 @@ def conform(srcjson, destdir, extras, s3=False):
     with open(tmpjson, 'r') as tmp_file:
         data = json.load(tmp_file)
 
+    move(data['csv path'], join(destdir, 'out.csv'))
     rmtree(workdir)
 
     return ConformResult(data.get('processed', None),
                          data.get('sample', None),
+                         realpath(join(destdir, 'out.csv')),
                          datetime.now() - start)
 
 def excerpt(srcjson, destdir, extras, s3=False):

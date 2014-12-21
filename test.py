@@ -183,7 +183,8 @@ class TestOA (unittest.TestCase):
     def test_single_ac2(self):
         source = join(self.src_dir, 'us-ca-alameda_county.json')
         
-        state_path = process2.process(source, self.testdir)
+        with HTTMock(self.response_content):
+            state_path = process2.process(source, self.testdir)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -201,10 +202,11 @@ class TestOA (unittest.TestCase):
         self.assertTrue('OAKLAND' in sample_data[1])
         self.assertTrue('94612' in sample_data[1])
 
-    def test_single_polk2(self):
-        source = join(self.src_dir, 'us-ia-polk.json')
+    def test_single_car2(self):
+        source = join(self.src_dir, 'us-ca-carson.json')
         
-        state_path = process2.process(source, self.testdir)
+        with HTTMock(self.response_content):
+            state_path = process2.process(source, self.testdir)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -212,25 +214,30 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['cache'] is not None)
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
-        self.assertEqual(state['geometry type'], 'Polygon')
+        self.assertEqual(state['geometry type'], 'Point')
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
-        self.assertTrue('zip' in sample_data[0])
-        self.assertTrue('IA' in sample_data[1])
+        self.assertTrue('SITEFRAC' in sample_data[0])
 
     def test_single_oak2(self):
         source = join(self.src_dir, 'us-ca-oakland.json')
         
-        state_path = process2.process(source, self.testdir)
+        with HTTMock(self.response_content):
+            state_path = process2.process(source, self.testdir)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
-        self.assertTrue(state['processed'] is None)
+        self.assertFalse(state['processed'] is None)
+        
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+        
+        self.assertTrue('FID_PARCEL' in sample_data[0])
 
 @contextmanager
 def locked_open(filename):

@@ -22,19 +22,21 @@ def mkdirsp(path):
 class ConformResult:
     processed = None
     sample = None
+    path = None
     elapsed = None
     
     # needed by openaddr.process.write_state(), for now.
     output = ''
 
-    def __init__(self, processed, sample, elapsed):
+    def __init__(self, processed, sample, path, elapsed):
         self.processed = processed
         self.sample = sample
+        self.path = path
         self.elapsed = elapsed
 
     @staticmethod
     def empty():
-        return ConformResult(None, None, None)
+        return ConformResult(None, None, None, None)
 
     def todict(self):
         return dict(processed=self.processed, sample=self.sample)
