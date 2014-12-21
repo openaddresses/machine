@@ -115,12 +115,44 @@ class S3:
     def new_key(self, name):
         return self._bucket.new_key(name)
 
-def cache(srcjson, destdir, extras, s3):
+class LocalResponse:
+    ''' Fake local response for a file:// request.
+    '''
+    _path = None
+    url = None
+
+    def __init__(self, path):
+        '''
+        '''
+        self._path = path
+        self.url = 'file://' + abspath(path)
+    
+    def iter_content(self, chunksize):
+        '''
+        '''
+        with open(self._path) as file:
+            while True:
+                chunk = file.read(chunksize)
+                if not chunk:
+                    break
+                yield chunk
+
+def get_cached_data(url):
+    ''' Wrapper for HTTP request to cached data.
+    '''
+    scheme, _, path, _, _, _ = urlparse(url)
+    
+    if scheme == 'file':
+        return LocalResponse(path)
+    
+    return get(url, stream=True)
+
+def cache(srcjson, destdir, extras, s3=False):
     ''' Python wrapper for openaddress-cache.
     
         Return a CacheResult object:
 
-          cache: URL of cached data
+          cache: URL of cached data, possibly with file:// schema
           fingerprint: md5 hash of data,
           version: data version as date?
           elapsed: elapsed time as timedelta object
@@ -169,7 +201,7 @@ def cache(srcjson, destdir, extras, s3):
             resultdir = join(destdir, 'cached')
             mkdir(resultdir)
             move(join(workdir, cache_name), join(resultdir, cache_name))
-            if not data['cache']:
+            if 'cache' not in data:
                 data['cache'] = 'file://' + join(resultdir, cache_name)
             break
 
@@ -185,7 +217,7 @@ def cache(srcjson, destdir, extras, s3):
                        datetime.now() - start,
                        output)
 
-def conform(srcjson, destdir, extras, s3):
+def conform(srcjson, destdir, extras, s3=False):
     ''' Python wrapper for openaddresses-conform.
     
         Return a ConformResult object:
@@ -264,7 +296,7 @@ def conform(srcjson, destdir, extras, s3):
                          datetime.now() - start,
                          output)
 
-def excerpt(srcjson, destdir, extras, s3):
+def excerpt(srcjson, destdir, extras, s3=False):
     ''' 
     '''
     start = datetime.now()
@@ -275,7 +307,7 @@ def excerpt(srcjson, destdir, extras, s3):
 
     #
     sample_data = None
-    got = get(extras['cache'], stream=True)
+    got = get_cached_data(extras['cache'])
     _, ext = splitext(got.url)
     
     if not ext:
@@ -344,13 +376,19 @@ def excerpt(srcjson, destdir, extras, s3):
     
     rmtree(workdir)
     
-    dir = datetime.now().strftime('%Y%m%d')
-    key = s3.new_key(join(dir, 'samples', source+'.json'))
-    args = dict(policy='public-read', headers={'Content-Type': 'text/json'})
-    key.set_contents_from_string(json.dumps(sample_data, indent=2), **args)
+    if s3:
+        dir = datetime.now().strftime('%Y%m%d')
+        key = s3.new_key(join(dir, 'samples', source+'.json'))
+        args = dict(policy='public-read', headers={'Content-Type': 'text/json'})
+        key.set_contents_from_string(json.dumps(sample_data, indent=2), **args)
+        sample_url = 'http://s3.amazonaws.com/{}/{}'.format(s3.bucketname, key.name)
     
-    return ExcerptResult('http://s3.amazonaws.com/{}/{}'.format(s3.bucketname, key.name),
-                         geometry_type)
+    else:
+        with open(join(destdir, 'sample.json'), 'w') as file:
+            json.dump(sample_data, file, indent=2)
+            sample_url = 'file://' + abspath(file.name)
+    
+    return ExcerptResult(sample_url, geometry_type)
 
 def _wait_for_it(command, seconds):
     ''' Run command for a limited number of seconds, then kill it.

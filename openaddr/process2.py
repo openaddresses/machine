@@ -15,7 +15,7 @@ def process(source, destination):
     temp_src = join(temp_dir, basename(source))
     copy(source, temp_src)
     
-    result1 = cache(temp_src, temp_dir, dict(), False)
+    result1 = cache(temp_src, temp_dir, dict())
     
     scheme, _, cache_path1, _, _, _ = urlparse(result1.cache)
     if scheme != 'file':
@@ -26,12 +26,19 @@ def process(source, destination):
     #
     #
     #
-    result2 = conform(temp_src, temp_dir, result1.todict(), False)
+    result2 = conform(temp_src, temp_dir, result1.todict())
     
     if not exists(result2.path):
         raise RuntimeError('Nothing processed? {}'.format(result2.path))
     
     getLogger('openaddr').info('Processed data in {}'.format(result2.path))
+    
+    #
+    #
+    #
+    result3 = excerpt(temp_src, temp_dir, result1.todict())
+    
+    getLogger('openaddr').info('Sample data in {}'.format(result3.sample_data))
     
     return 1
     
