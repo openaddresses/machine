@@ -339,11 +339,17 @@ def excerpt(srcjson, destdir, extras, s3=False):
     elif ext == '.json':
         logger.debug('Downloading part of {cache}'.format(**extras))
 
-        _, host, path, query, _, _ = urlparse(got.url)
+        scheme, host, path, query, _, _ = urlparse(got.url)
         
-        conn = HTTPConnection(host, 80)
-        conn.request('GET', path + ('?' if query else '') + query)
-        resp = conn.getresponse()
+        if scheme in ('http', 'https'):
+            conn = HTTPConnection(host, 80)
+            conn.request('GET', path + ('?' if query else '') + query)
+            resp = conn.getresponse()
+        elif scheme == 'file':
+            with open(path) as rawfile:
+                resp = StringIO(rawfile.read(1024*1024))
+        else:
+            raise RuntimeError('Unsure what to do with {}'.format(got.url))
         
         with open(cachefile, 'w') as file:
             file.write(sample_geojson(resp, 10))
