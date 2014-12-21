@@ -1,7 +1,7 @@
 from urlparse import urlparse
 from os.path import join, basename, dirname, exists, splitext, relpath
+from shutil import copy, move, rmtree
 from argparse import ArgumentParser
-from shutil import copy, move
 from logging import getLogger
 from os import mkdir, rmdir
 import tempfile, json, csv
@@ -55,7 +55,10 @@ def process(source, destination):
     #
     # Write output
     #
-    return write_state(source, destination, result1, result2, result3)
+    state_path = write_state(source, destination, result1, result2, result3)
+
+    rmtree(temp_dir)
+    return state_path
 
 def write_state(source, destination, result1, result2, result3):
     '''
