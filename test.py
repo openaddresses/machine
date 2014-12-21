@@ -9,7 +9,7 @@ from os.path import dirname, join, splitext
 from csv import DictReader
 from glob import glob
 
-from openaddr import cache, conform, excerpt, jobs, S3, process
+from openaddr import cache, conform, excerpt, jobs, S3, process, process2
 from openaddr.sample import TestSample
 
 class TestOA (unittest.TestCase):
@@ -129,6 +129,58 @@ class TestOA (unittest.TestCase):
         result = conform(source, self.testdir, result.todict(), self.s3)
         self.assertTrue(result.processed is None)
         self.assertTrue(result.path is None)
+
+    def test_single_ac2(self):
+        source = join(self.src_dir, 'us-ca-alameda_county-{0}.json'.format(self.uuid))
+        
+        state_path = process2.process(source, self.testdir)
+        
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        self.assertTrue(state['cache'] is not None)
+        self.assertTrue(state['processed'] is not None)
+        self.assertTrue(state['sample'] is not None)
+        self.assertEqual(state['geometry type'], 'Point')
+        
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('ZIPCODE' in sample_data[0])
+        self.assertTrue('OAKLAND' in sample_data[1])
+        self.assertTrue('94612' in sample_data[1])
+
+    def test_single_polk2(self):
+        source = join(self.src_dir, 'us-ia-polk-{0}.json'.format(self.uuid))
+        
+        state_path = process2.process(source, self.testdir)
+        
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        self.assertTrue(state['cache'] is not None)
+        self.assertTrue(state['processed'] is not None)
+        self.assertTrue(state['sample'] is not None)
+        self.assertEqual(state['geometry type'], 'Polygon')
+        
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('zip' in sample_data[0])
+        self.assertTrue('IA' in sample_data[1])
+
+    def test_single_oak2(self):
+        source = join(self.src_dir, 'us-ca-oakland-{0}.json'.format(self.uuid))
+        
+        state_path = process2.process(source, self.testdir)
+        
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        self.assertTrue(state['cache'] is not None)
+        self.assertTrue(state['processed'] is None)
 
 class FakeS3 (S3):
     ''' Just enough S3 to work for tests.
