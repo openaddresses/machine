@@ -10,7 +10,7 @@ from . import cache, conform, excerpt, ConformResult, ExcerptResult
 from .jobs import setup_logger
 
 def process(source, destination):
-    ''' Process a single source and destination, return path tab-separated state file.
+    ''' Process a single source and destination, return path to JSON state file.
     
         Creates a new directory and files under destination.
     '''
@@ -99,14 +99,14 @@ def write_state(source, destination, result1, result2, result3):
     with open(output_path, 'w') as file:
         file.write('{}\n\n\n{}'.format(result1.output, result2.output))
                
-    with open(join(statedir, 'index.json'), 'w') as file:
-        json.dump(zip(*state), file, indent=2)
-               
     with open(join(statedir, 'index.txt'), 'w') as file:
         out = csv.writer(file, dialect='excel-tab')
         for row in zip(*state):
             out.writerow(row)
     
+    with open(join(statedir, 'index.json'), 'w') as file:
+        json.dump(zip(*state), file, indent=2)
+               
         getLogger('openaddr').info('Wrote to state: {}'.format(file.name))
         return file.name
 
