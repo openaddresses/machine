@@ -118,13 +118,13 @@ class S3:
 def cache(srcjson, destdir, extras, s3):
     ''' Python wrapper for openaddress-cache.
     
-        Return a dictionary of cache details, including URL and md5 hash:
-        
-          {
-            "cache": URL of cached data,
-            "fingerprint": md5 hash of data,
-            "version": data version as date?
-          }
+        Return a CacheResult object:
+
+          cache: URL of cached data
+          fingerprint: md5 hash of data,
+          version: data version as date?
+          elapsed: elapsed time as timedelta object
+          output: subprocess output as string
     '''
     start = datetime.now()
     source, _ = splitext(basename(srcjson))
@@ -170,13 +170,13 @@ def cache(srcjson, destdir, extras, s3):
 
 def conform(srcjson, destdir, extras, s3):
     ''' Python wrapper for openaddresses-conform.
+    
+        Return a ConformResult object:
 
-        Return a dictionary of conformed details, a CSV URL and local path:
-        
-          {
-            "processed": URL of conformed CSV,
-            "path": Local filesystem path to conformed CSV
-          }
+          processed: URL of processed data CSV
+          path: local path to CSV of processed data
+          elapsed: elapsed time as timedelta object
+          output: subprocess output as string
     '''
     start = datetime.now()
     source, _ = splitext(basename(srcjson))
