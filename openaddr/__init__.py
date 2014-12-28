@@ -163,6 +163,7 @@ def cache(srcjson, destdir, extras, s3=False):
         key = '/{}/{}'.format(version, basename(filepath_to_upload))
         
         if s3:
+            raise ValueError('Removing S3')
             k = s3.new_key(key)
             kwargs = dict(policy='public-read', reduced_redundancy=True)
             k.set_contents_from_filename(filepath_to_upload, **kwargs)

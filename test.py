@@ -117,70 +117,8 @@ class TestOA (unittest.TestCase):
             self.assertTrue(bool(state['fingerprint']))
         
     def test_single_ac(self):
-        ''' Test cache() and conform() on Alameda County sample data.
+        ''' Test complete process on Alameda County sample data.
         '''
-        with HTTMock(self.response_content):
-            source = join(self.src_dir, 'us-ca-alameda_county.json')
-
-            result1 = cache(source, self.testdir, dict(), self.s3)
-            self.assertTrue(result1.cache is not None)
-            self.assertTrue(result1.version is not None)
-            self.assertTrue(result1.fingerprint is not None)
-            
-            result2 = conform(source, self.testdir, result1.todict(), self.s3)
-            self.assertTrue(result2.processed is not None)
-            self.assertTrue(result2.sample is not None)
-            self.assertTrue('FID_PARCEL' in result2.sample[0])
-
-            result3 = excerpt(source, self.testdir, result1.todict(), self.s3)
-            self.assertTrue(result3.sample_data is not None)
-            
-            sample_key = '/'.join(result3.sample_data.split('/')[4:])
-            sample_data = json.loads(self.s3._read_fake_key(sample_key))
-            
-            self.assertEqual(len(sample_data), 6)
-            self.assertTrue('ZIPCODE' in sample_data[0])
-            self.assertTrue('OAKLAND' in sample_data[1])
-            self.assertTrue('94612' in sample_data[1])
-
-    def test_single_oak(self):
-        ''' Test cache() and conform() on Oakland sample data.
-        '''
-        with HTTMock(self.response_content):
-            source = join(self.src_dir, 'us-ca-oakland.json')
-
-            result = cache(source, self.testdir, dict(), self.s3)
-            self.assertTrue(result.cache is not None)
-            self.assertTrue(result.version is not None)
-            self.assertTrue(result.fingerprint is not None)
-        
-            result = conform(source, self.testdir, result.todict(), self.s3)
-            
-            # the content of result.processed does not currently have addresses.
-            self.assertFalse(result.processed is None)
-            self.assertFalse(result.sample is None)
-            self.assertTrue('FID_PARCEL' in result.sample[0])
-
-    def test_single_car(self):
-        ''' Test cache() and conform() on Carson sample data.
-        '''
-        with HTTMock(self.response_content):
-            source = join(self.src_dir, 'us-ca-carson.json')
-
-            result = cache(source, self.testdir, dict(), self.s3)
-            self.assertTrue(result.cache is not None)
-            self.assertTrue(result.version is not None)
-            self.assertTrue(result.fingerprint is not None)
-        
-            result = conform(source, self.testdir, result.todict(), self.s3)
-            self.assertTrue(result.processed is not None)
-            self.assertTrue(result.sample is not None)
-            self.assertTrue('SITEFRAC' in result.sample[0])
-            
-            _, _, path, _, _, _ = urlparse(result.processed)
-            self.assertTrue('555 E CARSON ST' in self.s3._read_fake_key(path))
-
-    def test_single_ac2(self):
         source = join(self.src_dir, 'us-ca-alameda_county.json')
         
         with HTTMock(self.response_content):
@@ -202,7 +140,9 @@ class TestOA (unittest.TestCase):
         self.assertTrue('OAKLAND' in sample_data[1])
         self.assertTrue('94612' in sample_data[1])
 
-    def test_single_car2(self):
+    def test_single_car(self):
+        ''' Test complete process on Carson sample data.
+        '''
         source = join(self.src_dir, 'us-ca-carson.json')
         
         with HTTMock(self.response_content):
@@ -221,8 +161,13 @@ class TestOA (unittest.TestCase):
         
         self.assertEqual(len(sample_data), 6)
         self.assertTrue('SITEFRAC' in sample_data[0])
+        
+        with open(join(dirname(state_path), state['processed'])) as file:
+            self.assertTrue('555 E CARSON ST' in file.read())
 
-    def test_single_oak2(self):
+    def test_single_oak(self):
+        ''' Test complete process on Oakland sample data.
+        '''
         source = join(self.src_dir, 'us-ca-oakland.json')
         
         with HTTMock(self.response_content):
