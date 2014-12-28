@@ -97,10 +97,15 @@ def process(s3, sourcedir, run_name):
     # Find existing cache information
     source_extras1 = read_state(s3, sourcedir)
     getLogger('openaddr').info('Loaded {} sources from state.txt'.format(len(source_extras1)))
-
+    
     # Cache data, if necessary
     source_files1 = glob(join(sourcedir, '*.json'))
     source_files1.sort(key=lambda s: source_extras1[s]['cache_time'], reverse=True)
+    
+    return jobs.run_all_process2s(source_files1, source_extras1)
+    
+    ####
+    
     results1 = jobs.run_all_caches(source_files1, source_extras1, s3)
     
     # Proceed only with sources that have a cache

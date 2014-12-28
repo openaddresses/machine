@@ -7,8 +7,8 @@ from time import sleep
 from os import mkdir
 
 from . import cache, conform, CacheResult, ConformResult
-
 from . import excerpt, ExcerptResult
+from . import process2
 
 def run_all_caches(source_files, source_extras, s3):
     ''' Run cache() for all source files in parallel, return a dict of results.
@@ -141,6 +141,48 @@ def _run_timer(source_queue, interval):
     while source_queue:
         getLogger('openaddr').debug('{0} source files remain'.format(len(source_queue)))
         sleep(interval)
+
+def run_all_process2s(source_files, source_extras):
+    ''' Run process2.process() for all source files in parallel, return ???.
+    '''
+    source_queue, results = source_files[:], OrderedDict()
+    args = Lock(), source_queue, source_extras, results
+    thread_count = min(cpu_count() * 2, len(source_files))
+
+    threads = [Thread(target=_run_process2, args=args)
+               for i in range(thread_count)]
+    
+    if len(source_files) > thread_count:
+        threads.append(Thread(target=_run_timer, args=(source_queue, 15)))
+
+    _wait_for_threads(threads, source_queue)
+    
+    print 'results:', results
+    return results
+
+def _run_process2(lock, source_queue, source_extras, results):
+    ''' Single queue worker for source files to conform().
+    
+        Keep going until source_queue is empty.
+    '''
+    while True:
+        with lock:
+            if not source_queue:
+                return
+            path = source_queue.pop(0)
+            extras = source_extras.get(path, dict())
+    
+        try:
+            if not isdir('out'):
+                mkdir('out')
+        
+            getLogger('openaddr').info(path)
+            result = process2.process(path, 'out')
+        except:
+            result = None
+        
+        with lock:
+            results[path] = result
 
 def setup_logger(logfile):
     ''' Set up logging stream and optional file for 'openaddr' logger.

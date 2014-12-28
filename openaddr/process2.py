@@ -7,7 +7,6 @@ from os import mkdir, rmdir
 import tempfile, json, csv
 
 from . import cache, conform, excerpt, ConformResult, ExcerptResult
-from .jobs import setup_logger
 
 def process(source, destination):
     ''' Process a single source and destination, return path to JSON state file.
@@ -123,6 +122,7 @@ parser.add_argument('-l', '--logfile', help='Optional log file name.')
 def main():
     '''
     '''
+    from .jobs import setup_logger
     args = parser.parse_args()
     setup_logger(args.logfile)
 
