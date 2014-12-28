@@ -10,9 +10,7 @@ from time import time
 from glob import glob
 import json
 
-from . import paths, jobs, ConformResult, S3, render, summarize
-
-from . import ExcerptResult
+from . import paths, jobs, S3, render, summarize
 
 parser = ArgumentParser(description='Run some source files.')
 
@@ -105,79 +103,7 @@ def process(s3, sourcedir, run_name):
     
     results = jobs.run_all_process2s(source_files, source_extras)
     states = collect_states(results.values())
-    states = upload_states(s3, states, run_name)
-
-    from pprint import pprint; pprint(states)
-    
-    return
-    
-    ####
-    
-    results1 = jobs.run_all_caches(source_files1, source_extras1, s3)
-    
-    # Proceed only with sources that have a cache
-    source_files2 = [s for s in source_files1 if results1[s].cache]
-    source_files2.sort(key=lambda s: source_extras1[s]['process_time'], reverse=True)
-    source_extras2 = dict([(s, results1[s].todict()) for s in source_files2])
-    results2 = jobs.run_all_conforms(source_files2, source_extras2, s3)
-
-    # ???
-    source_files3 = [s for s in source_files2 if results1[s].cache]
-    source_extras3 = dict([(s, results1[s].todict()) for s in source_files3])
-    results3 = jobs.run_all_excerpts(source_files3, source_extras3, s3)
-    
-    # Gather all results
-    write_state(s3, sourcedir, run_name, source_files1, results1, results2, results3)
-
-def write_state(s3, sourcedir, run_name, source_files1, results1, results2, results3):
-    '''
-    '''
-    state_file = StringIO()
-    state_args = dict(policy='public-read', headers={'Content-Type': 'text/plain'})
-    json_args = dict(policy='public-read', headers={'Content-Type': 'application/json'})
-    
-    state_list = [('source', 'cache', 'sample', 'geometry type', 'version',
-                   'fingerprint', 'cache time', 'processed', 'process time',
-                   'output')]
-    
-    out = writer(state_file, dialect='excel-tab')
-    out.writerow(state_list[-1])
-    
-    for source in source_files1:
-        result1 = results1[source]
-        result2 = results2.get(source, ConformResult.empty())
-        result3 = results3.get(source, ExcerptResult.empty())
-
-        source_name = relpath(source, sourcedir)
-        output_name = '{0}.txt'.format(*splitext(source_name))
-    
-        # output nulls or strings
-        cache_time = result1.elapsed and str(result1.elapsed)
-        process_time = result2.elapsed and str(result2.elapsed)
-        
-        state_list.append((source_name, result1.cache, result3.sample_data,
-                           result3.geometry_type, result1.version, result1.fingerprint,
-                           cache_time, result2.processed, process_time, output_name))
-        
-        out.writerow(state_list[-1])
-        
-        output_path = join('runs', run_name, output_name)
-        output_data = '{}\n\n\n{}'.format(result1.output, result2.output)
-        s3.new_key(output_path).set_contents_from_string(output_data, **state_args)
-    
-    state_data = state_file.getvalue()
-    state_path = join('runs', run_name, 'state.txt')
-
-    s3.new_key(state_path).set_contents_from_string(state_data, **state_args)
-    s3.new_key('state.txt').set_contents_from_string(state_path, **state_args)
-    
-    json_data = dumps(state_list, indent=2)
-    json_path = join('runs', run_name, 'state.json')
-    
-    s3.new_key(json_path).set_contents_from_string(json_data, **json_args)
-    s3.new_key('state.json').set_contents_from_string(dumps(json_path), **json_args)
-    
-    getLogger('openaddr').info('Wrote {} sources to state'.format(len(source_files1)))
+    upload_states(s3, states, run_name)
 
 def collect_states(result_paths):
     ''' Read a list of process2.process() result paths, collect into one list.
