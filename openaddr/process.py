@@ -105,9 +105,11 @@ def process(s3, sourcedir, run_name):
     
     results = jobs.run_all_process2s(source_files, source_extras)
     states = collect_states(results.values())
+    states = upload_states(s3, states, run_name)
 
-    from pprint import pprint
-    pprint(states)
+    from pprint import pprint; pprint(states)
+    
+    return
     
     ####
     
@@ -198,6 +200,89 @@ def collect_states(result_paths):
         states.append([state[key] for key in columns])
     
     return states
+
+def upload_states(s3, states, run_name):
+    '''
+    '''
+    columns = states[0]
+    new_states = states[:1]
+    
+    for values in states[1:]:
+        state = dict(zip(columns, values))
+        source, _ = splitext(state['source'])
+        getLogger('openaddr').debug('Uploading files for {}'.format(source))
+        
+        if state['cache']:
+            # http://s3.amazonaws.com/data.openaddresses.io/20141204/us-wa-king.zip
+            _, cache_ext = splitext(state['cache'])
+            key_name = '/{}/{}{}'.format(run_name, source, cache_ext)
+            key = s3.new_key(key_name)
+
+            kwargs = dict(policy='public-read', reduced_redundancy=True)
+            key.set_contents_from_filename(state['cache'], **kwargs)
+
+            state['cache'] = key.generate_url(expires_in=0, query_auth=False)
+            state['fingerprint'] = key.md5
+            state['version'] = run_name
+    
+        if state['sample']:
+            # http://s3.amazonaws.com/data.openaddresses.io/20141226/samples/za-wc-cape_town.json
+            _, sample_ext = splitext(state['sample'])
+            key_name = '/{}/{}{}'.format(run_name, source, sample_ext)
+            key = s3.new_key(key_name)
+
+            kwargs = dict(policy='public-read', reduced_redundancy=True)
+            key.set_contents_from_filename(state['sample'], **kwargs)
+
+            state['sample'] = key.generate_url(expires_in=0, query_auth=False)
+    
+        if state['processed']:
+            # http://s3.amazonaws.com/data.openaddresses.io/us-tx-denton.csv
+            _, processed_ext = splitext(state['processed'])
+            key_name = '/{}/{}{}'.format(run_name, source, processed_ext)
+            key = s3.new_key(key_name)
+
+            kwargs = dict(policy='public-read', reduced_redundancy=True)
+            key.set_contents_from_filename(state['processed'], **kwargs)
+
+            state['processed'] = key.generate_url(expires_in=0, query_auth=False)
+    
+        if state['output']:
+            # us-tx-denton.txt
+            _, output_ext = splitext(state['output'])
+            key_name = '/{}/{}{}'.format(run_name, source, output_ext)
+            key = s3.new_key(key_name)
+
+            kwargs = dict(policy='public-read', reduced_redundancy=True)
+            key.set_contents_from_filename(state['output'], **kwargs)
+
+            state['output'] = key.generate_url(expires_in=0, query_auth=False)
+        
+        new_states.append([state[col] for col in columns])
+    
+    state_file = StringIO()
+    out = writer(state_file, dialect='excel-tab')
+    
+    for state in new_states:
+        out.writerow(state)
+
+    state_data = state_file.getvalue()
+    state_path = join('runs', run_name, 'state.txt')
+    state_args = dict(policy='public-read', headers={'Content-Type': 'text/plain'})
+
+    s3.new_key(state_path).set_contents_from_string(state_data, **state_args)
+    s3.new_key('state.txt').set_contents_from_string(state_path, **state_args)
+    
+    json_data = dumps(new_states, indent=2)
+    json_path = join('runs', run_name, 'state.json')
+    json_args = dict(policy='public-read', headers={'Content-Type': 'application/json'})
+    
+    s3.new_key(json_path).set_contents_from_string(json_data, **json_args)
+    s3.new_key('state.json').set_contents_from_string(dumps(json_path), **json_args)
+    
+    getLogger('openaddr').info('Wrote {} sources to state'.format(len(new_states) - 1))
+    
+    return new_states
 
 if __name__ == '__main__':
     exit(main())
