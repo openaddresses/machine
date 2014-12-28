@@ -124,7 +124,7 @@ def get_cached_data(url):
     
     return get(url, stream=True)
 
-def cache(srcjson, destdir, extras, s3=False):
+def cache(srcjson, destdir, extras):
     ''' Python wrapper for openaddress-cache.
     
         Return a CacheResult object:
@@ -157,22 +157,7 @@ def cache(srcjson, destdir, extras, s3=False):
         # of zipped up nicely. When the downloader downloads multiple files,
         # we should zip them together before uploading to S3 instead of picking
         # the first one only.
-        filepath_to_upload = downloaded_files[0]
-
-        version = datetime.utcnow().strftime('%Y%m%d')
-        key = '/{}/{}'.format(version, basename(filepath_to_upload))
-        
-        if s3:
-            raise ValueError('Removing S3')
-            k = s3.new_key(key)
-            kwargs = dict(policy='public-read', reduced_redundancy=True)
-            k.set_contents_from_filename(filepath_to_upload, **kwargs)
-
-            data['cache'] = k.generate_url(expires_in=0, query_auth=False)
-            data['fingerprint'] = k.md5
-            data['version'] = version
-        else:
-            data['filepath to upload'] = abspath(filepath_to_upload)
+        data['filepath to upload'] = abspath(downloaded_files[0])
 
         with open(tmpjson, 'w') as j:
             json.dump(data, j)
@@ -207,7 +192,7 @@ def cache(srcjson, destdir, extras, s3=False):
                        data.get('version', None),
                        datetime.now() - start)
 
-def conform(srcjson, destdir, extras, s3=False):
+def conform(srcjson, destdir, extras):
     ''' Python wrapper for openaddresses-conform.
     
         Return a ConformResult object:
@@ -224,7 +209,7 @@ def conform(srcjson, destdir, extras, s3=False):
     tmpjson = _tmp_json(workdir, srcjson, extras)
     
     #
-    # When running without S3, the cached data might be a local path.
+    # The cached data will be a local path.
     #
     scheme, _, cache_path, _, _, _ = urlparse(extras.get('cache', ''))
     if scheme == 'file':
@@ -250,17 +235,6 @@ def conform(srcjson, destdir, extras, s3=False):
         task = ConvertToCsvTask()
         csv_paths = task.convert(decompressed_paths, workdir)
         data['csv path'] = csv_paths[0]
-
-        version = datetime.utcnow().strftime('%Y%m%d')
-        key = '/{}/{}.csv'.format(version, source)
-
-        if s3:
-            raise ValueError('Removing S3')
-            k = s3.new_key(key)
-            kwargs = dict(policy='public-read', reduced_redundancy=True)
-            k.set_contents_from_filename(csv_paths[0], **kwargs)
-
-            data['processed'] = k.generate_url(expires_in=0, query_auth=False)
 
         with open(tmpjson, 'w') as j:
             json.dump(data, j)

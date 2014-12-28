@@ -139,7 +139,10 @@ def upload_states(s3, states, run_name):
         getLogger('openaddr').debug('Uploading files for {}'.format(source))
         
         if state['cache']:
+            #
+            # TODO: follow this YYYYMMDD date path pattern for cached data:
             # http://s3.amazonaws.com/data.openaddresses.io/20141204/us-wa-king.zip
+            #
             _, cache_ext = splitext(state['cache'])
             key_name = '/{}/{}{}'.format(run_name, source, cache_ext)
             key = s3.new_key(key_name)
@@ -152,7 +155,10 @@ def upload_states(s3, states, run_name):
             state['version'] = run_name
     
         if state['sample']:
+            #
+            # TODO: follow this YYYYMMDD date path pattern for sample data:
             # http://s3.amazonaws.com/data.openaddresses.io/20141226/samples/za-wc-cape_town.json
+            #
             _, sample_ext = splitext(state['sample'])
             key_name = '/{}/{}{}'.format(run_name, source, sample_ext)
             key = s3.new_key(key_name)
