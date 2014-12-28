@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 from collections import defaultdict
-from os.path import join, basename, relpath, splitext
+from os.path import join, basename, relpath, splitext, dirname
 from csv import writer, DictReader
 from StringIO import StringIO
 from logging import getLogger
@@ -8,6 +8,7 @@ from os import environ
 from json import dumps
 from time import time
 from glob import glob
+import json
 
 from . import paths, jobs, ConformResult, S3, render, summarize
 
@@ -95,14 +96,18 @@ def process(s3, sourcedir, run_name):
     '''
     '''
     # Find existing cache information
-    source_extras1 = read_state(s3, sourcedir)
-    getLogger('openaddr').info('Loaded {} sources from state.txt'.format(len(source_extras1)))
+    source_extras = read_state(s3, sourcedir)
+    getLogger('openaddr').info('Loaded {} sources from state.txt'.format(len(source_extras)))
     
     # Cache data, if necessary
-    source_files1 = glob(join(sourcedir, '*.json'))
-    source_files1.sort(key=lambda s: source_extras1[s]['cache_time'], reverse=True)
+    source_files = glob(join(sourcedir, '*.json'))
+    source_files.sort(key=lambda s: source_extras[s]['cache_time'], reverse=True)
     
-    return jobs.run_all_process2s(source_files1, source_extras1)
+    results = jobs.run_all_process2s(source_files, source_extras)
+    states = collect_states(results.values())
+
+    from pprint import pprint
+    pprint(states)
     
     ####
     
@@ -171,6 +176,28 @@ def write_state(s3, sourcedir, run_name, source_files1, results1, results2, resu
     s3.new_key('state.json').set_contents_from_string(dumps(json_path), **json_args)
     
     getLogger('openaddr').info('Wrote {} sources to state'.format(len(source_files1)))
+
+def collect_states(result_paths):
+    ''' Read a list of process2.process() result paths, collect into one list.
+    '''
+    states = list()
+    file_keys = 'cache', 'sample', 'processed', 'output'
+    
+    for result_path in sorted(result_paths):
+        with open(result_path) as result_file:
+            columns, values = json.load(result_file)
+            state = dict(zip(columns, values))
+    
+        if len(states) == 0:
+            states.append(columns)
+        
+        for key in file_keys:
+            if state[key]:
+                state[key] = join(dirname(result_path), state[key])
+        
+        states.append([state[key] for key in columns])
+    
+    return states
 
 if __name__ == '__main__':
     exit(main())
