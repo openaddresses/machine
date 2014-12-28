@@ -177,7 +177,7 @@ def _run_process2(lock, source_queue, source_extras, results):
                 mkdir('out')
         
             getLogger('openaddr').info(path)
-            result = process2.process(path, 'out')
+            result = process2.process(path, 'out', extras)
         except:
             result = None
         

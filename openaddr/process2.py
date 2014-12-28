@@ -8,7 +8,7 @@ import tempfile, json, csv
 
 from . import cache, conform, excerpt, ConformResult, ExcerptResult
 
-def process(source, destination):
+def process(source, destination, extras=dict()):
     ''' Process a single source and destination, return path to JSON state file.
     
         Creates a new directory and files under destination.
@@ -20,7 +20,7 @@ def process(source, destination):
     #
     # Cache source data.
     #
-    result1 = cache(temp_src, temp_dir, dict())
+    result1 = cache(temp_src, temp_dir, extras)
     
     if not result1.cache:
         getLogger('openaddr').warning('Nothing cached')
