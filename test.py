@@ -301,8 +301,9 @@ class TestConform (unittest.TestCase):
         source_path, cache_dir = self._copy_shapefile('lake-man')
     
         with HTTMock(self.response_content):
-            result = conform(source_path, self.testdir, {}, self.s3)
-            output = StringIO(get(result.processed).content)
+            result = conform(source_path, self.testdir, {})
+            with open(result.path) as file:
+                output = StringIO(file.read())
         
         rows = list(DictReader(output, dialect='excel'))
         self.assertEqual(rows[0]['NUMBER'], '5115')
