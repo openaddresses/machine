@@ -6,7 +6,7 @@ from logging import getLogger
 from os import mkdir, rmdir
 import tempfile, json, csv
 
-from . import cache, conform, excerpt, ConformResult, ExcerptResult
+from . import cache, conform, excerpt, ConformResult
 
 def process(source, destination, extras=dict()):
     ''' Process a single source and destination, return path to JSON state file.
@@ -20,46 +20,33 @@ def process(source, destination, extras=dict()):
     #
     # Cache source data.
     #
-    result1 = cache(temp_src, temp_dir, extras)
+    cache_result = cache(temp_src, temp_dir, extras)
     
-    if not result1.cache:
+    if not cache_result.cache:
         getLogger('openaddr').warning('Nothing cached')
-        return write_state(source, destination, result1,
-                           ConformResult.empty()) #, ExcerptResult.empty())
+        return write_state(source, destination, cache_result, ConformResult.empty())
     
-    getLogger('openaddr').info('Cached data in {}'.format(result1.cache))
+    getLogger('openaddr').info('Cached data in {}'.format(cache_result.cache))
 
     #
     # Conform cached source data.
     #
-    result2 = conform(temp_src, temp_dir, result1.todict())
+    conform_result = conform(temp_src, temp_dir, cache_result.todict())
     
-    if not result2.path:
+    if not conform_result.path:
         getLogger('openaddr').warning('Nothing processed')
-        return write_state(source, destination, result1, result2,
-                           ) #ExcerptResult.empty())
-    
-    getLogger('openaddr').info('Processed data in {}'.format(result2.path))
-    
-    #    #
-    #    # Excerpt cached source data.
-    #    #
-    #    result3 = excerpt(temp_src, temp_dir, result1.todict())
-    #    
-    #    if not result3.sample_data:
-    #        raise RuntimeError('Nothing excerpted? {}'.format(result3.sample_data))
-    #    
-    #    getLogger('openaddr').info('Sample data in {}'.format(result3.sample_data))
+    else:
+        getLogger('openaddr').info('Processed data in {}'.format(conform_result.path))
     
     #
     # Write output
     #
-    state_path = write_state(source, destination, result1, result2) #, result3)
+    state_path = write_state(source, destination, cache_result, conform_result)
 
     rmtree(temp_dir)
     return state_path
 
-def write_state(source, destination, result1, result2): #, result3):
+def write_state(source, destination, cache_result, conform_result):
     '''
     '''
     source_id, _ = splitext(basename(source))
@@ -68,38 +55,38 @@ def write_state(source, destination, result1, result2): #, result3):
     if not exists(statedir):
         mkdir(statedir)
     
-    if result1.cache:
-        _, _, cache_path1, _, _, _ = urlparse(result1.cache)
+    if cache_result.cache:
+        _, _, cache_path1, _, _, _ = urlparse(cache_result.cache)
         cache_path2 = join(statedir, 'cache{1}'.format(*splitext(cache_path1)))
         copy(cache_path1, cache_path2)
 
-    if result2.path:
-        _, _, processed_path1, _, _, _ = urlparse(result2.path)
+    if conform_result.path:
+        _, _, processed_path1, _, _, _ = urlparse(conform_result.path)
         processed_path2 = join(statedir, 'out{1}'.format(*splitext(processed_path1)))
         copy(processed_path1, processed_path2)
 
-        if result2.sample:
+        if conform_result.sample:
             sample_path = join(dirname(processed_path2), 'sample.json')
             with open(sample_path, 'w') as sample_file:
-                json.dump(result2.sample, sample_file, indent=2)
+                json.dump(conform_result.sample, sample_file, indent=2)
     
     output_path = join(statedir, 'output.txt')
 
     state = [
         ('source', basename(source)),
-        ('cache', result1.cache and relpath(cache_path2, statedir)),
-        ('sample', result2.sample and relpath(sample_path, statedir)),
-        ('geometry type', result2.geometry_type),
-        ('version', result1.version),
-        ('fingerprint', result1.fingerprint),
-        ('cache time', result1.elapsed and str(result1.elapsed)),
-        ('processed', result2.path and relpath(processed_path2, statedir)),
-        ('process time', result2.elapsed and str(result2.elapsed)),
+        ('cache', cache_result.cache and relpath(cache_path2, statedir)),
+        ('sample', conform_result.sample and relpath(sample_path, statedir)),
+        ('geometry type', conform_result.geometry_type),
+        ('version', cache_result.version),
+        ('fingerprint', cache_result.fingerprint),
+        ('cache time', cache_result.elapsed and str(cache_result.elapsed)),
+        ('processed', conform_result.path and relpath(processed_path2, statedir)),
+        ('process time', conform_result.elapsed and str(conform_result.elapsed)),
         ('output', relpath(output_path, statedir))
         ]
     
     with open(output_path, 'w') as file:
-        file.write('{}\n\n\n{}'.format(result1.output, result2.output))
+        file.write('{}\n\n\n{}'.format(cache_result.output, conform_result.output))
                
     with open(join(statedir, 'index.txt'), 'w') as file:
         out = csv.writer(file, dialect='excel-tab')
