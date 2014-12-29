@@ -6,7 +6,7 @@ from logging import getLogger
 from os import mkdir, rmdir
 import tempfile, json, csv
 
-from . import cache, conform, excerpt, ConformResult
+from . import cache, conform, ConformResult
 
 def process(source, destination, extras=dict()):
     ''' Process a single source and destination, return path to JSON state file.

@@ -113,6 +113,52 @@ class ExcerptDataTask(object):
 
     def excerpt(self, source_paths, workdir):
         '''
+        
+            Tested version from openaddr.excerpt() on master branch:
+
+            if ext == '.zip':
+                logger.debug('Downloading all of {cache}'.format(**extras))
+
+                with open(cachefile, 'w') as file:
+                    for chunk in got.iter_content(1024**2):
+                        file.write(chunk)
+    
+                zf = ZipFile(cachefile, 'r')
+        
+                for name in zf.namelist():
+                    _, ext = splitext(name)
+            
+                    if ext in ('.shp', '.shx', '.dbf'):
+                        with open(join(workdir, 'cache'+ext), 'w') as file:
+                            file.write(zf.read(name))
+        
+                if exists(join(workdir, 'cache.shp')):
+                    ds = ogr.Open(join(workdir, 'cache.shp'))
+                else:
+                    ds = None
+    
+            elif ext == '.json':
+                logger.debug('Downloading part of {cache}'.format(**extras))
+
+                scheme, host, path, query, _, _ = urlparse(got.url)
+        
+                if scheme in ('http', 'https'):
+                    conn = HTTPConnection(host, 80)
+                    conn.request('GET', path + ('?' if query else '') + query)
+                    resp = conn.getresponse()
+                elif scheme == 'file':
+                    with open(path) as rawfile:
+                        resp = StringIO(rawfile.read(1024*1024))
+                else:
+                    raise RuntimeError('Unsure what to do with {}'.format(got.url))
+        
+                with open(cachefile, 'w') as file:
+                    file.write(sample_geojson(resp, 10))
+    
+                ds = ogr.Open(cachefile)
+    
+            else:
+                ds = None
         '''
         known_paths = [source_path for source_path in source_paths
                        if os.path.splitext(source_path)[1] in self.known_types]

@@ -19,7 +19,7 @@ from threading import Lock
 from requests import get
 from httmock import response, HTTMock
         
-from openaddr import paths, cache, conform, excerpt, jobs, S3, process, process2
+from openaddr import paths, cache, conform, jobs, S3, process, process2
 from openaddr.sample import TestSample
 
 class TestOA (unittest.TestCase):
