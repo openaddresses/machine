@@ -73,7 +73,7 @@ class URLDownloadTask(DownloadTask):
     USER_AGENT = 'openaddresses-extract/1.0 (https://github.com/openaddresses/openaddresses)'
     CHUNK = 16 * 1024
 
-    logger = getLogger().getChild('urllib2')
+    logger = getLogger('openaddr')
     
     def get_file_path(self, url, dir_path):
         ''' Return a local file path in a directory for a URL.
@@ -144,7 +144,7 @@ class URLDownloadTask(DownloadTask):
 class EsriRestDownloadTask(DownloadTask):
     USER_AGENT = 'openaddresses-extract/1.0 (https://github.com/openaddresses/openaddresses)'
 
-    logger = getLogger().getChild('urllib2')
+    logger = getLogger('openaddr')
 
     def convert_esrijson_to_geojson(self, geom_type, esri_feature):
         if geom_type == 'esriGeometryPoint':
