@@ -90,7 +90,7 @@ class NoopDecompressTask(DecompressionTask):
 
 class ZipDecompressTask(DecompressionTask):
 
-    logger = getLogger().getChild('unzip')
+    logger = getLogger('openaddr')
 
     def decompress(self, source_paths, workdir):
         output_files = []
@@ -108,7 +108,7 @@ class ZipDecompressTask(DecompressionTask):
 class ExcerptDataTask(object):
     ''' Task for sampling three rows of data from datasource.
     '''
-    logger = getLogger().getChild('excerpt')
+    logger = getLogger('openaddr')
     known_types = ('.shp', '.json', '.csv', '.kml')
 
     def excerpt(self, source_paths, workdir):
@@ -201,7 +201,7 @@ class ExcerptDataTask(object):
 
 class ConvertToCsvTask(object):
 
-    logger = getLogger().getChild('convert')
+    logger = getLogger('openaddr')
 
     known_types = ('.shp', '.json', '.csv', '.kml')
 
