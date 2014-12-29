@@ -1,9 +1,12 @@
 import os
 import errno
+import tempfile
 import csv
 
 from logging import getLogger
 from zipfile import ZipFile
+
+from .sample import sample_geojson
 
 from osgeo import ogr, osr
 ogr.UseExceptions()
@@ -98,7 +101,19 @@ class ExcerptDataTask(object):
             # we know nothing.
             return None
         
-        datasource = ogr.Open(known_paths[0], 0)
+        data_path = known_paths[0]
+
+        # Sample a few GeoJSON features to save on memory for large datasets.
+        if os.path.splitext(data_path)[1] == '.json':
+            with open(data_path, 'r') as complete_layer:
+                temp_dir = os.path.dirname(data_path)
+                _, temp_path = tempfile.mkstemp(dir=temp_dir, suffix='.json')
+
+                with open(temp_path, 'w') as temp_file:
+                    temp_file.write(sample_geojson(complete_layer, 10))
+                    data_path = temp_path
+        
+        datasource = ogr.Open(data_path, 0)
         layer = datasource.GetLayer()
 
         layer_defn = layer.GetLayerDefn()
