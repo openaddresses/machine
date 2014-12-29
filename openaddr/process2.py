@@ -25,7 +25,7 @@ def process(source, destination, extras=dict()):
     if not result1.cache:
         getLogger('openaddr').warning('Nothing cached')
         return write_state(source, destination, result1,
-                           ConformResult.empty(), ExcerptResult.empty())
+                           ConformResult.empty()) #, ExcerptResult.empty())
     
     getLogger('openaddr').info('Cached data in {}'.format(result1.cache))
 
@@ -37,29 +37,29 @@ def process(source, destination, extras=dict()):
     if not result2.path:
         getLogger('openaddr').warning('Nothing processed')
         return write_state(source, destination, result1, result2,
-                           ExcerptResult.empty())
+                           ) #ExcerptResult.empty())
     
     getLogger('openaddr').info('Processed data in {}'.format(result2.path))
     
-    #
-    # Excerpt cached source data.
-    #
-    result3 = excerpt(temp_src, temp_dir, result1.todict())
-    
-    if not result3.sample_data:
-        raise RuntimeError('Nothing excerpted? {}'.format(result3.sample_data))
-    
-    getLogger('openaddr').info('Sample data in {}'.format(result3.sample_data))
+    #    #
+    #    # Excerpt cached source data.
+    #    #
+    #    result3 = excerpt(temp_src, temp_dir, result1.todict())
+    #    
+    #    if not result3.sample_data:
+    #        raise RuntimeError('Nothing excerpted? {}'.format(result3.sample_data))
+    #    
+    #    getLogger('openaddr').info('Sample data in {}'.format(result3.sample_data))
     
     #
     # Write output
     #
-    state_path = write_state(source, destination, result1, result2, result3)
+    state_path = write_state(source, destination, result1, result2) #, result3)
 
     rmtree(temp_dir)
     return state_path
 
-def write_state(source, destination, result1, result2, result3):
+def write_state(source, destination, result1, result2): #, result3):
     '''
     '''
     source_id, _ = splitext(basename(source))
@@ -78,18 +78,18 @@ def write_state(source, destination, result1, result2, result3):
         processed_path2 = join(statedir, 'out{1}'.format(*splitext(processed_path1)))
         copy(processed_path1, processed_path2)
 
-    if result3.sample_data:
-        _, _, sample_path1, _, _, _ = urlparse(result3.sample_data)
-        sample_path2 = join(statedir, 'sample{1}'.format(*splitext(sample_path1)))
-        copy(sample_path1, sample_path2)
+        if result2.sample:
+            sample_path = join(dirname(processed_path2), 'sample.json')
+            with open(sample_path, 'w') as sample_file:
+                json.dump(result2.sample, sample_file, indent=2)
     
     output_path = join(statedir, 'output.txt')
 
     state = [
         ('source', basename(source)),
         ('cache', result1.cache and relpath(cache_path2, statedir)),
-        ('sample', result3.sample_data and relpath(sample_path2, statedir)),
-        ('geometry type', result3.geometry_type),
+        ('sample', result2.sample and relpath(sample_path, statedir)),
+        ('geometry type', None), #result3.geometry_type),
         ('version', result1.version),
         ('fingerprint', result1.fingerprint),
         ('cache time', result1.elapsed and str(result1.elapsed)),

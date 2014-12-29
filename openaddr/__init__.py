@@ -260,6 +260,8 @@ def conform(srcjson, destdir, extras):
 def excerpt(srcjson, destdir, extras, s3=False):
     ''' 
     '''
+    raise RuntimeError("We're not doing this anymore")
+    
     start = datetime.now()
     source, _ = splitext(basename(srcjson))
     workdir = mkdtemp(prefix='excerpt-')
