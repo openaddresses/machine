@@ -3,15 +3,12 @@ from multiprocessing import Process
 from tempfile import mkdtemp
 from os.path import realpath, join, basename, splitext, exists, dirname, abspath
 from shutil import copy, move, rmtree
-from mimetypes import guess_extension
-from StringIO import StringIO
 from logging import getLogger
 from datetime import datetime
 from os import mkdir, environ
 from time import sleep, time
 from zipfile import ZipFile
 from urlparse import urlparse
-from httplib import HTTPConnection
 import json
 
 from osgeo import ogr
