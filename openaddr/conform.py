@@ -11,6 +11,24 @@ from .sample import sample_geojson
 from osgeo import ogr, osr
 ogr.UseExceptions()
 
+geometry_types = {
+    ogr.wkbPoint: 'Point',
+    ogr.wkbPoint25D: 'Point 2.5D',
+    ogr.wkbLineString: 'LineString',
+    ogr.wkbLineString25D: 'LineString 2.5D',
+    ogr.wkbLinearRing: 'LinearRing',
+    ogr.wkbPolygon: 'Polygon',
+    ogr.wkbPolygon25D: 'Polygon 2.5D',
+    ogr.wkbMultiPoint: 'MultiPoint',
+    ogr.wkbMultiPoint25D: 'MultiPoint 2.5D',
+    ogr.wkbMultiLineString: 'MultiLineString',
+    ogr.wkbMultiLineString25D: 'MultiLineString 2.5D',
+    ogr.wkbMultiPolygon: 'MultiPolygon',
+    ogr.wkbMultiPolygon25D: 'MultiPolygon 2.5D',
+    ogr.wkbGeometryCollection: 'GeometryCollection',
+    ogr.wkbGeometryCollection25D: 'GeometryCollection 2.5D',
+    ogr.wkbUnknown: 'Unknown'
+    }
 
 def mkdirsp(path):
     try:
@@ -25,21 +43,23 @@ def mkdirsp(path):
 class ConformResult:
     processed = None
     sample = None
+    geometry_type = None
     path = None
     elapsed = None
     
     # needed by openaddr.process.write_state(), for now.
     output = ''
 
-    def __init__(self, processed, sample, path, elapsed):
+    def __init__(self, processed, sample, geometry_type, path, elapsed):
         self.processed = processed
         self.sample = sample
+        self.geometry_type = geometry_type
         self.path = path
         self.elapsed = elapsed
 
     @staticmethod
     def empty():
-        return ConformResult(None, None, None, None)
+        return ConformResult(None, None, None, None, None)
 
     def todict(self):
         return dict(processed=self.processed, sample=self.sample)
@@ -126,10 +146,12 @@ class ExcerptDataTask(object):
             data_sample.append([feature.GetField(i) for i
                                 in range(layer_defn.GetFieldCount())])
 
-            if len(data_sample) == 4:
+            if len(data_sample) == 6:
                 break
         
-        return data_sample
+        geometry_type = geometry_types.get(layer_defn.GetGeomType(), None)
+
+        return data_sample, geometry_type
 
 class ConvertToCsvTask(object):
 

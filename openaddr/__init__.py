@@ -199,6 +199,7 @@ def conform(srcjson, destdir, extras):
 
           processed: URL of processed data CSV
           path: local path to CSV of processed data
+          geometry_type: typically Point or Polygon
           elapsed: elapsed time as timedelta object
           output: subprocess output as string
     '''
@@ -230,7 +231,7 @@ def conform(srcjson, destdir, extras):
         decompressed_paths = task.decompress(downloaded_path, workdir)
 
         task3 = ExcerptDataTask()
-        data['sample'] = task3.excerpt(decompressed_paths, workdir)
+        data['sample'], data['geometry type'] = task3.excerpt(decompressed_paths, workdir)
 
         task = ConvertToCsvTask()
         csv_paths = task.convert(decompressed_paths, workdir)
@@ -254,6 +255,7 @@ def conform(srcjson, destdir, extras):
 
     return ConformResult(data.get('processed', None),
                          data.get('sample', None),
+                         data.get('geometry type', None),
                          realpath(join(destdir, 'out.csv')),
                          datetime.now() - start)
 
