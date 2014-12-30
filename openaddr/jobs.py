@@ -48,11 +48,15 @@ def _run_process2(lock, source_queue, source_extras, results):
     
         try:
             if not isdir('out'):
-                mkdir('out')
+                try:
+                    mkdir('out')
+                except OSError:
+                    pass
         
             getLogger('openaddr').info(path)
             result = process2.process(path, 'out', extras)
         except:
+            getLogger('openaddr').error('Error while running process2.process', exc_info=True)
             result = None
         
         with lock:

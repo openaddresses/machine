@@ -105,7 +105,7 @@ def process(s3, sourcedir, run_name):
     source_files.sort(key=lambda s: source_extras[s]['cache_time'], reverse=True)
     
     results = jobs.run_all_process2s(source_files, source_extras)
-    states = collect_states(results.values())
+    states = collect_states([path for path in results.values() if path])
     upload_states(s3, states, run_name)
 
 def collect_states(result_paths):
