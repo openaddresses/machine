@@ -1,4 +1,6 @@
-from urlparse import urlparse
+from __future__ import (absolute_import, division, print_function, unicode_literals)
+
+from six.moves.urllib.parse import urlparse
 from os.path import join, basename, dirname, exists, splitext, relpath
 from shutil import copy, move, rmtree
 from argparse import ArgumentParser
@@ -113,7 +115,7 @@ def main():
     args = parser.parse_args()
     setup_logger(args.logfile)
 
-    print process(args.source, args.destination)
+    print(process(args.source, args.destination))
 
 if __name__ == '__main__':
     exit(main())
