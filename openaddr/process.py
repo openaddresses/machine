@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 from collections import defaultdict
 from os.path import join, basename, relpath, splitext, dirname
 from csv import writer, DictReader
-from io import StringIO
+from io import BytesIO
 from logging import getLogger
 from os import environ
 from json import dumps
@@ -80,7 +80,7 @@ def read_state(s3, sourcedir):
     if state_key:
         getLogger('openaddr').debug('Found state in {}'.format(state_key.name))
 
-        state_file = StringIO(state_key.get_contents_as_string())
+        state_file = BytesIO(state_key.get_contents_as_string())
         rows = DictReader(state_file, dialect='excel-tab')
         
         for row in rows:
@@ -195,7 +195,7 @@ def upload_states(s3, states, run_name):
         
         new_states.append([state[col] for col in columns])
     
-    state_file = StringIO()
+    state_file = BytesIO()
     out = writer(state_file, dialect='excel-tab')
     
     for state in new_states:

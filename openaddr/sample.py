@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function
 from future import standard_library; standard_library.install_aliases()
 
 import json, ijson, unittest
-from io import StringIO
+from io import BytesIO
 from itertools import chain
 
 def _build_value(data):
@@ -110,19 +110,19 @@ class TestSample (unittest.TestCase):
                            { "type": "Feature", "geometry": { "type": "Polygon", "coordinates": [ [ [100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0] ] ] }, "properties": { "prop0": "value0", "prop1": {"this": "that"}, "prop2": true, "prop3": null } }
                            ] }'''
         
-        geojson0 = json.loads(sample_geojson(StringIO(geojson_input), max_features=0))
+        geojson0 = json.loads(sample_geojson(BytesIO(geojson_input), max_features=0))
         self.assertEqual(len(geojson0['features']), 0)
         
-        geojson1 = json.loads(sample_geojson(StringIO(geojson_input), max_features=1))
+        geojson1 = json.loads(sample_geojson(BytesIO(geojson_input), max_features=1))
         self.assertEqual(len(geojson1['features']), 1)
         
-        geojson2 = json.loads(sample_geojson(StringIO(geojson_input), max_features=2))
+        geojson2 = json.loads(sample_geojson(BytesIO(geojson_input), max_features=2))
         self.assertEqual(len(geojson2['features']), 2)
         
-        geojson3 = json.loads(sample_geojson(StringIO(geojson_input), max_features=3))
+        geojson3 = json.loads(sample_geojson(BytesIO(geojson_input), max_features=3))
         self.assertEqual(len(geojson3['features']), 3)
         
-        geojson4 = json.loads(sample_geojson(StringIO(geojson_input), max_features=4))
+        geojson4 = json.loads(sample_geojson(BytesIO(geojson_input), max_features=4))
         self.assertEqual(len(geojson4['features']), 3)
 
         self.assertEqual(geojson0['type'], 'FeatureCollection')

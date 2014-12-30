@@ -9,7 +9,7 @@ import re
 import sys
 import pickle
 from os import close, environ, mkdir
-from io import StringIO
+from io import BytesIO
 from mimetypes import guess_type
 from urllib.parse import urlparse, parse_qs
 from os.path import dirname, join, basename, exists
@@ -85,7 +85,7 @@ class TestOA (unittest.TestCase):
             process.process(self.s3, self.src_dir, 'test')
         
         # Go looking for state.txt in fake S3.
-        buffer = StringIO(self.s3._read_fake_key('runs/test/state.txt'))
+        buffer = BytesIO(self.s3._read_fake_key('runs/test/state.txt'))
         states = dict([(row['source'], row) for row
                        in DictReader(buffer, dialect='excel-tab')])
         
@@ -306,7 +306,7 @@ class TestConform (unittest.TestCase):
         with HTTMock(self.response_content):
             result = conform(source_path, self.testdir, {})
             with open(result.path) as file:
-                output = StringIO(file.read())
+                output = BytesIO(file.read())
         
         rows = list(DictReader(output, dialect='excel'))
         self.assertEqual(rows[0]['NUMBER'], '5115')
