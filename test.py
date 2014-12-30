@@ -1,14 +1,17 @@
+from __future__ import absolute_import, division, print_function
+from future import standard_library; standard_library.install_aliases()
+
 import unittest
 import shutil
 import tempfile
 import json
 import re
 import sys
-from six.moves import cPickle
+import pickle
 from os import close, environ, mkdir
-from six import StringIO
+from io import StringIO
 from mimetypes import guess_type
-from six.moves.urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs
 from os.path import dirname, join, basename, exists
 from fcntl import lockf, LOCK_EX, LOCK_UN
 from contextlib import contextmanager
@@ -422,22 +425,22 @@ class FakeS3 (S3):
         self._threadlock = Lock()
         
         with open(self._fake_keys, 'wb') as file:
-            cPickle.dump(dict(), file)
+            pickle.dump(dict(), file)
 
         S3.__init__(self, 'Fake Key', 'Fake Secret', 'data-test.openaddresses.io')
     
     def _write_fake_key(self, name, string):
         with locked_open(self._fake_keys) as file, self._threadlock:
-            data = cPickle.load(file)
+            data = pickle.load(file)
             data[name] = string
             
             file.seek(0)
             file.truncate()
-            cPickle.dump(data, file)
+            pickle.dump(data, file)
     
     def _read_fake_key(self, name):
         with locked_open(self._fake_keys) as file, self._threadlock:
-            data = cPickle.load(file)
+            data = pickle.load(file)
             
         return data[name]
     

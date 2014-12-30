@@ -1,6 +1,7 @@
-from __future__ import (absolute_import, division, print_function, unicode_literals)
+from __future__ import absolute_import, division, print_function
+from future import standard_library; standard_library.install_aliases()
 
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from os.path import join, basename, dirname, exists, splitext, relpath
 from shutil import copy, move, rmtree
 from argparse import ArgumentParser

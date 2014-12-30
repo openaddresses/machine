@@ -1,5 +1,8 @@
+from __future__ import absolute_import, division, print_function
+from future import standard_library; standard_library.install_aliases()
+
 import json, ijson, unittest
-from six import StringIO
+from io import StringIO
 from itertools import chain
 
 def _build_value(data):

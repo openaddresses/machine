@@ -1,4 +1,5 @@
-from __future__ import (absolute_import, division, print_function, unicode_literals)
+from __future__ import absolute_import, division, print_function
+from future import standard_library; standard_library.install_aliases()
 
 import json
 import os
@@ -8,8 +9,7 @@ import mimetypes
 import shutil
 
 from logging import getLogger
-from six.moves.urllib.parse import urlencode
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 from hashlib import sha1
 
 import requests

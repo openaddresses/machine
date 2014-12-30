@@ -20,9 +20,11 @@ setup(
     install_requires = [
         'boto >= 2.22.0', 'Jinja2 >= 2.7.0', 'dateutils >= 0.6', 'ijson >= 2.0',
         
+        # http://python-future.org
+        'future >= 0.14.3',
+        
         # https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1306991/comments/10
-        'requests==2.2.1',
-        'six >= 1.8.0'
+        'requests==2.2.1'
         ],
     entry_points = dict(
         console_scripts = [

@@ -1,3 +1,6 @@
+from __future__ import absolute_import, division, print_function
+from future import standard_library; standard_library.install_aliases()
+
 from subprocess import Popen
 from multiprocessing import Process
 from tempfile import mkdtemp
@@ -8,7 +11,7 @@ from datetime import datetime
 from os import mkdir, environ
 from time import sleep, time
 from zipfile import ZipFile
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 import json
 
 from osgeo import ogr

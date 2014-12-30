@@ -1,8 +1,11 @@
+from __future__ import absolute_import, division, print_function
+from future import standard_library; standard_library.install_aliases()
+
 from argparse import ArgumentParser
 from collections import defaultdict
 from os.path import join, basename, relpath, splitext, dirname
 from csv import writer, DictReader
-from six import StringIO
+from io import StringIO
 from logging import getLogger
 from os import environ
 from json import dumps
