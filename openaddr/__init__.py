@@ -40,11 +40,6 @@ class S3:
         self._key, self._secret = key, secret
         self.bucketname = bucketname
     
-    def toenv(self):
-        env = dict(environ)
-        env.update(AWS_ACCESS_KEY_ID=self._key, AWS_SECRET_ACCESS_KEY=self._secret)
-        return env
-    
     def get_key(self, name):
         if not self._bucket:
             self._bucket = connect_s3(key, secret).get_bucket(bucketname)
@@ -54,38 +49,6 @@ class S3:
         if not self._bucket:
             self._bucket = connect_s3(key, secret).get_bucket(bucketname)
         return self._bucket.new_key(name)
-
-class LocalResponse:
-    ''' Fake local response for a file:// request.
-    '''
-    _path = None
-    url = None
-
-    def __init__(self, path):
-        '''
-        '''
-        self._path = path
-        self.url = 'file://' + abspath(path)
-    
-    def iter_content(self, chunksize):
-        '''
-        '''
-        with open(self._path) as file:
-            while True:
-                chunk = file.read(chunksize)
-                if not chunk:
-                    break
-                yield chunk
-
-def get_cached_data(url):
-    ''' Wrapper for HTTP request to cached data.
-    '''
-    scheme, _, path, _, _, _ = urlparse(url)
-    
-    if scheme == 'file':
-        return LocalResponse(path)
-    
-    return get(url, stream=True)
 
 def cache(srcjson, destdir, extras):
     ''' Python wrapper for openaddress-cache.
