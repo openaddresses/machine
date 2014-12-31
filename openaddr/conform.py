@@ -2,9 +2,11 @@ import os
 import errno
 import tempfile
 import csv
+import json
 
 from logging import getLogger
 from zipfile import ZipFile
+from argparse import ArgumentParser
 
 from .sample import sample_geojson
 
@@ -206,6 +208,8 @@ class ConvertToCsvTask(object):
     known_types = ('.shp', '.json', '.csv', '.kml')
 
     def convert(self, source_paths, workdir):
+        logger = getLogger('openaddr')
+        logger.debug("Convert {} {}".format(source_paths, workdir))
 
         output_files = []
         convert_path = os.path.join(workdir, 'converted')
@@ -266,3 +270,47 @@ class ConvertToCsvTask(object):
             output_files.append(file_path)
 
         return output_files
+
+def extractToSourceCsv(sourceDefinition, workDir):
+    """Extract arbitrary downloaded sources to a CSV in the source schema.
+    sourceDefinition: description of the source, containing the conform object
+    workDir: directory with the downloaded source
+    This code writes the file extracted.csv in workDir
+    """
+
+    # TODO: handle a source .zip with more than one shapefile
+    
+    pass
+
+def transformToOutCsv(sourceDefintion, workDir):
+    """Transform extracted.csv to out.csv by applying conform rules.
+    sourceDefinition: description of the source, containing the conform object
+    workDir: directory with extracted.csv
+    This code writes the file out.csv in workDir
+    """
+    pass
+
+def conformCli(sourceDefinition, workDir):
+    "Command line entry point for conforming."
+    extractToSourceCsv(sourceDefinition, workDir)
+    transformToOutCsv(sourceDefinition, workDir)
+
+    print("Conform or die!")
+    return 1
+
+parser = ArgumentParser(description='Conform a downloaded source file.')
+parser.add_argument('source', help='Required source file name.')
+parser.add_argument('workDir', help='Required directory name. Must contain downloaded source file, out.csv created here.')
+parser.add_argument('-l', '--logfile', help='Optional log file name.')
+
+def main():
+    from .jobs import setup_logger
+    args = parser.parse_args()
+    setup_logger(args.logfile)
+
+    sourceDefinition = json.load(file(args.source))
+    rc = conformCli(sourceDefinition, args.workDir)
+    return rc
+
+if __name__ == '__main__':
+    exit(main())

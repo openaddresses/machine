@@ -32,7 +32,8 @@ setup(
             'openaddr-summarize = openaddr.summarize:main',
             'openaddr-process = openaddr.process:main',
             'openaddr-process-one = openaddr.process2:main',
-            'openaddr-ec2-run = openaddr.run:main'
+            'openaddr-ec2-run = openaddr.run:main',
+            'openaddr-pyconform = openaddr.conform:main'
         ]
     )
 )
