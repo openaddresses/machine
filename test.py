@@ -8,7 +8,7 @@ import json
 import re
 import sys
 import pickle
-from os import close, environ, mkdir
+from os import close, environ, mkdir, remove
 from io import BytesIO
 from mimetypes import guess_type
 from urllib.parse import urlparse, parse_qs
@@ -32,7 +32,7 @@ class TestOA (unittest.TestCase):
         '''
         jobs.setup_logger(False)
 
-        self.testdir = tempfile.mkdtemp(prefix='test-')
+        self.testdir = tempfile.mkdtemp(prefix='testOA-')
         self.src_dir = join(self.testdir, 'sources')
         sources_dir = join(dirname(__file__), 'tests', 'sources')
         shutil.copytree(sources_dir, self.src_dir)
@@ -41,6 +41,7 @@ class TestOA (unittest.TestCase):
     
     def tearDown(self):
         shutil.rmtree(self.testdir)
+        remove(self.s3._fake_keys)
 
     def response_content(self, url, request):
         ''' Fake HTTP responses for use with HTTMock in tests.
@@ -212,16 +213,14 @@ class TestConform (unittest.TestCase):
         '''
         jobs.setup_logger(False)
         
-        self.testdir = tempfile.mkdtemp(prefix='test-')
+        self.testdir = tempfile.mkdtemp(prefix='testConform-')
         self.conforms_dir = join(dirname(__file__), 'tests', 'conforms')
         
         self.s3 = FakeS3()
-        
-        cmd = Popen('which node'.split(), stdout=PIPE)
-        cmd.wait()
     
     def tearDown(self):
-        pass # shutil.rmtree(self.testdir)
+        shutil.rmtree(self.testdir)
+        remove(self.s3._fake_keys)
     
     def response_content(self, url, request):
         ''' Fake HTTP responses for use with HTTMock in tests.
