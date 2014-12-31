@@ -276,17 +276,16 @@ def shp_to_csv(source_path, dest_path):
 
     in_datasource.Destroy()
 
-def extract_to_source_csv(source_definition, source_path, workdir):
-    """Extract arbitrary downloaded sources to a CSV in the source schema.
+def extract_to_source_csv(source_definition, source_path, dest_path):
+    """Extract arbitrary downloaded sources to an extracted CSV in the source schema.
     source_definition: description of the source, containing the conform object
-    workdir: directory with the downloaded source
-    This code writes the file extracted.csv in workdir
+    dest_path: file to write the extracted CSV file
     """
 
-    pass
+    shp_to_csv(source_path, dest_path)
 
 def transform_to_out_csv(source_definition, workdir):
-    """Transform extracted.csv to out.csv by applying conform rules.
+    """Transform an extracted source CSV to the OpenAddresses output CSV by applying conform rules
     source_definition: description of the source, containing the conform object
     workdir: directory with extracted.csv
     This code writes the file out.csv in workdir
@@ -295,7 +294,10 @@ def transform_to_out_csv(source_definition, workdir):
 
 def conform_cli(source_definition, source_path, workdir):
     "Command line entry point for conforming."
-    extract_to_source_csv(source_definition, source_path, workdir)
+
+    # TODO: hardcoded filename is bad. Also won't work with sources containing multiple shapefiles, etc
+    extract_path = os.path.join(workdir, 'extracted.csv')
+    shp_to_csv(source_path, extract_path)
     transform_to_out_csv(source_definition, workdir)
 
     print("Conform or die!")
