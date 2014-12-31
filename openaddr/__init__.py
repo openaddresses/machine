@@ -63,10 +63,12 @@ def cache(srcjson, destdir, extras):
           version: data version as date?
           elapsed: elapsed time as timedelta object
           output: subprocess output as string
+        
+        Creates and destroys a subdirectory in destdir.
     '''
     start = datetime.now()
     source, _ = splitext(basename(srcjson))
-    workdir = mkdtemp(prefix='cache-')
+    workdir = mkdtemp(prefix='cache-', dir=destdir)
     logger = getLogger('openaddr')
     tmpjson = _tmp_json(workdir, srcjson, extras)
 
@@ -131,10 +133,12 @@ def conform(srcjson, destdir, extras):
           geometry_type: typically Point or Polygon
           elapsed: elapsed time as timedelta object
           output: subprocess output as string
+        
+        Creates and destroys a subdirectory in destdir.
     '''
     start = datetime.now()
     source, _ = splitext(basename(srcjson))
-    workdir = mkdtemp(prefix='conform-')
+    workdir = mkdtemp(prefix='conform-', dir=destdir)
     logger = getLogger('openaddr')
     tmpjson = _tmp_json(workdir, srcjson, extras)
     
