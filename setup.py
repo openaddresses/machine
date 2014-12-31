@@ -30,7 +30,7 @@ setup(
         console_scripts = [
             'openaddr-render-us = openaddr.render:main',
             'openaddr-summarize = openaddr.summarize:main',
-            'openaddr-process = openaddr.process:main',
+            'openaddr-process = openaddr.process_all:main',
             'openaddr-process-one = openaddr.process_one:main',
             'openaddr-ec2-run = openaddr.run:main',
             'openaddr-pyconform = openaddr.conform:main'

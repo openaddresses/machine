@@ -22,7 +22,7 @@ from threading import Lock
 from requests import get
 from httmock import response, HTTMock
         
-from openaddr import paths, cache, conform, jobs, S3, process, process_one
+from openaddr import paths, cache, conform, jobs, S3, process_all, process_one
 from openaddr.sample import TestSample
 
 class TestOA (unittest.TestCase):
@@ -80,10 +80,10 @@ class TestOA (unittest.TestCase):
         raise NotImplementedError(url.geturl())
     
     def test_process(self):
-        ''' Test process.process(), with complete threaded behavior.
+        ''' Test process_all.process(), with complete threaded behavior.
         '''
         with HTTMock(self.response_content):
-            process.process(self.s3, self.src_dir, 'test')
+            process_all.process(self.s3, self.src_dir, 'test')
         
         # Go looking for state.txt in fake S3.
         buffer = BytesIO(self.s3._read_fake_key('runs/test/state.txt'))
@@ -121,7 +121,7 @@ class TestOA (unittest.TestCase):
             self.assertTrue(bool(state['fingerprint']))
         
     def test_single_ac(self):
-        ''' Test complete process on Alameda County sample data.
+        ''' Test complete process_one.process on Alameda County sample data.
         '''
         source = join(self.src_dir, 'us-ca-alameda_county.json')
         
@@ -145,7 +145,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue('94612' in sample_data[1])
 
     def test_single_car(self):
-        ''' Test complete process on Carson sample data.
+        ''' Test complete process_one.process on Carson sample data.
         '''
         source = join(self.src_dir, 'us-ca-carson.json')
         
@@ -170,7 +170,7 @@ class TestOA (unittest.TestCase):
             self.assertTrue('555 E CARSON ST' in file.read())
 
     def test_single_oak(self):
-        ''' Test complete process on Oakland sample data.
+        ''' Test complete process_one.process on Oakland sample data.
         '''
         source = join(self.src_dir, 'us-ca-oakland.json')
         
