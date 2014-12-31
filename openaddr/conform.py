@@ -248,13 +248,14 @@ def shp_to_csv(source_path, dest_path):
     for i in range(0, in_layer_defn.GetFieldCount()):
         field_defn = in_layer_defn.GetFieldDefn(i)
         out_fieldnames.append(field_defn.GetName())
-    out_fieldnames.append('centroid')
+    out_fieldnames.append('X')
+    out_fieldnames.append('Y')
 
     outSpatialRef = osr.SpatialReference()
     outSpatialRef.ImportFromEPSG(4326)
     coordTransform = osr.CoordinateTransformation(inSpatialRef, outSpatialRef)
 
-    with open(dest_path, 'w') as f:
+    with open(dest_path, 'wb') as f:
         writer = unicodecsv.DictWriter(f, fieldnames=out_fieldnames, encoding='utf-8')
         writer.writeheader()
 
@@ -267,7 +268,10 @@ def shp_to_csv(source_path, dest_path):
                 row[field_defn.GetNameRef()] = in_feature.GetField(i)
             geom = in_feature.GetGeometryRef()
             geom.Transform(coordTransform)
-            row['centroid'] = geom.Centroid().ExportToWkt()
+            # Calculate the centroid of the geometry and write it as X and Y columns
+            centroid = geom.Centroid()
+            row['X'] = centroid.GetX()
+            row['Y'] = centroid.GetY()
 
             writer.writerow(row)
 
@@ -276,32 +280,62 @@ def shp_to_csv(source_path, dest_path):
 
     in_datasource.Destroy()
 
-def extract_to_source_csv(source_definition, source_path, dest_path):
+def extract_to_source_csv(source_definition, source_path, extract_path):
     """Extract arbitrary downloaded sources to an extracted CSV in the source schema.
     source_definition: description of the source, containing the conform object
-    dest_path: file to write the extracted CSV file
+    extract_path: file to write the extracted CSV file
+
+    The extracted file will be in UTF-8 and will have X and Y columns corresponding
+    to longitude and latitude in EPSG:4326.
     """
+    # TODO: handle non-SHP sources
+    assert source_definition["conform"]["type"] == "shapefile"
+    shp_to_csv(source_path, extract_path)
 
-    shp_to_csv(source_path, dest_path)
 
-def transform_to_out_csv(source_definition, workdir):
+# The canonical output schema for conform
+_openaddr_csv_schema = ["LON", "LAT", "NUMBER", "STREET"]
+
+def transform_to_out_csv(source_definition, extract_path, dest_path):
     """Transform an extracted source CSV to the OpenAddresses output CSV by applying conform rules
     source_definition: description of the source, containing the conform object
-    workdir: directory with extracted.csv
-    This code writes the file out.csv in workdir
+    extract_path: extracted CSV file to process
+    dest_path: path for output file in OpenAddress CSV
     """
-    pass
+
+    # Pull the "number" and "street" attribute tags out of the conform object
+    number_field_name = source_definition["conform"]["number"]
+    street_field_name = source_definition["conform"]["street"]
+
+    # Read through the extract CSV
+    with open(extract_path, 'rb') as extract_fp:
+        reader = unicodecsv.DictReader(extract_fp, encoding='utf-8')
+        # Write to the destination CSV
+        with open(dest_path, 'wb') as dest_fp:
+            writer = unicodecsv.DictWriter(dest_fp, _openaddr_csv_schema)
+            writer.writeheader()
+            # For every row in the extract
+            for extract_row in reader:
+                # Construct a row in the ouput
+                out_row = {
+                    "LON": extract_row.get("X", None),
+                    "LAT": extract_row.get("Y", None),
+                    "NUMBER": extract_row.get(number_field_name, None),
+                    "STREET": extract_row.get(street_field_name, None)
+                }
+                writer.writerow(out_row)
 
 def conform_cli(source_definition, source_path, workdir):
     "Command line entry point for conforming."
 
     # TODO: hardcoded filename is bad. Also won't work with sources containing multiple shapefiles, etc
     extract_path = os.path.join(workdir, 'extracted.csv')
-    shp_to_csv(source_path, extract_path)
-    transform_to_out_csv(source_definition, workdir)
+    out_path = os.path.join(workdir, 'out.csv')
 
-    print("Conform or die!")
-    return 1
+    extract_to_source_csv(source_definition, source_path, extract_path)
+    transform_to_out_csv(source_definition, extract_path, out_path)
+
+    return 0
 
 parser = ArgumentParser(description='Conform a downloaded source file.')
 parser.add_argument('source', help='Required source JSON file name.')
