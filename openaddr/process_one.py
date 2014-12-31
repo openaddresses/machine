@@ -16,7 +16,7 @@ def process(source, destination, extras=dict()):
     
         Creates a new directory and files under destination.
     '''
-    temp_dir = tempfile.mkdtemp(prefix='process2-', dir=destination)
+    temp_dir = tempfile.mkdtemp(prefix='process_one-', dir=destination)
     temp_src = join(temp_dir, basename(source))
     copy(source, temp_src)
     

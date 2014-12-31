@@ -22,7 +22,7 @@ from threading import Lock
 from requests import get
 from httmock import response, HTTMock
         
-from openaddr import paths, cache, conform, jobs, S3, process, process2
+from openaddr import paths, cache, conform, jobs, S3, process, process_one
 from openaddr.sample import TestSample
 
 class TestOA (unittest.TestCase):
@@ -126,7 +126,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-alameda_county.json')
         
         with HTTMock(self.response_content):
-            state_path = process2.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -150,7 +150,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-carson.json')
         
         with HTTMock(self.response_content):
-            state_path = process2.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -175,7 +175,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-oakland.json')
         
         with HTTMock(self.response_content):
-            state_path = process2.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))

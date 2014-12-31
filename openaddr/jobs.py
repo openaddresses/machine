@@ -6,7 +6,7 @@ from os.path import isdir
 from time import sleep
 from os import mkdir
 
-from . import process2
+from . import process_one
 
 def _run_timer(source_queue, interval):
     ''' Natter on and on about how much of the queue is left.
@@ -17,14 +17,14 @@ def _run_timer(source_queue, interval):
         getLogger('openaddr').debug('{0} source files remain'.format(len(source_queue)))
         sleep(interval)
 
-def run_all_process2s(source_files, destination, source_extras):
-    ''' Run process2.process() for all source files in parallel, return ???.
+def run_all_process_ones(source_files, destination, source_extras):
+    ''' Run process_one.process() for all source files in parallel, return ???.
     '''
     source_queue, results = source_files[:], OrderedDict()
     args = Lock(), source_queue, destination, source_extras, results
     thread_count = min(cpu_count() * 2, len(source_files))
 
-    threads = [Thread(target=_run_process2, args=args)
+    threads = [Thread(target=_run_process_one, args=args)
                for i in range(thread_count)]
     
     if len(source_files) > thread_count:
@@ -34,7 +34,7 @@ def run_all_process2s(source_files, destination, source_extras):
     
     return results
 
-def _run_process2(lock, source_queue, destination, source_extras, results):
+def _run_process_one(lock, source_queue, destination, source_extras, results):
     ''' Single queue worker for source files to conform().
     
         Keep going until source_queue is empty.
@@ -54,9 +54,9 @@ def _run_process2(lock, source_queue, destination, source_extras, results):
                     pass
         
             getLogger('openaddr').info(path)
-            result = process2.process(path, destination, extras)
+            result = process_one.process(path, destination, extras)
         except:
-            getLogger('openaddr').error('Error while running process2.process', exc_info=True)
+            getLogger('openaddr').error('Error while running process_one.process', exc_info=True)
             result = None
         
         with lock:
