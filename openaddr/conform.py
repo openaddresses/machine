@@ -1,7 +1,7 @@
 import os
 import errno
 import tempfile
-import csv
+import unicodecsv
 import json
 
 from logging import getLogger
@@ -255,7 +255,7 @@ def shp_to_csv(source_path, dest_path):
     coordTransform = osr.CoordinateTransformation(inSpatialRef, outSpatialRef)
 
     with open(dest_path, 'w') as f:
-        writer = csv.DictWriter(f, fieldnames=out_fieldnames)
+        writer = unicodecsv.DictWriter(f, fieldnames=out_fieldnames, encoding='utf-8')
         writer.writeheader()
 
         in_feature = in_layer.GetNextFeature()

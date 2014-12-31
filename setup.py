@@ -24,7 +24,10 @@ setup(
         'future >= 0.14.3',
         
         # https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1306991/comments/10
-        'requests==2.2.1'
+        'requests==2.2.1',
+
+        # https://github.com/jdunck/python-unicodecsv
+        'unicodecsv >= 0.9.4'
         ],
     entry_points = dict(
         console_scripts = [
