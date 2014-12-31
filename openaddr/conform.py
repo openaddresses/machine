@@ -276,36 +276,35 @@ def shp_to_csv(source_path, dest_path):
 
     in_datasource.Destroy()
 
-def extractToSourceCsv(sourceDefinition, workDir):
+def extract_to_source_csv(source_definition, source_path, workdir):
     """Extract arbitrary downloaded sources to a CSV in the source schema.
-    sourceDefinition: description of the source, containing the conform object
-    workDir: directory with the downloaded source
-    This code writes the file extracted.csv in workDir
+    source_definition: description of the source, containing the conform object
+    workdir: directory with the downloaded source
+    This code writes the file extracted.csv in workdir
     """
-
-    # TODO: handle a source .zip with more than one shapefile
 
     pass
 
-def transformToOutCsv(sourceDefintion, workDir):
+def transform_to_out_csv(source_definition, workdir):
     """Transform extracted.csv to out.csv by applying conform rules.
-    sourceDefinition: description of the source, containing the conform object
-    workDir: directory with extracted.csv
-    This code writes the file out.csv in workDir
+    source_definition: description of the source, containing the conform object
+    workdir: directory with extracted.csv
+    This code writes the file out.csv in workdir
     """
     pass
 
-def conformCli(sourceDefinition, workDir):
+def conform_cli(source_definition, source_path, workdir):
     "Command line entry point for conforming."
-    extractToSourceCsv(sourceDefinition, workDir)
-    transformToOutCsv(sourceDefinition, workDir)
+    extract_to_source_csv(source_definition, source_path, workdir)
+    transform_to_out_csv(source_definition, workdir)
 
     print("Conform or die!")
     return 1
 
 parser = ArgumentParser(description='Conform a downloaded source file.')
-parser.add_argument('source', help='Required source file name.')
-parser.add_argument('workDir', help='Required directory name. Must contain downloaded source file, out.csv created here.')
+parser.add_argument('source', help='Required source JSON file name.')
+parser.add_argument('source_data', help='Required pathname to the actual source data file')
+parser.add_argument('workdir', help='Required directory name. Must contain downloaded source file, out.csv created here.')
 parser.add_argument('-l', '--logfile', help='Optional log file name.')
 
 def main():
@@ -313,8 +312,8 @@ def main():
     args = parser.parse_args()
     setup_logger(args.logfile)
 
-    sourceDefinition = json.load(file(args.source))
-    rc = conformCli(sourceDefinition, args.workDir)
+    source_definition = json.load(file(args.source))
+    rc = conform_cli(source_definition, args.source_data, args.workdir)
     return rc
 
 if __name__ == '__main__':
