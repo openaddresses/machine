@@ -202,74 +202,79 @@ class ExcerptDataTask(object):
         return data_sample, geometry_type
 
 class ConvertToCsvTask(object):
-
     logger = getLogger('openaddr')
-
     known_types = ('.shp', '.json', '.csv', '.kml')
 
     def convert(self, source_paths, workdir):
-        logger = getLogger('openaddr')
-        logger.debug("Convert {} {}".format(source_paths, workdir))
+        "Convert a list of source_paths and write results in workdir"
+        self.logger.debug("Convert {} {}".format(source_paths, workdir))
 
+        # Create a subdirectory "converted" to hold results
         output_files = []
         convert_path = os.path.join(workdir, 'converted')
         mkdirsp(convert_path)
 
+        # For every source path, try converting it
         for source_path in source_paths:
             filename = os.path.basename(source_path)
             basename, ext = os.path.splitext(filename)
             file_path = os.path.join(convert_path, basename + '.csv')
 
-
             if ext not in self.known_types:
                 self.logger.debug("Skipping %s because I don't know how to convert it", source_path)
                 continue
-            if os.path.exists(file_path):
+            if os.path.exists(file_path):            # is this ever possible?
                 output_files.append(file_path)
                 self.logger.debug("File exists %s", file_path)
                 continue
 
-            in_datasource = ogr.Open(source_path, 0)
-            in_layer = in_datasource.GetLayer()
-            inSpatialRef = in_layer.GetSpatialRef()
-
-            self.logger.info("Converting a layer to CSV: %s", in_layer)
-
-            in_layer_defn = in_layer.GetLayerDefn()
-            out_fieldnames = []
-            for i in range(0, in_layer_defn.GetFieldCount()):
-                field_defn = in_layer_defn.GetFieldDefn(i)
-                out_fieldnames.append(field_defn.GetName())
-            out_fieldnames.append('centroid')
-
-            outSpatialRef = osr.SpatialReference()
-            outSpatialRef.ImportFromEPSG(4326)
-            coordTransform = osr.CoordinateTransformation(inSpatialRef, outSpatialRef)
-
-            with open(file_path, 'w') as f:
-                writer = csv.DictWriter(f, fieldnames=out_fieldnames)
-                writer.writeheader()
-
-                in_feature = in_layer.GetNextFeature()
-                while in_feature:
-                    row = dict()
-
-                    for i in range(0, in_layer_defn.GetFieldCount()):
-                        field_defn = in_layer_defn.GetFieldDefn(i)
-                        row[field_defn.GetNameRef()] = in_feature.GetField(i)
-                    geom = in_feature.GetGeometryRef()
-                    geom.Transform(coordTransform)
-                    row['centroid'] = geom.Centroid().ExportToWkt()
-
-                    writer.writerow(row)
-
-                    in_feature.Destroy()
-                    in_feature = in_layer.GetNextFeature()
-
-            in_datasource.Destroy()
+            shp_to_csv(source_path, file_path)
             output_files.append(file_path)
 
         return output_files
+
+def shp_to_csv(source_path, dest_path):
+    "Convert a single shapefile in source_path and put it in dest_path"
+    logger = getLogger('openaddr')
+
+    in_datasource = ogr.Open(source_path, 0)
+    in_layer = in_datasource.GetLayer()
+    inSpatialRef = in_layer.GetSpatialRef()
+
+    logger.info("Converting a layer to CSV: %s", in_layer)
+
+    in_layer_defn = in_layer.GetLayerDefn()
+    out_fieldnames = []
+    for i in range(0, in_layer_defn.GetFieldCount()):
+        field_defn = in_layer_defn.GetFieldDefn(i)
+        out_fieldnames.append(field_defn.GetName())
+    out_fieldnames.append('centroid')
+
+    outSpatialRef = osr.SpatialReference()
+    outSpatialRef.ImportFromEPSG(4326)
+    coordTransform = osr.CoordinateTransformation(inSpatialRef, outSpatialRef)
+
+    with open(dest_path, 'w') as f:
+        writer = csv.DictWriter(f, fieldnames=out_fieldnames)
+        writer.writeheader()
+
+        in_feature = in_layer.GetNextFeature()
+        while in_feature:
+            row = dict()
+
+            for i in range(0, in_layer_defn.GetFieldCount()):
+                field_defn = in_layer_defn.GetFieldDefn(i)
+                row[field_defn.GetNameRef()] = in_feature.GetField(i)
+            geom = in_feature.GetGeometryRef()
+            geom.Transform(coordTransform)
+            row['centroid'] = geom.Centroid().ExportToWkt()
+
+            writer.writerow(row)
+
+            in_feature.Destroy()
+            in_feature = in_layer.GetNextFeature()
+
+    in_datasource.Destroy()
 
 def extractToSourceCsv(sourceDefinition, workDir):
     """Extract arbitrary downloaded sources to a CSV in the source schema.
@@ -279,7 +284,7 @@ def extractToSourceCsv(sourceDefinition, workDir):
     """
 
     # TODO: handle a source .zip with more than one shapefile
-    
+
     pass
 
 def transformToOutCsv(sourceDefintion, workDir):
