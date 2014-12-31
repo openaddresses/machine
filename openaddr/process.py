@@ -7,6 +7,7 @@ from os.path import join, basename, relpath, splitext, dirname
 from csv import writer, DictReader
 from io import BytesIO
 from logging import getLogger
+from datetime import datetime
 from os import environ
 from json import dumps
 from time import time
@@ -141,13 +142,12 @@ def upload_states(s3, states, run_name):
         source, _ = splitext(state['source'])
         getLogger('openaddr').debug('Uploading files for {}'.format(source))
         
+        yyyymmdd = datetime.utcnow().strftime('%Y%m%d')
+        
         if state['cache']:
-            #
-            # TODO: follow this YYYYMMDD date path pattern for cached data:
-            # http://s3.amazonaws.com/data.openaddresses.io/20141204/us-wa-king.zip
-            #
+            # e.g. /20141204/us-wa-king.zip
             _, cache_ext = splitext(state['cache'])
-            key_name = '/{}/{}{}'.format(run_name, source, cache_ext)
+            key_name = '/{}/{}{}'.format(yyyymmdd, source, cache_ext)
             key = s3.new_key(key_name)
 
             kwargs = dict(policy='public-read', reduced_redundancy=True)
@@ -155,15 +155,12 @@ def upload_states(s3, states, run_name):
 
             state['cache'] = key.generate_url(expires_in=0, query_auth=False)
             state['fingerprint'] = key.md5
-            state['version'] = run_name
+            state['version'] = yyyymmdd
     
         if state['sample']:
-            #
-            # TODO: follow this YYYYMMDD date path pattern for sample data:
-            # http://s3.amazonaws.com/data.openaddresses.io/20141226/samples/za-wc-cape_town.json
-            #
+            # e.g. /20141226/samples/za-wc-cape_town.json
             _, sample_ext = splitext(state['sample'])
-            key_name = '/{}/{}{}'.format(run_name, source, sample_ext)
+            key_name = '/{}/samples/{}{}'.format(yyyymmdd, source, sample_ext)
             key = s3.new_key(key_name)
 
             kwargs = dict(policy='public-read', reduced_redundancy=True)
@@ -172,9 +169,9 @@ def upload_states(s3, states, run_name):
             state['sample'] = key.generate_url(expires_in=0, query_auth=False)
     
         if state['processed']:
-            # http://s3.amazonaws.com/data.openaddresses.io/us-tx-denton.csv
+            # e.g. /us-tx-denton.csv
             _, processed_ext = splitext(state['processed'])
-            key_name = '/{}/{}{}'.format(run_name, source, processed_ext)
+            key_name = '/{}{}'.format(source, processed_ext)
             key = s3.new_key(key_name)
 
             kwargs = dict(policy='public-read', reduced_redundancy=True)
@@ -183,7 +180,7 @@ def upload_states(s3, states, run_name):
             state['processed'] = key.generate_url(expires_in=0, query_auth=False)
     
         if state['output']:
-            # us-tx-denton.txt
+            # e.g. /<run name>/us-tx-denton.txt
             _, output_ext = splitext(state['output'])
             key_name = '/{}/{}{}'.format(run_name, source, output_ext)
             key = s3.new_key(key_name)
