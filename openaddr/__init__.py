@@ -114,7 +114,7 @@ def cache(srcjson, destdir, extras):
                 mkdir(resultdir)
             move(data['filepath to upload'], join(resultdir, cache_name))
             if 'cache' not in data:
-                data['cache'] = 'file://' + join(resultdir, cache_name)
+                data['cache'] = 'file://' + join(abspath(resultdir), cache_name)
 
     rmtree(workdir)
 
