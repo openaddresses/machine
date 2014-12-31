@@ -131,6 +131,17 @@ def collect_states(result_paths):
     
     return states
 
+def upload_file(s3, keyname, filename):
+    ''' Create a new S3 key with filename contents, return its URL and MD5 hash.
+    '''
+    key = s3.new_key(keyname)
+
+    kwargs = dict(policy='public-read', reduced_redundancy=True)
+    key.set_contents_from_filename(filename, **kwargs)
+    url = key.generate_url(expires_in=0, query_auth=False)
+    
+    return url, key.md5
+
 def upload_states(s3, states, run_name):
     '''
     '''
@@ -148,47 +159,26 @@ def upload_states(s3, states, run_name):
             # e.g. /20141204/us-wa-king.zip
             _, cache_ext = splitext(state['cache'])
             key_name = '/{}/{}{}'.format(yyyymmdd, source, cache_ext)
-            key = s3.new_key(key_name)
-
-            kwargs = dict(policy='public-read', reduced_redundancy=True)
-            key.set_contents_from_filename(state['cache'], **kwargs)
-
-            state['cache'] = key.generate_url(expires_in=0, query_auth=False)
-            state['fingerprint'] = key.md5
+            state['cache'], state['fingerprint'] = upload_file(s3, key_name, state['cache'])
             state['version'] = yyyymmdd
     
         if state['sample']:
             # e.g. /20141226/samples/za-wc-cape_town.json
             _, sample_ext = splitext(state['sample'])
             key_name = '/{}/samples/{}{}'.format(yyyymmdd, source, sample_ext)
-            key = s3.new_key(key_name)
-
-            kwargs = dict(policy='public-read', reduced_redundancy=True)
-            key.set_contents_from_filename(state['sample'], **kwargs)
-
-            state['sample'] = key.generate_url(expires_in=0, query_auth=False)
+            state['sample'], _ = upload_file(s3, key_name, state['sample'])
     
         if state['processed']:
             # e.g. /us-tx-denton.csv
             _, processed_ext = splitext(state['processed'])
             key_name = '/{}{}'.format(source, processed_ext)
-            key = s3.new_key(key_name)
-
-            kwargs = dict(policy='public-read', reduced_redundancy=True)
-            key.set_contents_from_filename(state['processed'], **kwargs)
-
-            state['processed'] = key.generate_url(expires_in=0, query_auth=False)
+            state['processed'], _ = upload_file(s3, key_name, state['processed'])
     
         if state['output']:
             # e.g. /<run name>/us-tx-denton.txt
             _, output_ext = splitext(state['output'])
             key_name = '/{}/{}{}'.format(run_name, source, output_ext)
-            key = s3.new_key(key_name)
-
-            kwargs = dict(policy='public-read', reduced_redundancy=True)
-            key.set_contents_from_filename(state['output'], **kwargs)
-
-            state['output'] = key.generate_url(expires_in=0, query_auth=False)
+            state['output'], _ = upload_file(s3, key_name, state['output'])
         
         new_states.append([state[col] for col in columns])
     
