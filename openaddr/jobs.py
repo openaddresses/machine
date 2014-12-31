@@ -17,11 +17,11 @@ def _run_timer(source_queue, interval):
         getLogger('openaddr').debug('{0} source files remain'.format(len(source_queue)))
         sleep(interval)
 
-def run_all_process2s(source_files, source_extras):
+def run_all_process2s(source_files, destination, source_extras):
     ''' Run process2.process() for all source files in parallel, return ???.
     '''
     source_queue, results = source_files[:], OrderedDict()
-    args = Lock(), source_queue, source_extras, results
+    args = Lock(), source_queue, destination, source_extras, results
     thread_count = min(cpu_count() * 2, len(source_files))
 
     threads = [Thread(target=_run_process2, args=args)
@@ -34,7 +34,7 @@ def run_all_process2s(source_files, source_extras):
     
     return results
 
-def _run_process2(lock, source_queue, source_extras, results):
+def _run_process2(lock, source_queue, destination, source_extras, results):
     ''' Single queue worker for source files to conform().
     
         Keep going until source_queue is empty.
@@ -47,14 +47,14 @@ def _run_process2(lock, source_queue, source_extras, results):
             extras = source_extras.get(path, dict())
     
         try:
-            if not isdir('out'):
+            if not isdir(destination):
                 try:
-                    mkdir('out')
+                    mkdir(destination)
                 except OSError:
                     pass
         
             getLogger('openaddr').info(path)
-            result = process2.process(path, 'out', extras)
+            result = process2.process(path, destination, extras)
         except:
             getLogger('openaddr').error('Error while running process2.process', exc_info=True)
             result = None
