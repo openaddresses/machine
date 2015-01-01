@@ -280,6 +280,19 @@ def shp_to_csv(source_path, dest_path):
 
     in_datasource.Destroy()
 
+
+### Row-level conform code. Inputs and outputs are individual rows in a CSV file.
+def tr_extract_to_out(source_definition, row):
+    "Convert a row from the source schema to OpenAddresses output schema"
+    return {
+        "LON": row.get(source_definition["conform"]["lon"], None),
+        "LAT": row.get(source_definition["conform"]["lat"], None),
+        "NUMBER": row.get(source_definition["conform"]["number"], None),
+        "STREET": row.get(source_definition["conform"]["street"], None)
+    }
+
+### File-level conform code. Inputs and outputs are filenames.
+
 def extract_to_source_csv(source_definition, source_path, extract_path):
     """Extract arbitrary downloaded sources to an extracted CSV in the source schema.
     source_definition: description of the source, containing the conform object
@@ -292,7 +305,6 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     assert source_definition["conform"]["type"] == "shapefile"
     shp_to_csv(source_path, extract_path)
 
-
 # The canonical output schema for conform
 _openaddr_csv_schema = ["LON", "LAT", "NUMBER", "STREET"]
 
@@ -303,10 +315,6 @@ def transform_to_out_csv(source_definition, extract_path, dest_path):
     dest_path: path for output file in OpenAddress CSV
     """
 
-    # Pull the "number" and "street" attribute tags out of the conform object
-    number_field_name = source_definition["conform"]["number"]
-    street_field_name = source_definition["conform"]["street"]
-
     # Read through the extract CSV
     with open(extract_path, 'rb') as extract_fp:
         reader = unicodecsv.DictReader(extract_fp, encoding='utf-8')
@@ -316,13 +324,7 @@ def transform_to_out_csv(source_definition, extract_path, dest_path):
             writer.writeheader()
             # For every row in the extract
             for extract_row in reader:
-                # Construct a row in the ouput
-                out_row = {
-                    "LON": extract_row.get("X", None),
-                    "LAT": extract_row.get("Y", None),
-                    "NUMBER": extract_row.get(number_field_name, None),
-                    "STREET": extract_row.get(street_field_name, None)
-                }
+                out_row = tr_extract_to_out(source_definition, extract_row)
                 writer.writerow(out_row)
 
 def conform_cli(source_definition, source_path, dest_path):
@@ -366,6 +368,15 @@ if __name__ == '__main__':
 # Test suite. This code could be in a separate file
 
 import unittest, tempfile, shutil
+
+class TestPyConformTransforms (unittest.TestCase):
+    "Test low level data transform functions"
+    def test_tr_extract_to_out(self):
+        source_definition = { "conform": { "street": "s", "number": "n", "lon": "Y", "lat": "X" } }
+        r = tr_extract_to_out(source_definition, {"s": "MAPLE LN", "n": "123", "Y": "-119.2", "X": "39.3"})
+        self.assertEqual({"LON": "-119.2", "LAT": "39.3", "STREET": "MAPLE LN", "NUMBER": "123"}, r)
+
+
 class TestPyConformCli (unittest.TestCase):
     "Test the command line interface creates valid output files from test input"
     def setUp(self):
