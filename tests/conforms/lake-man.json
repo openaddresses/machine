@@ -4,10 +4,10 @@
     "type": "http",
     "compression": "zip",
     "conform": {
-        "lon": "x",
-        "lat": "y",
-        "number": "number",
-        "street": "strname",
+        "lon": "X",
+        "lat": "Y",
+        "number": "NUMBER",
+        "street": "STRNAME",
         "type": "shapefile"
     }
 }

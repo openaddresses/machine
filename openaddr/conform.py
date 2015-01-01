@@ -325,32 +325,84 @@ def transform_to_out_csv(source_definition, extract_path, dest_path):
                 }
                 writer.writerow(out_row)
 
-def conform_cli(source_definition, source_path, workdir):
-    "Command line entry point for conforming."
+def conform_cli(source_definition, source_path, dest_path):
+    "Command line entry point for conforming a downloaded source to an output CSV."
+    # TODO: this tool only works if the source creates a single output
 
-    # TODO: hardcoded filename is bad. Also won't work with sources containing multiple shapefiles, etc
-    extract_path = os.path.join(workdir, 'extracted.csv')
-    out_path = os.path.join(workdir, 'out.csv')
+    # Create a temporary filename for the intermediate extracted source CSV
+    fd, extract_path = tempfile.mkstemp(prefix='openaddr-extracted-', suffix='.csv')
+    os.close(fd)
+    getLogger('openaddr').debug('extract temp file %s', extract_path)
 
-    extract_to_source_csv(source_definition, source_path, extract_path)
-    transform_to_out_csv(source_definition, extract_path, out_path)
+    try:
+        extract_to_source_csv(source_definition, source_path, extract_path)
+        transform_to_out_csv(source_definition, extract_path, dest_path)
+    finally:
+        os.remove(extract_path)
 
     return 0
 
-parser = ArgumentParser(description='Conform a downloaded source file.')
-parser.add_argument('source', help='Required source JSON file name.')
-parser.add_argument('source_data', help='Required pathname to the actual source data file')
-parser.add_argument('workdir', help='Required directory name. Must contain downloaded source file, out.csv created here.')
-parser.add_argument('-l', '--logfile', help='Optional log file name.')
-
 def main():
-    from .jobs import setup_logger
+    "Main entry point for openaddr-pyconform command line tool. (See setup.py)"
+
+    parser = ArgumentParser(description='Conform a downloaded source file.')
+    parser.add_argument('source_json', help='Required source JSON file name.')
+    parser.add_argument('source_path', help='Required pathname to the actual source data file')
+    parser.add_argument('dest_path', help='Required pathname, output file written here.')
+    parser.add_argument('-l', '--logfile', help='Optional log file name.')
     args = parser.parse_args()
+
+    from .jobs import setup_logger
     setup_logger(args.logfile)
 
-    source_definition = json.load(file(args.source))
-    rc = conform_cli(source_definition, args.source_data, args.workdir)
+    source_definition = json.load(file(args.source_json))
+    rc = conform_cli(source_definition, args.source_path, args.dest_path)
     return rc
 
 if __name__ == '__main__':
     exit(main())
+
+
+# Test suite. This code could be in a separate file
+
+import unittest, tempfile, shutil
+class TestPyConformCli (unittest.TestCase):
+    "Test the command line interface creates valid output files from test input"
+    def setUp(self):
+        from . jobs import setup_logger
+        setup_logger(False)
+        self.testdir = tempfile.mkdtemp(prefix='openaddr-testPyConformCli-')
+        self.conforms_dir = os.path.join(os.path.dirname(__file__), '..', 'tests', 'conforms')
+
+    def tearDown(self):
+        shutil.rmtree(self.testdir)
+
+    def test_python_lake_man(self):
+        source_definition = json.load(file(os.path.join(self.conforms_dir, 'lake-man.json')))
+        source_path = os.path.join(self.conforms_dir, 'lake-man.shp')
+        dest_path = os.path.join(self.testdir, 'test_python_lake_man.csv')
+
+        rc = conform_cli(source_definition, source_path, dest_path)
+        self.assertEqual(0, rc)
+
+        with open(dest_path) as fp:
+            reader = unicodecsv.DictReader(fp)
+            self.assertEqual(['LON', 'LAT', 'NUMBER', 'STREET'], reader.fieldnames)
+
+            rows = list(reader)
+
+            self.assertAlmostEqual(float(rows[0]['LAT']), 37.802612637607439)
+            self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824)
+
+            self.assertEqual(rows[0]['NUMBER'], '5115')
+            self.assertEqual(rows[0]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[1]['NUMBER'], '5121')
+            self.assertEqual(rows[1]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[2]['NUMBER'], '5133')
+            self.assertEqual(rows[2]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[3]['NUMBER'], '5126')
+            self.assertEqual(rows[3]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[4]['NUMBER'], '5120')
+            self.assertEqual(rows[4]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[5]['NUMBER'], '5115')
+            self.assertEqual(rows[5]['STREET'], 'OLD MILL RD')
