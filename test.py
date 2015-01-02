@@ -279,27 +279,6 @@ class TestConform (unittest.TestCase):
             sys.stderr.write("Conform failed %s\n%s%s\n" % (paths.conform, stdoutData, stderrData))
         
         return cmd
-
-    def test_lake_man_split(self):
-        source_path, cache_dir = self._copy_shapefile('lake-man-split')
-        
-        cmd = self._run_node_conform(source_path)
-        self.assertEqual(cmd.returncode, 0)
-        
-        with open(join(cache_dir, 'out.csv')) as file:
-            rows = list(DictReader(file, dialect='excel'))
-            self.assertEqual(rows[0]['NUMBER'], '915')
-            self.assertEqual(rows[0]['STREET'], 'Edward Avenue')
-            self.assertEqual(rows[1]['NUMBER'], '3273')
-            self.assertEqual(rows[1]['STREET'], 'Peter Street')
-            self.assertEqual(rows[2]['NUMBER'], '976')
-            self.assertEqual(rows[2]['STREET'], 'Ford Boulevard')
-            self.assertEqual(rows[3]['NUMBER'], '7055')
-            self.assertEqual(rows[3]['STREET'], 'Saint Rose Avenue')
-            self.assertEqual(rows[4]['NUMBER'], '534')
-            self.assertEqual(rows[4]['STREET'], 'Wallace Avenue')
-            self.assertEqual(rows[5]['NUMBER'], '531')
-            self.assertEqual(rows[5]['STREET'], 'Scofield Avenue')
     
     def test_lake_man_split2(self):
         source_path, cache_dir = self._copy_source('lake-man-split2')
@@ -328,48 +307,7 @@ class TestConform (unittest.TestCase):
             self.assertEqual(rows[4]['STREET'], 'Spectrum Pointe Dr #320')
             self.assertEqual(rows[5]['NUMBER'], '1')
             self.assertEqual(rows[5]['STREET'], 'Spectrum Pointe Dr #320')
-    
-    def test_lake_man_merge_postcode(self):
-        source_path, cache_dir = self._copy_shapefile('lake-man-merge-postcode')
-        
-        cmd = self._run_node_conform(source_path)
-        self.assertEqual(cmd.returncode, 0)
-        
-        with open(join(cache_dir, 'out.csv')) as file:
-            rows = list(DictReader(file, dialect='excel'))
-            self.assertEqual(rows[0]['NUMBER'], '35845')
-            self.assertEqual(rows[0]['STREET'], 'Eklutna Lake Road')
-            self.assertEqual(rows[1]['NUMBER'], '35850')
-            self.assertEqual(rows[1]['STREET'], 'Eklutna Lake Road')
-            self.assertEqual(rows[2]['NUMBER'], '35900')
-            self.assertEqual(rows[2]['STREET'], 'Eklutna Lake Road')
-            self.assertEqual(rows[3]['NUMBER'], '35870')
-            self.assertEqual(rows[3]['STREET'], 'Eklutna Lake Road')
-            self.assertEqual(rows[4]['NUMBER'], '32551')
-            self.assertEqual(rows[4]['STREET'], 'Eklutna Lake Road')
-            self.assertEqual(rows[5]['NUMBER'], '31401')
-            self.assertEqual(rows[5]['STREET'], 'Eklutna Lake Road')
-    
-    def test_lake_man_merge_postcode2(self):
-        source_path, cache_dir = self._copy_shapefile('lake-man-merge-postcode2')
-        
-        cmd = self._run_node_conform(source_path)
-        self.assertEqual(cmd.returncode, 0)
-        
-        with open(join(cache_dir, 'out.csv')) as file:
-            rows = list(DictReader(file, dialect='excel'))
-            self.assertEqual(rows[0]['NUMBER'], '85')
-            self.assertEqual(rows[0]['STREET'], 'Maitland Drive')
-            self.assertEqual(rows[1]['NUMBER'], '81')
-            self.assertEqual(rows[1]['STREET'], 'Maitland Drive')
-            self.assertEqual(rows[2]['NUMBER'], '92')
-            self.assertEqual(rows[2]['STREET'], 'Maitland Drive')
-            self.assertEqual(rows[3]['NUMBER'], '92')
-            self.assertEqual(rows[3]['STREET'], 'Maitland Drive')
-            self.assertEqual(rows[4]['NUMBER'], '92')
-            self.assertEqual(rows[4]['STREET'], 'Maitland Drive')
-            self.assertEqual(rows[5]['NUMBER'], '92')
-            self.assertEqual(rows[5]['STREET'], 'Maitland Drive')
+
 
 class FakeS3 (S3):
     ''' Just enough S3 to work for tests.

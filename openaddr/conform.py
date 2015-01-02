@@ -282,13 +282,44 @@ def shp_to_csv(source_path, dest_path):
 
 
 ### Row-level conform code. Inputs and outputs are individual rows in a CSV file.
-def tr_extract_to_out(source_definition, row):
+### The input row may or may not be modified in place. The output row is always returned.
+
+def tr_transform_and_convert(sd, row):
+    "Apply the full conform transform and extract operations to a row"
+    c = sd["conform"]
+    if c.has_key("merge"):
+        row = tr_merge_street(sd, row)
+    if c.has_key("advanced_merge"):
+        row = tr_advanced_merge(sd, row)
+    if c.has_key("split"):
+        row = tr_split_address(sd, row)
+    # TODO: expand abbreviations? Node code does, but seems like a bad idea
+    row = tr_convert_to_out(sd, row)
+    return row
+
+def tr_merge_street(sd, row):
+    "Merge multiple columns like 'Maple','St' to 'Maple St'"
+    merge_data = [row[field] for field in sd["conform"]["merge"]]
+    row['auto_street'] = ' '.join(merge_data)
+    return row
+
+def tr_advanced_merge(sd, row):
+    assert False
+
+def tr_split_address(sd, row):
+    "Split addresses like '123 Maple St' into '123' and 'Maple St'"
+    n, s = row[sd["conform"]["split"]].split(' ', 1)  # maxsplit
+    row['auto_number'] = n
+    row['auto_street'] = s
+    return row
+
+def tr_convert_to_out(sd, row):
     "Convert a row from the source schema to OpenAddresses output schema"
     return {
-        "LON": row.get(source_definition["conform"]["lon"], None),
-        "LAT": row.get(source_definition["conform"]["lat"], None),
-        "NUMBER": row.get(source_definition["conform"]["number"], None),
-        "STREET": row.get(source_definition["conform"]["street"], None)
+        "LON": row.get(sd["conform"]["lon"], None),
+        "LAT": row.get(sd["conform"]["lat"], None),
+        "NUMBER": row.get(sd["conform"]["number"], None),
+        "STREET": row.get(sd["conform"]["street"], None)
     }
 
 ### File-level conform code. Inputs and outputs are filenames.
@@ -324,7 +355,7 @@ def transform_to_out_csv(source_definition, extract_path, dest_path):
             writer.writeheader()
             # For every row in the extract
             for extract_row in reader:
-                out_row = tr_extract_to_out(source_definition, extract_row)
+                out_row = tr_transform_and_convert(source_definition, extract_row)
                 writer.writerow(out_row)
 
 def conform_cli(source_definition, source_path, dest_path):
@@ -371,10 +402,30 @@ import unittest, tempfile, shutil
 
 class TestPyConformTransforms (unittest.TestCase):
     "Test low level data transform functions"
-    def test_tr_extract_to_out(self):
-        source_definition = { "conform": { "street": "s", "number": "n", "lon": "Y", "lat": "X" } }
-        r = tr_extract_to_out(source_definition, {"s": "MAPLE LN", "n": "123", "Y": "-119.2", "X": "39.3"})
+    def test_tr_convert_to_out(self):
+        d = { "conform": { "street": "s", "number": "n", "lon": "Y", "lat": "X" } }
+        r = tr_convert_to_out(d, {"s": "MAPLE LN", "n": "123", "Y": "-119.2", "X": "39.3"})
         self.assertEqual({"LON": "-119.2", "LAT": "39.3", "STREET": "MAPLE LN", "NUMBER": "123"}, r)
+
+    def test_tr_merge_street(self):
+        d = { "conform": { "merge": [ "n", "t" ] } }
+        r = tr_merge_street(d, {"n": "MAPLE", "t": "ST", "x": "foo"})
+        self.assertEqual({"auto_street": "MAPLE ST", "x": "foo", "t": "ST", "n": "MAPLE"}, r)
+
+    def test_split_address(self):
+        d = { "conform": { "split": "ADDRESS" } }
+        r = tr_split_address(d, { "ADDRESS": "123 MAPLE ST" })
+        self.assertEqual({"ADDRESS": "123 MAPLE ST", "auto_street": "MAPLE ST", "auto_number": "123"}, r)
+
+    def test_transform_and_convert(self):
+        d = { "conform": { "street": "auto_street", "number": "n", "merge": ["s1", "s2"], "lon": "Y", "lat": "X" } }
+        r = tr_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", "Y": "-119.2", "X": "39.3" })
+        self.assertEqual({"STREET": "MAPLE ST", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3"}, r)
+
+        d = { "conform": { "street": "auto_street", "number": "auto_number", "split": "s", "lon": "Y", "lat": "X" } }
+        r = tr_transform_and_convert(d, { "s": "123 MAPLE ST", "Y": "-119.2", "X": "39.3" })
+        self.assertEqual({"STREET": "MAPLE ST", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3"}, r)
+
 
 
 class TestPyConformCli (unittest.TestCase):
@@ -388,12 +439,19 @@ class TestPyConformCli (unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.testdir)
 
-    def test_python_lake_man(self):
-        source_definition = json.load(file(os.path.join(self.conforms_dir, 'lake-man.json')))
-        source_path = os.path.join(self.conforms_dir, 'lake-man.shp')
-        dest_path = os.path.join(self.testdir, 'test_python_lake_man.csv')
+    def _source_definition(self, filename):
+        "Load source definition object from test fixture"
+        return json.load(file(os.path.join(self.conforms_dir, filename))) 
 
-        rc = conform_cli(source_definition, source_path, dest_path)
+    def _source_path(self, filename):
+        "Return the path for the source data in the test fixture"
+        return os.path.join(self.conforms_dir, filename)
+
+    def test_lake_man(self):
+        dest_path = os.path.join(self.testdir, 'test_lake_man.csv')
+
+        rc = conform_cli(self._source_definition('lake-man.json'),
+                         self._source_path('lake-man.shp'), dest_path)
         self.assertEqual(0, rc)
 
         with open(dest_path) as fp:
@@ -417,3 +475,69 @@ class TestPyConformCli (unittest.TestCase):
             self.assertEqual(rows[4]['STREET'], 'FRUITED PLAINS LN')
             self.assertEqual(rows[5]['NUMBER'], '5115')
             self.assertEqual(rows[5]['STREET'], 'OLD MILL RD')
+
+    def test_lake_man_split(self):
+        dest_path = os.path.join(self.testdir, 'test_lake_man_split.csv')
+        
+        rc = conform_cli(self._source_definition('lake-man-split.json'),
+                         self._source_path('lake-man-split.shp'), dest_path)
+        self.assertEqual(0, rc)
+        
+        with open(dest_path) as fp:
+            rows = list(unicodecsv.DictReader(fp))
+            self.assertEqual(rows[0]['NUMBER'], '915')
+            self.assertEqual(rows[0]['STREET'], 'EDWARD AVE')
+            self.assertEqual(rows[1]['NUMBER'], '3273')
+            self.assertEqual(rows[1]['STREET'], 'PETER ST')
+            self.assertEqual(rows[2]['NUMBER'], '976')
+            self.assertEqual(rows[2]['STREET'], 'FORD BLVD')
+            self.assertEqual(rows[3]['NUMBER'], '7055')
+            self.assertEqual(rows[3]['STREET'], 'ST ROSE AVE')
+            self.assertEqual(rows[4]['NUMBER'], '534')
+            self.assertEqual(rows[4]['STREET'], 'WALLACE AVE')
+            self.assertEqual(rows[5]['NUMBER'], '531')
+            self.assertEqual(rows[5]['STREET'], 'SCOFIELD AVE')
+
+    def test_lake_man_merge_postcode(self):
+        dest_path = os.path.join(self.testdir, 'test_lake_man_merge_postcode.csv')
+        
+        rc = conform_cli(self._source_definition('lake-man-merge-postcode.json'),
+                         self._source_path('lake-man-merge-postcode.shp'), dest_path)
+        self.assertEqual(0, rc)
+        
+        with open(dest_path) as fp:
+            rows = list(unicodecsv.DictReader(fp))
+            self.assertEqual(rows[0]['NUMBER'], '35845')
+            self.assertEqual(rows[0]['STREET'], 'EKLUTNA LAKE RD')
+            self.assertEqual(rows[1]['NUMBER'], '35850')
+            self.assertEqual(rows[1]['STREET'], 'EKLUTNA LAKE RD')
+            self.assertEqual(rows[2]['NUMBER'], '35900')
+            self.assertEqual(rows[2]['STREET'], 'EKLUTNA LAKE RD')
+            self.assertEqual(rows[3]['NUMBER'], '35870')
+            self.assertEqual(rows[3]['STREET'], 'EKLUTNA LAKE RD')
+            self.assertEqual(rows[4]['NUMBER'], '32551')
+            self.assertEqual(rows[4]['STREET'], 'EKLUTNA LAKE RD')
+            self.assertEqual(rows[5]['NUMBER'], '31401')
+            self.assertEqual(rows[5]['STREET'], 'EKLUTNA LAKE RD')
+    
+    def test_lake_man_merge_postcode2(self):
+        dest_path = os.path.join(self.testdir, 'test_lake_man_merge_postcode2.csv')
+        
+        rc = conform_cli(self._source_definition('lake-man-merge-postcode2.json'),
+                         self._source_path('lake-man-merge-postcode2.shp'), dest_path)
+        self.assertEqual(0, rc)
+        
+        with open(dest_path) as fp:
+            rows = list(unicodecsv.DictReader(fp))
+            self.assertEqual(rows[0]['NUMBER'], '85')
+            self.assertEqual(rows[0]['STREET'], 'MAITLAND DR')
+            self.assertEqual(rows[1]['NUMBER'], '81')
+            self.assertEqual(rows[1]['STREET'], 'MAITLAND DR')
+            self.assertEqual(rows[2]['NUMBER'], '92')
+            self.assertEqual(rows[2]['STREET'], 'MAITLAND DR')
+            self.assertEqual(rows[3]['NUMBER'], '92')
+            self.assertEqual(rows[3]['STREET'], 'MAITLAND DR')
+            self.assertEqual(rows[4]['NUMBER'], '92')
+            self.assertEqual(rows[4]['STREET'], 'MAITLAND DR')
+            self.assertEqual(rows[5]['NUMBER'], '92')
+            self.assertEqual(rows[5]['STREET'], 'MAITLAND DR')

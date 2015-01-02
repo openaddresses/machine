@@ -5,14 +5,14 @@
     "compression": "zip",
     "conform": {
         "merge": [
-            "st_name",
-            "st_type"
+            "ST_NAME",
+            "ST_TYPE"
         ],
-        "lon": "x",
-        "lat": "y",
+        "lon": "X",
+        "lat": "Y",
         "street": "auto_street",
-        "number": "house_num",
+        "number": "HOUSE_NUM",
         "type": "shapefile",
-        "postcode": "zipcode"
+        "postcode": "ZIPCODE"
     }
 }
