@@ -44,12 +44,12 @@ def process(source, destination, extras=dict()):
     #
     # Write output
     #
-    state_path = write_state(source, destination, cache_result, conform_result)
+    state_path = write_state(source, destination, cache_result, conform_result, temp_dir)
 
     rmtree(temp_dir)
     return state_path
 
-def write_state(source, destination, cache_result, conform_result):
+def write_state(source, destination, cache_result, conform_result, temp_dir):
     '''
     '''
     source_id, _ = splitext(basename(source))
@@ -68,10 +68,11 @@ def write_state(source, destination, cache_result, conform_result):
         processed_path2 = join(statedir, 'out{1}'.format(*splitext(processed_path1)))
         copy(processed_path1, processed_path2)
 
-        if conform_result.sample:
-            sample_path = join(dirname(processed_path2), 'sample.json')
-            with open(sample_path, 'w') as sample_file:
-                json.dump(conform_result.sample, sample_file, indent=2)
+    # Write the sample data to a sample.json file
+    if conform_result.sample:
+        sample_path = join(statedir, 'sample.json')
+        with open(sample_path, 'w') as sample_file:
+            json.dump(conform_result.sample, sample_file, indent=2)
     
     output_path = join(statedir, 'output.txt')
 

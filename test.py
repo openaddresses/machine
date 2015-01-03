@@ -105,8 +105,7 @@ class TestOA (unittest.TestCase):
             if 'san_francisco' in source or 'alameda_county' in source:
                 self.assertTrue(bool(state['processed']), "Checking for processed in {}".format(source))
             else:
-                # This might actually need to be false?
-                self.assertTrue(bool(state['processed']), "Checking for processed in {}".format(source))
+                self.assertFalse(bool(state['processed']), "Checking for processed in {}".format(source))
 
         #
         # Check the JSON version of the data.
@@ -158,7 +157,8 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
-        self.assertTrue(state['processed'] is not None)
+        # TODO: re-enable test of processing once conform supports geojson
+        self.assertTrue(state['processed'] is None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point')
         
@@ -168,6 +168,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(len(sample_data), 6)
         self.assertTrue('SITEFRAC' in sample_data[0])
         
+        return   # TODO geojson
         with open(join(dirname(state_path), state['processed'])) as file:
             self.assertTrue('555 E CARSON ST' in file.read())
 
@@ -183,7 +184,8 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
-        self.assertFalse(state['processed'] is None)
+        # This test data does not contain a working conform object
+        self.assertTrue(state['processed'] is None)
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)

@@ -16,12 +16,12 @@
     "compression": "zip",
     "conform": {
         "merge": [
-            "feanme",
-            "featyp"
+            "FEANME",
+            "FEATYP"
         ],
-        "lon": "x",
-        "lat": "y",
-        "number": "st_num",
+        "lon": "X",
+        "lat": "Y",
+        "number": "ST_NUM",
         "street": "auto_street",
         "type": "shapefile"
     }

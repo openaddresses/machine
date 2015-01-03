@@ -166,8 +166,9 @@ def conform(srcjson, destdir, extras):
     data['sample'], data['geometry type'] = task3.excerpt(decompressed_paths, workdir)
 
     task = ConvertToCsvTask()
-    csv_paths = task.convert(decompressed_paths, workdir)
-    data['csv path'] = csv_paths[0]
+    csv_paths = task.convert(data, decompressed_paths, workdir)
+    if len(csv_paths) > 0:
+        data['csv path'] = csv_paths[0]
 
     with open(tmpjson, 'w') as j:
         json.dump(data, j)
@@ -175,13 +176,16 @@ def conform(srcjson, destdir, extras):
     with open(tmpjson, 'r') as tmp_file:
         data = json.load(tmp_file)
 
-    move(data['csv path'], join(destdir, 'out.csv'))
+    out_path = None
+    if data.has_key('csv path') and exists(data['csv path']):
+        move(data['csv path'], join(destdir, 'out.csv'))
+        out_path = realpath(join(destdir, 'out.csv'))
     rmtree(workdir)
 
     return ConformResult(data.get('processed', None),
                          data.get('sample', None),
                          data.get('geometry type', None),
-                         realpath(join(destdir, 'out.csv')),
+                         out_path,
                          datetime.now() - start)
 
 def _wait_for_it(command, seconds):

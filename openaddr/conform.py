@@ -205,7 +205,7 @@ class ConvertToCsvTask(object):
     logger = getLogger('openaddr')
     known_types = ('.shp', '.json', '.csv', '.kml')
 
-    def convert(self, source_paths, workdir):
+    def convert(self, source_definition, source_paths, workdir):
         "Convert a list of source_paths and write results in workdir"
         self.logger.debug("Convert {} {}".format(source_paths, workdir))
 
@@ -228,8 +228,9 @@ class ConvertToCsvTask(object):
                 self.logger.debug("File exists %s", file_path)
                 continue
 
-            shp_to_csv(source_path, file_path)
-            output_files.append(file_path)
+            rc = conform_cli(source_definition, source_path, file_path)
+            if rc == 0:
+                output_files.append(file_path)
 
         return output_files
 
@@ -362,6 +363,12 @@ def conform_cli(source_definition, source_path, dest_path):
     "Command line entry point for conforming a downloaded source to an output CSV."
     # TODO: this tool only works if the source creates a single output
 
+    logger = getLogger('openaddr')
+    if not (source_definition.has_key("conform") and
+            source_definition["conform"].get("type", "") == "shapefile"):
+        logger.warn("Skipping file with unknown conform: %s", source_path)
+        return 1
+
     # Create a temporary filename for the intermediate extracted source CSV
     fd, extract_path = tempfile.mkstemp(prefix='openaddr-extracted-', suffix='.csv')
     os.close(fd)
@@ -446,6 +453,12 @@ class TestPyConformCli (unittest.TestCase):
     def _source_path(self, filename):
         "Return the path for the source data in the test fixture"
         return os.path.join(self.conforms_dir, filename)
+
+    def test_unknown_conform(self):
+        # Test that the conform tool does something reasonable with unknown conform sources
+        self.assertEqual(1, conform_cli({}, 'test', ''))
+        self.assertEqual(1, conform_cli({'conform': {}}, 'test', ''))
+        self.assertEqual(1, conform_cli({'conform': {'type': 'broken'}}, 'test', ''))
 
     def test_lake_man(self):
         dest_path = os.path.join(self.testdir, 'test_lake_man.csv')
