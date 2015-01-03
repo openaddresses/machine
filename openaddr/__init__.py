@@ -149,36 +149,28 @@ def conform(srcjson, destdir, extras):
     if scheme == 'file':
         copy(cache_path, workdir)
 
-    def thread_work():
-        with open(tmpjson, 'r') as j:
-            data = json.load(j)
+    with open(tmpjson, 'r') as j:
+        data = json.load(j)
 
-        source_urls = data.get('cache')
-        if not isinstance(source_urls, list):
-            source_urls = [source_urls]
+    source_urls = data.get('cache')
+    if not isinstance(source_urls, list):
+        source_urls = [source_urls]
 
-        task = URLDownloadTask(source)
-        downloaded_path = task.download(source_urls, workdir)
+    task = URLDownloadTask(source)
+    downloaded_path = task.download(source_urls, workdir)
 
-        task = DecompressionTask.from_type_string(data.get('compression'))
-        decompressed_paths = task.decompress(downloaded_path, workdir)
+    task = DecompressionTask.from_type_string(data.get('compression'))
+    decompressed_paths = task.decompress(downloaded_path, workdir)
 
-        task3 = ExcerptDataTask()
-        data['sample'], data['geometry type'] = task3.excerpt(decompressed_paths, workdir)
+    task3 = ExcerptDataTask()
+    data['sample'], data['geometry type'] = task3.excerpt(decompressed_paths, workdir)
 
-        task = ConvertToCsvTask()
-        csv_paths = task.convert(decompressed_paths, workdir)
-        data['csv path'] = csv_paths[0]
+    task = ConvertToCsvTask()
+    csv_paths = task.convert(decompressed_paths, workdir)
+    data['csv path'] = csv_paths[0]
 
-        with open(tmpjson, 'w') as j:
-            json.dump(data, j)
-
-    p = Process(target=thread_work, name='oa-conform-'+source)
-    p.start()
-    # FIXME: We could add an integer argument to join() for the number of seconds
-    # to wait for this process to finish. On Mac OS X 10.9.4, this step often
-    # stalls out unpredictably. Can't duplicate this behavior on Ubuntu 14.04.
-    p.join()
+    with open(tmpjson, 'w') as j:
+        json.dump(data, j)
 
     with open(tmpjson, 'r') as tmp_file:
         data = json.load(tmp_file)
