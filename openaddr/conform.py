@@ -3,6 +3,7 @@ import errno
 import tempfile
 import unicodecsv
 import json
+import copy
 
 from logging import getLogger
 from zipfile import ZipFile
@@ -287,6 +288,10 @@ def shp_to_csv(source_path, dest_path):
 
 def row_transform_and_convert(sd, row):
     "Apply the full conform transform and extract operations to a row"
+
+    # Some conform specs have fields named with a case different from the source
+    row = row_smash_case(sd, row)
+
     c = sd["conform"]
     if c.has_key("merge"):
         row = row_merge_street(sd, row)
@@ -296,6 +301,22 @@ def row_transform_and_convert(sd, row):
         row = row_split_address(sd, row)
     # TODO: expand abbreviations? Node code does, but seems like a bad idea
     row = row_convert_to_out(sd, row)
+    return row
+
+def conform_smash_case(source_definition):
+    "Convert all named fields in source_definition object to lowercase. Returns new object."
+    new_sd = copy.deepcopy(source_definition)
+    conform = new_sd["conform"]
+    for k in ("split", "lat", "lon", "street", "number"):
+        if conform.has_key(k):
+            conform[k] = conform[k].lower()
+    if conform.has_key("merge"):
+        conform["merge"] = [s.lower() for s in conform["merge"]]
+    return new_sd
+
+def row_smash_case(sd, row):
+    "Convert all field names to lowercase. Slow, but necessary for imprecise conform specs."
+    row = { k.lower(): v for (k, v) in row.items() }
     return row
 
 def row_merge_street(sd, row):
@@ -316,13 +337,11 @@ def row_split_address(sd, row):
 
 def row_convert_to_out(sd, row):
     "Convert a row from the source schema to OpenAddresses output schema"
-    # Copy row to a new row with lowercase fieldnames. Slow, but needed for bad conform specs
-    row = { k.lower(): v for (k, v) in row.items() }
     return {
-        "LON": row.get(sd["conform"]["lon"].lower(), None),
-        "LAT": row.get(sd["conform"]["lat"].lower(), None),
-        "NUMBER": row.get(sd["conform"]["number"].lower(), None),
-        "STREET": row.get(sd["conform"]["street"].lower(), None)
+        "LON": row.get(sd["conform"]["lon"], None),
+        "LAT": row.get(sd["conform"]["lat"], None),
+        "NUMBER": row.get(sd["conform"]["number"], None),
+        "STREET": row.get(sd["conform"]["street"], None)
     }
 
 ### File-level conform code. Inputs and outputs are filenames.
@@ -349,6 +368,9 @@ def transform_to_out_csv(source_definition, extract_path, dest_path):
     extract_path: extracted CSV file to process
     dest_path: path for output file in OpenAddress CSV
     """
+
+    # Convert all field names in the conform spec to lower case
+    source_definition = conform_smash_case(source_definition)
 
     # Read through the extract CSV
     with open(extract_path, 'rb') as extract_fp:
@@ -413,19 +435,19 @@ import unittest, tempfile, shutil
 
 class TestPyConformTransforms (unittest.TestCase):
     "Test low level data transform functions"
+
+    def test_row_smash_case(self):
+        r = row_smash_case(None, {"UPPER": "foo", "lower": "bar", "miXeD": "mixed"})
+        self.assertEqual({"upper": "foo", "lower": "bar", "mixed": "mixed"}, r)
+
+    def test_conform_smash_case(self):
+        d = { "conform": { "street": "MiXeD", "number": "U", "split": "U", "merge": [ "U", "l", "MiXeD" ], "lat": "Y", "lon": "x" } }
+        r = conform_smash_case(d)
+        self.assertEqual({ "conform": { "street": "mixed", "number": "u", "split": "u", "merge": [ "u", "l", "mixed" ], "lat": "y", "lon": "x" } }, r)
+
     def test_row_convert_to_out(self):
         d = { "conform": { "street": "s", "number": "n", "lon": "Y", "lat": "X" } }
         r = row_convert_to_out(d, {"s": "MAPLE LN", "n": "123", "Y": "-119.2", "X": "39.3"})
-        self.assertEqual({"LON": "-119.2", "LAT": "39.3", "STREET": "MAPLE LN", "NUMBER": "123"}, r)
-
-        # Conform spec lowercase, but data columns uppercase
-        d = { "conform": { "street": "s", "number": "n", "lon": "y", "lat": "x" } }
-        r = row_convert_to_out(d, {"S": "MAPLE LN", "N": "123", "Y": "-119.2", "X": "39.3"})
-        self.assertEqual({"LON": "-119.2", "LAT": "39.3", "STREET": "MAPLE LN", "NUMBER": "123"}, r)
-
-        # Mixed case that doesn't match
-        d = { "conform": { "street": "streetName", "number": "n", "lon": "y", "lat": "x" } }
-        r = row_convert_to_out(d, {"StreetName": "MAPLE LN", "N": "123", "Y": "-119.2", "X": "39.3"})
         self.assertEqual({"LON": "-119.2", "LAT": "39.3", "STREET": "MAPLE LN", "NUMBER": "123"}, r)
 
     def test_row_merge_street(self):
@@ -439,11 +461,11 @@ class TestPyConformTransforms (unittest.TestCase):
         self.assertEqual({"ADDRESS": "123 MAPLE ST", "auto_street": "MAPLE ST", "auto_number": "123"}, r)
 
     def test_transform_and_convert(self):
-        d = { "conform": { "street": "auto_street", "number": "n", "merge": ["s1", "s2"], "lon": "Y", "lat": "X" } }
+        d = { "conform": { "street": "auto_street", "number": "n", "merge": ["s1", "s2"], "lon": "y", "lat": "x" } }
         r = row_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", "Y": "-119.2", "X": "39.3" })
         self.assertEqual({"STREET": "MAPLE ST", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3"}, r)
 
-        d = { "conform": { "street": "auto_street", "number": "auto_number", "split": "s", "lon": "Y", "lat": "X" } }
+        d = { "conform": { "street": "auto_street", "number": "auto_number", "split": "s", "lon": "y", "lat": "x" } }
         r = row_transform_and_convert(d, { "s": "123 MAPLE ST", "Y": "-119.2", "X": "39.3" })
         self.assertEqual({"STREET": "MAPLE ST", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3"}, r)
 
