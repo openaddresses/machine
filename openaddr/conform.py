@@ -316,11 +316,13 @@ def row_split_address(sd, row):
 
 def row_convert_to_out(sd, row):
     "Convert a row from the source schema to OpenAddresses output schema"
+    # Copy row to a new row with lowercase fieldnames. Slow, but needed for bad conform specs
+    row = { k.lower(): v for (k, v) in row.items() }
     return {
-        "LON": row.get(sd["conform"]["lon"], None),
-        "LAT": row.get(sd["conform"]["lat"], None),
-        "NUMBER": row.get(sd["conform"]["number"], None),
-        "STREET": row.get(sd["conform"]["street"], None)
+        "LON": row.get(sd["conform"]["lon"].lower(), None),
+        "LAT": row.get(sd["conform"]["lat"].lower(), None),
+        "NUMBER": row.get(sd["conform"]["number"].lower(), None),
+        "STREET": row.get(sd["conform"]["street"].lower(), None)
     }
 
 ### File-level conform code. Inputs and outputs are filenames.
@@ -412,6 +414,16 @@ class TestPyConformTransforms (unittest.TestCase):
     def test_row_convert_to_out(self):
         d = { "conform": { "street": "s", "number": "n", "lon": "Y", "lat": "X" } }
         r = row_convert_to_out(d, {"s": "MAPLE LN", "n": "123", "Y": "-119.2", "X": "39.3"})
+        self.assertEqual({"LON": "-119.2", "LAT": "39.3", "STREET": "MAPLE LN", "NUMBER": "123"}, r)
+
+        # Conform spec lowercase, but data columns uppercase
+        d = { "conform": { "street": "s", "number": "n", "lon": "y", "lat": "x" } }
+        r = row_convert_to_out(d, {"S": "MAPLE LN", "N": "123", "Y": "-119.2", "X": "39.3"})
+        self.assertEqual({"LON": "-119.2", "LAT": "39.3", "STREET": "MAPLE LN", "NUMBER": "123"}, r)
+
+        # Mixed case that doesn't match
+        d = { "conform": { "street": "streetName", "number": "n", "lon": "y", "lat": "x" } }
+        r = row_convert_to_out(d, {"StreetName": "MAPLE LN", "N": "123", "Y": "-119.2", "X": "39.3"})
         self.assertEqual({"LON": "-119.2", "LAT": "39.3", "STREET": "MAPLE LN", "NUMBER": "123"}, r)
 
     def test_row_merge_street(self):
