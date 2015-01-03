@@ -336,7 +336,8 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     to longitude and latitude in EPSG:4326.
     """
     # TODO: handle non-SHP sources
-    assert source_definition["conform"]["type"] == "shapefile"
+    assert (source_definition["conform"]["type"] == "shapefile" or
+            source_definition["conform"]["type"] == "shapefile-polygon")
     shp_to_csv(source_path, extract_path)
 
 # The canonical output schema for conform
@@ -366,8 +367,9 @@ def conform_cli(source_definition, source_path, dest_path):
     # TODO: this tool only works if the source creates a single output
 
     logger = getLogger('openaddr')
-    if not (source_definition.has_key("conform") and
-            source_definition["conform"].get("type", "") == "shapefile"):
+    if not source_definition.has_key("conform"):
+        return 1
+    if not source_definition["conform"].get("type", None) in ["shapefile", "shapefile-polygon"]:
         logger.warn("Skipping file with unknown conform: %s", source_path)
         return 1
 
