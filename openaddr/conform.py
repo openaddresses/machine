@@ -330,9 +330,9 @@ def row_advanced_merge(sd, row):
 
 def row_split_address(sd, row):
     "Split addresses like '123 Maple St' into '123' and 'Maple St'"
-    n, s = row[sd["conform"]["split"]].split(' ', 1)  # maxsplit
-    row['auto_number'] = n
-    row['auto_street'] = s
+    cols = row[sd["conform"]["split"]].split(' ', 1)  # maxsplit
+    row['auto_number'] = cols[0]
+    row['auto_street'] = cols[1] if len(cols) > 1 else ''
     return row
 
 def row_convert_to_out(sd, row):
@@ -459,6 +459,12 @@ class TestPyConformTransforms (unittest.TestCase):
         d = { "conform": { "split": "ADDRESS" } }
         r = row_split_address(d, { "ADDRESS": "123 MAPLE ST" })
         self.assertEqual({"ADDRESS": "123 MAPLE ST", "auto_street": "MAPLE ST", "auto_number": "123"}, r)
+        r = row_split_address(d, { "ADDRESS": "265" })
+        self.assertEqual(r["auto_number"], "265")
+        self.assertEqual(r["auto_street"], "")
+        r = row_split_address(d, { "ADDRESS": "" })
+        self.assertEqual(r["auto_number"], "")
+        self.assertEqual(r["auto_street"], "")
 
     def test_transform_and_convert(self):
         d = { "conform": { "street": "auto_street", "number": "n", "merge": ["s1", "s2"], "lon": "y", "lat": "x" } }
