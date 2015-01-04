@@ -26,6 +26,7 @@ from openaddr import paths, cache, conform, jobs, S3, process_all, process_one
 from openaddr.sample import TestSample
 from openaddr.conform import TestPyConformCli
 from openaddr.conform import TestPyConformTransforms
+from openaddr.expand import TestExpand
 
 class TestOA (unittest.TestCase):
     

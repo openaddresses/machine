@@ -10,6 +10,7 @@ from zipfile import ZipFile
 from argparse import ArgumentParser
 
 from .sample import sample_geojson
+from .expand import expand_street_name
 
 from osgeo import ogr, osr
 ogr.UseExceptions()
@@ -299,8 +300,8 @@ def row_transform_and_convert(sd, row):
         row = row_advanced_merge(sd, row)
     if c.has_key("split"):
         row = row_split_address(sd, row)
-    # TODO: expand abbreviations? Node code does, but seems like a bad idea
     row = row_convert_to_out(sd, row)
+    row = row_canonicalize_street_and_number(sd, row)
     return row
 
 def conform_smash_case(source_definition):
@@ -333,6 +334,12 @@ def row_split_address(sd, row):
     cols = row[sd["conform"]["split"]].split(' ', 1)  # maxsplit
     row['auto_number'] = cols[0]
     row['auto_street'] = cols[1] if len(cols) > 1 else ''
+    return row
+
+def row_canonicalize_street_and_number(sd, row):
+    "Expand abbreviations and otherwise canonicalize street name and number"
+    row["NUMBER"] = row["NUMBER"].strip()
+    row["STREET"] = expand_street_name(row["STREET"])
     return row
 
 def row_convert_to_out(sd, row):
@@ -469,12 +476,16 @@ class TestPyConformTransforms (unittest.TestCase):
     def test_transform_and_convert(self):
         d = { "conform": { "street": "auto_street", "number": "n", "merge": ["s1", "s2"], "lon": "y", "lat": "x" } }
         r = row_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", "Y": "-119.2", "X": "39.3" })
-        self.assertEqual({"STREET": "MAPLE ST", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3"}, r)
+        self.assertEqual({"STREET": "Maple Street", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3"}, r)
 
         d = { "conform": { "street": "auto_street", "number": "auto_number", "split": "s", "lon": "y", "lat": "x" } }
         r = row_transform_and_convert(d, { "s": "123 MAPLE ST", "Y": "-119.2", "X": "39.3" })
-        self.assertEqual({"STREET": "MAPLE ST", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3"}, r)
+        self.assertEqual({"STREET": "Maple Street", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3"}, r)
 
+    def test_row_canonicalize_street_and_number(self):
+        r = row_canonicalize_street_and_number({}, {"NUMBER": "324 ", "STREET": " OAK DR."})
+        self.assertEqual("324", r["NUMBER"])
+        self.assertEqual("Oak Drive", r["STREET"])
 
 
 class TestPyConformCli (unittest.TestCase):
@@ -519,17 +530,17 @@ class TestPyConformCli (unittest.TestCase):
             self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824)
 
             self.assertEqual(rows[0]['NUMBER'], '5115')
-            self.assertEqual(rows[0]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[0]['STREET'], 'Fruited Plains Lane')
             self.assertEqual(rows[1]['NUMBER'], '5121')
-            self.assertEqual(rows[1]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[1]['STREET'], 'Fruited Plains Lane')
             self.assertEqual(rows[2]['NUMBER'], '5133')
-            self.assertEqual(rows[2]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[2]['STREET'], 'Fruited Plains Lane')
             self.assertEqual(rows[3]['NUMBER'], '5126')
-            self.assertEqual(rows[3]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[3]['STREET'], 'Fruited Plains Lane')
             self.assertEqual(rows[4]['NUMBER'], '5120')
-            self.assertEqual(rows[4]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[4]['STREET'], 'Fruited Plains Lane')
             self.assertEqual(rows[5]['NUMBER'], '5115')
-            self.assertEqual(rows[5]['STREET'], 'OLD MILL RD')
+            self.assertEqual(rows[5]['STREET'], 'Old Mill Road')
 
     def test_lake_man_split(self):
         dest_path = os.path.join(self.testdir, 'test_lake_man_split.csv')
@@ -541,17 +552,17 @@ class TestPyConformCli (unittest.TestCase):
         with open(dest_path) as fp:
             rows = list(unicodecsv.DictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '915')
-            self.assertEqual(rows[0]['STREET'], 'EDWARD AVE')
+            self.assertEqual(rows[0]['STREET'], 'Edward Avenue')
             self.assertEqual(rows[1]['NUMBER'], '3273')
-            self.assertEqual(rows[1]['STREET'], 'PETER ST')
+            self.assertEqual(rows[1]['STREET'], 'Peter Street')
             self.assertEqual(rows[2]['NUMBER'], '976')
-            self.assertEqual(rows[2]['STREET'], 'FORD BLVD')
+            self.assertEqual(rows[2]['STREET'], 'Ford Boulevard')
             self.assertEqual(rows[3]['NUMBER'], '7055')
-            self.assertEqual(rows[3]['STREET'], 'ST ROSE AVE')
+            self.assertEqual(rows[3]['STREET'], 'Saint Rose Avenue')
             self.assertEqual(rows[4]['NUMBER'], '534')
-            self.assertEqual(rows[4]['STREET'], 'WALLACE AVE')
+            self.assertEqual(rows[4]['STREET'], 'Wallace Avenue')
             self.assertEqual(rows[5]['NUMBER'], '531')
-            self.assertEqual(rows[5]['STREET'], 'SCOFIELD AVE')
+            self.assertEqual(rows[5]['STREET'], 'Scofield Avenue')
 
     def test_lake_man_merge_postcode(self):
         dest_path = os.path.join(self.testdir, 'test_lake_man_merge_postcode.csv')
@@ -563,17 +574,17 @@ class TestPyConformCli (unittest.TestCase):
         with open(dest_path) as fp:
             rows = list(unicodecsv.DictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '35845')
-            self.assertEqual(rows[0]['STREET'], 'EKLUTNA LAKE RD')
+            self.assertEqual(rows[0]['STREET'], 'Eklutna Lake Road')
             self.assertEqual(rows[1]['NUMBER'], '35850')
-            self.assertEqual(rows[1]['STREET'], 'EKLUTNA LAKE RD')
+            self.assertEqual(rows[1]['STREET'], 'Eklutna Lake Road')
             self.assertEqual(rows[2]['NUMBER'], '35900')
-            self.assertEqual(rows[2]['STREET'], 'EKLUTNA LAKE RD')
+            self.assertEqual(rows[2]['STREET'], 'Eklutna Lake Road')
             self.assertEqual(rows[3]['NUMBER'], '35870')
-            self.assertEqual(rows[3]['STREET'], 'EKLUTNA LAKE RD')
+            self.assertEqual(rows[3]['STREET'], 'Eklutna Lake Road')
             self.assertEqual(rows[4]['NUMBER'], '32551')
-            self.assertEqual(rows[4]['STREET'], 'EKLUTNA LAKE RD')
+            self.assertEqual(rows[4]['STREET'], 'Eklutna Lake Road')
             self.assertEqual(rows[5]['NUMBER'], '31401')
-            self.assertEqual(rows[5]['STREET'], 'EKLUTNA LAKE RD')
+            self.assertEqual(rows[5]['STREET'], 'Eklutna Lake Road')
     
     def test_lake_man_merge_postcode2(self):
         dest_path = os.path.join(self.testdir, 'test_lake_man_merge_postcode2.csv')
@@ -585,14 +596,14 @@ class TestPyConformCli (unittest.TestCase):
         with open(dest_path) as fp:
             rows = list(unicodecsv.DictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '85')
-            self.assertEqual(rows[0]['STREET'], 'MAITLAND DR')
+            self.assertEqual(rows[0]['STREET'], 'Maitland Drive')
             self.assertEqual(rows[1]['NUMBER'], '81')
-            self.assertEqual(rows[1]['STREET'], 'MAITLAND DR')
+            self.assertEqual(rows[1]['STREET'], 'Maitland Drive')
             self.assertEqual(rows[2]['NUMBER'], '92')
-            self.assertEqual(rows[2]['STREET'], 'MAITLAND DR')
+            self.assertEqual(rows[2]['STREET'], 'Maitland Drive')
             self.assertEqual(rows[3]['NUMBER'], '92')
-            self.assertEqual(rows[3]['STREET'], 'MAITLAND DR')
+            self.assertEqual(rows[3]['STREET'], 'Maitland Drive')
             self.assertEqual(rows[4]['NUMBER'], '92')
-            self.assertEqual(rows[4]['STREET'], 'MAITLAND DR')
+            self.assertEqual(rows[4]['STREET'], 'Maitland Drive')
             self.assertEqual(rows[5]['NUMBER'], '92')
-            self.assertEqual(rows[5]['STREET'], 'MAITLAND DR')
+            self.assertEqual(rows[5]['STREET'], 'Maitland Drive')
