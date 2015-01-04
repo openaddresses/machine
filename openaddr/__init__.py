@@ -140,7 +140,10 @@ def conform(srcjson, destdir, extras):
     source, _ = splitext(basename(srcjson))
     workdir = mkdtemp(prefix='conform-', dir=destdir)
     logger = getLogger('openaddr')
-    tmpjson = _tmp_json(workdir, srcjson, extras)
+    
+    with open(srcjson, 'r') as src_file:
+        data = json.load(src_file)
+        data.update(extras)
     
     #
     # The cached data will be a local path.
@@ -148,9 +151,6 @@ def conform(srcjson, destdir, extras):
     scheme, _, cache_path, _, _, _ = urlparse(extras.get('cache', ''))
     if scheme == 'file':
         copy(cache_path, workdir)
-
-    with open(tmpjson, 'r') as j:
-        data = json.load(j)
 
     source_urls = data.get('cache')
     if not isinstance(source_urls, list):
@@ -163,28 +163,21 @@ def conform(srcjson, destdir, extras):
     decompressed_paths = task.decompress(downloaded_path, workdir)
 
     task3 = ExcerptDataTask()
-    data['sample'], data['geometry type'] = task3.excerpt(decompressed_paths, workdir)
+    sample_path, geometry_type = task3.excerpt(decompressed_paths, workdir)
 
     task = ConvertToCsvTask()
     csv_paths = task.convert(data, decompressed_paths, workdir)
-    if len(csv_paths) > 0:
-        data['csv path'] = csv_paths[0]
-
-    with open(tmpjson, 'w') as j:
-        json.dump(data, j)
-
-    with open(tmpjson, 'r') as tmp_file:
-        data = json.load(tmp_file)
 
     out_path = None
-    if data.has_key('csv path') and exists(data['csv path']):
-        move(data['csv path'], join(destdir, 'out.csv'))
+    if len(csv_paths) and exists(csv_paths[0]):
+        move(csv_paths[0], join(destdir, 'out.csv'))
         out_path = realpath(join(destdir, 'out.csv'))
+
     rmtree(workdir)
 
     return ConformResult(data.get('processed', None),
-                         data.get('sample', None),
-                         data.get('geometry type', None),
+                         sample_path,
+                         geometry_type,
                          out_path,
                          datetime.now() - start)
 
