@@ -493,13 +493,14 @@ class TestPyConformCli (unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.testdir)
 
-    def _source_definition(self, filename):
-        "Load source definition object from test fixture"
-        return json.load(file(os.path.join(self.conforms_dir, filename))) 
+    def _run_conform_on_shp(self, source_name):
+        "Helper method to run a conform on the named source. Assumes naming convention."
+        source_definition = json.load(file(os.path.join(self.conforms_dir, "%s.json" % source_name)))
+        source_path = os.path.join(self.conforms_dir, "%s.shp" % source_name)
+        dest_path = os.path.join(self.testdir, '%s-conformed.csv' % source_name)
 
-    def _source_path(self, filename):
-        "Return the path for the source data in the test fixture"
-        return os.path.join(self.conforms_dir, filename)
+        rc = conform_cli(source_definition, source_path, dest_path)
+        return rc, dest_path
 
     def test_unknown_conform(self):
         # Test that the conform tool does something reasonable with unknown conform sources
@@ -508,10 +509,7 @@ class TestPyConformCli (unittest.TestCase):
         self.assertEqual(1, conform_cli({'conform': {'type': 'broken'}}, 'test', ''))
 
     def test_lake_man(self):
-        dest_path = os.path.join(self.testdir, 'test_lake_man.csv')
-
-        rc = conform_cli(self._source_definition('lake-man.json'),
-                         self._source_path('lake-man.shp'), dest_path)
+        rc, dest_path = self._run_conform_on_shp('lake-man')
         self.assertEqual(0, rc)
 
         with open(dest_path) as fp:
@@ -537,10 +535,7 @@ class TestPyConformCli (unittest.TestCase):
             self.assertEqual(rows[5]['STREET'], 'Old Mill Road')
 
     def test_lake_man_split(self):
-        dest_path = os.path.join(self.testdir, 'test_lake_man_split.csv')
-        
-        rc = conform_cli(self._source_definition('lake-man-split.json'),
-                         self._source_path('lake-man-split.shp'), dest_path)
+        rc, dest_path = self._run_conform_on_shp('lake-man-split')
         self.assertEqual(0, rc)
         
         with open(dest_path) as fp:
@@ -559,10 +554,7 @@ class TestPyConformCli (unittest.TestCase):
             self.assertEqual(rows[5]['STREET'], 'Scofield Avenue')
 
     def test_lake_man_merge_postcode(self):
-        dest_path = os.path.join(self.testdir, 'test_lake_man_merge_postcode.csv')
-        
-        rc = conform_cli(self._source_definition('lake-man-merge-postcode.json'),
-                         self._source_path('lake-man-merge-postcode.shp'), dest_path)
+        rc, dest_path = self._run_conform_on_shp('lake-man-merge-postcode')
         self.assertEqual(0, rc)
         
         with open(dest_path) as fp:
@@ -581,10 +573,7 @@ class TestPyConformCli (unittest.TestCase):
             self.assertEqual(rows[5]['STREET'], 'Eklutna Lake Road')
     
     def test_lake_man_merge_postcode2(self):
-        dest_path = os.path.join(self.testdir, 'test_lake_man_merge_postcode2.csv')
-        
-        rc = conform_cli(self._source_definition('lake-man-merge-postcode2.json'),
-                         self._source_path('lake-man-merge-postcode2.shp'), dest_path)
+        rc, dest_path = self._run_conform_on_shp('lake-man-merge-postcode2')
         self.assertEqual(0, rc)
         
         with open(dest_path) as fp:
@@ -603,10 +592,7 @@ class TestPyConformCli (unittest.TestCase):
             self.assertEqual(rows[5]['STREET'], 'Maitland Drive')
 
     def test_lake_man_shp_utf8(self):
-        dest_path = os.path.join(self.testdir, 'test_lake_man_utf8.csv')
-
-        rc = conform_cli(self._source_definition('lake-man-utf8.json'),
-                         self._source_path('lake-man-utf8.shp'), dest_path)
+        rc, dest_path = self._run_conform_on_shp('lake-man-utf8')
         self.assertEqual(0, rc)
         with open(dest_path) as fp:
             rows = list(unicodecsv.DictReader(fp, encoding='utf-8'))
