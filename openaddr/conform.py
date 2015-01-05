@@ -5,7 +5,9 @@ import unicodecsv
 import json
 import copy
 
-from logging import getLogger
+import logging
+_L = logging.getLogger(__name__)
+
 from zipfile import ZipFile
 from argparse import ArgumentParser
 
@@ -93,9 +95,6 @@ class NoopDecompressTask(DecompressionTask):
 
 
 class ZipDecompressTask(DecompressionTask):
-
-    logger = getLogger('openaddr')
-
     def decompress(self, source_paths, workdir):
         output_files = []
         expand_path = os.path.join(workdir, 'unzipped')
@@ -105,14 +104,13 @@ class ZipDecompressTask(DecompressionTask):
             with ZipFile(source_path, 'r') as z:
                 for name in z.namelist():
                     expanded_file_path = z.extract(name, expand_path)
-                    self.logger.debug("Expanded file %s", expanded_file_path)
+                    _L.debug("Expanded file %s", expanded_file_path)
                     output_files.append(expanded_file_path)
         return output_files
 
 class ExcerptDataTask(object):
     ''' Task for sampling three rows of data from datasource.
     '''
-    logger = getLogger('openaddr')
     known_types = ('.shp', '.json', '.csv', '.kml')
 
     def excerpt(self, source_paths, workdir):
@@ -121,7 +119,7 @@ class ExcerptDataTask(object):
             Tested version from openaddr.excerpt() on master branch:
 
             if ext == '.zip':
-                logger.debug('Downloading all of {cache}'.format(**extras))
+                _L.debug('Downloading all of {cache}'.format(**extras))
 
                 with open(cachefile, 'w') as file:
                     for chunk in got.iter_content(1024**2):
@@ -142,7 +140,7 @@ class ExcerptDataTask(object):
                     ds = None
     
             elif ext == '.json':
-                logger.debug('Downloading part of {cache}'.format(**extras))
+                _L.debug('Downloading part of {cache}'.format(**extras))
 
                 scheme, host, path, query, _, _ = urlparse(got.url)
         
@@ -204,12 +202,11 @@ class ExcerptDataTask(object):
         return data_sample, geometry_type
 
 class ConvertToCsvTask(object):
-    logger = getLogger('openaddr')
     known_types = ('.shp', '.json', '.csv', '.kml')
 
     def convert(self, source_definition, source_paths, workdir):
         "Convert a list of source_paths and write results in workdir"
-        self.logger.debug("Convert {} {}".format(source_paths, workdir))
+        _L.debug("Convert %s %s", source_paths, workdir)
 
         # Create a subdirectory "converted" to hold results
         output_files = []
@@ -223,11 +220,11 @@ class ConvertToCsvTask(object):
             file_path = os.path.join(convert_path, basename + '.csv')
 
             if ext not in self.known_types:
-                self.logger.debug("Skipping %s because I don't know how to convert it", source_path)
+                _L.debug("Skipping %s because I don't know how to convert it", source_path)
                 continue
             if os.path.exists(file_path):            # is this ever possible?
                 output_files.append(file_path)
-                self.logger.debug("File exists %s", file_path)
+                _L.debug("File exists %s", file_path)
                 continue
 
             rc = conform_cli(source_definition, source_path, file_path)
@@ -238,13 +235,11 @@ class ConvertToCsvTask(object):
 
 def shp_to_csv(source_path, dest_path):
     "Convert a single shapefile in source_path and put it in dest_path"
-    logger = getLogger('openaddr')
-
     in_datasource = ogr.Open(source_path, 0)
     in_layer = in_datasource.GetLayer()
     inSpatialRef = in_layer.GetSpatialRef()
 
-    logger.info("Converting a layer to CSV: %s", in_layer)
+    _L.info("Converting a layer to CSV: %s", in_layer)
 
     in_layer_defn = in_layer.GetLayerDefn()
     out_fieldnames = []
@@ -395,17 +390,16 @@ def conform_cli(source_definition, source_path, dest_path):
     "Command line entry point for conforming a downloaded source to an output CSV."
     # TODO: this tool only works if the source creates a single output
 
-    logger = getLogger('openaddr')
     if not source_definition.has_key("conform"):
         return 1
     if not source_definition["conform"].get("type", None) in ["shapefile", "shapefile-polygon"]:
-        logger.warn("Skipping file with unknown conform: %s", source_path)
+        _L.warn("Skipping file with unknown conform: %s", source_path)
         return 1
 
     # Create a temporary filename for the intermediate extracted source CSV
     fd, extract_path = tempfile.mkstemp(prefix='openaddr-extracted-', suffix='.csv')
     os.close(fd)
-    getLogger('openaddr').debug('extract temp file %s', extract_path)
+    _L.debug('extract temp file %s', extract_path)
 
     try:
         extract_to_source_csv(source_definition, source_path, extract_path)
