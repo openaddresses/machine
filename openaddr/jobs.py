@@ -6,6 +6,8 @@ from logging import getLogger
 from os.path import isdir
 from time import sleep
 from os import mkdir
+import os.path
+import json
 
 from . import process_one
 
@@ -63,16 +65,17 @@ def _run_process_one(lock, source_queue, destination, source_extras, results):
         with lock:
             results[path] = result
 
-def setup_logger(logfile = None, log_level = logging.DEBUG, log_stderr = True):
+def setup_logger(logfile = None, log_level = logging.DEBUG, log_stderr = True, log_config_file = "~/.openaddr-logging.json"):
     ''' Set up logging for openaddr code.
-        Default configuration is to log warning and above to stderr
-        If logfile is set, logging stream and optional file for 'openaddr' logger.
+        If the file ~/.openaddr-logging.json exists, it will be used as a DictConfig
+        Otherwise a default configuration will be set according to function parameters.
+        Default is to log DEBUG and above to stderr, and nothing to a file.
     '''
     # Get a handle for the openaddr logger and its children
     openaddr_logger = logging.getLogger('openaddr')
 
     # Default logging format. {0} will be replaced with a destination-appropriate timestamp
-    log_format = '%(threadName)11s  {0} %(module)12s:%(lineno)-4d %(levelname)06s: %(message)s'
+    log_format = '%(threadName)11s  {0} %(levelname)06s: %(message)s'
 
     # Set the default log level as requested
     openaddr_logger.setLevel(log_level)
@@ -80,18 +83,28 @@ def setup_logger(logfile = None, log_level = logging.DEBUG, log_stderr = True):
     # Remove all previously installed handlers
     for old_handler in openaddr_logger.handlers:
         openaddr_logger.removeHandler(old_handler)
-    
-    # Set up a logger to stderr
-    if log_stderr:
-        handler1 = logging.StreamHandler()
-        handler1.setFormatter(logging.Formatter(log_format.format('%(relativeCreated)10.1f')))
-        openaddr_logger.addHandler(handler1)
 
-    # Set up a logger to a file
-    if logfile:
-        handler2 = logging.FileHandler(logfile, mode='w')
-        handler2.setFormatter(logging.Formatter(log_format.format('%(asctime)s')))
-        openaddr_logger.addHandler(handler2)
+    log_config_file = os.path.expanduser(log_config_file)
+    if os.path.exists(log_config_file):
+        # Use a JSON config file in the user's home directory if it exists
+        # See http://victorlin.me/posts/2012/08/26/good-logging-practice-in-python
+        log_config_dict = json.load(file(log_config_file))
+        # Override this flag; needs to be set for our module-level loggers to work.
+        log_config_dict['disable_existing_loggers'] = False
+        logging.config.dictConfig(log_config_dict)
+        openaddr_logger.info("Using logger config at %s", log_config_file)
+    else:
+        # No config file? Set up some sensible defaults
+        # Set up a logger to stderr
+        if log_stderr:
+            handler1 = logging.StreamHandler()
+            handler1.setFormatter(logging.Formatter(log_format.format('%(relativeCreated)10.1f')))
+            openaddr_logger.addHandler(handler1)
+        # Set up a logger to a file
+        if logfile:
+            handler2 = logging.FileHandler(logfile, mode='w')
+            handler2.setFormatter(logging.Formatter(log_format.format('%(asctime)s')))
+            openaddr_logger.addHandler(handler2)
 
 def _wait_for_threads(threads, queue):
     ''' Run all the threads and wait for them, but catch interrupts.
