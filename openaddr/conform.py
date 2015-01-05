@@ -601,3 +601,20 @@ class TestPyConformCli (unittest.TestCase):
             self.assertEqual(rows[4]['STREET'], 'Maitland Drive')
             self.assertEqual(rows[5]['NUMBER'], '92')
             self.assertEqual(rows[5]['STREET'], 'Maitland Drive')
+
+    def test_lake_man_shp_utf8(self):
+        dest_path = os.path.join(self.testdir, 'test_lake_man_utf8.csv')
+
+        rc = conform_cli(self._source_definition('lake-man-utf8.json'),
+                         self._source_path('lake-man-utf8.shp'), dest_path)
+        self.assertEqual(0, rc)
+        with open(dest_path) as fp:
+            rows = list(unicodecsv.DictReader(fp, encoding='utf-8'))
+            self.assertEqual(rows[0]['STREET'], u'Pz Espa\u00f1a')
+
+    # TODO: add tests for GeoJSON sources
+    # TODO: add tests for CSV sources
+    # TODO: add test for lake-man-jp.json (CSV, Shift-JIS)
+    # TODO: add test for lake-man-3740.json (CSV, not EPSG 4326)
+    # TODO: add tests for encoding tags
+    # TODO: add tests for SRS tags
