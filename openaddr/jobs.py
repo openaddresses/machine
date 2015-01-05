@@ -1,7 +1,8 @@
 from threading import Thread, Lock
 from collections import OrderedDict
 from multiprocessing import cpu_count
-from logging import getLogger, FileHandler, StreamHandler, Formatter, DEBUG
+import logging
+from logging import getLogger
 from os.path import isdir
 from time import sleep
 from os import mkdir
@@ -62,23 +63,35 @@ def _run_process_one(lock, source_queue, destination, source_extras, results):
         with lock:
             results[path] = result
 
-def setup_logger(logfile):
-    ''' Set up logging stream and optional file for 'openaddr' logger.
+def setup_logger(logfile = None, log_level = logging.DEBUG, log_stderr = True):
+    ''' Set up logging for openaddr code.
+        Default configuration is to log warning and above to stderr
+        If logfile is set, logging stream and optional file for 'openaddr' logger.
     '''
-    format = '%(threadName)11s  {0} %(levelname)06s: %(message)s'
-    getLogger('openaddr').setLevel(DEBUG)
+    # Get a handle for the openaddr logger and its children
+    openaddr_logger = logging.getLogger('openaddr')
 
-    for old_handler in getLogger('openaddr').handlers:
-        getLogger('openaddr').removeHandler(old_handler)
+    # Default logging format. {0} will be replaced with a destination-appropriate timestamp
+    log_format = '%(threadName)11s  {0} %(module)12s:%(lineno)-4d %(levelname)06s: %(message)s'
+
+    # Set the default log level as requested
+    openaddr_logger.setLevel(log_level)
+
+    # Remove all previously installed handlers
+    for old_handler in openaddr_logger.handlers:
+        openaddr_logger.removeHandler(old_handler)
     
-    handler1 = StreamHandler()
-    handler1.setFormatter(Formatter(format.format('%(relativeCreated)10.1f')))
-    getLogger('openaddr').addHandler(handler1)
+    # Set up a logger to stderr
+    if log_stderr:
+        handler1 = logging.StreamHandler()
+        handler1.setFormatter(logging.Formatter(log_format.format('%(relativeCreated)10.1f')))
+        openaddr_logger.addHandler(handler1)
 
+    # Set up a logger to a file
     if logfile:
-        handler2 = FileHandler(logfile, mode='w')
-        handler2.setFormatter(Formatter(format.format('%(asctime)s')))
-        getLogger('openaddr').addHandler(handler2)
+        handler2 = logging.FileHandler(logfile, mode='w')
+        handler2.setFormatter(logging.Formatter(log_format.format('%(asctime)s')))
+        openaddr_logger.addHandler(handler2)
 
 def _wait_for_threads(threads, queue):
     ''' Run all the threads and wait for them, but catch interrupts.
