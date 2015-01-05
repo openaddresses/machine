@@ -1,3 +1,15 @@
+"""
+Run Python test suite via the standard unittest mechanism.
+Usage:
+  python test.py
+  python test.py --logall
+  python test.py TestPyConformTransforms
+  python test.py -l TestOA.test_process
+All logging is suppressed unless --logall or -l specified
+~/.openaddr-logging-test.json can also be used to configure log behavior
+"""
+
+
 from __future__ import absolute_import, division, print_function
 from future import standard_library; standard_library.install_aliases()
 
@@ -8,6 +20,7 @@ import json
 import re
 import sys
 import pickle
+import logging
 from os import close, environ, mkdir, remove
 from io import BytesIO
 from mimetypes import guess_type
@@ -33,8 +46,6 @@ class TestOA (unittest.TestCase):
     def setUp(self):
         ''' Prepare a clean temporary directory, and copy sources there.
         '''
-        jobs.setup_logger(False)
-
         self.testdir = tempfile.mkdtemp(prefix='testOA-')
         self.src_dir = join(self.testdir, 'sources')
         sources_dir = join(dirname(__file__), 'tests', 'sources')
@@ -216,8 +227,6 @@ class TestConform (unittest.TestCase):
     def setUp(self):
         ''' Prepare a clean temporary directory.
         '''
-        jobs.setup_logger(False)
-        
         self.testdir = tempfile.mkdtemp(prefix='testConform-')
         self.conforms_dir = join(dirname(__file__), 'tests', 'conforms')
         
@@ -372,4 +381,13 @@ class FakeKey:
             self.s3._write_fake_key(self.name, file.read())
 
 if __name__ == '__main__':
+    # Allow the user to turn on logging with -l or --logall
+    # unittest.main() has its own command line so we slide this in first
+    level = logging.CRITICAL
+    for i, arg in enumerate(sys.argv[1:]):
+        if arg == "-l" or arg == "--logall":
+            level = logging.DEBUG
+            del sys.argv[i]
+
+    jobs.setup_logger(log_level = level, log_config_file = "~/.openaddr-logging-test.json")
     unittest.main()

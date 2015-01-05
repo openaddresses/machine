@@ -485,8 +485,6 @@ class TestPyConformTransforms (unittest.TestCase):
 class TestPyConformCli (unittest.TestCase):
     "Test the command line interface creates valid output files from test input"
     def setUp(self):
-        from . jobs import setup_logger
-        setup_logger(False)
         self.testdir = tempfile.mkdtemp(prefix='openaddr-testPyConformCli-')
         self.conforms_dir = os.path.join(os.path.dirname(__file__), '..', 'tests', 'conforms')
 
