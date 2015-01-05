@@ -1,0 +1,8 @@
+<OGRVRTDataSource>
+    <OGRVRTLayer name="lake-man-3740">
+        <SrcDataSource>lake-man-3740.csv</SrcDataSource>
+        <GeometryType>wkbPoint</GeometryType>
+        <LayerSRS>EPSG:3740</LayerSRS>
+        <GeometryField encoding="PointFromColumns" x="lon" y="lat"/>
+    </OGRVRTLayer>
+</OGRVRTDataSource>

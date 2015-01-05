@@ -1,0 +1,13 @@
+{
+    "data": "http://fake-web/lake-man-3740",
+    "cache": "http://fake-cache/lake-man-3740.json",
+    "type": "http",
+    "conform": {
+        "lon": "lon",
+        "lat": "lat",
+        "number": "number",
+        "street": "street",
+        "type": "csv",
+        "srs": "EPSG:3740"
+    }
+}
