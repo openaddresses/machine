@@ -201,37 +201,61 @@ class ExcerptDataTask(object):
 
         return data_sample, geometry_type
 
+def find_source_path(source_definition, source_paths):
+    "Figure out which of the possible paths is the actual source"
+    conform = source_definition["conform"]
+    if conform["type"] in ("shapefile", "shapefile-polygon"):
+        # Shapefiles are named *.shp
+        candidates = []
+        for fn in source_paths:
+            basename, ext = os.path.splitext(fn)
+            if ext.lower() == ".shp":
+                candidates.append(fn)
+        if len(candidates) == 0:
+            _L.warning("No shapefiles found in %s", source_paths)
+            return None
+        elif len(candidates) == 1:
+            _L.debug("Selected %s for source", candidates[0])
+            return candidates[0]
+        else:
+            # Multiple candidates; look for the one named by the file attribute
+            if not conform.has_key("file"):
+                _L.warning("Multiple shapefiles found, but source has no file attribute.")
+                return None
+            source_file_name = conform["file"]
+            for c in candidates:
+                if source_file_name == os.path.basename(c):
+                    return c
+            _L.warning("Source names file %s but could not find it", source_file_name)
+            return None
+    else:
+        _L.warning("Unknown source type %s", conform["type"])
+        return None
+
 class ConvertToCsvTask(object):
     known_types = ('.shp', '.json', '.csv', '.kml')
 
     def convert(self, source_definition, source_paths, workdir):
         "Convert a list of source_paths and write results in workdir"
-        _L.debug("Convert %s %s", source_paths, workdir)
+        _L.debug("Converting to %s", workdir)
 
         # Create a subdirectory "converted" to hold results
-        output_files = []
+        output_file = None
         convert_path = os.path.join(workdir, 'converted')
         mkdirsp(convert_path)
 
-        # For every source path, try converting it
-        for source_path in source_paths:
-            filename = os.path.basename(source_path)
-            basename, ext = os.path.splitext(filename)
-            file_path = os.path.join(convert_path, basename + '.csv')
-
-            if ext not in self.known_types:
-                _L.debug("Skipping %s because I don't know how to convert it", source_path)
-                continue
-            if os.path.exists(file_path):            # is this ever possible?
-                output_files.append(file_path)
-                _L.debug("File exists %s", file_path)
-                continue
-
-            rc = conform_cli(source_definition, source_path, file_path)
+        # Find the source and convert it
+        source_path = find_source_path(source_definition, source_paths)
+        if source_path is not None:
+            basename, ext = os.path.splitext(os.path.basename(source_path))
+            dest_path = os.path.join(convert_path, basename + ".csv")
+            rc = conform_cli(source_definition, source_path, dest_path)
             if rc == 0:
-                output_files.append(file_path)
+                # Success! Return the path of the output CSV
+                return dest_path
 
-        return output_files
+        # Conversion must have failed
+        return None
 
 def shp_to_csv(source_path, dest_path):
     "Convert a single shapefile in source_path and put it in dest_path"
@@ -239,7 +263,7 @@ def shp_to_csv(source_path, dest_path):
     in_layer = in_datasource.GetLayer()
     inSpatialRef = in_layer.GetSpatialRef()
 
-    _L.info("Converting a layer to CSV: %s", in_layer)
+    _L.info("Converting a layer to CSV: %s", in_layer.GetName())
 
     in_layer_defn = in_layer.GetLayerDefn()
     out_fieldnames = []
@@ -635,4 +659,23 @@ class TestConformCli (unittest.TestCase):
             self.assertEqual(rows[5]['STREET'], 'Spectrum Pointe Dr #320')
 
 class TestConformMisc(unittest.TestCase):
-    pass
+    def test_find_source_path(self):
+        shp_conform = {"conform": { "type": "shapefile" } }
+        self.assertEqual("foo.shp", find_source_path(shp_conform, ["foo.shp"]))
+        self.assertEqual("FOO.SHP", find_source_path(shp_conform, ["FOO.SHP"]))
+        self.assertEqual("xyzzy/FOO.SHP", find_source_path(shp_conform, ["xyzzy/FOO.SHP"]))
+        self.assertEqual("foo.shp", find_source_path(shp_conform, ["foo.shp", "foo.prj", "foo.shx"]))
+        self.assertEqual(None, find_source_path(shp_conform, ["nope.txt"]))
+        self.assertEqual(None, find_source_path(shp_conform, ["foo.shp", "bar.shp"]))
+
+        shp_file_conform = {"conform": { "type": "shapefile", "file": "foo.shp" } }
+        self.assertEqual("foo.shp", find_source_path(shp_file_conform, ["foo.shp"]))
+        self.assertEqual("foo.shp", find_source_path(shp_file_conform, ["foo.shp", "bar.shp"]))
+        self.assertEqual("xyzzy/foo.shp", find_source_path(shp_file_conform, ["xyzzy/foo.shp", "xyzzy/bar.shp"]))
+
+        shp_poly_conform = {"conform": { "type": "shapefile-polygon" } }
+        self.assertEqual("foo.shp", find_source_path(shp_poly_conform, ["foo.shp"]))
+
+        broken_conform = {"conform": { "type": "broken" }}
+        self.assertEqual(None, find_source_path(broken_conform, ["foo.shp"]))
+

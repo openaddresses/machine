@@ -165,11 +165,11 @@ def conform(srcjson, destdir, extras):
     sample_path, geometry_type = task3.excerpt(decompressed_paths, workdir)
 
     task = ConvertToCsvTask()
-    csv_paths = task.convert(data, decompressed_paths, workdir)
+    csv_path = task.convert(data, decompressed_paths, workdir)
 
     out_path = None
-    if len(csv_paths) and exists(csv_paths[0]):
-        move(csv_paths[0], join(destdir, 'out.csv'))
+    if csv_path is not None and exists(csv_path):
+        move(csv_path, join(destdir, 'out.csv'))
         out_path = realpath(join(destdir, 'out.csv'))
 
     rmtree(workdir)
