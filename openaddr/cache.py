@@ -121,7 +121,7 @@ class URLDownloadTask(DownloadTask):
                 _L.debug("File exists %s", file_path)
                 continue
 
-            _L.debug("Requesting %s", source_url)
+            _L.info("Requesting %s", source_url)
             headers = {'User-Agent': self.USER_AGENT}
 
             try:
