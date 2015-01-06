@@ -1,12 +1,13 @@
 from __future__ import absolute_import, division, print_function
 from future import standard_library; standard_library.install_aliases()
+import logging
+_L = logging.getLogger(__name__)
 
 from argparse import ArgumentParser
 from collections import defaultdict
 from os.path import join, basename, relpath, splitext, dirname
 from csv import writer, DictReader
 from io import BytesIO
-from logging import getLogger
 from datetime import datetime
 from os import environ
 from json import dumps
@@ -79,7 +80,7 @@ def read_state(s3, sourcedir):
     states = defaultdict(lambda: dict(cache_time='zzz', process_time='zzz'))
 
     if state_key:
-        getLogger('openaddr').debug('Found state in {}'.format(state_key.name))
+        _L.debug('Found state in {}'.format(state_key.name))
 
         state_file = BytesIO(state_key.get_contents_as_string())
         rows = DictReader(state_file, dialect='excel-tab')
@@ -99,7 +100,7 @@ def process(s3, sourcedir, run_name):
     '''
     # Find existing cache information
     source_extras = read_state(s3, sourcedir)
-    getLogger('openaddr').info('Loaded {} sources from state.txt'.format(len(source_extras)))
+    _L.info('Loaded {} sources from state.txt'.format(len(source_extras)))
     
     # Cache data, if necessary
     source_files = glob(join(sourcedir, '*.json'))
@@ -151,7 +152,7 @@ def upload_states(s3, states, run_name):
     for values in states[1:]:
         state = dict(zip(columns, values))
         source, _ = splitext(state['source'])
-        getLogger('openaddr').debug('Uploading files for {}'.format(source))
+        _L.debug('Uploading files for {}'.format(source))
         
         yyyymmdd = datetime.utcnow().strftime('%Y%m%d')
         
@@ -202,7 +203,7 @@ def upload_states(s3, states, run_name):
     s3.new_key(json_path).set_contents_from_string(json_data, **json_args)
     s3.new_key('state.json').set_contents_from_string(dumps(json_path), **json_args)
     
-    getLogger('openaddr').info('Wrote {} sources to state'.format(len(new_states) - 1))
+    _L.info('Wrote {} sources to state'.format(len(new_states) - 1))
     
     return new_states
 

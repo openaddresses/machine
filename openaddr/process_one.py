@@ -1,11 +1,12 @@
 from __future__ import absolute_import, division, print_function
 from future import standard_library; standard_library.install_aliases()
+import logging
+_L = logging.getLogger(__name__)
 
 from urllib.parse import urlparse
 from os.path import join, basename, dirname, exists, splitext, relpath
 from shutil import copy, move, rmtree
 from argparse import ArgumentParser
-from logging import getLogger
 from os import mkdir, rmdir
 import tempfile, json, csv
 
@@ -26,10 +27,10 @@ def process(source, destination, extras=dict()):
     cache_result = cache(temp_src, temp_dir, extras)
     
     if not cache_result.cache:
-        getLogger('openaddr').warning('Nothing cached')
+        _L.warning('Nothing cached')
         return write_state(source, destination, cache_result, ConformResult.empty())
     
-    getLogger('openaddr').info('Cached data in {}'.format(cache_result.cache))
+    _L.info('Cached data in {}'.format(cache_result.cache))
 
     #
     # Conform cached source data.
@@ -37,9 +38,9 @@ def process(source, destination, extras=dict()):
     conform_result = conform(temp_src, temp_dir, cache_result.todict())
     
     if not conform_result.path:
-        getLogger('openaddr').warning('Nothing processed')
+        _L.warning('Nothing processed')
     else:
-        getLogger('openaddr').info('Processed data in {}'.format(conform_result.path))
+        _L.info('Processed data in {}'.format(conform_result.path))
     
     #
     # Write output
@@ -100,7 +101,7 @@ def write_state(source, destination, cache_result, conform_result, temp_dir):
     with open(join(statedir, 'index.json'), 'w') as file:
         json.dump(zip(*state), file, indent=2)
                
-        getLogger('openaddr').info('Wrote to state: {}'.format(file.name))
+        _L.info('Wrote to state: {}'.format(file.name))
         return file.name
 
 parser = ArgumentParser(description='Run one source file locally, prints output path.')

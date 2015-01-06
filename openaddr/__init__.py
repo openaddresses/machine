@@ -1,12 +1,13 @@
 from __future__ import absolute_import, division, print_function
 from future import standard_library; standard_library.install_aliases()
+import logging
+_L = logging.getLogger(__name__)
 
 from subprocess import Popen
 from multiprocessing import Process
 from tempfile import mkdtemp
 from os.path import realpath, join, basename, splitext, exists, dirname, abspath
 from shutil import copy, move, rmtree
-from logging import getLogger
 from datetime import datetime
 from os import mkdir, environ
 from time import sleep, time
@@ -69,7 +70,6 @@ def cache(srcjson, destdir, extras):
     start = datetime.now()
     source, _ = splitext(basename(srcjson))
     workdir = mkdtemp(prefix='cache-', dir=destdir)
-    logger = getLogger('openaddr')
     tmpjson = _tmp_json(workdir, srcjson, extras)
 
     def thread_work():
@@ -139,7 +139,6 @@ def conform(srcjson, destdir, extras):
     start = datetime.now()
     source, _ = splitext(basename(srcjson))
     workdir = mkdtemp(prefix='conform-', dir=destdir)
-    logger = getLogger('openaddr')
     
     with open(srcjson, 'r') as src_file:
         data = json.load(src_file)

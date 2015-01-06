@@ -1,8 +1,9 @@
+import logging
+_L = logging.getLogger(__name__)
 from threading import Thread, Lock
 from collections import OrderedDict
 from multiprocessing import cpu_count
 import logging
-from logging import getLogger
 from os.path import isdir
 from time import sleep
 from os import mkdir
@@ -17,7 +18,7 @@ def _run_timer(source_queue, interval):
     sleep(interval)
 
     while source_queue:
-        getLogger('openaddr').debug('{0} source files remain'.format(len(source_queue)))
+        _L.debug('{0} source files remain'.format(len(source_queue)))
         sleep(interval)
 
 def run_all_process_ones(source_files, destination, source_extras):
@@ -56,10 +57,10 @@ def _run_process_one(lock, source_queue, destination, source_extras, results):
                 except OSError:
                     pass
         
-            getLogger('openaddr').info(path)
+            _L.info(path)
             result = process_one.process(path, destination, extras)
         except:
-            getLogger('openaddr').error('Error while running process_one.process', exc_info=True)
+            _L.error('Error while running process_one.process', exc_info=True)
             result = None
         
         with lock:
@@ -126,7 +127,7 @@ def _wait_for_threads(threads, queue):
                     break
 
     except (KeyboardInterrupt, SystemExit):
-        getLogger('openaddr').info('Cancel with {0} tasks left'.format(len(queue)))
+        _L.info('Cancel with {0} tasks left'.format(len(queue)))
         while queue:
             # Empty the queue to stop the threads.
             queue.pop()

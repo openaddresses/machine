@@ -1,5 +1,7 @@
 from __future__ import absolute_import, division, print_function
 from future import standard_library; standard_library.install_aliases()
+import logging
+_L = logging.getLogger(__name__)
 
 import json
 import os
@@ -8,7 +10,6 @@ import socket
 import mimetypes
 import shutil
 
-from logging import getLogger
 from urllib.parse import urlencode, urlparse
 from hashlib import sha1
 
@@ -75,8 +76,6 @@ class URLDownloadTask(DownloadTask):
     USER_AGENT = 'openaddresses-extract/1.0 (https://github.com/openaddresses/openaddresses)'
     CHUNK = 16 * 1024
 
-    logger = getLogger('openaddr')
-    
     def get_file_path(self, url, dir_path):
         ''' Return a local file path in a directory for a URL.
         
@@ -96,9 +95,9 @@ class URLDownloadTask(DownloadTask):
         if not path_ext:
             resp = requests.head(url)
             path_ext = mimetypes.guess_extension(resp.headers['content-type'])
-            self.logger.debug('Guessing {}{} for {}'.format(name_base, path_ext, resp.headers['content-type']))
+            _L.debug('Guessing {}{} for {}'.format(name_base, path_ext, resp.headers['content-type']))
         
-        self.logger.debug('Downloading {} to {}{}'.format(path, name_base, path_ext))
+        _L.debug('Downloading {} to {}{}'.format(path, name_base, path_ext))
         
         return os.path.join(dir_path, name_base + path_ext)
 
@@ -119,10 +118,10 @@ class URLDownloadTask(DownloadTask):
 
             if os.path.exists(file_path):
                 output_files.append(file_path)
-                self.logger.debug("File exists %s", file_path)
+                _L.debug("File exists %s", file_path)
                 continue
 
-            self.logger.debug("Requesting %s", source_url)
+            _L.debug("Requesting %s", source_url)
             headers = {'User-Agent': self.USER_AGENT}
 
             try:
@@ -138,15 +137,13 @@ class URLDownloadTask(DownloadTask):
 
             output_files.append(file_path)
 
-            self.logger.info("Downloaded %s bytes for file %s", size, file_path)
+            _L.info("Downloaded %s bytes for file %s", size, file_path)
 
         return output_files
 
 
 class EsriRestDownloadTask(DownloadTask):
     USER_AGENT = 'openaddresses-extract/1.0 (https://github.com/openaddresses/openaddresses)'
-
-    logger = getLogger('openaddr')
 
     def convert_esrijson_to_geojson(self, geom_type, esri_feature):
         if geom_type == 'esriGeometryPoint':
@@ -200,7 +197,7 @@ class EsriRestDownloadTask(DownloadTask):
         # With no source prefix like "us-ca-oakland" use the host as a hint.
         name_base = '{}-{}'.format(self.source_prefix or host, hash.hexdigest()[:8])
         
-        self.logger.debug('Downloading {} to {}{}'.format(path, name_base, path_ext))
+        _L.debug('Downloading {} to {}{}'.format(path, name_base, path_ext))
         
         return os.path.join(dir_path, name_base + path_ext)
 
@@ -215,7 +212,7 @@ class EsriRestDownloadTask(DownloadTask):
 
             if os.path.exists(file_path):
                 output_files.append(file_path)
-                self.logger.debug("File exists %s", file_path)
+                _L.debug("File exists %s", file_path)
                 continue
 
             with open(file_path, 'w') as f:
@@ -234,7 +231,7 @@ class EsriRestDownloadTask(DownloadTask):
                     })
                     query_url += '?' + query_args
 
-                    self.logger.debug("Requesting %s", query_url)
+                    _L.debug("Requesting %s", query_url)
                     headers = {'User-Agent': self.USER_AGENT}
 
                     try:
@@ -268,6 +265,6 @@ class EsriRestDownloadTask(DownloadTask):
                         start += width
 
                 f.write('\n]\n}\n')
-            self.logger.info("Downloaded %s ESRI features for file %s", size, file_path)
+            _L.info("Downloaded %s ESRI features for file %s", size, file_path)
             output_files.append(file_path)
         return output_files
