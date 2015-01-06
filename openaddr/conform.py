@@ -435,7 +435,7 @@ if __name__ == '__main__':
 
 import unittest, tempfile, shutil
 
-class TestPyConformTransforms (unittest.TestCase):
+class TestConformTransforms (unittest.TestCase):
     "Test low level data transform functions"
 
     def test_row_smash_case(self):
@@ -483,7 +483,7 @@ class TestPyConformTransforms (unittest.TestCase):
         self.assertEqual("Oak Drive", r["STREET"])
 
 
-class TestPyConformCli (unittest.TestCase):
+class TestConformCli (unittest.TestCase):
     "Test the command line interface creates valid output files from test input"
     def setUp(self):
         self.testdir = tempfile.mkdtemp(prefix='openaddr-testPyConformCli-')
@@ -603,3 +603,36 @@ class TestPyConformCli (unittest.TestCase):
     # TODO: add test for lake-man-3740.json (CSV, not EPSG 4326)
     # TODO: add tests for encoding tags
     # TODO: add tests for SRS tags
+
+    @unittest.skip("Enable the test below when GeoJSON support is enabled")
+    def test_lake_man_split2(self):
+        return
+        source_path, cache_dir = self._copy_source('lake-man-split2')
+
+        shutil.copyfile(join(self.conforms_dir, 'lake-man-split2.geojson'),
+                        join(cache_dir, 'lake-man-split2.json'))
+
+        # No clue why Node errors here. TODO: figure it out.
+        return
+
+        cmd = self._run_node_conform(source_path)
+        self.assertEqual(cmd.returncode, 0)
+
+        with open(join(cache_dir, 'out.csv')) as file:
+            rows = list(DictReader(file, dialect='excel'))
+            import pprint; pprint.pprint(rows)
+            self.assertEqual(rows[0]['NUMBER'], '1')
+            self.assertEqual(rows[0]['STREET'], 'Spectrum Pointe Dr #320')
+            self.assertEqual(rows[1]['NUMBER'], '')
+            self.assertEqual(rows[1]['STREET'], '')
+            self.assertEqual(rows[2]['NUMBER'], '300')
+            self.assertEqual(rows[2]['STREET'], 'E Chapman Ave')
+            self.assertEqual(rows[3]['NUMBER'], '1')
+            self.assertEqual(rows[3]['STREET'], 'Spectrum Pointe Dr #320')
+            self.assertEqual(rows[4]['NUMBER'], '1')
+            self.assertEqual(rows[4]['STREET'], 'Spectrum Pointe Dr #320')
+            self.assertEqual(rows[5]['NUMBER'], '1')
+            self.assertEqual(rows[5]['STREET'], 'Spectrum Pointe Dr #320')
+
+class TestConformMisc(unittest.TestCase):
+    pass

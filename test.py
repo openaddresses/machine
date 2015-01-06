@@ -3,7 +3,7 @@ Run Python test suite via the standard unittest mechanism.
 Usage:
   python test.py
   python test.py --logall
-  python test.py TestPyConformTransforms
+  python test.py TestConformTransforms
   python test.py -l TestOA.test_process
 All logging is suppressed unless --logall or -l specified
 ~/.openaddr-logging-test.json can also be used to configure log behavior
@@ -37,8 +37,7 @@ from httmock import response, HTTMock
         
 from openaddr import paths, cache, conform, jobs, S3, process_all, process_one
 from openaddr.sample import TestSample
-from openaddr.conform import TestPyConformCli
-from openaddr.conform import TestPyConformTransforms
+from openaddr.conform import TestConformCli, TestConformTransforms, TestConformMisc
 from openaddr.expand import TestExpand
 
 class TestOA (unittest.TestCase):
@@ -212,114 +211,6 @@ def locked_open(filename):
         lockf(file, LOCK_EX)
         yield file
         lockf(file, LOCK_UN)
-
-class TestConform (unittest.TestCase):
-    '''
-    (u'lat', u'lon', u'number', u'split', u'street', u'type')
-    (u'lat', u'lon', u'merge', u'number', u'postcode', u'street', u'type')
-    (u'lat', u'lon', u'merge', u'number', u'street', u'type')
-    (u'lat', u'lon', u'number', u'street', u'type')
-    (u'advanced_merge', u'encoding', u'lat', u'lon', u'number', u'srs', u'street', u'type')
-    (u'lat', u'lon', u'number', u'postcode', u'split', u'street', u'type')
-    (u'lat', u'lon', u'number', u'postcode', u'street', u'type')
-    (u'file', u'lat', u'lon', u'number', u'street', u'type')
-    '''
-    def setUp(self):
-        ''' Prepare a clean temporary directory.
-        '''
-        self.testdir = tempfile.mkdtemp(prefix='testConform-')
-        self.conforms_dir = join(dirname(__file__), 'tests', 'conforms')
-        
-        self.s3 = FakeS3()
-    
-    def tearDown(self):
-        shutil.rmtree(self.testdir)
-        remove(self.s3._fake_keys)
-    
-    def response_content(self, url, request):
-        ''' Fake HTTP responses for use with HTTMock in tests.
-        '''
-        _, host, path, _, query, _ = urlparse(url.geturl())
-        data_dirname = join(dirname(__file__), 'tests', 'data')
-        local_path = None
-        
-        if host == 'fake-cache':
-            local_path = join(self.conforms_dir, basename(path))
-        
-        if host == 'fake-s3':
-            return response(200, self.s3._read_fake_key(path))
-        
-        if local_path:
-            type, _ = guess_type(local_path)
-            with open(local_path) as file:
-                return response(200, file.read(), headers={'Content-Type': type})
-        
-        raise NotImplementedError(url.geturl())
-    
-    def _copy_source(self, source_name):
-        '''
-        '''
-        source_path = join(self.testdir, source_name+'.json')
-        cache_dir = join(self.testdir, source_name)
-        
-        shutil.copyfile(join(self.conforms_dir, source_name+'.json'),
-                        source_path)
-        
-        mkdir(cache_dir)
-
-        return source_path, cache_dir
-    
-    def _copy_shapefile(self, source_name):
-        '''
-        '''
-        source_path, cache_dir = self._copy_source(source_name)
-
-        for ext in ('.shp', '.shx', '.dbf', '.prj'):
-            filename = source_name+ext
-            shutil.copyfile(join(self.conforms_dir, filename),
-                            join(cache_dir, filename))
-        
-        return source_path, cache_dir
-    
-    def _run_node_conform(self, source_path):
-        '''
-        '''
-        args = dict(cwd=self.testdir, stderr=PIPE, stdout=PIPE)
-        cmd = Popen(('node', paths.conform, source_path, self.testdir), **args)
-        stdoutData, stderrData = cmd.communicate()
-        if (cmd.returncode != 0):
-            sys.stderr.write("Conform failed %s\n%s%s\n" % (paths.conform, stdoutData, stderrData))
-        
-        return cmd
-    
-    def test_lake_man_split2(self):
-        source_path, cache_dir = self._copy_source('lake-man-split2')
-
-        shutil.copyfile(join(self.conforms_dir, 'lake-man-split2.geojson'),
-                        join(cache_dir, 'lake-man-split2.json'))
-
-        # No clue why Node errors here. TODO: figure it out.
-        return
-
-        cmd = self._run_node_conform(source_path)
-        self.assertEqual(cmd.returncode, 0)
-        
-        with open(join(cache_dir, 'out.csv')) as file:
-            rows = list(DictReader(file, dialect='excel'))
-            import pprint; pprint.pprint(rows)
-            self.assertEqual(rows[0]['NUMBER'], '1')
-            self.assertEqual(rows[0]['STREET'], 'Spectrum Pointe Dr #320')
-            self.assertEqual(rows[1]['NUMBER'], '')
-            self.assertEqual(rows[1]['STREET'], '')
-            self.assertEqual(rows[2]['NUMBER'], '300')
-            self.assertEqual(rows[2]['STREET'], 'E Chapman Ave')
-            self.assertEqual(rows[3]['NUMBER'], '1')
-            self.assertEqual(rows[3]['STREET'], 'Spectrum Pointe Dr #320')
-            self.assertEqual(rows[4]['NUMBER'], '1')
-            self.assertEqual(rows[4]['STREET'], 'Spectrum Pointe Dr #320')
-            self.assertEqual(rows[5]['NUMBER'], '1')
-            self.assertEqual(rows[5]['STREET'], 'Spectrum Pointe Dr #320')
-
 
 class FakeS3 (S3):
     ''' Just enough S3 to work for tests.
