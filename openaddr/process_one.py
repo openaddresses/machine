@@ -110,13 +110,14 @@ parser.add_argument('source', help='Required source file name.')
 parser.add_argument('destination', help='Required output directory name.')
 
 parser.add_argument('-l', '--logfile', help='Optional log file name.')
+parser.add_argument('-v', '--verbose', help='Turn on verbose logging', action="store_true")
 
 def main():
     '''
     '''
     from .jobs import setup_logger
     args = parser.parse_args()
-    setup_logger(args.logfile)
+    setup_logger(logfile = args.logfile, log_level = logging.DEBUG if args.verbose else logging.WARNING)
 
     print(process(args.source, args.destination))
 

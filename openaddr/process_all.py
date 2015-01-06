@@ -29,11 +29,12 @@ parser.add_argument('-s', '--secret-key', default=environ.get('AWS_SECRET_ACCESS
                     help='Optional AWS secret key name. Defaults to value of AWS_SECRET_ACCESS_KEY environment variable.')
 
 parser.add_argument('-l', '--logfile', help='Optional log file name.')
+parser.add_argument('-v', '--verbose', help='Turn on verbose logging', action="store_true")
 
 def main():
     args = parser.parse_args()
     
-    jobs.setup_logger(args.logfile)
+    jobs.setup_logger(logfile = args.logfile, log_level = logging.DEBUG if args.verbose else logging.WARNING)
     s3 = S3(args.access_key, args.secret_key, args.bucketname)
     
     #

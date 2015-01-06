@@ -417,10 +417,11 @@ def main():
     parser.add_argument('source_path', help='Required pathname to the actual source data file')
     parser.add_argument('dest_path', help='Required pathname, output file written here.')
     parser.add_argument('-l', '--logfile', help='Optional log file name.')
+    parser.add_argument('-v', '--verbose', help='Turn on verbose logging', action="store_true")
     args = parser.parse_args()
 
     from .jobs import setup_logger
-    setup_logger(args.logfile)
+    setup_logger(logfile = args.logfile, log_level = logging.DEBUG if args.verbose else logging.WARNING)
 
     source_definition = json.load(file(args.source_json))
     rc = conform_cli(source_definition, args.source_path, args.dest_path)
