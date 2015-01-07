@@ -228,6 +228,22 @@ def find_source_path(source_definition, source_paths):
                     return c
             _L.warning("Source names file %s but could not find it", source_file_name)
             return None
+    elif conform["type"] == "geojson":
+        candidates = []
+        for fn in source_paths:
+            basename, ext = os.path.splitext(fn)
+            if ext.lower() == ".json":
+                candidates.append(fn)
+        if len(candidates) == 0:
+            _L.warning("No JSON found in %s", source_paths)
+            return None
+        elif len(candidates) == 1:
+            _L.debug("Selected %s for source", candidates[0])
+            return candidates[0]
+        else:
+            _L.warning("Found more than one JSON file in source, can't pick one")
+            # geojson spec currently doesn't include a file attribute. Maybe it should?
+            return None
     else:
         _L.warning("Unknown source type %s", conform["type"])
         return None
@@ -257,7 +273,7 @@ class ConvertToCsvTask(object):
         # Conversion must have failed
         return None
 
-def shp_to_csv(source_path, dest_path):
+def ogr_source_to_csv(source_path, dest_path):
     "Convert a single shapefile in source_path and put it in dest_path"
     in_datasource = ogr.Open(source_path, 0)
     in_layer = in_datasource.GetLayer()
@@ -381,9 +397,8 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     to longitude and latitude in EPSG:4326.
     """
     # TODO: handle non-SHP sources
-    assert (source_definition["conform"]["type"] == "shapefile" or
-            source_definition["conform"]["type"] == "shapefile-polygon")
-    shp_to_csv(source_path, extract_path)
+    assert (source_definition["conform"]["type"] in ("shapefile", "shapefile-polygon", "geojson"))
+    ogr_source_to_csv(source_path, extract_path)
 
 # The canonical output schema for conform
 _openaddr_csv_schema = ["LON", "LAT", "NUMBER", "STREET"]
@@ -416,7 +431,7 @@ def conform_cli(source_definition, source_path, dest_path):
 
     if not source_definition.has_key("conform"):
         return 1
-    if not source_definition["conform"].get("type", None) in ["shapefile", "shapefile-polygon"]:
+    if not source_definition["conform"].get("type", None) in ["shapefile", "shapefile-polygon", "geojson"]:
         _L.warn("Skipping file with unknown conform: %s", source_path)
         return 1
 
@@ -516,10 +531,10 @@ class TestConformCli (unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.testdir)
 
-    def _run_conform_on_shp(self, source_name):
+    def _run_conform_on_source(self, source_name, ext):
         "Helper method to run a conform on the named source. Assumes naming convention."
         source_definition = json.load(file(os.path.join(self.conforms_dir, "%s.json" % source_name)))
-        source_path = os.path.join(self.conforms_dir, "%s.shp" % source_name)
+        source_path = os.path.join(self.conforms_dir, "%s.%s" % (source_name, ext))
         dest_path = os.path.join(self.testdir, '%s-conformed.csv' % source_name)
 
         rc = conform_cli(source_definition, source_path, dest_path)
@@ -532,7 +547,7 @@ class TestConformCli (unittest.TestCase):
         self.assertEqual(1, conform_cli({'conform': {'type': 'broken'}}, 'test', ''))
 
     def test_lake_man(self):
-        rc, dest_path = self._run_conform_on_shp('lake-man')
+        rc, dest_path = self._run_conform_on_source('lake-man', 'shp')
         self.assertEqual(0, rc)
 
         with open(dest_path) as fp:
@@ -558,7 +573,7 @@ class TestConformCli (unittest.TestCase):
             self.assertEqual(rows[5]['STREET'], 'Old Mill Road')
 
     def test_lake_man_split(self):
-        rc, dest_path = self._run_conform_on_shp('lake-man-split')
+        rc, dest_path = self._run_conform_on_source('lake-man-split', 'shp')
         self.assertEqual(0, rc)
         
         with open(dest_path) as fp:
@@ -577,7 +592,7 @@ class TestConformCli (unittest.TestCase):
             self.assertEqual(rows[5]['STREET'], 'Scofield Avenue')
 
     def test_lake_man_merge_postcode(self):
-        rc, dest_path = self._run_conform_on_shp('lake-man-merge-postcode')
+        rc, dest_path = self._run_conform_on_source('lake-man-merge-postcode', 'shp')
         self.assertEqual(0, rc)
         
         with open(dest_path) as fp:
@@ -596,7 +611,7 @@ class TestConformCli (unittest.TestCase):
             self.assertEqual(rows[5]['STREET'], 'Eklutna Lake Road')
     
     def test_lake_man_merge_postcode2(self):
-        rc, dest_path = self._run_conform_on_shp('lake-man-merge-postcode2')
+        rc, dest_path = self._run_conform_on_source('lake-man-merge-postcode2', 'shp')
         self.assertEqual(0, rc)
         
         with open(dest_path) as fp:
@@ -615,7 +630,7 @@ class TestConformCli (unittest.TestCase):
             self.assertEqual(rows[5]['STREET'], 'Maitland Drive')
 
     def test_lake_man_shp_utf8(self):
-        rc, dest_path = self._run_conform_on_shp('lake-man-utf8')
+        rc, dest_path = self._run_conform_on_source('lake-man-utf8', 'shp')
         self.assertEqual(0, rc)
         with open(dest_path) as fp:
             rows = list(unicodecsv.DictReader(fp, encoding='utf-8'))
@@ -628,38 +643,27 @@ class TestConformCli (unittest.TestCase):
     # TODO: add tests for encoding tags
     # TODO: add tests for SRS tags
 
-    @unittest.skip("Enable the test below when GeoJSON support is enabled")
     def test_lake_man_split2(self):
-        return
-        source_path, cache_dir = self._copy_source('lake-man-split2')
+        rc, dest_path = self._run_conform_on_source('lake-man-split2', 'geojson')
+        self.assertEqual(0, rc)
 
-        shutil.copyfile(join(self.conforms_dir, 'lake-man-split2.geojson'),
-                        join(cache_dir, 'lake-man-split2.json'))
-
-        # No clue why Node errors here. TODO: figure it out.
-        return
-
-        cmd = self._run_node_conform(source_path)
-        self.assertEqual(cmd.returncode, 0)
-
-        with open(join(cache_dir, 'out.csv')) as file:
-            rows = list(DictReader(file, dialect='excel'))
-            import pprint; pprint.pprint(rows)
+        with open(dest_path) as fp:
+            rows = list(unicodecsv.DictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '1')
-            self.assertEqual(rows[0]['STREET'], 'Spectrum Pointe Dr #320')
+            self.assertEqual(rows[0]['STREET'], 'Spectrum Pointe Drive #320')
             self.assertEqual(rows[1]['NUMBER'], '')
             self.assertEqual(rows[1]['STREET'], '')
             self.assertEqual(rows[2]['NUMBER'], '300')
-            self.assertEqual(rows[2]['STREET'], 'E Chapman Ave')
+            self.assertEqual(rows[2]['STREET'], 'East Chapman Avenue')
             self.assertEqual(rows[3]['NUMBER'], '1')
-            self.assertEqual(rows[3]['STREET'], 'Spectrum Pointe Dr #320')
+            self.assertEqual(rows[3]['STREET'], 'Spectrum Pointe Drive #320')
             self.assertEqual(rows[4]['NUMBER'], '1')
-            self.assertEqual(rows[4]['STREET'], 'Spectrum Pointe Dr #320')
+            self.assertEqual(rows[4]['STREET'], 'Spectrum Pointe Drive #320')
             self.assertEqual(rows[5]['NUMBER'], '1')
-            self.assertEqual(rows[5]['STREET'], 'Spectrum Pointe Dr #320')
+            self.assertEqual(rows[5]['STREET'], 'Spectrum Pointe Drive #320')
 
 class TestConformMisc(unittest.TestCase):
-    def test_find_source_path(self):
+    def test_find_shapefile_source_path(self):
         shp_conform = {"conform": { "type": "shapefile" } }
         self.assertEqual("foo.shp", find_source_path(shp_conform, ["foo.shp"]))
         self.assertEqual("FOO.SHP", find_source_path(shp_conform, ["FOO.SHP"]))
@@ -678,4 +682,13 @@ class TestConformMisc(unittest.TestCase):
 
         broken_conform = {"conform": { "type": "broken" }}
         self.assertEqual(None, find_source_path(broken_conform, ["foo.shp"]))
+
+    def test_find_geojson_source_path(self):
+        geojson_conform = {"conform": {"type": "geojson"}}
+        self.assertEqual("foo.json", find_source_path(geojson_conform, ["foo.json"]))
+        self.assertEqual("FOO.JSON", find_source_path(geojson_conform, ["FOO.JSON"]))
+        self.assertEqual("xyzzy/FOO.JSON", find_source_path(geojson_conform, ["xyzzy/FOO.JSON"]))
+        self.assertEqual("foo.json", find_source_path(geojson_conform, ["foo.json", "foo.prj", "foo.shx"]))
+        self.assertEqual(None, find_source_path(geojson_conform, ["nope.txt"]))
+        self.assertEqual(None, find_source_path(geojson_conform, ["foo.json", "bar.json"]))
 

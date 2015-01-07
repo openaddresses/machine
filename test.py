@@ -92,7 +92,7 @@ class TestOA (unittest.TestCase):
         
         raise NotImplementedError(url.geturl())
     
-    def test_process(self):
+    def test_process_all(self):
         ''' Test process_all.process(), with complete threaded behavior.
         '''
         with HTTMock(self.response_content):
@@ -113,7 +113,7 @@ class TestOA (unittest.TestCase):
                 self.assertTrue(bool(state['geometry type']), 'Checking for geometry type in {}'.format(source))
                 self.assertTrue(bool(state['sample']), 'Checking for sample in {}'.format(source))
 
-            if 'san_francisco' in source or 'alameda_county' in source:
+            if 'san_francisco' in source or 'alameda_county' in source or 'carson' in source:
                 self.assertTrue(bool(state['processed']), "Checking for processed in {}".format(source))
             else:
                 self.assertFalse(bool(state['processed']), "Checking for processed in {}".format(source))
@@ -169,7 +169,7 @@ class TestOA (unittest.TestCase):
         
         self.assertTrue(state['cache'] is not None)
         # TODO: re-enable test of processing once conform supports geojson
-        self.assertTrue(state['processed'] is None)
+        self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point')
         
