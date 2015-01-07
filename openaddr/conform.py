@@ -244,6 +244,9 @@ def find_source_path(source_definition, source_paths):
             _L.warning("Found more than one JSON file in source, can't pick one")
             # geojson spec currently doesn't include a file attribute. Maybe it should?
             return None
+    elif conform["type"] == "csv":
+        # We don't expect to be handed a list of files
+        return source_paths[0]
     else:
         _L.warning("Unknown source type %s", conform["type"])
         return None
@@ -274,7 +277,7 @@ class ConvertToCsvTask(object):
         return None
 
 def ogr_source_to_csv(source_path, dest_path):
-    "Convert a single shapefile in source_path and put it in dest_path"
+    "Convert a single shapefile or GeoJSON in source_path and put it in dest_path"
     in_datasource = ogr.Open(source_path, 0)
     in_layer = in_datasource.GetLayer()
     inSpatialRef = in_layer.GetSpatialRef()
@@ -318,6 +321,44 @@ def ogr_source_to_csv(source_path, dest_path):
 
     in_datasource.Destroy()
 
+def csv_source_to_csv(source_definition, source_path, dest_path):
+    "Convert a source CSV file to an intermediate form, coerced to UTF-8 and EPSG:4326"
+    _L.info("Converting source CSV %s", source_path)
+
+    # TODO: extra features of CSV sources.
+    for unimplemented in ("encoding", "csvsplit", "headers", "skiplines"):
+        assert not source_definition.has_key(unimplemented)
+
+    # Extract the source CSV, applying conversions to deal with oddball CSV formats
+    # Also convert encoding to utf-8 and reproject to EPSG:4326 in X and Y columns
+    with open(source_path, 'rb') as source_fp:
+        reader = unicodecsv.DictReader(source_fp, encoding='utf-8')
+
+        # Construct headers for the extracted CSV file
+        old_latlon = (source_definition["conform"]["lat"], source_definition["conform"]["lon"])
+        out_fieldnames = [fn for fn in reader.fieldnames if fn not in old_latlon]
+        out_fieldnames.append("X")
+        out_fieldnames.append("Y")
+
+        # Write the extracted CSV file
+        with open(dest_path, 'wb') as dest_fp:
+            writer = unicodecsv.DictWriter(dest_fp, out_fieldnames)
+            writer.writeheader()
+            # For every row in the source CSV
+            for source_row in reader:
+                out_row = row_extract_and_reproject(source_definition, source_row)
+                writer.writerow(out_row)
+
+def row_extract_and_reproject(source_definition, source_row):
+    """Find lat/lon in source CSV data and store it in ESPG:4326 in X/Y in the row"""
+    lat_name = source_definition["conform"]["lat"]
+    lon_name = source_definition["conform"]["lon"]
+    out_row = copy.deepcopy(source_row)
+    out_row["X"] = source_row[lon_name]
+    del out_row[lon_name]
+    out_row["Y"] = source_row[lat_name]
+    del out_row[lat_name]
+    return out_row
 
 ### Row-level conform code. Inputs and outputs are individual rows in a CSV file.
 ### The input row may or may not be modified in place. The output row is always returned.
@@ -379,9 +420,10 @@ def row_canonicalize_street_and_number(sd, row):
 
 def row_convert_to_out(sd, row):
     "Convert a row from the source schema to OpenAddresses output schema"
+    # note: sd["conform"]["lat"] and lon were already applied in the extraction from source
     return {
-        "LON": row.get(sd["conform"]["lon"], None),
-        "LAT": row.get(sd["conform"]["lat"], None),
+        "LON": row.get("x", None),
+        "LAT": row.get("y", None),
         "NUMBER": row.get(sd["conform"]["number"], None),
         "STREET": row.get(sd["conform"]["street"], None)
     }
@@ -397,8 +439,12 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     to longitude and latitude in EPSG:4326.
     """
     # TODO: handle non-SHP sources
-    assert (source_definition["conform"]["type"] in ("shapefile", "shapefile-polygon", "geojson"))
-    ogr_source_to_csv(source_path, extract_path)
+    if source_definition["conform"]["type"] in ("shapefile", "shapefile-polygon", "geojson"):
+        ogr_source_to_csv(source_path, extract_path)
+    elif source_definition["conform"]["type"] == "csv":
+        csv_source_to_csv(source_definition, source_path, extract_path)
+    else:
+        raise Exception("Unsupported source type %s" % source_definition["conform"]["type"])
 
 # The canonical output schema for conform
 _openaddr_csv_schema = ["LON", "LAT", "NUMBER", "STREET"]
@@ -431,7 +477,7 @@ def conform_cli(source_definition, source_path, dest_path):
 
     if not source_definition.has_key("conform"):
         return 1
-    if not source_definition["conform"].get("type", None) in ["shapefile", "shapefile-polygon", "geojson"]:
+    if not source_definition["conform"].get("type", None) in ["shapefile", "shapefile-polygon", "geojson", "csv"]:
         _L.warn("Skipping file with unknown conform: %s", source_path)
         return 1
 
@@ -487,8 +533,8 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual({ "conform": { "street": "mixed", "number": "u", "split": "u", "merge": [ "u", "l", "mixed" ], "lat": "y", "lon": "x" } }, r)
 
     def test_row_convert_to_out(self):
-        d = { "conform": { "street": "s", "number": "n", "lon": "Y", "lat": "X" } }
-        r = row_convert_to_out(d, {"s": "MAPLE LN", "n": "123", "Y": "-119.2", "X": "39.3"})
+        d = { "conform": { "street": "s", "number": "n", "lon": "x", "lat": "y" } }
+        r = row_convert_to_out(d, {"s": "MAPLE LN", "n": "123", "x": "-119.2", "y": "39.3"})
         self.assertEqual({"LON": "-119.2", "LAT": "39.3", "STREET": "MAPLE LN", "NUMBER": "123"}, r)
 
     def test_row_merge_street(self):
@@ -509,17 +555,22 @@ class TestConformTransforms (unittest.TestCase):
 
     def test_transform_and_convert(self):
         d = { "conform": { "street": "auto_street", "number": "n", "merge": ["s1", "s2"], "lon": "y", "lat": "x" } }
-        r = row_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", "Y": "-119.2", "X": "39.3" })
+        r = row_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", "X": "-119.2", "Y": "39.3" })
         self.assertEqual({"STREET": "Maple Street", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3"}, r)
 
         d = { "conform": { "street": "auto_street", "number": "auto_number", "split": "s", "lon": "y", "lat": "x" } }
-        r = row_transform_and_convert(d, { "s": "123 MAPLE ST", "Y": "-119.2", "X": "39.3" })
+        r = row_transform_and_convert(d, { "s": "123 MAPLE ST", "X": "-119.2", "Y": "39.3" })
         self.assertEqual({"STREET": "Maple Street", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3"}, r)
 
     def test_row_canonicalize_street_and_number(self):
         r = row_canonicalize_street_and_number({}, {"NUMBER": "324 ", "STREET": " OAK DR."})
         self.assertEqual("324", r["NUMBER"])
         self.assertEqual("Oak Drive", r["STREET"])
+
+    def test_row_extract_and_reproject(self):
+        d = { "conform" : { "lon": "longitude", "lat": "latitude" } }
+        r = row_extract_and_reproject(d, {"longitude": "-122.3", "latitude": "39.1"})
+        self.assertEqual({"Y": "39.1", "X": "-122.3"}, r)
 
 
 class TestConformCli (unittest.TestCase):
@@ -692,3 +743,6 @@ class TestConformMisc(unittest.TestCase):
         self.assertEqual(None, find_source_path(geojson_conform, ["nope.txt"]))
         self.assertEqual(None, find_source_path(geojson_conform, ["foo.json", "bar.json"]))
 
+    def test_find_csv_source_path(self):
+        csv_conform = {"conform": {"type": "csv"}}
+        self.assertEqual("foo.csv", find_source_path(csv_conform, ["foo.csv"]))
