@@ -27,7 +27,10 @@ setup(
         'requests==2.2.1',
 
         # https://github.com/jdunck/python-unicodecsv
-        'unicodecsv >= 0.9.4'
+        'unicodecsv >= 0.9.4',
+
+	# https://pypi.python.org/pypi/requests-ftp
+	'requests-ftp >= 0.2.0'
         ],
     entry_points = dict(
         console_scripts = [

@@ -14,6 +14,8 @@ from urllib.parse import urlencode, urlparse
 from hashlib import sha1
 
 import requests
+import requests_ftp
+requests_ftp.monkeypatch_session()
 
 def mkdirsp(path):
     try:
@@ -93,6 +95,7 @@ class URLDownloadTask(DownloadTask):
             name_base = '{}-{}'.format(self.source_prefix, hash.hexdigest()[:8])
         
         if not path_ext:
+            # If we don't have a file extension, make a network request for the Content-Type.
             resp = requests.head(url)
             path_ext = mimetypes.guess_extension(resp.headers['content-type'])
             _L.debug('Guessing {}{} for {}'.format(name_base, path_ext, resp.headers['content-type']))
