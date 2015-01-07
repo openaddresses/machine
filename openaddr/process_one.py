@@ -28,7 +28,7 @@ def process(source, destination, extras=dict()):
     
     if not cache_result.cache:
         _L.warning('Nothing cached')
-        return write_state(source, destination, cache_result, ConformResult.empty())
+        return write_state(source, destination, cache_result, ConformResult.empty(), temp_dir)
     
     _L.info('Cached data in {}'.format(cache_result.cache))
 
