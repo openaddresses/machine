@@ -327,7 +327,7 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
 
     # TODO: extra features of CSV sources.
     for unimplemented in ("encoding", "csvsplit", "headers", "skiplines"):
-        assert not source_definition.has_key(unimplemented)
+        assert not source_definition["conform"].has_key(unimplemented)
 
     # Extract the source CSV, applying conversions to deal with oddball CSV formats
     # Also convert encoding to utf-8 and reproject to EPSG:4326 in X and Y columns
