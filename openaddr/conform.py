@@ -326,13 +326,17 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
     _L.info("Converting source CSV %s", source_path)
 
     # TODO: extra features of CSV sources.
-    for unimplemented in ("encoding", "csvsplit", "headers", "skiplines"):
+    for unimplemented in ("encoding", "headers", "skiplines"):
         assert not source_definition["conform"].has_key(unimplemented)
+
+    delim = source_definition["conform"].get("csvsplit", ",")
+    # Python2 unicodecsv requires this be a string, not unicode.
+    delim = delim.encode('ascii')
 
     # Extract the source CSV, applying conversions to deal with oddball CSV formats
     # Also convert encoding to utf-8 and reproject to EPSG:4326 in X and Y columns
     with open(source_path, 'rb') as source_fp:
-        reader = unicodecsv.DictReader(source_fp, encoding='utf-8')
+        reader = unicodecsv.DictReader(source_fp, encoding='utf-8', delimiter = delim)
 
         # Construct headers for the extracted CSV file
         old_latlon = (source_definition["conform"]["lat"], source_definition["conform"]["lon"])
@@ -746,3 +750,51 @@ class TestConformMisc(unittest.TestCase):
     def test_find_csv_source_path(self):
         csv_conform = {"conform": {"type": "csv"}}
         self.assertEqual("foo.csv", find_source_path(csv_conform, ["foo.csv"]))
+
+class TestConformCsv(unittest.TestCase):
+    "Fixture to create real files to test csv_source_to_csv()"
+
+    def setUp(self):
+        self.testdir = tempfile.mkdtemp(prefix='openaddr-testPyConformCsv-')
+
+    def tearDown(self):
+        shutil.rmtree(self.testdir)
+
+    def _convert(self, conform, src_bytes):
+        "Convert a CSV source (list of byte strings) and return output as a list of unicode strings"
+        assert not isinstance(src_bytes, unicode)
+        src_path = os.path.join(self.testdir, "input.csv")
+        open(src_path, "w+b").write('\n'.join(src_bytes))
+
+        dest_path = os.path.join(self.testdir, "output.csv")
+        csv_source_to_csv(conform, src_path, dest_path)
+        return [s.decode('utf-8').strip() for s in open(dest_path, 'rb')]
+
+    def test_simple(self):
+        c = { "conform": { "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" } }
+        d = (u'STREETNAME,NUMBER,LATITUDE,LONGITUDE'.encode('ascii'),
+             u'MAPLE ST,123,39.3,-121.2'.encode('ascii'))
+        r = self._convert(c, d)
+        self.assertEqual(u'STREETNAME,NUMBER,X,Y', r[0])
+        self.assertEqual(u'MAPLE ST,123,-121.2,39.3', r[1])
+
+    def test_utf8(self):
+        c = { "conform": { "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" } }
+        d = (u'STRE\u00c9TNAME,NUMBER,LATITUDE,LONGITUDE'.encode('utf-8'),
+             u'\u2603 ST,123,39.3,-121.2'.encode('utf-8'))
+        r = self._convert(c, d)
+        self.assertEqual(u'STRE\u00c9TNAME,NUMBER,X,Y', r[0])
+        self.assertEqual(u'\u2603 ST,123,-121.2,39.3', r[1])
+
+    def test_csvsplit(self):
+        c = { "conform": { "csvsplit": ";", "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" } }
+        d = (u'STREETNAME;NUMBER;LATITUDE;LONGITUDE'.encode('ascii'),
+             u'MAPLE ST;123;39.3;-121.2'.encode('ascii'))
+        r = self._convert(c, d)
+        self.assertEqual(u'STREETNAME,NUMBER,X,Y', r[0])
+        self.assertEqual(u'MAPLE ST,123,-121.2,39.3', r[1])
+
+        # unicodecsv freaked out about unicode strings for delimiter
+        unicode_conform = { "conform": { "csvsplit": u";", "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" } }
+        r = self._convert(unicode_conform, d)
+        self.assertEqual(u'MAPLE ST,123,-121.2,39.3', r[1])
