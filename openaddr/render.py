@@ -50,33 +50,22 @@ def load_geoids(directory):
     
     return geoids
 
-def load_alpha2s(directory):
-    ''' Load a set of ISO 3166 Alpha 2s that should be rendered.
+def load_iso3166s(directory):
+    ''' Load a set of ISO 3166 codes that should be rendered.
     '''
-    alpha2s = set()
+    iso3166s = set()
 
-    for path in glob(join(directory, '??.json')):
+    for path in glob(join(directory, '*.json')):
         with open(path) as file:
             data = json.load(file)
     
-        if 'alpha2' in data.get('coverage', {}).get('ISO 3166', {}):
-            alpha2s.add(data['coverage']['ISO 3166']['alpha2'])
+        if 'code' in data.get('coverage', {}).get('ISO 3166', {}):
+            iso3166s.add(data['coverage']['ISO 3166']['code'])
     
-    return alpha2s
-
-def load_iso31662s(directory):
-    ''' Load a set of ISO 3166-2 codes that should be rendered.
-    '''
-    iso31662s = set()
-
-    for path in glob(join(directory, '??-*.json')):
-        with open(path) as file:
-            data = json.load(file)
+        elif 'alpha2' in data.get('coverage', {}).get('ISO 3166', {}):
+            iso3166s.add(data['coverage']['ISO 3166']['alpha2'])
     
-        if 'alpha2' in data.get('coverage', {}).get('ISO 3166', {}):
-            iso31662s.add(data['coverage']['ISO 3166']['alpha2'])
-    
-    return iso31662s
+    return iso3166s
 
 def load_geometries(directory):
     ''' Load a set of GeoJSON geometries should be rendered.
@@ -190,8 +179,7 @@ def render(sources, width, resolution, filename):
 
     # Load data
     geoids = load_geoids(sources)
-    alpha2s = load_alpha2s(sources)
-    iso31662s = load_iso31662s(sources)
+    iso3166s = load_iso3166s(sources)
     geometries = load_geometries(sources)
 
     geodata = join(dirname(__file__), 'geodata')
@@ -212,8 +200,8 @@ def render(sources, width, resolution, filename):
     us_county_features = list(us_county_ds.GetLayer(0))
     data_states = [f for f in us_state_features if f.GetFieldAsString('GEOID') in geoids]
     data_counties = [f for f in us_county_features if f.GetFieldAsString('GEOID') in geoids]
-    data_countries = [f for f in countries_features if f.GetFieldAsString('iso_a2') in alpha2s]
-    data_admin1s = [f for f in admin1s_features if f.GetFieldAsString('iso_3166_2') in iso31662s]
+    data_countries = [f for f in countries_features if f.GetFieldAsString('iso_a2') in iso3166s]
+    data_admin1s = [f for f in admin1s_features if f.GetFieldAsString('iso_3166_2') in iso3166s]
     
     # Draw each border between neighboring states exactly once.
     state_borders = [s1.GetGeometryRef().Intersection(s2.GetGeometryRef())
