@@ -754,6 +754,18 @@ class TestConformMisc(unittest.TestCase):
 class TestConformCsv(unittest.TestCase):
     "Fixture to create real files to test csv_source_to_csv()"
 
+    # Test strings. an ASCII CSV file (with 1 row) and a Unicode CSV file,
+    # along with expected outputs. These are Unicode strings; test code needs
+    # to convert the input to bytes with the tested encoding.
+    _ascii_header_in = u'STREETNAME,NUMBER,LATITUDE,LONGITUDE'
+    _ascii_row_in = u'MAPLE ST,123,39.3,-121.2'
+    _ascii_header_out = u'STREETNAME,NUMBER,X,Y'
+    _ascii_row_out = u'MAPLE ST,123,-121.2,39.3'
+    _unicode_header_in = u'STRE\u00c9TNAME,NUMBER,\u7def\u5ea6,LONGITUDE'
+    _unicode_row_in = u'\u2603 ST,123,39.3,-121.2'
+    _unicode_header_out = u'STRE\u00c9TNAME,NUMBER,X,Y'
+    _unicode_row_out = u'\u2603 ST,123,-121.2,39.3'
+
     def setUp(self):
         self.testdir = tempfile.mkdtemp(prefix='openaddr-testPyConformCsv-')
 
@@ -772,29 +784,38 @@ class TestConformCsv(unittest.TestCase):
 
     def test_simple(self):
         c = { "conform": { "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" } }
-        d = (u'STREETNAME,NUMBER,LATITUDE,LONGITUDE'.encode('ascii'),
-             u'MAPLE ST,123,39.3,-121.2'.encode('ascii'))
+        d = (self._ascii_header_in.encode('ascii'),
+             self._ascii_row_in.encode('ascii'))
         r = self._convert(c, d)
-        self.assertEqual(u'STREETNAME,NUMBER,X,Y', r[0])
-        self.assertEqual(u'MAPLE ST,123,-121.2,39.3', r[1])
+        self.assertEqual(self._ascii_header_out, r[0])
+        self.assertEqual(self._ascii_row_out, r[1])
 
     def test_utf8(self):
-        c = { "conform": { "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" } }
-        d = (u'STRE\u00c9TNAME,NUMBER,LATITUDE,LONGITUDE'.encode('utf-8'),
-             u'\u2603 ST,123,39.3,-121.2'.encode('utf-8'))
+        c = { "conform": { "type": "csv", "lat": u"\u7def\u5ea6", "lon": u"LONGITUDE" } }
+        d = (self._unicode_header_in.encode('utf-8'),
+             self._unicode_row_in.encode('utf-8'))
         r = self._convert(c, d)
-        self.assertEqual(u'STRE\u00c9TNAME,NUMBER,X,Y', r[0])
-        self.assertEqual(u'\u2603 ST,123,-121.2,39.3', r[1])
+        self.assertEqual(self._unicode_header_out, r[0])
+        self.assertEqual(self._unicode_row_out, r[1])
 
     def test_csvsplit(self):
         c = { "conform": { "csvsplit": ";", "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" } }
-        d = (u'STREETNAME;NUMBER;LATITUDE;LONGITUDE'.encode('ascii'),
-             u'MAPLE ST;123;39.3;-121.2'.encode('ascii'))
+        d = (self._ascii_header_in.replace(',', ';').encode('ascii'),
+             self._ascii_row_in.replace(',', ';').encode('ascii'))
         r = self._convert(c, d)
-        self.assertEqual(u'STREETNAME,NUMBER,X,Y', r[0])
-        self.assertEqual(u'MAPLE ST,123,-121.2,39.3', r[1])
+        self.assertEqual(self._ascii_header_out, r[0])
+        self.assertEqual(self._ascii_row_out, r[1])
 
         # unicodecsv freaked out about unicode strings for delimiter
         unicode_conform = { "conform": { "csvsplit": u";", "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" } }
         r = self._convert(unicode_conform, d)
-        self.assertEqual(u'MAPLE ST,123,-121.2,39.3', r[1])
+        self.assertEqual(self._ascii_row_out, r[1])
+
+    @unittest.skip("Not yet implemented")
+    def test_csvencoded(self):
+        c = { "conform": { "encoding": "utf-8", "type": "csv", "lat": "\u7def\u5ea6", "lon": "LONGITUDE" } }
+        d = (u'STRE\u00c9TNAME,NUMBER,\u7def\u5ea6,LONGITUDE'.encode('utf-8'),
+             u'\u2603 ST,123,39.3,-121.2'.encode('utf-8'))
+        r = self._convert(c, d)
+        self.assertEqual(u'STRE\u00c9TNAME,NUMBER,\u7def\u5ea6,LONGITUDE', r[0])
+
