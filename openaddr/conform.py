@@ -326,9 +326,10 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
     _L.info("Converting source CSV %s", source_path)
 
     # TODO: extra features of CSV sources.
-    for unimplemented in ("encoding", "headers", "skiplines"):
+    for unimplemented in ("headers", "skiplines"):
         assert not source_definition["conform"].has_key(unimplemented)
 
+    enc = source_definition["conform"].get("encoding", "utf-8")
     delim = source_definition["conform"].get("csvsplit", ",")
     # Python2 unicodecsv requires this be a string, not unicode.
     delim = delim.encode('ascii')
@@ -336,7 +337,7 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
     # Extract the source CSV, applying conversions to deal with oddball CSV formats
     # Also convert encoding to utf-8 and reproject to EPSG:4326 in X and Y columns
     with open(source_path, 'rb') as source_fp:
-        reader = unicodecsv.DictReader(source_fp, encoding='utf-8', delimiter = delim)
+        reader = unicodecsv.DictReader(source_fp, encoding=enc, delimiter=delim)
 
         # Construct headers for the extracted CSV file
         old_latlon = (source_definition["conform"]["lat"], source_definition["conform"]["lon"])
@@ -811,11 +812,18 @@ class TestConformCsv(unittest.TestCase):
         r = self._convert(unicode_conform, d)
         self.assertEqual(self._ascii_row_out, r[1])
 
-    @unittest.skip("Not yet implemented")
-    def test_csvencoded(self):
-        c = { "conform": { "encoding": "utf-8", "type": "csv", "lat": "\u7def\u5ea6", "lon": "LONGITUDE" } }
-        d = (u'STRE\u00c9TNAME,NUMBER,\u7def\u5ea6,LONGITUDE'.encode('utf-8'),
-             u'\u2603 ST,123,39.3,-121.2'.encode('utf-8'))
+    def test_csvencoded_utf8(self):
+        c = { "conform": { "encoding": "utf-8", "type": "csv", "lat": u"\u7def\u5ea6", "lon": u"LONGITUDE" } }
+        d = (self._unicode_header_in.encode('utf-8'),
+             self._unicode_row_in.encode('utf-8'))
         r = self._convert(c, d)
-        self.assertEqual(u'STRE\u00c9TNAME,NUMBER,\u7def\u5ea6,LONGITUDE', r[0])
+        self.assertEqual(self._unicode_header_out, r[0])
+        self.assertEqual(self._unicode_row_out, r[1])
 
+    def test_csvencoded_shift_jis(self):
+        c = { "conform": { "encoding": "shift-jis", "type": "csv", "lat": u"\u7def\u5ea6", "lon": u"LONGITUDE" } }
+        d = (u'\u5927\u5b57\u30fb\u753a\u4e01\u76ee\u540d,NUMBER,\u7def\u5ea6,LONGITUDE'.encode('shift-jis'),
+             u'\u6771 ST,123,39.3,-121.2'.encode('shift-jis'))
+        r = self._convert(c, d)
+        self.assertEqual(u'\u5927\u5b57\u30fb\u753a\u4e01\u76ee\u540d,NUMBER,X,Y', r[0])
+        self.assertEqual(u'\u6771 ST,123,-121.2,39.3', r[1])
