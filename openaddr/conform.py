@@ -327,10 +327,6 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
     "Convert a source CSV file to an intermediate form, coerced to UTF-8 and EPSG:4326"
     _L.info("Converting source CSV %s", source_path)
 
-    # TODO: extra features of CSV sources.
-    for unimplemented in ("skiplines",):
-        assert not source_definition["conform"].has_key(unimplemented)
-
     # Encoding processing tag
     enc = source_definition["conform"].get("encoding", "utf-8")
 
@@ -355,8 +351,18 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
                 in_fieldnames = ["COLUMN%d" % n for n in range(1, num_columns+1)]
                 _L.debug("Synthesized header %s", in_fieldnames)
             else:
-                # Not implemented
-                assert False
+                # partial implementation of headers and skiplines,
+                # matches the sources in our collection as of January 2015
+                # this code handles the case for Korean inputs where there are
+                # two lines of headers and we want to skip the first one
+                assert source_definition["conform"].has_key("skiplines")
+                assert source_definition["conform"]["skiplines"] == headers
+                # Skip N lines to get to the real header. headers=2 means we skip one line
+                for n in range(1, headers):
+                    source_fp.next()
+        else:
+            # check the source doesn't specify skiplines without headers
+            assert not source_definition["conform"].has_key("skiplines")
 
         reader = unicodecsv.DictReader(source_fp, encoding=enc, delimiter=delim, fieldnames=in_fieldnames)
 
@@ -373,6 +379,8 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
             # For every row in the source CSV
             for source_row in reader:
                 out_row = row_extract_and_reproject(source_definition, source_row)
+                _L.debug(source_row)
+                _L.debug(out_row)
                 writer.writerow(out_row)
 
 def row_extract_and_reproject(source_definition, source_row):
@@ -883,6 +891,15 @@ class TestConformCsv(unittest.TestCase):
         r = self._convert(c, d)
         self.assertEqual(u'COLUMN1,COLUMN2,X,Y', r[0])
         self.assertEqual(u'MAPLE ST,123,-121.2,39.3', r[1])
+
+    def test_headers_and_skiplines(self):
+        c = {"conform": { "headers": 2, "skiplines": 2, "type": "csv", "lon": "LONGITUDE", "lat": "LATITUDE" } }
+        d = (u'HAHA,THIS,HEADER,IS,FAKE'.encode('ascii'),
+             self._ascii_header_in.encode('ascii'),
+             self._ascii_row_in.encode('ascii')) 
+        r = self._convert(c, d)
+        self.assertEqual(self._ascii_header_out, r[0])
+        self.assertEqual(self._ascii_row_out, r[1])        
 
     @unittest.skip("CSV SRS not yet implemented.")
     def test_srs(self):
