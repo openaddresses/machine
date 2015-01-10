@@ -1,7 +1,14 @@
 {
-    "data": "http://fake-web/lake-man-jp",
-    "cache": "http://fake-cache/lake-man-jp.csv",
     "type": "http",
+    "data": "http://s3.amazonaws.com/data.openaddresses.io/cache/jp-nara.zip",
+    "website": "http://nlftp.mlit.go.jp/isj/index.html",
+    "compression": "zip",
+    "attribution": "Japanese Ministry of Land, Infrastructure and Transport",
+    "coverage": {
+        "ISO 3166": {"alpha2": "JP-29", "country": "Japan", "prefecture": "Nara"},
+        "country": "jp",
+        "state": "\u5948\u826f\u770c"
+    },
     "conform": {
         "type": "csv",
         "lat": "\u7def\u5ea6",

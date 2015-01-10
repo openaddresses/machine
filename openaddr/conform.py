@@ -1,3 +1,5 @@
+# coding=ascii
+
 import os
 import errno
 import tempfile
@@ -408,7 +410,12 @@ def row_merge_street(sd, row):
     return row
 
 def row_advanced_merge(sd, row):
-    assert False
+    "Create new columns by merging arbitrary other columns with a separator"
+    advanced_merge = sd["conform"]["advanced_merge"]
+    for new_field_name, merge_spec in advanced_merge.items():
+        separator = merge_spec.get("separator", " ")
+        row[new_field_name] = separator.join([row[n] for n in merge_spec["fields"]])
+    return row
 
 def row_split_address(sd, row):
     "Split addresses like '123 Maple St' into '123' and 'Maple St'"
@@ -546,6 +553,17 @@ class TestConformTransforms (unittest.TestCase):
         d = { "conform": { "merge": [ "n", "t" ] } }
         r = row_merge_street(d, {"n": "MAPLE", "t": "ST", "x": "foo"})
         self.assertEqual({"auto_street": "MAPLE ST", "x": "foo", "t": "ST", "n": "MAPLE"}, r)
+
+    def test_row_advanced_merge(self):
+        c = { "conform": { "advanced_merge": {
+                "new_a": { "fields": ["a1"] },
+                "new_b": { "fields": ["b1", "b2"] },
+                "new_c": { "separator": "-", "fields": ["c1", "c2"] } } } }
+        d = { "a1": "va1", "b1": "vb1", "b2": "vb2", "c1": "vc1", "c2": "vc2" }
+        r = row_advanced_merge(c, d)
+        e = copy.deepcopy(d)
+        e.update({ "new_a": "va1", "new_b": "vb1 vb2", "new_c": "vc1-vc2"})
+        self.assertEqual(e, d)
 
     def test_split_address(self):
         d = { "conform": { "split": "ADDRESS" } }
@@ -694,7 +712,6 @@ class TestConformCli (unittest.TestCase):
 
     # TODO: add tests for GeoJSON sources
     # TODO: add tests for CSV sources
-    # TODO: add test for lake-man-jp.json (CSV, Shift-JIS)
     # TODO: add test for lake-man-3740.json (CSV, not EPSG 4326)
     # TODO: add tests for encoding tags
     # TODO: add tests for SRS tags
@@ -717,6 +734,19 @@ class TestConformCli (unittest.TestCase):
             self.assertEqual(rows[4]['STREET'], 'Spectrum Pointe Drive #320')
             self.assertEqual(rows[5]['NUMBER'], '1')
             self.assertEqual(rows[5]['STREET'], 'Spectrum Pointe Drive #320')
+
+    def test_nara_jp(self):
+        "Test case from jp-nara.json"
+        rc, dest_path = self._run_conform_on_source('jp-nara', 'csv')
+        self.assertEqual(0, rc)
+        with open(dest_path) as fp:
+            rows = list(unicodecsv.DictReader(fp))
+            self.assertEqual(rows[0]['NUMBER'], '2543-6')
+            self.assertEqual(rows[0]['LON'], '135.955104')
+            self.assertEqual(rows[0]['LAT'], '34.607832')
+            self.assertEqual(rows[0]['STREET'], u'\u91dd\u753a')
+            self.assertEqual(rows[1]['NUMBER'], '202-6')
+
 
 class TestConformMisc(unittest.TestCase):
     def test_find_shapefile_source_path(self):
@@ -827,3 +857,7 @@ class TestConformCsv(unittest.TestCase):
         r = self._convert(c, d)
         self.assertEqual(u'\u5927\u5b57\u30fb\u753a\u4e01\u76ee\u540d,NUMBER,X,Y', r[0])
         self.assertEqual(u'\u6771 ST,123,-121.2,39.3', r[1])
+
+    @unittest.skip("CSV SRS not yet implemented.")
+    def test_srs(self):
+        self.fail("Not implemented")
