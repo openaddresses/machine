@@ -1,0 +1,13 @@
+{
+    "data": "http://fake-web/lake-man-epsg26943.zip",
+    "cache": "http://fake-cache/lake-man-epsg26943.zip",
+    "type": "http",
+    "compression": "zip",
+    "conform": {
+        "lon": "X",
+        "lat": "Y",
+        "number": "NUMBER",
+        "street": "STRNAME",
+        "type": "shapefile"
+    }
+}

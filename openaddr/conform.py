@@ -278,11 +278,24 @@ class ConvertToCsvTask(object):
         # Conversion must have failed
         return None
 
-def ogr_source_to_csv(source_path, dest_path):
+def ogr_source_to_csv(source_definition, source_path, dest_path):
     "Convert a single shapefile or GeoJSON in source_path and put it in dest_path"
     in_datasource = ogr.Open(source_path, 0)
     in_layer = in_datasource.GetLayer()
     inSpatialRef = in_layer.GetSpatialRef()
+
+    if inSpatialRef is None:
+        # OGR couldn't find the projection, let's hope there's an SRS tag.
+        _L.info("No projection file found for source %s", source_path)
+        srs = source_definition["conform"].get("srs", None)
+        if srs is not None and srs.startswith(u"EPSG:"):
+            _L.debug("SRS tag found specifying %s", srs)
+            srs = srs.lstrip(u"EPSG:")
+            inSpatialRef = osr.SpatialReference()
+            inSpatialRef.ImportFromEPSG(int(srs))
+        else:
+            # OGR is capable of doing more than EPSG, but so far we don't need it.
+            raise Exception("Bad SRS. Can only handle EPSG, the SRS tag is %s", srs)
 
     _L.info("Converting a layer to CSV: %s", in_layer.GetName())
 
@@ -379,8 +392,6 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
             # For every row in the source CSV
             for source_row in reader:
                 out_row = row_extract_and_reproject(source_definition, source_row)
-                _L.debug(source_row)
-                _L.debug(out_row)
                 writer.writerow(out_row)
 
 def row_extract_and_reproject(source_definition, source_row):
@@ -479,7 +490,7 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     """
     # TODO: handle non-SHP sources
     if source_definition["conform"]["type"] in ("shapefile", "shapefile-polygon", "geojson"):
-        ogr_source_to_csv(source_path, extract_path)
+        ogr_source_to_csv(source_definition, source_path, extract_path)
     elif source_definition["conform"]["type"] == "csv":
         csv_source_to_csv(source_definition, source_path, extract_path)
     else:
@@ -736,6 +747,24 @@ class TestConformCli (unittest.TestCase):
         with open(dest_path) as fp:
             rows = list(unicodecsv.DictReader(fp, encoding='utf-8'))
             self.assertEqual(rows[0]['STREET'], u'Pz Espa\u00f1a')
+
+    def test_lake_man_shp_epsg26943(self):
+        rc, dest_path = self._run_conform_on_source('lake-man-epsg26943', 'shp')
+        self.assertEqual(0, rc)
+
+        with open(dest_path) as fp:
+            rows = list(unicodecsv.DictReader(fp))
+            self.assertAlmostEqual(float(rows[0]['LAT']), 37.802612637607439)
+            self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824)
+
+    def test_lake_man_shp_noprj_epsg26943(self):
+        rc, dest_path = self._run_conform_on_source('lake-man-epsg26943-noprj', 'shp')
+        self.assertEqual(0, rc)
+
+        with open(dest_path) as fp:
+            rows = list(unicodecsv.DictReader(fp))
+            self.assertAlmostEqual(float(rows[0]['LAT']), 37.802612637607439)
+            self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824)
 
     # TODO: add tests for GeoJSON sources
     # TODO: add tests for CSV sources
