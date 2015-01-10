@@ -328,18 +328,37 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
     _L.info("Converting source CSV %s", source_path)
 
     # TODO: extra features of CSV sources.
-    for unimplemented in ("headers", "skiplines"):
+    for unimplemented in ("skiplines",):
         assert not source_definition["conform"].has_key(unimplemented)
 
+    # Encoding processing tag
     enc = source_definition["conform"].get("encoding", "utf-8")
+
+    # csvsplit processing tag
     delim = source_definition["conform"].get("csvsplit", ",")
-    # Python2 unicodecsv requires this be a string, not unicode.
-    delim = delim.encode('ascii')
+    delim = delim.encode('ascii')     # Python2 unicodecsv requires this be not unicode
 
     # Extract the source CSV, applying conversions to deal with oddball CSV formats
     # Also convert encoding to utf-8 and reproject to EPSG:4326 in X and Y columns
     with open(source_path, 'rb') as source_fp:
-        reader = unicodecsv.DictReader(source_fp, encoding=enc, delimiter=delim)
+        in_fieldnames = None   # in most cases, we let the csv module figure these out
+
+        # headers processing tag
+        if (source_definition["conform"].has_key("headers")):
+            headers = source_definition["conform"]["headers"]
+            if (headers == -1):
+                # Read a row off the file to see how many columns it has
+                temp_reader = unicodecsv.reader(source_fp, encoding=enc, delimiter=delim)
+                first_row = temp_reader.next()
+                num_columns = len(first_row)
+                source_fp.seek(0)
+                in_fieldnames = ["COLUMN%d" % n for n in range(1, num_columns+1)]
+                _L.debug("Synthesized header %s", in_fieldnames)
+            else:
+                # Not implemented
+                assert False
+
+        reader = unicodecsv.DictReader(source_fp, encoding=enc, delimiter=delim, fieldnames=in_fieldnames)
 
         # Construct headers for the extracted CSV file
         old_latlon = (source_definition["conform"]["lat"], source_definition["conform"]["lon"])
@@ -857,6 +876,13 @@ class TestConformCsv(unittest.TestCase):
         r = self._convert(c, d)
         self.assertEqual(u'\u5927\u5b57\u30fb\u753a\u4e01\u76ee\u540d,NUMBER,X,Y', r[0])
         self.assertEqual(u'\u6771 ST,123,-121.2,39.3', r[1])
+
+    def test_headers_minus_one(self):
+        c = { "conform": { "headers": -1, "type": "csv", "lon": "COLUMN4", "lat": "COLUMN3" } }
+        d = (u'MAPLE ST,123,39.3,-121.2'.encode('ascii'),)
+        r = self._convert(c, d)
+        self.assertEqual(u'COLUMN1,COLUMN2,X,Y', r[0])
+        self.assertEqual(u'MAPLE ST,123,-121.2,39.3', r[1])
 
     @unittest.skip("CSV SRS not yet implemented.")
     def test_srs(self):
