@@ -1,0 +1,14 @@
+{
+    "data": "http://fake-web/lake-man.zip",
+    "cache": "http://fake-cache/lake-man.zip",
+    "type": "http",
+    "compression": "zip",
+    "conform": {
+        "lon": "X",
+        "lat": "Y",
+        "number": "NUMBER",
+        "street": "STRNAME",
+        "type": "xml",
+        "srs": "EPSG:4326"
+    }
+}

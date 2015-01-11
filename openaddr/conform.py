@@ -548,7 +548,7 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     to longitude and latitude in EPSG:4326.
     """
     # TODO: handle non-SHP sources
-    if source_definition["conform"]["type"] in ("shapefile", "shapefile-polygon", "geojson"):
+    if source_definition["conform"]["type"] in ("shapefile", "shapefile-polygon", "geojson", "xml"):
         ogr_source_to_csv(source_definition, source_path, extract_path)
     elif source_definition["conform"]["type"] == "csv":
         csv_source_to_csv(source_definition, source_path, extract_path)
@@ -586,7 +586,7 @@ def conform_cli(source_definition, source_path, dest_path):
 
     if not source_definition.has_key("conform"):
         return 1
-    if not source_definition["conform"].get("type", None) in ["shapefile", "shapefile-polygon", "geojson", "csv"]:
+    if not source_definition["conform"].get("type", None) in ["shapefile", "shapefile-polygon", "geojson", "csv", "xml"]:
         _L.warn("Skipping file with unknown conform: %s", source_path)
         return 1
 
@@ -748,6 +748,7 @@ class TestConformCli (unittest.TestCase):
             self.assertAlmostEqual(float(rows[0]['LAT']), 37.802612637607439)
             self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824)
 
+            self.assertEqual(6, len(rows))
             self.assertEqual(rows[0]['NUMBER'], '5115')
             self.assertEqual(rows[0]['STREET'], 'Fruited Plains Lane')
             self.assertEqual(rows[1]['NUMBER'], '5121')
@@ -886,6 +887,18 @@ class TestConformCli (unittest.TestCase):
             self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824, places=5)
             self.assertEqual(rows[0]['NUMBER'], '5')
             self.assertEqual(rows[0]['STREET'], u'Pz Espa\u00f1a')
+
+    def test_lake_man_gml(self):
+        "GML XML files"
+        rc, dest_path = self._run_conform_on_source('lake-man-gml', 'gml')
+        self.assertEqual(0, rc)
+        with open(dest_path) as fp:
+            rows = list(unicodecsv.DictReader(fp))
+            self.assertEqual(6, len(rows))
+            self.assertAlmostEqual(float(rows[0]['LAT']), 37.802612637607439)
+            self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824)
+            self.assertEqual(rows[0]['NUMBER'], '5115')
+            self.assertEqual(rows[0]['STREET'], 'Fruited Plains Lane')
 
 
 class TestConformMisc(unittest.TestCase):
