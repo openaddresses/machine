@@ -378,6 +378,7 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
             assert not source_definition["conform"].has_key("skiplines")
 
         reader = unicodecsv.DictReader(source_fp, encoding=enc, delimiter=delim, fieldnames=in_fieldnames)
+        num_fields = len(reader.fieldnames)
 
         # Construct headers for the extracted CSV file
         # Remove headers for the old lat and lon fields (uppercase versions too)
@@ -394,6 +395,9 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
             writer.writeheader()
             # For every row in the source CSV
             for source_row in reader:
+                if len(source_row) != num_fields:
+                    _L.debug("Skipping row. Got %d columns, expected %d", len(source_row), num_fields)
+                    continue
                 out_row = row_extract_and_reproject(source_definition, source_row)
                 writer.writerow(out_row)
 
@@ -483,6 +487,9 @@ def conform_smash_case(source_definition):
             conform[k] = conform[k].lower()
     if conform.has_key("merge"):
         conform["merge"] = [s.lower() for s in conform["merge"]]
+    if conform.has_key("advanced_merge"):
+        for new_col, spec in conform["advanced_merge"].items():
+            spec["fields"] = [s.lower() for s in spec["fields"]]
     return new_sd
 
 def row_smash_case(sd, row):
@@ -501,7 +508,10 @@ def row_advanced_merge(sd, row):
     advanced_merge = sd["conform"]["advanced_merge"]
     for new_field_name, merge_spec in advanced_merge.items():
         separator = merge_spec.get("separator", " ")
-        row[new_field_name] = separator.join([row[n] for n in merge_spec["fields"]])
+        try:
+            row[new_field_name] = separator.join([row[n] for n in merge_spec["fields"]])
+        except Exception as e:
+            _L.debug("Failure to merge row %r %s", e, row)
     return row
 
 def row_split_address(sd, row):
@@ -627,9 +637,14 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual({"upper": "foo", "lower": "bar", "mixed": "mixed"}, r)
 
     def test_conform_smash_case(self):
-        d = { "conform": { "street": "MiXeD", "number": "U", "split": "U", "merge": [ "U", "l", "MiXeD" ], "lat": "Y", "lon": "x" } }
+        d = { "conform": { "street": "MiXeD", "number": "U", "split": "U", "lat": "Y", "lon": "x",
+                           "merge": [ "U", "l", "MiXeD" ],
+                           "advanced_merge": { "auto_street": { "fields": ["MiXeD", "UPPER"] } } } }
         r = conform_smash_case(d)
-        self.assertEqual({ "conform": { "street": "mixed", "number": "u", "split": "u", "merge": [ "u", "l", "mixed" ], "lat": "y", "lon": "x" } }, r)
+        self.assertEqual({ "conform": { "street": "mixed", "number": "u", "split": "u", "lat": "y", "lon": "x",
+                           "merge": [ "u", "l", "mixed" ],
+                           "advanced_merge": { "auto_street": { "fields": ["mixed", "upper"] } } } },
+                         r)
 
     def test_row_convert_to_out(self):
         d = { "conform": { "street": "s", "number": "n", "lon": "x", "lat": "y" } }
@@ -1018,3 +1033,14 @@ class TestConformCsv(unittest.TestCase):
         r = self._convert(c, d)
         self.assertEqual(u'n,s,X,Y', r[0])
         self.assertEqual(u'3203,SE WOODSTOCK BLVD,-122.6308422,45.4815544', r[1])
+
+    def test_too_many_columns(self):
+        "Check that we don't barf on input with too many columns in some rows"
+        c = { "conform": { "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" } }
+        d = (self._ascii_header_in.encode('ascii'),
+             self._ascii_row_in.encode('ascii'),
+             u'MAPLE ST,123,39.3,-121.2,EXTRY'.encode('ascii'))
+        r = self._convert(c, d)
+        self.assertEqual(2, len(r))
+        self.assertEqual(self._ascii_header_out, r[0])
+        self.assertEqual(self._ascii_row_out, r[1])
