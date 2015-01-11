@@ -380,8 +380,11 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
         reader = unicodecsv.DictReader(source_fp, encoding=enc, delimiter=delim, fieldnames=in_fieldnames)
 
         # Construct headers for the extracted CSV file
-        old_latlon = (source_definition["conform"]["lat"], source_definition["conform"]["lon"])
+        # Remove headers for the old lat and lon fields (uppercase versions too)
+        old_latlon = [source_definition["conform"]["lat"], source_definition["conform"]["lon"]]
+        old_latlon.extend([s.upper() for s in old_latlon])
         out_fieldnames = [fn for fn in reader.fieldnames if fn not in old_latlon]
+        # Append our special names X and Y
         out_fieldnames.append("X")
         out_fieldnames.append("Y")
 
@@ -394,15 +397,61 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
                 out_row = row_extract_and_reproject(source_definition, source_row)
                 writer.writerow(out_row)
 
+_transform_cache = {}
+def _transform_to_4326(srs):
+    "Given a string like EPSG:2913, return an OGR transform object to turn it in to EPSG:4326"
+    if not _transform_cache.has_key(srs):
+        # Manufacture a transform object if it's not in the cache
+        in_spatial_ref = osr.SpatialReference()
+        in_spatial_ref.ImportFromEPSG(int(srs.lstrip("EPSG:")))
+        out_spatial_ref = osr.SpatialReference()
+        out_spatial_ref.ImportFromEPSG(4326)
+        _transform_cache[srs] = osr.CoordinateTransformation(in_spatial_ref, out_spatial_ref)
+    return _transform_cache[srs]
+
 def row_extract_and_reproject(source_definition, source_row):
     """Find lat/lon in source CSV data and store it in ESPG:4326 in X/Y in the row"""
+    # Find the lat and lon in the source; work around case mismatch
     lat_name = source_definition["conform"]["lat"]
     lon_name = source_definition["conform"]["lon"]
+    if source_row.has_key(lon_name):
+        source_x = source_row[lon_name]
+    else:
+        source_x = source_row[lon_name.upper()]
+    if source_row.has_key(lat_name):
+        source_y = source_row[lat_name]
+    else:
+        source_y = source_row[lat_name.upper()]
+
+    # Prepare an output row with the source lat and lon columns deleted
     out_row = copy.deepcopy(source_row)
-    out_row["X"] = source_row[lon_name]
-    del out_row[lon_name]
-    out_row["Y"] = source_row[lat_name]
-    del out_row[lat_name]
+    for n in lon_name, lon_name.upper(), lat_name, lat_name.upper():
+        if n in out_row: del out_row[n]
+
+    # Reproject the coordinates if necessary
+    if not source_definition["conform"].has_key("srs"):
+        out_x = source_x
+        out_y = source_y
+    else:
+        try:
+            srs = source_definition["conform"]["srs"]
+            source_x = float(source_x)
+            source_y = float(source_y)
+            point = ogr.Geometry(ogr.wkbPoint)
+            point.AddPoint_2D(float(source_x), float(source_y))
+
+            point.Transform(_transform_to_4326(srs))
+            out_x = "%.7f" % point.GetX()
+            out_y = "%.7f" % point.GetY()
+        except (TypeError, ValueError) as e:
+            if not (source_x == "" or source_y == ""):
+                _L.debug("Could not reproject %s %s in SRS %s", source_x, source_y, srs)
+            out_x = ""
+            out_y = ""
+
+    # Add the reprojected data to the output CSV
+    out_row["X"] = out_x
+    out_row["Y"] = out_y
     return out_row
 
 ### Row-level conform code. Inputs and outputs are individual rows in a CSV file.
@@ -633,6 +682,19 @@ class TestConformTransforms (unittest.TestCase):
         r = row_extract_and_reproject(d, {"longitude": "-122.3", "latitude": "39.1"})
         self.assertEqual({"Y": "39.1", "X": "-122.3"}, r)
 
+        d = { "conform" : { "lon": "x", "lat": "y" } }
+        r = row_extract_and_reproject(d, {"X": "-122.3", "Y": "39.1" })
+        self.assertEqual({"X": "-122.3", "Y": "39.1"}, r)
+
+        d = { "conform" : { "lon": "X", "lat": "Y", "srs": "EPSG:2913" } }
+        r = row_extract_and_reproject(d, {"X": "7655634.924", "Y": "668868.414"})
+        self.assertAlmostEqual(-122.630842186650796, float(r["X"]))
+        self.assertAlmostEqual(45.481554393851063, float(r["Y"]))
+
+        d = { "conform" : { "lon": "X", "lat": "Y", "srs": "EPSG:2913" } }
+        r = row_extract_and_reproject(d, {"X": "", "Y": ""})
+        self.assertEqual("", r["X"])
+        self.assertEqual("", r["Y"])
 
 class TestConformCli (unittest.TestCase):
     "Test the command line interface creates valid output files from test input"
@@ -767,10 +829,6 @@ class TestConformCli (unittest.TestCase):
             self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824)
 
     # TODO: add tests for GeoJSON sources
-    # TODO: add tests for CSV sources
-    # TODO: add test for lake-man-3740.json (CSV, not EPSG 4326)
-    # TODO: add tests for encoding tags
-    # TODO: add tests for SRS tags
 
     def test_lake_man_split2(self):
         rc, dest_path = self._run_conform_on_source('lake-man-split2', 'geojson')
@@ -798,10 +856,21 @@ class TestConformCli (unittest.TestCase):
         with open(dest_path) as fp:
             rows = list(unicodecsv.DictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '2543-6')
-            self.assertEqual(rows[0]['LON'], '135.955104')
-            self.assertEqual(rows[0]['LAT'], '34.607832')
+            self.assertAlmostEqual(float(rows[0]['LON']), 135.955104)
+            self.assertAlmostEqual(float(rows[0]['LAT']), 34.607832)
             self.assertEqual(rows[0]['STREET'], u'\u91dd\u753a')
             self.assertEqual(rows[1]['NUMBER'], '202-6')
+
+    def test_lake_man_3740(self):
+        "CSV in an oddball SRS"
+        rc, dest_path = self._run_conform_on_source('lake-man-3740', 'csv')
+        self.assertEqual(0, rc)
+        with open(dest_path) as fp:
+            rows = list(unicodecsv.DictReader(fp))
+            self.assertAlmostEqual(float(rows[0]['LAT']), 37.802612637607439, places=5)
+            self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824, places=5)
+            self.assertEqual(rows[0]['NUMBER'], '5')
+            self.assertEqual(rows[0]['STREET'], u'Pz Espa\u00f1a')
 
 
 class TestConformMisc(unittest.TestCase):
@@ -928,8 +997,24 @@ class TestConformCsv(unittest.TestCase):
              self._ascii_row_in.encode('ascii')) 
         r = self._convert(c, d)
         self.assertEqual(self._ascii_header_out, r[0])
-        self.assertEqual(self._ascii_row_out, r[1])        
+        self.assertEqual(self._ascii_row_out, r[1])
 
-    @unittest.skip("CSV SRS not yet implemented.")
+    def test_perverse_header_name_and_case(self):
+        # This is an example inspired by the hipsters in us-or-portland
+        # Conform says lowercase but the actual header is uppercase.
+        # Also the columns are named X and Y in the input
+        c = {"conform": {"lon": "x", "lat": "y", "number": "n", "street": "s", "type": "csv"}}
+        d = (u'n,s,X,Y'.encode('ascii'),
+             u'3203,SE WOODSTOCK BLVD,-122.629314,45.479425'.encode('ascii'))
+        r = self._convert(c, d)
+        self.assertEqual(u'n,s,X,Y', r[0])
+        self.assertEqual(u'3203,SE WOODSTOCK BLVD,-122.629314,45.479425', r[1])
+
     def test_srs(self):
-        self.fail("Not implemented")
+        # This is an example inspired by the hipsters in us-or-portland
+        c = {"conform": {"lon": "x", "lat": "y", "srs": "EPSG:2913", "number": "n", "street": "s", "type": "csv"}}
+        d = (u'n,s,X,Y'.encode('ascii'),
+             u'3203,SE WOODSTOCK BLVD,7655634.924,668868.414'.encode('ascii'))
+        r = self._convert(c, d)
+        self.assertEqual(u'n,s,X,Y', r[0])
+        self.assertEqual(u'3203,SE WOODSTOCK BLVD,-122.6308422,45.4815544', r[1])
