@@ -64,7 +64,7 @@ class TestOA (unittest.TestCase):
         data_dirname = join(dirname(__file__), 'tests', 'data')
         local_path = None
         
-        if host == 'fake-s3':
+        if host == 'fake-s3.local':
             return response(200, self.s3._read_fake_key(path))
         
         if (host, path) == ('data.acgov.org', '/api/geospatial/8e4s-7f4v'):
@@ -266,7 +266,7 @@ class FakeKey:
         self.s3 = fake_s3
     
     def generate_url(self, **kwargs):
-        return 'http://fake-s3' + self.name
+        return 'http://fake-s3.local' + self.name
 
     def set_contents_from_string(self, string, **kwargs):
         self.s3._write_fake_key(self.name, string)

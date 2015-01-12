@@ -80,6 +80,7 @@ def guess_url_file_extension(url):
     ''' Get a filename extension for a URL using various hints.
     '''
     scheme, _, path, _, query, _ = urlparse(url)
+    likely_ext = None
 
     if not query:
         _, likely_ext = os.path.splitext(path)
@@ -97,7 +98,7 @@ def guess_url_file_extension(url):
     else:
         raise ValueError('Unknown scheme "{}": {}'.format(scheme, url))
     
-    if likely_ext not in ('', '.cgi', '.php', '.aspx', '.asp', '.do'):
+    if likely_ext not in (None, '', '.cgi', '.php', '.aspx', '.asp', '.do'):
         #
         # Rule out missing or meaningless filename extensions.
         #
