@@ -11,6 +11,8 @@ import shutil
 
 from re import search
 from urllib.parse import urlencode, urlparse, urljoin
+from subprocess import check_output
+from tempfile import mkstemp
 from hashlib import sha1
 
 import requests
@@ -84,8 +86,8 @@ class URLDownloadTask(DownloadTask):
             May need to fill in a filename extension based on HTTP Content-Type.
         '''
         _, host, path, _, _, _ = urlparse(url)
-        path_base, path_ext = os.path.splitext(path)
-        
+        path_base, _ = os.path.splitext(path)
+
         if self.source_prefix is None:
             # With no source prefix like "us-ca-oakland" use the name as given.
             name_base = os.path.basename(path_base)
@@ -94,37 +96,23 @@ class URLDownloadTask(DownloadTask):
             hash = sha1((host + path_base).encode('utf-8'))
             name_base = '{}-{}'.format(self.source_prefix, hash.hexdigest()[:8])
         
-        while not path_ext:
-            # If we don't have a file extension, make a network request for the Content-Type.
-            resp = requests.head(url)
-            
-            # Follow the redirect.
-            if resp.status_code in range(300, 399):
-                url = urljoin(url, resp.headers['location'])
-                _, host, path, _, _, _ = urlparse(url)
-                continue
-            
-            if resp.status_code in range(400, 599):
-                raise RuntimeError('{} returned HTTP {}'.format(host, resp.status_code))
-            
-            if 'content-disposition' in resp.headers:
-                pattern = r'\bfilename=(?P<quote>"?)(?P<name>\S*\w)(?P=quote)?'
-                match = search(pattern, resp.headers['content-disposition'])
-                _, path_ext = os.path.splitext(match.group('name'))
-
-            elif 'content-type' in resp.headers:
-                content_type = resp.headers['content-type'].split(';')[0]
-                path_ext = mimetypes.guess_extension(content_type)
-
-            else:
-                raise RuntimeError('{} returned no Content-Type header'.format(host))
-
-            if path_ext is None:
-                raise RuntimeError('Unable to guess a type from {} at {}'.format(url, host))
-
-            _L.debug('Guessing {}{} for {}'.format(name_base, path_ext, url))
+        response = requests.get(url, stream=True)
         
-        _L.debug('Downloading {} to {}{}'.format(path, name_base, path_ext))
+        if 'content-disposition' in response.headers:
+            handle, file = mkstemp()
+            os.write(handle, response.iter_content(99).next())
+            os.close(handle)
+            
+            mime_type = check_output(('file', '--mime-type', '-b', file)).strip()
+            path_ext = mimetypes.guess_extension(mime_type)
+            
+            os.remove(file)
+        
+        elif 'content-type' in response.headers:
+            content_type = response.headers['content-type'].split(';')[0]
+            path_ext = mimetypes.guess_extension(content_type)
+
+        _L.debug('Guessing {}{} for {}'.format(name_base, path_ext, url))
         
         return os.path.join(dir_path, name_base + path_ext)
 
