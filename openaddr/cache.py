@@ -97,6 +97,10 @@ class URLDownloadTask(DownloadTask):
         if not path_ext:
             # If we don't have a file extension, make a network request for the Content-Type.
             resp = requests.head(url)
+            
+            if resp.status_code in range(400, 599):
+                raise RuntimeError('{} returned HTTP {}'.format(host, resp.status_code))
+
             path_ext = mimetypes.guess_extension(resp.headers['content-type'])
             _L.debug('Guessing {}{} for {}'.format(name_base, path_ext, resp.headers['content-type']))
         
