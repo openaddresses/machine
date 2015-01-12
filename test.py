@@ -84,7 +84,12 @@ class TestOA (unittest.TestCase):
                 local_path = join(data_dirname, 'us-ca-carson-0.json')
             elif where_clause == 'objectid >= 500 and objectid < 1000':
                 local_path = join(data_dirname, 'us-ca-carson-1.json')
-        
+
+        if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1'):
+            where_clause = parse_qs(query)['f'][0]
+            if where_clause == 'json':
+                local_path = join(data_dirname, 'us-ca-carson-metadata.json')
+
         if local_path:
             type, _ = guess_type(local_path)
             with open(local_path) as file:
