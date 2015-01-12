@@ -157,15 +157,24 @@ def conform(srcjson, destdir, extras):
 
     task = URLDownloadTask(source)
     downloaded_path = task.download(source_urls, workdir)
+    _L.info("Downloaded to %s", downloaded_path)
 
     task = DecompressionTask.from_type_string(data.get('compression'))
     decompressed_paths = task.decompress(downloaded_path, workdir)
+    _L.info("Decompressed to %d files", len(decompressed_paths))
 
     task3 = ExcerptDataTask()
-    sample_path, geometry_type = task3.excerpt(decompressed_paths, workdir)
+    try:
+        sample_path, geometry_type = task3.excerpt(decompressed_paths, workdir)
+        _L.info("Sampled to %s", sample_path)
+    except TypeError as e:
+        _L.warning("Error doing excerpt; skipping")
+        sample_path = None
+        geometry_type = None
 
     task = ConvertToCsvTask()
     csv_path = task.convert(data, decompressed_paths, workdir)
+    _L.info("Converted to %s", csv_path)
 
     out_path = None
     if csv_path is not None and exists(csv_path):
