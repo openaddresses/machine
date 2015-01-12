@@ -32,7 +32,7 @@ class CacheResult:
     fingerprint = None
     version = None
     elapsed = None
-    
+
     # needed by openaddr.process.write_state(), for now.
     output = ''
 
@@ -58,7 +58,7 @@ class DownloadTask(object):
 
     def __init__(self, source_prefix):
         self.source_prefix = source_prefix
-    
+
     @classmethod
     def from_type_string(clz, type_string, source_prefix=None):
         if type_string.lower() == 'http':
@@ -80,12 +80,12 @@ class URLDownloadTask(DownloadTask):
 
     def get_file_path(self, url, dir_path):
         ''' Return a local file path in a directory for a URL.
-        
+
             May need to fill in a filename extension based on HTTP Content-Type.
         '''
         _, host, path, _, _, _ = urlparse(url)
         path_base, path_ext = os.path.splitext(path)
-        
+
         if self.source_prefix is None:
             # With no source prefix like "us-ca-oakland" use the name as given.
             name_base = os.path.basename(path_base)
@@ -93,15 +93,15 @@ class URLDownloadTask(DownloadTask):
             # With a source prefix, create a safe and unique filename with a hash.
             hash = sha1((host + path_base).encode('utf-8'))
             name_base = '{}-{}'.format(self.source_prefix, hash.hexdigest()[:8])
-        
+
         if not path_ext:
             # If we don't have a file extension, make a network request for the Content-Type.
             resp = requests.head(url)
             path_ext = mimetypes.guess_extension(resp.headers['content-type'])
             _L.debug('Guessing {}{} for {}'.format(name_base, path_ext, resp.headers['content-type']))
-        
+
         _L.debug('Downloading {} to {}{}'.format(path, name_base, path_ext))
-        
+
         return os.path.join(dir_path, name_base + path_ext)
 
     def download(self, source_urls, workdir):
@@ -111,7 +111,7 @@ class URLDownloadTask(DownloadTask):
 
         for source_url in source_urls:
             file_path = self.get_file_path(source_url, download_path)
-            
+
             # FIXME: For URLs with file:// scheme, simply copy the file
             # to the expected location so that os.path.exists() returns True.
             # Instead, implement a FileDownloadTask class?
@@ -196,12 +196,12 @@ class EsriRestDownloadTask(DownloadTask):
         '''
         _, host, path, _, _, _ = urlparse(url)
         hash, path_ext = sha1((host + path).encode('utf-8')), '.json'
-        
+
         # With no source prefix like "us-ca-oakland" use the host as a hint.
         name_base = '{}-{}'.format(self.source_prefix or host, hash.hexdigest()[:8])
-        
+
         _L.debug('Downloading {} to {}{}'.format(path, name_base, path_ext))
-        
+
         return os.path.join(dir_path, name_base + path_ext)
 
     def download(self, source_urls, workdir):
