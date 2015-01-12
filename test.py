@@ -59,7 +59,7 @@ class TestOA (unittest.TestCase):
     def response_content(self, url, request):
         ''' Fake HTTP responses for use with HTTMock in tests.
         '''
-        _, host, path, _, query, _ = urlparse(url.geturl())
+        scheme, host, path, _, query, _ = urlparse(url.geturl())
         data_dirname = join(dirname(__file__), 'tests', 'data')
         local_path = None
         
@@ -84,6 +84,9 @@ class TestOA (unittest.TestCase):
                 local_path = join(data_dirname, 'us-ca-carson-0.json')
             elif where_clause == 'objectid >= 500 and objectid < 1000':
                 local_path = join(data_dirname, 'us-ca-carson-1.json')
+        
+        if scheme == 'file':
+            local_path = path
         
         if local_path:
             type, _ = guess_type(local_path)
