@@ -1,7 +1,6 @@
 from __future__ import absolute_import, division, print_function
 from future import standard_library; standard_library.install_aliases()
-import logging
-_L = logging.getLogger(__name__)
+import logging; _L = logging.getLogger('openaddr.cache')
 
 import json
 import os

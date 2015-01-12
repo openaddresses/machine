@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, print_function
 from future import standard_library; standard_library.install_aliases()
-import logging
-_L = logging.getLogger(__name__)
+
+import logging; _L = logging.getLogger('openaddr.process_one')
 
 from urllib.parse import urlparse
 from os.path import join, basename, dirname, exists, splitext, relpath

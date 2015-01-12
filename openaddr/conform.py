@@ -7,8 +7,7 @@ import unicodecsv
 import json
 import copy
 
-import logging
-_L = logging.getLogger(__name__)
+import logging; _L = logging.getLogger('openaddr.conform')
 
 from zipfile import ZipFile
 from argparse import ArgumentParser
