@@ -102,7 +102,7 @@ class URLDownloadTask(DownloadTask):
             #
             # Socrata recently started using Content-Disposition instead
             # of normal response headers so it's no longer easy to identify
-            # file type. Shell out to `file` to peek at the content when we’re
+            # file type. Shell out to `file` to peek at the content when we're
             # unwilling to trust Content-Type header.
             #
             handle, file = mkstemp()
