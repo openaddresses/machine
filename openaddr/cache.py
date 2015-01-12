@@ -10,6 +10,7 @@ import mimetypes
 import shutil
 
 from re import search
+from os.path import join, dirname
 from urllib.parse import urlencode, urlparse, urljoin
 from subprocess import check_output
 from tempfile import mkstemp
@@ -75,6 +76,63 @@ class DownloadTask(object):
     def download(self, source_urls, workdir):
         raise NotImplementedError()
 
+def guess_url_file_extension(url):
+    ''' Get a filename extension for a URL using various hints.
+    '''
+    scheme, _, path, _, query, _ = urlparse(url)
+
+    if not query:
+        _, likely_ext = os.path.splitext(path)
+    
+    # Get a dictionary of headers and a few bytes of content from the URL.
+    if scheme in ('http', 'https'):
+        response = requests.get(url, stream=True)
+        content_chunk = response.iter_content(99).next()
+        headers = response.headers
+        response.close()
+    elif scheme in ('file', ''):
+        headers = dict()
+        with open(path) as file:
+            content_chunk = file.read(99)
+    else:
+        raise ValueError('Unknown scheme "{}": {}'.format(scheme, url))
+    
+    if likely_ext not in ('', '.cgi', '.php', '.aspx', '.asp', '.do'):
+        #
+        # Rule out missing or meaningless filename extensions.
+        #
+        _L.debug('URL says "{}" for {}'.format(likely_ext, url))
+        path_ext = likely_ext
+    
+    elif 'content-disposition' in headers or 'content-type' not in headers:
+        #
+        # Socrata recently started using Content-Disposition instead
+        # of normal response headers so it's no longer easy to identify
+        # file type. Shell out to `file` to peek at the content when we're
+        # unwilling to trust Content-Type header.
+        #
+        mime_type = get_content_mimetype(content_chunk)
+        _L.debug('file says "{}" for {}'.format(mime_type, url))
+        path_ext = mimetypes.guess_extension(mime_type)
+    
+    else:
+        content_type = headers['content-type'].split(';')[0]
+        _L.debug('Content-Type says "{}" for {}'.format(content_type, url))
+        path_ext = mimetypes.guess_extension(content_type)
+    
+    return path_ext
+
+def get_content_mimetype(chunk):
+    ''' Get a mime-type for a short length of file content.
+    '''
+    handle, file = mkstemp()
+    os.write(handle, chunk)
+    os.close(handle)
+    
+    mime_type = check_output(('file', '--mime-type', '-b', file)).strip()
+    os.remove(file)
+    
+    return mime_type
 
 class URLDownloadTask(DownloadTask):
     USER_AGENT = 'openaddresses-extract/1.0 (https://github.com/openaddresses/openaddresses)'
@@ -85,7 +143,7 @@ class URLDownloadTask(DownloadTask):
         
             May need to fill in a filename extension based on HTTP Content-Type.
         '''
-        _, host, path, _, _, _ = urlparse(url)
+        scheme, host, path, _, _, _ = urlparse(url)
         path_base, _ = os.path.splitext(path)
 
         if self.source_prefix is None:
@@ -96,33 +154,9 @@ class URLDownloadTask(DownloadTask):
             hash = sha1((host + path_base).encode('utf-8'))
             name_base = '{}-{}'.format(self.source_prefix, hash.hexdigest()[:8])
         
-        response = requests.get(url, stream=True)
-        
-        if 'content-disposition' in response.headers or 'content-type' not in response.headers:
-            #
-            # Socrata recently started using Content-Disposition instead
-            # of normal response headers so it's no longer easy to identify
-            # file type. Shell out to `file` to peek at the content when we're
-            # unwilling to trust Content-Type header.
-            #
-            handle, file = mkstemp()
-            os.write(handle, response.iter_content(99).next())
-            os.close(handle)
-            
-            mime_type = check_output(('file', '--mime-type', '-b', file)).strip()
-            path_ext = mimetypes.guess_extension(mime_type)
-            
-            os.remove(file)
-        
-        else:
-            content_type = response.headers['content-type'].split(';')[0]
-            path_ext = mimetypes.guess_extension(content_type)
-        
-        # Close the streamed request from earlier
-        response.close()
-
-        _L.debug('Guessing {}{} for {}'.format(name_base, path_ext, url))
-        
+        path_ext = guess_url_file_extension(url)
+        _L.debug('Guessed {}{} for {}'.format(name_base, path_ext, url))
+    
         return os.path.join(dir_path, name_base + path_ext)
 
     def download(self, source_urls, workdir):
@@ -292,3 +326,39 @@ class EsriRestDownloadTask(DownloadTask):
             _L.info("Downloaded %s ESRI features for file %s", size, file_path)
             output_files.append(file_path)
         return output_files
+
+import unittest, httmock
+
+class TestCacheExtensionGuessing (unittest.TestCase):
+
+    def response_content(self, url, request):
+        ''' Fake HTTP responses for use with HTTMock in tests.
+        '''
+        scheme, host, path, _, query, _ = urlparse(url.geturl())
+        tests_dirname = join(os.getcwd(), 'tests')
+        
+        if host == 'fake-cwd.local':
+            with open(tests_dirname + path) as file:
+                type, _ = mimetypes.guess_type(file.name)
+                return httmock.response(200, file.read(), headers={'Content-Type': type})
+        
+        elif (host, path) == ('www.ci.berkeley.ca.us', '/uploadedFiles/IT/GIS/Parcels.zip'):
+            with open(join(tests_dirname, 'data', 'us-ca-berkeley-excerpt.zip')) as file:
+                return httmock.response(200, file.read(), headers={'Content-Type': 'application/octet-stream'})
+
+        elif (host, path) == ('data.sfgov.org', '/download/kvej-w5kb/ZIPPED%20SHAPEFILE'):
+            return httmock.response(302, '', headers={'Location': 'http://apps.sfgov.org/datafiles/view.php?file=sfgis/eas_addresses_with_units.zip'})
+
+        elif (host, path, query) == ('apps.sfgov.org', '/datafiles/view.php', 'file=sfgis/eas_addresses_with_units.zip'):
+            with open(join(tests_dirname, 'data', 'us-ca-san_francisco-excerpt.zip')) as file:
+                return httmock.response(200, file.read(), headers={'Content-Type': 'application/download', 'Content-Disposition': 'attachment; filename=eas_addresses_with_units.zip;'})
+
+        raise NotImplementedError(url.geturl())
+    
+    def test_urls(self):
+        with httmock.HTTMock(self.response_content):
+            assert guess_url_file_extension('http://fake-cwd.local/conforms/lake-man-3740.csv') == '.csv'
+            assert guess_url_file_extension('http://fake-cwd.local/data/us-ca-carson-0.json') == '.json'
+            assert guess_url_file_extension('http://fake-cwd.local/data/us-ca-oakland-excerpt.zip') == '.zip'
+            assert guess_url_file_extension('http://www.ci.berkeley.ca.us/uploadedFiles/IT/GIS/Parcels.zip') == '.zip'
+            assert guess_url_file_extension('https://data.sfgov.org/download/kvej-w5kb/ZIPPED%20SHAPEFILE') == '.zip'
