@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, print_function
 from future import standard_library; standard_library.install_aliases()
-import logging
-_L = logging.getLogger(__name__)
+
+import logging; _L = logging.getLogger('openaddr.process_all')
 
 from argparse import ArgumentParser
 from collections import defaultdict
@@ -29,12 +29,15 @@ parser.add_argument('-s', '--secret-key', default=environ.get('AWS_SECRET_ACCESS
                     help='Optional AWS secret key name. Defaults to value of AWS_SECRET_ACCESS_KEY environment variable.')
 
 parser.add_argument('-l', '--logfile', help='Optional log file name.')
-parser.add_argument('-v', '--verbose', help='Turn on verbose logging', action="store_true")
+
+parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
+                    action='store_const', dest='loglevel',
+                    const=logging.DEBUG, default=logging.WARNING)
 
 def main():
     args = parser.parse_args()
     
-    jobs.setup_logger(logfile = args.logfile, log_level = logging.DEBUG if args.verbose else logging.WARNING)
+    jobs.setup_logger(logfile=args.logfile, log_level=args.loglevel)
     s3 = S3(args.access_key, args.secret_key, args.bucketname)
     
     #

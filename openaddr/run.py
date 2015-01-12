@@ -1,5 +1,5 @@
-import logging
-_L = logging.getLogger(__name__)
+import logging; _L = logging.getLogger('openaddr.')
+
 from os import environ
 from os.path import join, dirname
 from argparse import ArgumentParser

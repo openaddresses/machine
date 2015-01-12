@@ -1,5 +1,5 @@
-import logging
-_L = logging.getLogger(__name__)
+import logging; _L = logging.getLogger('openaddr.jobs')
+
 from threading import Thread, Lock
 from collections import OrderedDict
 from multiprocessing import cpu_count

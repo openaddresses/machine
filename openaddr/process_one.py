@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, print_function
 from future import standard_library; standard_library.install_aliases()
-import logging
-_L = logging.getLogger(__name__)
+
+import logging; _L = logging.getLogger('openaddr.process_one')
 
 from urllib.parse import urlparse
 from os.path import join, basename, dirname, exists, splitext, relpath
@@ -110,16 +110,27 @@ parser.add_argument('source', help='Required source file name.')
 parser.add_argument('destination', help='Required output directory name.')
 
 parser.add_argument('-l', '--logfile', help='Optional log file name.')
-parser.add_argument('-v', '--verbose', help='Turn on verbose logging', action="store_true")
+
+parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
+                    action='store_const', dest='loglevel',
+                    const=logging.DEBUG, default=logging.WARNING)
 
 def main():
     '''
     '''
     from .jobs import setup_logger
-    args = parser.parse_args()
-    setup_logger(logfile = args.logfile, log_level = logging.DEBUG if args.verbose else logging.WARNING)
 
-    print(process(args.source, args.destination))
+    args = parser.parse_args()
+    setup_logger(logfile=args.logfile, log_level=args.loglevel)
+    
+    try:
+        file_path = process(args.source, args.destination)
+    except Exception as e:
+        _L.error(e, exc_info=True)
+        return 1
+    else:
+        print(file_path)
+        return 0
 
 if __name__ == '__main__':
     exit(main())
