@@ -166,7 +166,7 @@ def conform(srcjson, destdir, extras):
     task3 = ExcerptDataTask()
     try:
         sample_path, geometry_type = task3.excerpt(decompressed_paths, workdir)
-        _L.info("Sampled to %s", sample_path)
+        _L.info("Sampled %d records", len(sample_path))
     except TypeError as e:
         _L.warning("Error doing excerpt; skipping")
         sample_path = None
