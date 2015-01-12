@@ -10,7 +10,8 @@ import socket
 import mimetypes
 import shutil
 
-from urllib.parse import urlencode, urlparse
+from re import search
+from urllib.parse import urlencode, urlparse, urljoin
 from hashlib import sha1
 
 import requests
@@ -94,15 +95,35 @@ class URLDownloadTask(DownloadTask):
             hash = sha1((host + path_base).encode('utf-8'))
             name_base = '{}-{}'.format(self.source_prefix, hash.hexdigest()[:8])
         
-        if not path_ext:
+        while not path_ext:
             # If we don't have a file extension, make a network request for the Content-Type.
             resp = requests.head(url)
             
+            # Follow the redirect.
+            if resp.status_code in range(300, 399):
+                url = urljoin(url, resp.headers['location'])
+                _, host, path, _, _, _ = urlparse(url)
+                continue
+            
             if resp.status_code in range(400, 599):
                 raise RuntimeError('{} returned HTTP {}'.format(host, resp.status_code))
+            
+            if 'content-disposition' in resp.headers:
+                pattern = r'\bfilename=(?P<quote>"?)(?P<name>\S*\w)(?P=quote)?'
+                match = search(pattern, resp.headers['content-disposition'])
+                _, path_ext = os.path.splitext(match.group('name'))
 
-            path_ext = mimetypes.guess_extension(resp.headers['content-type'])
-            _L.debug('Guessing {}{} for {}'.format(name_base, path_ext, resp.headers['content-type']))
+            elif 'content-type' in resp.headers:
+                content_type = resp.headers['content-type'].split(';')[0]
+                path_ext = mimetypes.guess_extension(content_type)
+
+            else:
+                raise RuntimeError('{} returned no Content-Type header'.format(host))
+
+            if path_ext is None:
+                raise RuntimeError('Unable to guess a type from {} at {}'.format(url, host))
+
+            _L.debug('Guessing {}{} for {}'.format(name_base, path_ext, url))
         
         _L.debug('Downloading {} to {}{}'.format(path, name_base, path_ext))
         
