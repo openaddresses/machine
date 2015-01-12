@@ -274,27 +274,38 @@ class EsriRestDownloadTask(DownloadTask):
                 _L.debug("File exists %s", file_path)
                 continue
 
+            oid_field = 'objectid'
+            response = requests.get(source_url, params={'f': 'json'})
+            for field in response.json().get('fields', []):
+                if field.get('type') == 'esriFieldTypeOID':
+                    oid_field = field.get('name')
+                    break
+
             with open(file_path, 'w') as f:
                 f.write('{\n"type": "FeatureCollection",\n"features": [\n')
                 start = 0
                 width = 500
                 while True:
                     query_url = source_url + '/query'
-                    query_args = urlencode({
-                        'where': 'objectid >= {} and objectid < {}'.format(start, (start + width)),
+                    query_args = {
+                        'where': '{oid_field} >= {start} and {oid_field} < {end}'.format(
+                            oid_field=oid_field,
+                            start=start,
+                            end=(start + width)
+                        ),
                         'geometryPrecision': 7,
                         'returnGeometry': True,
                         'outSR': 4326,
                         'outFields': '*',
                         'f': 'JSON',
-                    })
-                    query_url += '?' + query_args
+                    }
 
-                    _L.debug("Requesting %s", query_url)
                     headers = {'User-Agent': self.USER_AGENT}
 
                     try:
-                        data = requests.get(query_url, headers=headers).json()
+                        response = requests.get(query_url, headers=headers, params=query_args)
+                        _L.debug("Requesting %s", response.request.url)
+                        data = response.json()
                     except socket.timeout as e:
                         raise DownloadError("Timeout when connecting to URL", e)
                     except ValueError as e:
