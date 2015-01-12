@@ -249,10 +249,19 @@ def expand_street_name(street_name):
                 tokenized[i] = "Street"
             else:
                 tokenized[i] = "Saint"
-    street_name = ' '.join(tokenized)
 
-    # Convert to title case
-    street_name = street_name.title()
+    # Convert case to English
+    case_converted = []
+    for s in tokenized:
+        if len(s) == 0:
+            case_converted.append(s)
+        elif s[0].isdigit():
+            # special case: 3RD becomes 3rd, not 3Rd
+            case_converted.append(s.lower())
+        else:
+            case_converted.append(s.title())
+
+    street_name = ' '.join(case_converted)
 
     return street_name
 
@@ -260,6 +269,7 @@ import unittest
 class TestExpand(unittest.TestCase):
     def test_expand_street_name(self):
         for e, a in (
+            ("", ""),
             ("Oak Drive", "OAK DR"),
             ("Oak Drive", "  OAK DR "),
             ("Oak Drive", "OAK DR."),
@@ -273,5 +283,11 @@ class TestExpand(unittest.TestCase):
             ("Saint Isidore Drive", "ST ISIDORE DR"),
             ("Saint Sebastian Street", "ST. Sebastian ST"),
             ("Mornington Crescent", "MORNINGTON CR"),
+        ):
+            self.assertEqual(e, expand_street_name(a))
+
+    def test_expand_case_exceptions(self):
+        for e, a in (
+            ("3rd Street", "3RD ST"),
         ):
             self.assertEqual(e, expand_street_name(a))
