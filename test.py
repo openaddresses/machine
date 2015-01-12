@@ -89,6 +89,11 @@ class TestOA (unittest.TestCase):
         if scheme == 'file':
             local_path = path
         
+        if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1'):
+            where_clause = parse_qs(query)['f'][0]
+            if where_clause == 'json':
+                local_path = join(data_dirname, 'us-ca-carson-metadata.json')
+
         if local_path:
             type, _ = guess_type(local_path)
             with open(local_path) as file:
