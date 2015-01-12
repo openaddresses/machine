@@ -44,14 +44,17 @@ class S3:
         self._key, self._secret = key, secret
         self.bucketname = bucketname
     
-    def get_key(self, name):
+    def _make_bucket(self):
         if not self._bucket:
-            self._bucket = connect_s3(key, secret).get_bucket(bucketname)
+            connection = connect_s3(self._key, self._secret)
+            self._bucket = connection.get_bucket(self.bucketname)
+    
+    def get_key(self, name):
+        self._make_bucket()
         return self._bucket.get_key(name)
     
     def new_key(self, name):
-        if not self._bucket:
-            self._bucket = connect_s3(key, secret).get_bucket(bucketname)
+        self._make_bucket()
         return self._bucket.new_key(name)
 
 def cache(srcjson, destdir, extras):
