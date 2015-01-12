@@ -81,9 +81,9 @@ class TestOA (unittest.TestCase):
         
         if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1/query'):
             where_clause = parse_qs(query)['where'][0]
-            if where_clause == 'objectid >= 0 and objectid < 500':
+            if where_clause == 'OBJECTID >= 0 and OBJECTID < 500':
                 local_path = join(data_dirname, 'us-ca-carson-0.json')
-            elif where_clause == 'objectid >= 500 and objectid < 1000':
+            elif where_clause == 'OBJECTID >= 500 and OBJECTID < 1000':
                 local_path = join(data_dirname, 'us-ca-carson-1.json')
         
         if scheme == 'file':
