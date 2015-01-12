@@ -304,7 +304,7 @@ class EsriRestDownloadTask(DownloadTask):
 
                     try:
                         response = requests.get(query_url, headers=headers, params=query_args)
-                        _L.debug("Requesting %s", response.request.url)
+                        _L.debug("Requesting %s", response.url)
                         data = response.json()
                     except socket.timeout as e:
                         raise DownloadError("Timeout when connecting to URL", e)
