@@ -80,46 +80,48 @@ def guess_url_file_extension(url):
     ''' Get a filename extension for a URL using various hints.
     '''
     scheme, _, path, _, query, _ = urlparse(url)
-    likely_ext = None
-
-    if not query:
-        _, likely_ext = os.path.splitext(path)
     
-    # Get a dictionary of headers and a few bytes of content from the URL.
-    if scheme in ('http', 'https'):
-        response = requests.get(url, stream=True)
-        content_chunk = response.iter_content(99).next()
-        headers = response.headers
-        response.close()
-    elif scheme in ('file', ''):
-        headers = dict()
-        with open(path) as file:
-            content_chunk = file.read(99)
-    else:
-        raise ValueError('Unknown scheme "{}": {}'.format(scheme, url))
+    _, likely_ext = os.path.splitext(path)
+    bad_extensions = '', '.cgi', '.php', '.aspx', '.asp', '.do'
     
-    if likely_ext not in (None, '', '.cgi', '.php', '.aspx', '.asp', '.do'):
+    if not query and likely_ext not in bad_extensions:
         #
-        # Rule out missing or meaningless filename extensions.
+        # Trust simple URLs without meaningless filename extensions.
         #
         _L.debug('URL says "{}" for {}'.format(likely_ext, url))
         path_ext = likely_ext
     
-    elif 'content-disposition' in headers or 'content-type' not in headers:
-        #
-        # Socrata recently started using Content-Disposition instead
-        # of normal response headers so it's no longer easy to identify
-        # file type. Shell out to `file` to peek at the content when we're
-        # unwilling to trust Content-Type header.
-        #
-        mime_type = get_content_mimetype(content_chunk)
-        _L.debug('file says "{}" for {}'.format(mime_type, url))
-        path_ext = mimetypes.guess_extension(mime_type)
-    
     else:
-        content_type = headers['content-type'].split(';')[0]
-        _L.debug('Content-Type says "{}" for {}'.format(content_type, url))
-        path_ext = mimetypes.guess_extension(content_type)
+        #
+        # Get a dictionary of headers and a few bytes of content from the URL.
+        #
+        if scheme in ('http', 'https'):
+            response = requests.get(url, stream=True)
+            content_chunk = response.iter_content(99).next()
+            headers = response.headers
+            response.close()
+        elif scheme in ('file', ''):
+            headers = dict()
+            with open(path) as file:
+                content_chunk = file.read(99)
+        else:
+            raise ValueError('Unknown scheme "{}": {}'.format(scheme, url))
+    
+        if 'content-disposition' in headers or 'content-type' not in headers:
+            #
+            # Socrata recently started using Content-Disposition instead
+            # of normal response headers so it's no longer easy to identify
+            # file type. Shell out to `file` to peek at the content when we're
+            # unwilling to trust Content-Type header.
+            #
+            mime_type = get_content_mimetype(content_chunk)
+            _L.debug('file says "{}" for {}'.format(mime_type, url))
+            path_ext = mimetypes.guess_extension(mime_type)
+    
+        else:
+            content_type = headers['content-type'].split(';')[0]
+            _L.debug('Content-Type says "{}" for {}'.format(content_type, url))
+            path_ext = mimetypes.guess_extension(content_type)
     
     return path_ext
 
