@@ -321,11 +321,15 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
                 field_defn = in_layer_defn.GetFieldDefn(i)
                 row[field_defn.GetNameRef()] = in_feature.GetField(i)
             geom = in_feature.GetGeometryRef()
-            geom.Transform(coordTransform)
-            # Calculate the centroid of the geometry and write it as X and Y columns
-            centroid = geom.Centroid()
-            row['X'] = centroid.GetX()
-            row['Y'] = centroid.GetY()
+            if geom is not None:
+                geom.Transform(coordTransform)
+                # Calculate the centroid of the geometry and write it as X and Y columns
+                centroid = geom.Centroid()
+                row['X'] = centroid.GetX()
+                row['Y'] = centroid.GetY()
+            else:
+                row['X'] = None
+                row['Y'] = None
 
             writer.writerow(row)
 
