@@ -3,7 +3,7 @@ from future import standard_library; standard_library.install_aliases()
 
 import json
 from csv import DictReader
-from io import StringIO
+from io import BytesIO
 from operator import itemgetter
 from os.path import join, dirname, splitext
 from dateutil.parser import parse as parse_datetime
@@ -27,7 +27,7 @@ def load_states(s3):
     
     if state_key:
         last_modified = parse_datetime(state_key.last_modified)
-        state_file = StringIO(state_key.get_contents_as_string())
+        state_file = BytesIO(state_key.get_contents_as_string())
         
         for row in DictReader(state_file, dialect='excel-tab'):
             row['shortname'], _ = splitext(row['source'])
