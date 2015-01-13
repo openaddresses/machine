@@ -206,6 +206,7 @@ def find_source_path(source_definition, source_paths):
     "Figure out which of the possible paths is the actual source"
     conform = source_definition["conform"]
     if conform["type"] in ("shapefile", "shapefile-polygon"):
+        # TODO this code is too complicated; see XML variant below for simpler option
         # Shapefiles are named *.shp
         candidates = []
         for fn in source_paths:
@@ -248,6 +249,24 @@ def find_source_path(source_definition, source_paths):
     elif conform["type"] == "csv":
         # We don't expect to be handed a list of files
         return source_paths[0]
+    elif conform["type"] == "xml":
+        # Return file if it's specified, else return the first .gml file we find
+        if conform.has_key("file"):
+            for fn in source_paths:
+                # Consider it a match if the basename matches; directory names are a mess
+                if os.path.basename(conform["file"]) == os.path.basename(fn):
+                    return fn
+            _L.warning("Conform named %s as file but we could not find it." % conform["file"])
+            return None
+        else:
+            for fn in source_paths:
+                _, ext = os.path.splitext(fn)
+                if ext == ".gml":
+                    return fn
+            _L.warning("Could not find a .gml file")
+            return None
+
+
     else:
         _L.warning("Unknown source type %s", conform["type"])
         return None
@@ -985,6 +1004,13 @@ class TestConformMisc(unittest.TestCase):
     def test_find_csv_source_path(self):
         csv_conform = {"conform": {"type": "csv"}}
         self.assertEqual("foo.csv", find_source_path(csv_conform, ["foo.csv"]))
+
+    def test_find_xml_source_path(self):
+        c = {"conform": {"type": "xml"}}
+        self.assertEqual("foo.gml", find_source_path(c, ["foo.gml"]))
+        c = {"conform": {"type": "xml", "file": "xyzzy/foo.gml"}}
+        self.assertEqual("xyzzy/foo.gml", find_source_path(c, ["xyzzy/foo.gml", "bar.gml", "foo.gml"]))
+        self.assertEqual("/tmp/foo/xyzzy/foo.gml", find_source_path(c, ["/tmp/foo/xyzzy/foo.gml"]))
 
 class TestConformCsv(unittest.TestCase):
     "Fixture to create real files to test csv_source_to_csv()"
