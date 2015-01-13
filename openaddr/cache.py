@@ -35,7 +35,7 @@ class CacheResult:
     fingerprint = None
     version = None
     elapsed = None
-    
+
     # needed by openaddr.process.write_state(), for now.
     output = ''
 
@@ -61,7 +61,7 @@ class DownloadTask(object):
 
     def __init__(self, source_prefix):
         self.source_prefix = source_prefix
-    
+
     @classmethod
     def from_type_string(clz, type_string, source_prefix=None):
         if type_string.lower() == 'http':
@@ -84,7 +84,7 @@ def guess_url_file_extension(url):
 
     if not query:
         _, likely_ext = os.path.splitext(path)
-    
+
     # Get a dictionary of headers and a few bytes of content from the URL.
     if scheme in ('http', 'https'):
         response = requests.get(url, stream=True)
@@ -97,14 +97,14 @@ def guess_url_file_extension(url):
             content_chunk = file.read(99)
     else:
         raise ValueError('Unknown scheme "{}": {}'.format(scheme, url))
-    
+
     if likely_ext not in (None, '', '.cgi', '.php', '.aspx', '.asp', '.do'):
         #
         # Rule out missing or meaningless filename extensions.
         #
         _L.debug('URL says "{}" for {}'.format(likely_ext, url))
         path_ext = likely_ext
-    
+
     elif 'content-disposition' in headers or 'content-type' not in headers:
         #
         # Socrata recently started using Content-Disposition instead
@@ -115,12 +115,12 @@ def guess_url_file_extension(url):
         mime_type = get_content_mimetype(content_chunk)
         _L.debug('file says "{}" for {}'.format(mime_type, url))
         path_ext = mimetypes.guess_extension(mime_type)
-    
+
     else:
         content_type = headers['content-type'].split(';')[0]
         _L.debug('Content-Type says "{}" for {}'.format(content_type, url))
         path_ext = mimetypes.guess_extension(content_type)
-    
+
     return path_ext
 
 def get_content_mimetype(chunk):
@@ -129,10 +129,10 @@ def get_content_mimetype(chunk):
     handle, file = mkstemp()
     os.write(handle, chunk)
     os.close(handle)
-    
+
     mime_type = check_output(('file', '--mime-type', '-b', file)).strip()
     os.remove(file)
-    
+
     return mime_type
 
 class URLDownloadTask(DownloadTask):
@@ -141,7 +141,7 @@ class URLDownloadTask(DownloadTask):
 
     def get_file_path(self, url, dir_path):
         ''' Return a local file path in a directory for a URL.
-        
+
             May need to fill in a filename extension based on HTTP Content-Type.
         '''
         scheme, host, path, _, _, _ = urlparse(url)
@@ -154,10 +154,10 @@ class URLDownloadTask(DownloadTask):
             # With a source prefix, create a safe and unique filename with a hash.
             hash = sha1((host + path_base).encode('utf-8'))
             name_base = '{}-{}'.format(self.source_prefix, hash.hexdigest()[:8])
-        
+
         path_ext = guess_url_file_extension(url)
         _L.debug('Guessed {}{} for {}'.format(name_base, path_ext, url))
-    
+
         return os.path.join(dir_path, name_base + path_ext)
 
     def download(self, source_urls, workdir):
@@ -167,7 +167,7 @@ class URLDownloadTask(DownloadTask):
 
         for source_url in source_urls:
             file_path = self.get_file_path(source_url, download_path)
-            
+
             # FIXME: For URLs with file:// scheme, simply copy the file
             # to the expected location so that os.path.exists() returns True.
             # Instead, implement a FileDownloadTask class?
@@ -252,12 +252,12 @@ class EsriRestDownloadTask(DownloadTask):
         '''
         _, host, path, _, _, _ = urlparse(url)
         hash, path_ext = sha1((host + path).encode('utf-8')), '.json'
-        
+
         # With no source prefix like "us-ca-oakland" use the host as a hint.
         name_base = '{}-{}'.format(self.source_prefix or host, hash.hexdigest()[:8])
-        
+
         _L.debug('Downloading {} to {}{}'.format(path, name_base, path_ext))
-        
+
         return os.path.join(dir_path, name_base + path_ext)
 
     def download(self, source_urls, workdir):
@@ -274,27 +274,38 @@ class EsriRestDownloadTask(DownloadTask):
                 _L.debug("File exists %s", file_path)
                 continue
 
+            oid_field = 'objectid'
+            response = requests.get(source_url, params={'f': 'json'})
+            for field in response.json().get('fields', []):
+                if field.get('type') == 'esriFieldTypeOID':
+                    oid_field = field.get('name')
+                    break
+
             with open(file_path, 'w') as f:
                 f.write('{\n"type": "FeatureCollection",\n"features": [\n')
                 start = 0
                 width = 500
                 while True:
                     query_url = source_url + '/query'
-                    query_args = urlencode({
-                        'where': 'objectid >= {} and objectid < {}'.format(start, (start + width)),
+                    query_args = {
+                        'where': '{oid_field} >= {start} and {oid_field} < {end}'.format(
+                            oid_field=oid_field,
+                            start=start,
+                            end=(start + width)
+                        ),
                         'geometryPrecision': 7,
                         'returnGeometry': True,
                         'outSR': 4326,
                         'outFields': '*',
                         'f': 'JSON',
-                    })
-                    query_url += '?' + query_args
+                    }
 
-                    _L.debug("Requesting %s", query_url)
                     headers = {'User-Agent': self.USER_AGENT}
 
                     try:
-                        data = requests.get(query_url, headers=headers).json()
+                        response = requests.get(query_url, headers=headers, params=query_args)
+                        _L.debug("Requesting %s", response.url)
+                        data = response.json()
                     except socket.timeout as e:
                         raise DownloadError("Timeout when connecting to URL", e)
                     except ValueError as e:
@@ -337,12 +348,12 @@ class TestCacheExtensionGuessing (unittest.TestCase):
         '''
         scheme, host, path, _, query, _ = urlparse(url.geturl())
         tests_dirname = join(os.getcwd(), 'tests')
-        
+
         if host == 'fake-cwd.local':
             with open(tests_dirname + path) as file:
                 type, _ = mimetypes.guess_type(file.name)
                 return httmock.response(200, file.read(), headers={'Content-Type': type})
-        
+
         elif (host, path) == ('www.ci.berkeley.ca.us', '/uploadedFiles/IT/GIS/Parcels.zip'):
             with open(join(tests_dirname, 'data', 'us-ca-berkeley-excerpt.zip')) as file:
                 return httmock.response(200, file.read(), headers={'Content-Type': 'application/octet-stream'})
@@ -355,7 +366,7 @@ class TestCacheExtensionGuessing (unittest.TestCase):
                 return httmock.response(200, file.read(), headers={'Content-Type': 'application/download', 'Content-Disposition': 'attachment; filename=eas_addresses_with_units.zip;'})
 
         raise NotImplementedError(url.geturl())
-    
+
     def test_urls(self):
         with httmock.HTTMock(self.response_content):
             assert guess_url_file_extension('http://fake-cwd.local/conforms/lake-man-3740.csv') == '.csv'

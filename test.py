@@ -34,7 +34,7 @@ from threading import Lock
 
 from requests import get
 from httmock import response, HTTMock
-        
+
 from openaddr import paths, cache, conform, jobs, S3, process_all, process_one
 from openaddr.sample import TestSample
 from openaddr.cache import TestCacheExtensionGuessing
@@ -42,7 +42,7 @@ from openaddr.conform import TestConformCli, TestConformTransforms, TestConformM
 from openaddr.expand import TestExpand
 
 class TestOA (unittest.TestCase):
-    
+
     def setUp(self):
         ''' Prepare a clean temporary directory, and copy sources there.
         '''
@@ -52,7 +52,7 @@ class TestOA (unittest.TestCase):
         shutil.copytree(sources_dir, self.src_dir)
 
         self.s3 = FakeS3()
-    
+
     def tearDown(self):
         shutil.rmtree(self.testdir)
         remove(self.s3._fake_keys)
@@ -63,55 +63,60 @@ class TestOA (unittest.TestCase):
         scheme, host, path, _, query, _ = urlparse(url.geturl())
         data_dirname = join(dirname(__file__), 'tests', 'data')
         local_path = None
-        
+
         if host == 'fake-s3.local':
             return response(200, self.s3._read_fake_key(path))
-        
+
         if (host, path) == ('data.acgov.org', '/api/geospatial/8e4s-7f4v'):
             local_path = join(data_dirname, 'us-ca-alameda_county-excerpt.zip')
-        
+
         if (host, path) == ('www.ci.berkeley.ca.us', '/uploadedFiles/IT/GIS/Parcels.zip'):
             local_path = join(data_dirname, 'us-ca-berkeley-excerpt.zip')
-        
+
         if (host, path) == ('data.openoakland.org', '/sites/default/files/OakParcelsGeo2013_0.zip'):
             local_path = join(data_dirname, 'us-ca-oakland-excerpt.zip')
-        
+
         if (host, path) == ('data.sfgov.org', '/download/kvej-w5kb/ZIPPED%20SHAPEFILE'):
             local_path = join(data_dirname, 'us-ca-san_francisco-excerpt.zip')
-        
+
         if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1/query'):
             where_clause = parse_qs(query)['where'][0]
-            if where_clause == 'objectid >= 0 and objectid < 500':
+            if where_clause == 'OBJECTID >= 0 and OBJECTID < 500':
                 local_path = join(data_dirname, 'us-ca-carson-0.json')
-            elif where_clause == 'objectid >= 500 and objectid < 1000':
+            elif where_clause == 'OBJECTID >= 500 and OBJECTID < 1000':
                 local_path = join(data_dirname, 'us-ca-carson-1.json')
-        
+
+        if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1'):
+            format = parse_qs(query)['f'][0]
+            if format == 'json':
+                local_path = join(data_dirname, 'us-ca-carson-metadata.json')
+
         if scheme == 'file':
             local_path = path
-        
+
         if local_path:
             type, _ = guess_type(local_path)
             with open(local_path) as file:
                 return response(200, file.read(), headers={'Content-Type': type})
-        
+
         raise NotImplementedError(url.geturl())
-    
+
     def test_process_all(self):
         ''' Test process_all.process(), with complete threaded behavior.
         '''
         with HTTMock(self.response_content):
             process_all.process(self.s3, self.src_dir, 'test')
-        
+
         # Go looking for state.txt in fake S3.
         buffer = BytesIO(self.s3._read_fake_key('runs/test/state.txt'))
         states = dict([(row['source'], row) for row
                        in DictReader(buffer, dialect='excel-tab')])
-        
+
         for (source, state) in states.items():
             self.assertTrue(bool(state['cache']), 'Checking for cache in {}'.format(source))
             self.assertTrue(bool(state['version']), 'Checking for version in {}'.format(source))
             self.assertTrue(bool(state['fingerprint']), 'Checking for fingerprint in {}'.format(source))
-            
+
             if 'carson' not in source:
                 # TODO: why does Carson lack geometry type and sample data?
                 self.assertTrue(bool(state['geometry type']), 'Checking for geometry type in {}'.format(source))
@@ -127,34 +132,34 @@ class TestOA (unittest.TestCase):
         #
         data = json.loads(self.s3._read_fake_key('state.json'))
         self.assertEqual(data, 'runs/test/state.json')
-        
+
         data = json.loads(self.s3._read_fake_key(data))
         rows = [dict(zip(data[0], row)) for row in data[1:]]
-        
+
         for state in rows:
             self.assertTrue(bool(state['cache']))
             self.assertTrue(bool(state['version']))
             self.assertTrue(bool(state['fingerprint']))
-        
+
     def test_single_ac(self):
         ''' Test complete process_one.process on Alameda County sample data.
         '''
         source = join(self.src_dir, 'us-ca-alameda_county.json')
-        
+
         with HTTMock(self.response_content):
             state_path = process_one.process(source, self.testdir)
-        
+
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
-        
+
         self.assertTrue(state['cache'] is not None)
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point')
-        
+
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
-        
+
         self.assertEqual(len(sample_data), 6)
         self.assertTrue('ZIPCODE' in sample_data[0])
         self.assertTrue('OAKLAND' in sample_data[1])
@@ -164,25 +169,25 @@ class TestOA (unittest.TestCase):
         ''' Test complete process_one.process on Carson sample data.
         '''
         source = join(self.src_dir, 'us-ca-carson.json')
-        
+
         with HTTMock(self.response_content):
             state_path = process_one.process(source, self.testdir)
-        
+
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
-        
+
         self.assertTrue(state['cache'] is not None)
         # TODO: re-enable test of processing once conform supports geojson
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point')
-        
+
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
-        
+
         self.assertEqual(len(sample_data), 6)
         self.assertTrue('SITEFRAC' in sample_data[0])
-        
+
         return   # TODO geojson
         with open(join(dirname(state_path), state['processed'])) as file:
             self.assertTrue('555 E CARSON ST' in file.read())
@@ -191,20 +196,20 @@ class TestOA (unittest.TestCase):
         ''' Test complete process_one.process on Oakland sample data.
         '''
         source = join(self.src_dir, 'us-ca-oakland.json')
-        
+
         with HTTMock(self.response_content):
             state_path = process_one.process(source, self.testdir)
-        
+
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
-        
+
         self.assertTrue(state['cache'] is not None)
         # This test data does not contain a working conform object
         self.assertTrue(state['processed'] is None)
-        
+
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
-        
+
         self.assertTrue('FID_PARCEL' in sample_data[0])
 
 @contextmanager
@@ -220,39 +225,39 @@ class FakeS3 (S3):
     ''' Just enough S3 to work for tests.
     '''
     _fake_keys = None
-    
+
     def __init__(self):
         handle, self._fake_keys = tempfile.mkstemp(prefix='fakeS3-', suffix='.pickle')
         close(handle)
 
         self._threadlock = Lock()
-        
+
         with open(self._fake_keys, 'wb') as file:
             pickle.dump(dict(), file)
 
         S3.__init__(self, 'Fake Key', 'Fake Secret', 'data-test.openaddresses.io')
-    
+
     def _write_fake_key(self, name, string):
         with locked_open(self._fake_keys) as file, self._threadlock:
             data = pickle.load(file)
             data[name] = string
-            
+
             file.seek(0)
             file.truncate()
             pickle.dump(data, file)
-    
+
     def _read_fake_key(self, name):
         with locked_open(self._fake_keys) as file, self._threadlock:
             data = pickle.load(file)
-            
+
         return data[name]
-    
+
     def get_key(self, name):
         if not name.endswith('state.txt'):
             raise NotImplementedError()
         # No pre-existing state for testing.
         return None
-        
+
     def new_key(self, name):
         return FakeKey(name, self)
 
@@ -260,17 +265,17 @@ class FakeKey:
     ''' Just enough S3 to work for tests.
     '''
     md5 = '0xDEADBEEF'
-    
+
     def __init__(self, name, fake_s3):
         self.name = name
         self.s3 = fake_s3
-    
+
     def generate_url(self, **kwargs):
         return 'http://fake-s3.local' + self.name
 
     def set_contents_from_string(self, string, **kwargs):
         self.s3._write_fake_key(self.name, string)
-        
+
     def set_contents_from_filename(self, filename, **kwargs):
         with open(filename) as file:
             self.s3._write_fake_key(self.name, file.read())

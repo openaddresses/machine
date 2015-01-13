@@ -3,17 +3,11 @@ python:
   - "2.7"
 virtualenv:
   system_site_packages: true
-before_install: 
+cache:
+  apt: true
+before_install:
   - sudo apt-get update -y
-  - sudo apt-get install -qq libgdal1h
-  - sudo apt-get install -qq python-numpy python-scientific
-  - sudo apt-get install -qq python-shapely
-  - sudo apt-get install -qq python-qt4
-  - sudo apt-get install -qq proj
-  - sudo apt-get install -qq gmsh
-  - sudo apt-get install -qq gmt
-  - sudo apt-get install -qq python-gdal
-  - sudo apt-get install -qq python-cairo
+  - sudo apt-get install -y -qq libgdal1h python-numpy python-scientific python-shapely python-qt4 proj gmsh gmt python-gdal python-cairo
 install:
   - sudo chef/run.sh
   - pip install 'httmock >= 1.2'
