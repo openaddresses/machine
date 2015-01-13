@@ -289,9 +289,8 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
         srs = source_definition["conform"].get("srs", None)
         if srs is not None and srs.startswith(u"EPSG:"):
             _L.debug("SRS tag found specifying %s", srs)
-            srs = srs.lstrip(u"EPSG:")
             inSpatialRef = osr.SpatialReference()
-            inSpatialRef.ImportFromEPSG(int(srs))
+            inSpatialRef.ImportFromEPSG(int(srs[5:]))
         else:
             # OGR is capable of doing more than EPSG, but so far we don't need it.
             raise Exception("Bad SRS. Can only handle EPSG, the SRS tag is %s", srs)
@@ -404,9 +403,10 @@ _transform_cache = {}
 def _transform_to_4326(srs):
     "Given a string like EPSG:2913, return an OGR transform object to turn it in to EPSG:4326"
     if not _transform_cache.has_key(srs):
+        epsg_id = int(srs[5:]) if srs.startswith("EPSG:") else int(srs)
         # Manufacture a transform object if it's not in the cache
         in_spatial_ref = osr.SpatialReference()
-        in_spatial_ref.ImportFromEPSG(int(srs.lstrip("EPSG:")))
+        in_spatial_ref.ImportFromEPSG(epsg_id)
         out_spatial_ref = osr.SpatialReference()
         out_spatial_ref.ImportFromEPSG(4326)
         _transform_cache[srs] = osr.CoordinateTransformation(in_spatial_ref, out_spatial_ref)
@@ -475,6 +475,7 @@ def row_transform_and_convert(sd, row):
         row = row_split_address(sd, row)
     row = row_convert_to_out(sd, row)
     row = row_canonicalize_street_and_number(sd, row)
+    row = row_round_lat_lon(sd, row)
     return row
 
 def conform_smash_case(source_definition):
@@ -523,7 +524,21 @@ def row_split_address(sd, row):
 def row_canonicalize_street_and_number(sd, row):
     "Expand abbreviations and otherwise canonicalize street name and number"
     row["NUMBER"] = row["NUMBER"].strip()
+    if row["NUMBER"].endswith(".0"):
+        row["NUMBER"] = row["NUMBER"][:-2]
     row["STREET"] = expand_street_name(row["STREET"])
+    return row
+
+def _round_wgs84_to_7(n):
+    "Round a WGS84 coordinate to 7 decimal points. Input and output both strings."
+    try:
+        return "%.12g" % round(float(n), 7)
+    except:
+        return n
+def row_round_lat_lon(sd, row):
+    "Round WGS84 coordinates to 1cm precision"
+    row["LON"] = _round_wgs84_to_7(row["LON"])
+    row["LAT"] = _round_wgs84_to_7(row["LAT"])
     return row
 
 def row_convert_to_out(sd, row):
@@ -690,6 +705,31 @@ class TestConformTransforms (unittest.TestCase):
         r = row_canonicalize_street_and_number({}, {"NUMBER": "324 ", "STREET": " OAK DR."})
         self.assertEqual("324", r["NUMBER"])
         self.assertEqual("Oak Drive", r["STREET"])
+
+        # Tests for integer conversion
+        for e, a in (("324", " 324.0  "),
+                     ("", ""),
+                     ("3240", "3240"),
+                     ("INVALID", "INVALID"),
+                     ("324.5", "324.5")):
+            r = row_canonicalize_street_and_number({}, {"NUMBER": a, "STREET": ""})
+            self.assertEqual(e, r["NUMBER"])
+
+    def test_row_round_lat_lon(self):
+        r = row_round_lat_lon({}, {"LON": "39.14285717777", "LAT": "-121.20"})
+        self.assertEqual({"LON": "39.1428572", "LAT": "-121.2"}, r)
+        for e, a in ((    ""        ,    ""),
+                     (  "39.3"      ,  "39.3"),
+                     (  "39.3"      ,  "39.3000000"),
+                     ( "-39.3"      , "-39.3000"),
+                     (  "39.1428571",  "39.142857143"),
+                     (  "39.1428572",  "39.142857153"),
+                     (   "0"        ,  " 0.00"),
+                     (  "-0"        ,  "-0.00"),
+                     ( "180"        ,  "180.0"),
+                     ("-180"        , "-180")):
+            r = row_round_lat_lon({}, {"LAT": a, "LON": a})
+            self.assertEqual(e, r["LON"])
 
     def test_row_extract_and_reproject(self):
         d = { "conform" : { "lon": "longitude", "lat": "latitude" } }
