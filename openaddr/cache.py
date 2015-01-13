@@ -293,7 +293,7 @@ class EsriRestDownloadTask(DownloadTask):
                 f.write('{\n"type": "FeatureCollection",\n"features": [\n')
                 oid_iter = iter(oids)
                 while True:
-                    oid_chunk = tuple(itertools.islice(oid_iter, 250))
+                    oid_chunk = tuple(itertools.islice(oid_iter, 100))
 
                     if not oid_chunk:
                         break
