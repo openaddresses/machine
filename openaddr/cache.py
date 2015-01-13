@@ -8,6 +8,7 @@ import errno
 import socket
 import mimetypes
 import shutil
+import itertools
 
 from re import search
 from os.path import join, dirname
@@ -276,36 +277,38 @@ class EsriRestDownloadTask(DownloadTask):
                 _L.debug("File exists %s", file_path)
                 continue
 
-            oid_field = 'objectid'
-            response = requests.get(source_url, params={'f': 'json'})
-            for field in response.json().get('fields', []):
-                if field.get('type') == 'esriFieldTypeOID':
-                    oid_field = field.get('name')
-                    break
+            headers = {'User-Agent': self.USER_AGENT}
+
+            # Get all the OIDs
+            query_url = source_url + '/query'
+            query_args = {
+                'where': '1=1', # So we get everything
+                'returnIdsOnly': 'true',
+                'f': 'json',
+            }
+            response = requests.get(query_url, params=query_args, headers=headers)
+            oids = response.json().get('objectIds', [])
 
             with open(file_path, 'w') as f:
                 f.write('{\n"type": "FeatureCollection",\n"features": [\n')
-                start = 0
-                width = 500
+                oid_iter = iter(oids)
                 while True:
-                    query_url = source_url + '/query'
+                    oid_chunk = tuple(itertools.islice(oid_iter, 250))
+
+                    if not oid_chunk:
+                        break
+
                     query_args = {
-                        'where': '{oid_field} >= {start} and {oid_field} < {end}'.format(
-                            oid_field=oid_field,
-                            start=start,
-                            end=(start + width)
-                        ),
+                        'objectIds': ','.join(map(unicode, oid_chunk)),
                         'geometryPrecision': 7,
-                        'returnGeometry': True,
+                        'returnGeometry': 'true',
                         'outSR': 4326,
                         'outFields': '*',
-                        'f': 'JSON',
+                        'f': 'json',
                     }
 
-                    headers = {'User-Agent': self.USER_AGENT}
-
                     try:
-                        response = requests.get(query_url, headers=headers, params=query_args)
+                        response = requests.post(query_url, headers=headers, data=query_args)
                         _L.debug("Requesting %s", response.url)
                         data = response.json()
                     except socket.timeout as e:
@@ -334,7 +337,6 @@ class EsriRestDownloadTask(DownloadTask):
                         break
                     else:
                         f.write(',\n')
-                        start += width
 
                 f.write('\n]\n}\n')
             _L.info("Downloaded %s ESRI features for file %s", size, file_path)

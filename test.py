@@ -80,19 +80,16 @@ class TestOA (unittest.TestCase):
             local_path = join(data_dirname, 'us-ca-san_francisco-excerpt.zip')
         
         if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1/query'):
-            where_clause = parse_qs(query)['where'][0]
-            if where_clause == 'OBJECTID >= 0 and OBJECTID < 500':
+            qs = parse_qs(query)
+            body_data = parse_qs(request.body) if request.body else {}
+
+            if qs.get('returnIdsOnly') == ['true']:
+                local_path = join(data_dirname, 'us-ca-carson-ids-only.json')
+            elif body_data.get('outSR') == ['4326']:
                 local_path = join(data_dirname, 'us-ca-carson-0.json')
-            elif where_clause == 'OBJECTID >= 500 and OBJECTID < 1000':
-                local_path = join(data_dirname, 'us-ca-carson-1.json')
-        
+
         if scheme == 'file':
             local_path = path
-        
-        if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1'):
-            where_clause = parse_qs(query)['f'][0]
-            if where_clause == 'json':
-                local_path = join(data_dirname, 'us-ca-carson-metadata.json')
 
         if local_path:
             type, _ = guess_type(local_path)
