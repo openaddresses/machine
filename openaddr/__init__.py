@@ -142,12 +142,12 @@ def conform(srcjson, destdir, extras):
     if not isinstance(source_urls, list):
         source_urls = [source_urls]
 
-    task = URLDownloadTask(source)
-    downloaded_path = task.download(source_urls, workdir)
+    task1 = URLDownloadTask(source)
+    downloaded_path = task1.download(source_urls, workdir)
     _L.info("Downloaded to %s", downloaded_path)
 
-    task = DecompressionTask.from_type_string(data.get('compression'))
-    decompressed_paths = task.decompress(downloaded_path, workdir)
+    task2 = DecompressionTask.from_type_string(data.get('compression'))
+    decompressed_paths = task2.decompress(downloaded_path, workdir)
     _L.info("Decompressed to %d files", len(decompressed_paths))
 
     task3 = ExcerptDataTask()
@@ -159,9 +159,13 @@ def conform(srcjson, destdir, extras):
         sample_path = None
         geometry_type = None
 
-    task = ConvertToCsvTask()
-    csv_path = task.convert(data, decompressed_paths, workdir)
-    _L.info("Converted to %s", csv_path)
+    task4 = ConvertToCsvTask()
+    try:
+        csv_path = task4.convert(data, decompressed_paths, workdir)
+        _L.info("Converted to %s", csv_path)
+    except Exception as e:
+        _L.warning("Error doing conform; skipping")
+        csv_path = None
 
     out_path = None
     if csv_path is not None and exists(csv_path):
