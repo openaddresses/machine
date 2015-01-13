@@ -209,6 +209,26 @@ class TestOA (unittest.TestCase):
         
         self.assertTrue('FID_PARCEL' in sample_data[0])
 
+    def test_single_berk(self):
+        ''' Test complete process_one.process on Berkeley sample data.
+        '''
+        source = join(self.src_dir, 'us-ca-berkeley.json')
+        
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+        
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        self.assertTrue(state['cache'] is not None)
+        # This test data does not contain a conform object at all
+        self.assertTrue(state['processed'] is None)
+        
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+        
+        self.assertTrue('APN' in sample_data[0])
+
 @contextmanager
 def locked_open(filename):
     ''' Open and lock a file, for use with threads and processes.
