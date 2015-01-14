@@ -12,7 +12,6 @@ from urllib.parse import urlparse
 import json
 
 from osgeo import ogr
-from requests import get
 from boto import connect_s3
 from .sample import sample_geojson
 from . import paths

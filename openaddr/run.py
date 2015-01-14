@@ -8,7 +8,6 @@ from time import time, sleep
 from . import jobs
 from boto.ec2 import EC2Connection
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
-from requests import get
 
 parser = ArgumentParser(description='Run some source files.')
 
