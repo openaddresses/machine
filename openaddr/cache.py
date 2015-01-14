@@ -21,6 +21,9 @@ import requests
 import requests_ftp
 requests_ftp.monkeypatch_session()
 
+# HTTP timeout in seconds, used in various calls to requests.get() and requests.post()
+_http_timeout = 180
+
 def mkdirsp(path):
     try:
         os.makedirs(path)
@@ -97,7 +100,7 @@ def guess_url_file_extension(url):
         # Get a dictionary of headers and a few bytes of content from the URL.
         #
         if scheme in ('http', 'https'):
-            response = requests.get(url, stream=True)
+            response = requests.get(url, stream=True, timeout=_http_timeout)
             content_chunk = response.iter_content(99).next()
             headers = response.headers
             response.close()
@@ -187,7 +190,7 @@ class URLDownloadTask(DownloadTask):
             headers = {'User-Agent': self.USER_AGENT}
 
             try:
-                resp = requests.get(source_url, headers=headers, stream=True)
+                resp = requests.get(source_url, headers=headers, stream=True, timeout=_http_timeout)
             except Exception as e:
                 raise DownloadError("Could not connect to URL", e)
 
@@ -286,7 +289,7 @@ class EsriRestDownloadTask(DownloadTask):
                 'returnIdsOnly': 'true',
                 'f': 'json',
             }
-            response = requests.get(query_url, params=query_args, headers=headers)
+            response = requests.get(query_url, params=query_args, headers=headers, timeout=_http_timeout)
             oids = response.json().get('objectIds', [])
 
             with open(file_path, 'w') as f:
@@ -308,7 +311,7 @@ class EsriRestDownloadTask(DownloadTask):
                     }
 
                     try:
-                        response = requests.post(query_url, headers=headers, data=query_args)
+                        response = requests.post(query_url, headers=headers, data=query_args, timeout=_http_timeout)
                         _L.debug("Requesting %s", response.url)
                         data = response.json()
                     except socket.timeout as e:
