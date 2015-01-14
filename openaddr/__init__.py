@@ -152,11 +152,12 @@ def conform(srcjson, destdir, extras):
 
     task3 = ExcerptDataTask()
     try:
-        sample_path, geometry_type = task3.excerpt(decompressed_paths, workdir)
-        _L.info("Sampled %d records", len(sample_path))
-    except TypeError as e:
-        _L.warning("Error doing excerpt; skipping")
-        sample_path = None
+        encoding = data.get('conform', {}).get('encoding', False)
+        data_sample, geometry_type = task3.excerpt(decompressed_paths, workdir, encoding)
+        _L.info("Sampled %d records", len(data_sample))
+    except Exception as e:
+        _L.warning("Error doing excerpt; skipping", exc_info=True)
+        data_sample = None
         geometry_type = None
 
     task4 = ConvertToCsvTask()
@@ -164,7 +165,7 @@ def conform(srcjson, destdir, extras):
         csv_path = task4.convert(data, decompressed_paths, workdir)
         _L.info("Converted to %s", csv_path)
     except Exception as e:
-        _L.warning("Error doing conform; skipping")
+        _L.warning("Error doing conform; skipping", exc_info=True)
         csv_path = None
 
     out_path = None
@@ -175,7 +176,7 @@ def conform(srcjson, destdir, extras):
     rmtree(workdir)
 
     return ConformResult(data.get('processed', None),
-                         sample_path,
+                         data_sample,
                          geometry_type,
                          out_path,
                          datetime.now() - start)

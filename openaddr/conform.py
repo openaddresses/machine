@@ -1,5 +1,9 @@
 # coding=ascii
 
+from __future__ import absolute_import, division, print_function
+from future import standard_library; standard_library.install_aliases()
+import logging; _L = logging.getLogger('openaddr.conform')
+
 import os
 import errno
 import tempfile
@@ -7,10 +11,9 @@ import unicodecsv
 import json
 import copy
 
-import logging; _L = logging.getLogger('openaddr.conform')
-
 from zipfile import ZipFile
 from argparse import ArgumentParser
+from locale import getpreferredencoding
 
 from .sample import sample_geojson
 from .expand import expand_street_name
@@ -114,7 +117,7 @@ class ExcerptDataTask(object):
     '''
     known_types = ('.shp', '.json', '.csv', '.kml')
 
-    def excerpt(self, source_paths, workdir):
+    def excerpt(self, source_paths, workdir, encoding):
         '''
         
             Tested version from openaddr.excerpt() on master branch:
@@ -185,15 +188,20 @@ class ExcerptDataTask(object):
         datasource = ogr.Open(data_path, 0)
         layer = datasource.GetLayer()
 
+        if not encoding:
+            encoding = guess_source_encoding(datasource, layer)
+        
         layer_defn = layer.GetLayerDefn()
-        fieldnames = [layer_defn.GetFieldDefn(i).GetName()
-                      for i in range(layer_defn.GetFieldCount())]
+        fieldcount = layer_defn.GetFieldCount()
+        fieldnames = [layer_defn.GetFieldDefn(i).GetName().decode(encoding)
+                      for i in range(fieldcount)]
 
         data_sample = [fieldnames]
         
         for feature in layer:
-            data_sample.append([feature.GetField(i) for i
-                                in range(layer_defn.GetFieldCount())])
+            row = [feature.GetField(i) for i in range(fieldcount)]
+            row = [v.decode(encoding) if hasattr(v, 'decode') else v for v in row]
+            data_sample.append(row)
 
             if len(data_sample) == 6:
                 break
@@ -201,6 +209,22 @@ class ExcerptDataTask(object):
         geometry_type = geometry_types.get(layer_defn.GetGeomType(), None)
 
         return data_sample, geometry_type
+
+def guess_source_encoding(datasource, layer):
+    ''' Guess at a string encoding using hints from OGR and locale().
+    
+        Duplicate the process used in Fiona, described and implemented here:
+        
+        https://github.com/openaddresses/machine/issues/42#issuecomment-69693143
+        https://github.com/Toblerity/Fiona/blob/53df35dc70fb/docs/encoding.txt
+        https://github.com/Toblerity/Fiona/blob/53df35dc70fb/fiona/ogrext.pyx#L386
+    '''
+    ogr_recoding = layer.TestCapability(ogr.OLCStringsAsUTF8)
+    is_shapefile = datasource.GetDriver().GetName() == 'ESRI Shapefile'
+    
+    return (ogr_recoding and 'UTF-8') \
+        or (is_shapefile and 'ISO-8859-1') \
+        or getpreferredencoding()
 
 def find_source_path(source_definition, source_paths):
     "Figure out which of the possible paths is the actual source"
