@@ -57,9 +57,6 @@ class ConformResult:
     path = None
     elapsed = None
     
-    # needed by openaddr.process.write_state(), for now.
-    output = ''
-
     def __init__(self, processed, sample, geometry_type, path, elapsed):
         self.processed = processed
         self.sample = sample

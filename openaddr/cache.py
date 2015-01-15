@@ -40,9 +40,6 @@ class CacheResult:
     version = None
     elapsed = None
 
-    # needed by openaddr.process.write_state(), for now.
-    output = ''
-
     def __init__(self, cache, fingerprint, version, elapsed):
         self.cache = cache
         self.fingerprint = fingerprint
