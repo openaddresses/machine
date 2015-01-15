@@ -18,12 +18,12 @@ def process(source, destination, extras=dict()):
     
         Creates a new directory and files under destination.
     '''
-    log_handler = get_log_handler()
-    logging.getLogger('openaddr').addHandler(log_handler)
-    
     temp_dir = tempfile.mkdtemp(prefix='process_one-', dir=destination)
     temp_src = join(temp_dir, basename(source))
     copy(source, temp_src)
+    
+    log_handler = get_log_handler(temp_dir)
+    logging.getLogger('openaddr').addHandler(log_handler)
     
     #
     # Cache source data.
@@ -64,10 +64,10 @@ class LogFilter:
     def filter(self, record):
         return record.thread == self.thread_id
 
-def get_log_handler():
+def get_log_handler(directory):
     ''' Create a new file handler for the current thread and return it.
     '''
-    handle, filename = tempfile.mkstemp(suffix='.log')
+    handle, filename = tempfile.mkstemp(dir=directory, suffix='.log')
     close(handle)
     
     handler = logging.FileHandler(filename)
