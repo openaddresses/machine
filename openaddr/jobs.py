@@ -78,8 +78,8 @@ def setup_logger(logfile = None, log_level = logging.DEBUG, log_stderr = True, l
     # Default logging format. {0} will be replaced with a destination-appropriate timestamp
     log_format = '%(threadName)11s  {0} %(levelname)06s: %(message)s'
 
-    # Set the default log level as requested
-    openaddr_logger.setLevel(log_level)
+    # Set the logger level to show everything, and filter down in the handlers.
+    openaddr_logger.setLevel(logging.DEBUG)
 
     # Remove all previously installed handlers
     for old_handler in openaddr_logger.handlers:
@@ -99,11 +99,13 @@ def setup_logger(logfile = None, log_level = logging.DEBUG, log_stderr = True, l
         # Set up a logger to stderr
         if log_stderr:
             handler1 = logging.StreamHandler()
+            handler1.setLevel(log_level)
             handler1.setFormatter(logging.Formatter(log_format.format('%(relativeCreated)10.1f')))
             openaddr_logger.addHandler(handler1)
         # Set up a logger to a file
         if logfile:
             handler2 = logging.FileHandler(logfile, mode='w')
+            handler2.setLevel(log_level)
             handler2.setFormatter(logging.Formatter(log_format.format('%(asctime)s')))
             openaddr_logger.addHandler(handler2)
 

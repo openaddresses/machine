@@ -8,7 +8,9 @@ from os.path import join, basename, dirname, exists, splitext, relpath
 from shutil import copy, move, rmtree
 from argparse import ArgumentParser
 from os import mkdir, rmdir
+from thread import get_ident
 import tempfile, json, csv
+from io import StringIO
 
 from . import cache, conform, ConformResult
 
@@ -17,6 +19,9 @@ def process(source, destination, extras=dict()):
     
         Creates a new directory and files under destination.
     '''
+    log_handler = get_log_handler()
+    logging.getLogger('openaddr').addHandler(log_handler)
+    
     temp_dir = tempfile.mkdtemp(prefix='process_one-', dir=destination)
     temp_src = join(temp_dir, basename(source))
     copy(source, temp_src)
@@ -28,7 +33,7 @@ def process(source, destination, extras=dict()):
     
     if not cache_result.cache:
         _L.warning('Nothing cached')
-        return write_state(source, destination, cache_result, ConformResult.empty(), temp_dir)
+        return write_state(source, destination, log_handler, cache_result, ConformResult.empty(), temp_dir)
     
     _L.info('Cached data in {}'.format(cache_result.cache))
 
@@ -45,12 +50,32 @@ def process(source, destination, extras=dict()):
     #
     # Write output
     #
-    state_path = write_state(source, destination, cache_result, conform_result, temp_dir)
+    state_path = write_state(source, destination, log_handler, cache_result, conform_result, temp_dir)
 
+    logging.getLogger('openaddr').removeHandler(log_handler)
     rmtree(temp_dir)
     return state_path
 
-def write_state(source, destination, cache_result, conform_result, temp_dir):
+class LogFilter:
+    ''' Logging filter object to match only record in the current thread.
+    '''
+    def __init__(self):
+        self.thread_id = get_ident()
+    
+    def filter(self, record):
+        return record.thread == self.thread_id
+
+def get_log_handler():
+    ''' Create a new stream handler for the current thread and return it.
+    '''
+    handler = logging.StreamHandler(StringIO())
+    handler.setFormatter(logging.Formatter(u'%(asctime)s %(levelname)08s: %(message)s'))
+    handler.setLevel(logging.DEBUG)
+    handler.addFilter(LogFilter())
+    
+    return handler
+
+def write_state(source, destination, log_handler, cache_result, conform_result, temp_dir):
     '''
     '''
     source_id, _ = splitext(basename(source))
@@ -91,7 +116,7 @@ def write_state(source, destination, cache_result, conform_result, temp_dir):
         ]
     
     with open(output_path, 'w') as file:
-        file.write('{}\n\n\n{}'.format(cache_result.output, conform_result.output))
+        file.write(log_handler.stream.getvalue())
                
     with open(join(statedir, 'index.txt'), 'w') as file:
         out = csv.writer(file, dialect='excel-tab')
