@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 from os.path import join, basename, dirname, exists, splitext, relpath
 from shutil import copy, move, rmtree
 from argparse import ArgumentParser
-from os import mkdir, rmdir, close
+from os import mkdir, rmdir, close, chmod
 from thread import get_ident
 import tempfile, json, csv
 
@@ -104,7 +104,8 @@ def write_state(source, destination, log_handler, cache_result, conform_result, 
     
     log_handler.flush()
     output_path = join(statedir, 'output.txt')
-    copy(log_handler.stream.name, output_path)
+    move(log_handler.stream.name, output_path)
+    chmod(output_path, 0o0644)
 
     state = [
         ('source', basename(source)),
