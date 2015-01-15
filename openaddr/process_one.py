@@ -7,10 +7,9 @@ from urllib.parse import urlparse
 from os.path import join, basename, dirname, exists, splitext, relpath
 from shutil import copy, move, rmtree
 from argparse import ArgumentParser
-from os import mkdir, rmdir
+from os import mkdir, rmdir, close
 from thread import get_ident
 import tempfile, json, csv
-from io import StringIO
 
 from . import cache, conform, ConformResult
 
@@ -66,9 +65,12 @@ class LogFilter:
         return record.thread == self.thread_id
 
 def get_log_handler():
-    ''' Create a new stream handler for the current thread and return it.
+    ''' Create a new file handler for the current thread and return it.
     '''
-    handler = logging.StreamHandler(StringIO())
+    handle, filename = tempfile.mkstemp(suffix='.log')
+    close(handle)
+    
+    handler = logging.FileHandler(filename)
     handler.setFormatter(logging.Formatter(u'%(asctime)s %(levelname)08s: %(message)s'))
     handler.setLevel(logging.DEBUG)
     handler.addFilter(LogFilter())
@@ -100,7 +102,9 @@ def write_state(source, destination, log_handler, cache_result, conform_result, 
         with open(sample_path, 'w') as sample_file:
             json.dump(conform_result.sample, sample_file, indent=2)
     
+    log_handler.flush()
     output_path = join(statedir, 'output.txt')
+    copy(log_handler.stream.name, output_path)
 
     state = [
         ('source', basename(source)),
@@ -114,9 +118,6 @@ def write_state(source, destination, log_handler, cache_result, conform_result, 
         ('process time', conform_result.elapsed and str(conform_result.elapsed)),
         ('output', relpath(output_path, statedir))
         ]
-    
-    with open(output_path, 'w') as file:
-        file.write(log_handler.stream.getvalue())
                
     with open(join(statedir, 'index.txt'), 'w') as file:
         out = csv.writer(file, dialect='excel-tab')
