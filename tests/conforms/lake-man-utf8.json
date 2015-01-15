@@ -8,6 +8,7 @@
         "lat": "Y",
         "number": "number",
         "street": "street",
-        "type": "shapefile"
+        "type": "shapefile",
+	"encoding": "utf-8"
     }
 }

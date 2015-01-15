@@ -10,6 +10,7 @@ import tempfile
 import unicodecsv
 import json
 import copy
+import sys
 
 from zipfile import ZipFile
 from argparse import ArgumentParser
@@ -323,6 +324,9 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
     in_layer = in_datasource.GetLayer()
     inSpatialRef = in_layer.GetSpatialRef()
 
+    _L.info("Converting a layer to CSV: %s", in_layer.GetName())
+
+    # Determine the appropriate SRS
     if inSpatialRef is None:
         # OGR couldn't find the projection, let's hope there's an SRS tag.
         _L.info("No projection file found for source %s", source_path)
@@ -335,8 +339,20 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
             # OGR is capable of doing more than EPSG, but so far we don't need it.
             raise Exception("Bad SRS. Can only handle EPSG, the SRS tag is %s", srs)
 
-    _L.info("Converting a layer to CSV: %s", in_layer.GetName())
+    # Determine the appropriate text encoding. This is complicated in OGR, see
+    # https://github.com/openaddresses/machine/issues/42
+    assert sys.version_info.major == 2      # Python 3 requires more thought
+    if in_layer.TestCapability(ogr.OLCStringsAsUTF8):
+        # OGR turned this to UTF 8 for us
+        shp_encoding = 'utf-8'
+    elif source_definition["conform"].has_key("encoding"):
+        shp_encoding = source_definition["conform"]["encoding"]
+    else:
+        _L.warn("No encoding given and OGR couldn't guess. Trying ISO-8859-1, YOLO!")
+        shp_encoding = "iso-8859-1"
+    _L.debug("Assuming shapefile data is encoded %s", shp_encoding)
 
+    # Get the input schema, create an output schema
     in_layer_defn = in_layer.GetLayerDefn()
     out_fieldnames = []
     for i in range(0, in_layer_defn.GetFieldCount()):
@@ -345,10 +361,12 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
     out_fieldnames.append('X')
     out_fieldnames.append('Y')
 
+    # Set up a transformation from the source SRS to EPSG:4326
     outSpatialRef = osr.SpatialReference()
     outSpatialRef.ImportFromEPSG(4326)
     coordTransform = osr.CoordinateTransformation(inSpatialRef, outSpatialRef)
 
+    # Write a CSV file with one row per feature in the OGR source
     with open(dest_path, 'wb') as f:
         writer = unicodecsv.DictWriter(f, fieldnames=out_fieldnames, encoding='utf-8')
         writer.writeheader()
@@ -359,7 +377,11 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
 
             for i in range(0, in_layer_defn.GetFieldCount()):
                 field_defn = in_layer_defn.GetFieldDefn(i)
-                row[field_defn.GetNameRef()] = in_feature.GetField(i)
+                field_value = in_feature.GetField(i)
+                if isinstance(field_value, str):
+                    # Convert OGR's byte sequence strings to Python Unicode strings
+                    field_value = field_value.decode(shp_encoding)
+                row[field_defn.GetNameRef()] = field_value
             geom = in_feature.GetGeometryRef()
             if geom is not None:
                 geom.Transform(coordTransform)
