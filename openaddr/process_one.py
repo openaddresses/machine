@@ -11,7 +11,7 @@ from os import mkdir, rmdir, close
 from thread import get_ident
 import tempfile, json, csv
 
-from . import cache, conform, ConformResult
+from . import cache, conform, CacheResult, ConformResult
 
 def process(source, destination, extras=dict()):
     ''' Process a single source and destination, return path to JSON state file.
@@ -25,31 +25,31 @@ def process(source, destination, extras=dict()):
     log_handler = get_log_handler(temp_dir)
     logging.getLogger('openaddr').addHandler(log_handler)
     
-    #
-    # Cache source data.
-    #
-    cache_result = cache(temp_src, temp_dir, extras)
-    
-    if not cache_result.cache:
-        _L.warning('Nothing cached')
-        return write_state(source, destination, log_handler, cache_result, ConformResult.empty(), temp_dir)
-    
-    _L.info('Cached data in {}'.format(cache_result.cache))
+    cache_result, conform_result = CacheResult.empty(), ConformResult.empty()
 
-    #
-    # Conform cached source data.
-    #
-    conform_result = conform(temp_src, temp_dir, cache_result.todict())
+    try:
+        # Cache source data.
+        cache_result = cache(temp_src, temp_dir, extras)
     
-    if not conform_result.path:
-        _L.warning('Nothing processed')
-    else:
-        _L.info('Processed data in {}'.format(conform_result.path))
+        if not cache_result.cache:
+            _L.warning('Nothing cached')
+        else:
+            _L.info('Cached data in {}'.format(cache_result.cache))
+
+            # Conform cached source data.
+            conform_result = conform(temp_src, temp_dir, cache_result.todict())
     
-    #
+            if not conform_result.path:
+                _L.warning('Nothing processed')
+            else:
+                _L.info('Processed data in {}'.format(conform_result.path))
+    
+    except Exception:
+        _L.error('Error in process_one.process()', exc_info=True)
+
     # Write output
-    #
-    state_path = write_state(source, destination, log_handler, cache_result, conform_result, temp_dir)
+    state_path = write_state(source, destination, log_handler,
+                             cache_result, conform_result, temp_dir)
 
     logging.getLogger('openaddr').removeHandler(log_handler)
     rmtree(temp_dir)
