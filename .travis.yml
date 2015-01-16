@@ -10,5 +10,4 @@ before_install:
   - sudo apt-get install -y -qq libgdal1h python-numpy python-scientific python-shapely python-qt4 proj gmsh gmt python-gdal python-cairo
 install:
   - sudo chef/run.sh
-  - pip install 'httmock >= 1.2'
 script:  python test.py
