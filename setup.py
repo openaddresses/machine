@@ -33,7 +33,10 @@ setup(
         'requests-ftp >= 0.2.0',
 
         # https://github.com/patrys/httmock
-        'httmock >= 1.2'
+        'httmock >= 1.2',
+
+        # https://pypi.python.org/pypi/setproctitle/
+        'setproctitle >= 1.1.8'
         ],
     entry_points = dict(
         console_scripts = [

@@ -14,6 +14,7 @@ import time
 import os
 import os.path
 import json
+import setproctitle
 
 from . import process_one
 
@@ -150,8 +151,10 @@ class Task(object):
     def run(self):
         start = time.time()
         _L.info("Starting task for %s with PID %d", self.source_path, os.getpid())
+        setproctitle.setproctitle("openaddr %s" % os.path.basename(self.source_path))
         result = process_one.process(self.source_path, self.destination, self.extras)
         _L.info("Finished task in %ds for %s", (time.time()-start), self.source_path)
+        setproctitle.setproctitle("openaddr idle")
         return self.source_path, result
 
 def _run_task(task):

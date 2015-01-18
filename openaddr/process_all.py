@@ -116,7 +116,7 @@ def process(s3, sourcedir, run_name):
     states = collect_states([path for path in results.values() if path])
     _L.warning(":: Nelson disabled uploading for testing.")
     
-    upload_states(s3, states, run_name)
+    # upload_states(s3, states, run_name)
 
 def collect_states(result_paths):
     ''' Read a list of process_one.process() result paths, collect into one list.
