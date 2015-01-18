@@ -59,6 +59,7 @@ class LogFilter:
     ''' Logging filter object to match only record in the current thread.
     '''
     def __init__(self):
+        # Seems to work as unique ID with multiprocessing.Process() as well as threading.Thread()
         self.thread_id = get_ident()
     
     def filter(self, record):
