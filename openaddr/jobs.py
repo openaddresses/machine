@@ -113,8 +113,8 @@ def run_all_process_ones(source_files, destination, source_extras):
             try:
                 completed_path, result = result_iter.next(timeout=report_interval)
                 _L.info("Result received for %s", completed_path)
-                _L.info("Job completion: %d/%d = %d%%", len(results), len(tasks), (100*len(results)/len(tasks)))
                 results[completed_path] = result
+                _L.info("Job completion: %d/%d = %d%%", len(results), len(tasks), (100*len(results)/len(tasks)))
             except JobTimeoutException as timeout_ex:
                 # This exception is probably never caught; process_one() catches it.
                 _L.warning("Job timed out %s", timeout_ex)
