@@ -11,8 +11,17 @@ import json
 
 from . import process_one
 
-# After this many seconds, a job will be killed with SIGALRM
+### Configuration variables
+
+### After this many seconds, a job will be killed with SIGALRM
 global_job_timeout = 5
+
+### Seconds between job queue status updates
+report_interval = 1
+
+### Number of jobs to run at once
+#thread_count = multiprocessing.cpu_count() * 2
+thread_count = 2
 
 class JobTimeoutException(Exception):
     ''' Exception raised if a per-job timeout fires.
@@ -63,11 +72,7 @@ def run_all_process_ones(source_files, destination, source_extras):
     results = OrderedDict()
 
     # Set up a pool to run our jobs, new process for each task
-    thread_count = multiprocessing.cpu_count() * 2
-    report_interval = 1
-    _L.warning(":: Running only 2 processes")
-    thread_count = 2
-    pool = multiprocessing.Pool(processes=2, maxtasksperchild=1)
+    pool = multiprocessing.Pool(processes=thread_count, maxtasksperchild=1)
 
     # Start the tasks. Results can arrive out of order.
     _L.info("Running tasks in pool with %d processes", thread_count)
@@ -79,13 +84,16 @@ def run_all_process_ones(source_files, destination, source_extras):
             try:
                 completed_path, result = result_iter.next(timeout=report_interval)
                 _L.info("Result received for %s", completed_path)
+                _L.info("Job completion: %d/%d = %d%%", len(results), len(tasks), (100*len(results)/len(tasks)))
                 results[completed_path] = result
             except JobTimeoutException as timeout_ex:
+                # This exception is probably never caught; process_one() catches it.
                 _L.warning("Job timed out %s", timeout_ex)
                 _L.warning("Stack trace:\n%s", ''.join(timeout_ex.jobstack))
-                results[pathName] = None
+                # nothing added to results[] array; we don't know the Task's data
             except multiprocessing.TimeoutError:
-                _L.info("Job queue has received %d results", len(results))
+                # Not an error, just the timeout from next() letting us do our thing
+                _L.info("Job completion: %d/%d = %d%%", len(results), len(tasks), (100*len(results)/len(tasks)))
     except StopIteration:
         _L.info("All jobs complete!")
         return results
