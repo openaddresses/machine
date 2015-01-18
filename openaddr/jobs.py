@@ -1,3 +1,9 @@
+'''Run many conform jobs in parallel.
+   The basic implementation is Python's multiprocessing.Pool
+   We add a SIGALRM timeout to every job to ensure a global runtime.
+   The master process will shut the pool down on SIGUSR1.
+'''
+
 import logging; _L = logging.getLogger('openaddr.jobs')
 
 from collections import OrderedDict
@@ -5,7 +11,7 @@ import multiprocessing
 import signal
 import traceback
 import time
-from os import mkdir
+import os
 import os.path
 import json
 
@@ -22,6 +28,10 @@ report_interval = 1
 ### Number of jobs to run at once
 #thread_count = multiprocessing.cpu_count() * 2
 thread_count = 2
+
+# Global variables used to manage killing the pool
+pool = None
+abort_requested = False
 
 class JobTimeoutException(Exception):
     ''' Exception raised if a per-job timeout fires.
@@ -55,14 +65,32 @@ def timeout(timeout):
 
     return decorate
 
+def abort_pool(signum, frame):
+    '''Signal handler, last-ditch effort to salvage a run if something's spinning
+    '''
+    global pool, abort_requested
+    _L.error("Received SIGUSR1, initiate abort sequence.")
+    abort_requested = True
+    if pool:
+        _L.error("Terminating pool...")
+        pool.terminate()
+        _L.error("...Pool terminated waiting for processes to exit...")
+        pool.join()
+        _L.error("...processes exited. All jobs aborted.")
+
 def run_all_process_ones(source_files, destination, source_extras):
     ''' Run process_one.process() for all source files in parallel, return a collection of results.
     '''
+    global pool, abort_requested
+
     # Make sure our destination directory exists
     try:
-        mkdir(destination)
+        os.mkdir(destination)
     except OSError:
         pass
+
+    # Set up a signal handler to terminate the pool. Last ditch abort without losing all work.
+    signal.signal(signal.SIGUSR1, abort_pool)
 
     # Create task objects
     tasks = tuple(Task(source_path, destination, source_extras.get(source_path, {})) for source_path in source_files)
@@ -77,10 +105,11 @@ def run_all_process_ones(source_files, destination, source_extras):
     # Start the tasks. Results can arrive out of order.
     _L.info("Running tasks in pool with %d processes", thread_count)
     result_iter = pool.imap_unordered(_run_task, tasks, chunksize = 1)
+    _L.info("You can terminate the jobs with kill -USR1 %d", os.getpid())
 
     # Iterate through the results as they come
     try:
-        while True:
+        while not abort_requested:
             try:
                 completed_path, result = result_iter.next(timeout=report_interval)
                 _L.info("Result received for %s", completed_path)
@@ -96,6 +125,11 @@ def run_all_process_ones(source_files, destination, source_extras):
                 _L.info("Job completion: %d/%d = %d%%", len(results), len(tasks), (100*len(results)/len(tasks)))
     except StopIteration:
         _L.info("All jobs complete!")
+        pool.close()
+        return results
+
+    if abort_requested:
+        _L.warning("Job abort requested, bailing out of conform jobs.")
         return results
 
     _L.error("This function should never reach this point.")
@@ -115,7 +149,7 @@ class Task(object):
     @timeout(global_job_timeout)
     def run(self):
         start = time.time()
-        _L.info("Starting task for %s", self.source_path)
+        _L.info("Starting task for %s with PID %d", self.source_path, os.getpid())
         result = process_one.process(self.source_path, self.destination, self.extras)
         _L.info("Finished task in %ds for %s", (time.time()-start), self.source_path)
         return self.source_path, result
