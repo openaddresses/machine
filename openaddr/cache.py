@@ -16,6 +16,7 @@ from urllib.parse import urlencode, urlparse, urljoin
 from subprocess import check_output
 from tempfile import mkstemp
 from hashlib import sha1
+from time import time
 
 import requests
 import requests_ftp
@@ -292,11 +293,15 @@ class EsriRestDownloadTask(DownloadTask):
             with open(file_path, 'w') as f:
                 f.write('{\n"type": "FeatureCollection",\n"features": [\n')
                 oid_iter = iter(oids)
+                due = time() + 7200
                 while True:
                     oid_chunk = tuple(itertools.islice(oid_iter, 100))
 
                     if not oid_chunk:
                         break
+                    
+                    if time() > due:
+                        raise RuntimeError('Ran out of time caching Esri features')
 
                     query_args = {
                         'objectIds': ','.join(map(unicode, oid_chunk)),
