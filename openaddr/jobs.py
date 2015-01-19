@@ -99,8 +99,8 @@ def run_all_process_ones(source_files, destination, source_extras):
     # Result collection object
     results = OrderedDict()
 
-    # Set up a pool to run our jobs, new process for each task
-    pool = multiprocessing.Pool(processes=thread_count, maxtasksperchild=1)
+    # Set up a pool to run our jobs. (don't use maxtasksperchild, causes problems.)
+    pool = multiprocessing.Pool(processes=thread_count)
 
     # Start the tasks. Results can arrive out of order.
     _L.info("Running tasks in pool with %d processes", thread_count)
