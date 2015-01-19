@@ -77,6 +77,7 @@ def abort_pool(signum, frame):
         _L.error("...Pool terminated waiting for processes to exit...")
         pool.join()
         _L.error("...processes exited. All jobs aborted.")
+        _L.error("Process should exit in < %d seconds", report_interval)
 
 def run_all_process_ones(source_files, destination, source_extras):
     ''' Run process_one.process() for all source files in parallel, return a collection of results.
@@ -108,25 +109,29 @@ def run_all_process_ones(source_files, destination, source_extras):
     _L.info("You can terminate the jobs with kill -USR1 %d", os.getpid())
 
     # Iterate through the results as they come
-    try:
-        while not abort_requested:
-            try:
-                completed_path, result = result_iter.next(timeout=report_interval)
-                _L.info("Result received for %s", completed_path)
-                results[completed_path] = result
-                _L.info("Job completion: %d/%d = %d%%", len(results), len(tasks), (100*len(results)/len(tasks)))
-            except JobTimeoutException as timeout_ex:
-                # This exception is probably never caught; process_one() catches it.
-                _L.warning("Job timed out %s", timeout_ex)
-                _L.warning("Stack trace:\n%s", ''.join(timeout_ex.jobstack))
-                # nothing added to results[] array; we don't know the Task's data
-            except multiprocessing.TimeoutError:
-                # Not an error, just the timeout from next() letting us do our thing
-                _L.info("Job completion: %d/%d = %d%%", len(results), len(tasks), (100*len(results)/len(tasks)))
-    except StopIteration:
-        _L.info("All jobs complete!")
-        pool.close()
-        return results
+    while not abort_requested:
+        try:
+            # Block for N seconds waiting for the next result to come to us
+            completed_path, result = result_iter.next(timeout=report_interval)
+            _L.info("Result received for %s", completed_path)
+            results[completed_path] = result
+        except multiprocessing.TimeoutError:
+            # Not an error; just the timeout from next() letting us check in on queue status
+            pass
+        except StopIteration:
+            # The whole queue is done, so go ahead and exit
+            _L.info("All jobs complete!")
+            pool.close()
+            return results
+        except KeyboardInterrupt:      # What about SystemExit?
+            # User hit Ctrl-C; just propagate this up so Python aborts
+            raise
+        except:
+            # Some other exception; should almost never occur, usually process() catches errors
+            _L.error("Task threw an exception that process() didn't catch", exc_info=True)
+            # Swallow the error so that the whole pool doesn't die.
+        finally:
+            _L.info("Job completion: %d/%d = %d%%", len(results), len(tasks), (100*len(results)/len(tasks)))
 
     if abort_requested:
         _L.warning("Job abort requested, bailing out of conform jobs.")
