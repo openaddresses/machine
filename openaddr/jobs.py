@@ -21,14 +21,13 @@ from . import process_one
 ### Configuration variables
 
 ### After this many seconds, a job will be killed with SIGALRM
-global_job_timeout = 5
+global_job_timeout = 150*60
 
 ### Seconds between job queue status updates
-report_interval = 1
+report_interval = 60
 
 ### Number of jobs to run at once
-#thread_count = multiprocessing.cpu_count() * 2
-thread_count = 2
+thread_count = multiprocessing.cpu_count()
 
 # Global variables used to manage killing the pool
 pool = None
