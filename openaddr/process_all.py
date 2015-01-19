@@ -180,9 +180,9 @@ def upload_states(s3, states, run_name):
             state['processed'], _ = upload_file(s3, key_name, state['processed'])
     
         if state['output']:
-            # e.g. /<run name>/us-tx-denton.txt
+            # e.g. /runs/<run name>/us-tx-denton.txt
             _, output_ext = splitext(state['output'])
-            key_name = '/{}/{}{}'.format(run_name, source, output_ext)
+            key_name = '/runs/{}/{}{}'.format(run_name, source, output_ext)
             state['output'], _ = upload_file(s3, key_name, state['output'])
         
         new_states.append([state[col] for col in columns])
