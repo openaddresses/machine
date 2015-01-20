@@ -88,6 +88,9 @@ class TestOA (unittest.TestCase):
             elif body_data.get('outSR') == ['4326']:
                 local_path = join(data_dirname, 'us-ca-carson-0.json')
 
+        if (host, path) == ('data.openaddresses.io', '/20000101/us-ca-carson-cached.json'):
+            local_path = join(data_dirname, 'us-ca-carson-cache.geojson')
+        
         if scheme == 'file':
             local_path = path
 
@@ -166,6 +169,33 @@ class TestOA (unittest.TestCase):
         ''' Test complete process_one.process on Carson sample data.
         '''
         source = join(self.src_dir, 'us-ca-carson.json')
+        
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+        
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        self.assertTrue(state['cache'] is not None)
+        # TODO: re-enable test of processing once conform supports geojson
+        self.assertTrue(state['processed'] is not None)
+        self.assertTrue(state['sample'] is not None)
+        self.assertEqual(state['geometry type'], 'Point')
+        
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('SITEFRAC' in sample_data[0])
+        
+        return   # TODO geojson
+        with open(join(dirname(state_path), state['processed'])) as file:
+            self.assertTrue('555 E CARSON ST' in file.read())
+
+    def test_single_car2(self):
+        ''' Test complete process_one.process on Carson sample data.
+        '''
+        source = join(self.src_dir, 'us-ca-carson-cached.json')
         
         with HTTMock(self.response_content):
             state_path = process_one.process(source, self.testdir)

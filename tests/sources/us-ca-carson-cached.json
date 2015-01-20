@@ -1,0 +1,21 @@
+{
+    "coverage": {
+        "country": "us",
+        "state": "ca",
+        "city": "carson"
+    },
+    "cache": "http://data.openaddresses.io/20000101/us-ca-carson-cached.json",
+    "fingerprint": "5026521299ac109ff81782938d7eb995",
+    "version": "20000101",
+    "data": "http://www.carsonproperty.info/ArcGIS/rest/services/basemap/MapServer/1",
+    "website": "http://ci.carson.ca.us/",
+    "type": "ESRI",
+    "conform": {
+        "lon": "x",
+        "lat": "y",
+        "number": "SITENUMBER",
+        "street": "SITESTREET",
+        "type": "geojson",
+        "postal_code": "sitezip"
+    }
+}
