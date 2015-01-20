@@ -180,6 +180,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
+        self.assertEqual(state['fingerprint'], '5026521299ac109ff81782938d7eb995')
         # TODO: re-enable test of processing once conform supports geojson
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
@@ -207,6 +208,35 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
+        self.assertEqual(state['fingerprint'], '5026521299ac109ff81782938d7eb995')
+        # TODO: re-enable test of processing once conform supports geojson
+        self.assertTrue(state['processed'] is not None)
+        self.assertTrue(state['sample'] is not None)
+        self.assertEqual(state['geometry type'], 'Point')
+        
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('SITEFRAC' in sample_data[0])
+        
+        return   # TODO geojson
+        with open(join(dirname(state_path), state['processed'])) as file:
+            self.assertTrue('555 E CARSON ST' in file.read())
+
+    def test_single_car_old_cached(self):
+        ''' Test complete process_one.process on Carson sample data.
+        '''
+        source = join(self.src_dir, 'us-ca-carson-old-cached.json')
+        
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+        
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        self.assertTrue(state['cache'] is not None)
+        self.assertEqual(state['fingerprint'], '5026521299ac109ff81782938d7eb995')
         # TODO: re-enable test of processing once conform supports geojson
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
