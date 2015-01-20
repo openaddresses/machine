@@ -44,12 +44,14 @@ def main():
     #
     # Do the work
     #
+    _L.info("Doing the work")
     run_name = '{:.3f}'.format(time())
     process(s3, paths.sources, run_name)
     
     #
     # Talk about the work
     #
+    _L.info("Talking about the work")
     render.render(paths.sources, 960, 2, 'render-{}.png'.format(run_name))
     render_data = open('render-{}.png'.format(run_name)).read()
     render_key = s3.new_key(join('runs', run_name, 'render.png'))
@@ -152,6 +154,7 @@ def upload_file(s3, keyname, filename):
 def upload_states(s3, states, run_name):
     '''
     '''
+    _L.info("Uploading states")
     columns = states[0]
     new_states = states[:1]
     
