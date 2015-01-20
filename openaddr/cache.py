@@ -58,8 +58,10 @@ class CacheResult:
         return dict(cache=self.cache, fingerprint=self.fingerprint, version=self.version)
 
 
-def get_cache_details(filepath, resultdir, data):
-    ''' 
+def compare_cache_details(filepath, resultdir, data):
+    ''' Compare cache file with known source data, return cache and fingerprint.
+    
+        Checks if fresh data is already cached, returns a new file path if not.
     '''
     if not exists(filepath):
         raise Exception('cached file {} is missing'.format(filepath))

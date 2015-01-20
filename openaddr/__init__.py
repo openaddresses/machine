@@ -18,7 +18,7 @@ from . import paths
 
 from .cache import (
     CacheResult,
-    get_cache_details,
+    compare_cache_details,
     DownloadTask,
     URLDownloadTask,
 )
@@ -96,7 +96,7 @@ def cache(srcjson, destdir, extras):
     #
     resultdir = join(destdir, 'cached')
     data['cache'], data['fingerprint'] \
-        = get_cache_details(filepath_to_upload, resultdir, data)
+        = compare_cache_details(filepath_to_upload, resultdir, data)
 
     rmtree(workdir)
 
