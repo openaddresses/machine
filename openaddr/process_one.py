@@ -88,9 +88,13 @@ def write_state(source, destination, log_handler, cache_result, conform_result, 
         mkdir(statedir)
     
     if cache_result.cache:
-        _, _, cache_path1, _, _, _ = urlparse(cache_result.cache)
-        cache_path2 = join(statedir, 'cache{1}'.format(*splitext(cache_path1)))
-        copy(cache_path1, cache_path2)
+        scheme, _, cache_path1, _, _, _ = urlparse(cache_result.cache)
+        if scheme in ('file', ''):
+            cache_path2 = join(statedir, 'cache{1}'.format(*splitext(cache_path1)))
+            copy(cache_path1, cache_path2)
+            state_cache = relpath(cache_path2, statedir)
+        else:
+            state_cache = cache_result.cache
 
     if conform_result.path:
         _, _, processed_path1, _, _, _ = urlparse(conform_result.path)
@@ -109,7 +113,7 @@ def write_state(source, destination, log_handler, cache_result, conform_result, 
 
     state = [
         ('source', basename(source)),
-        ('cache', cache_result.cache and relpath(cache_path2, statedir)),
+        ('cache', state_cache),
         ('sample', conform_result.sample and relpath(sample_path, statedir)),
         ('geometry type', conform_result.geometry_type),
         ('version', cache_result.version),

@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 from collections import defaultdict
 from os.path import join, basename, relpath, splitext, dirname
 from csv import writer, DictReader
+from urllib.parse import urlparse
 from io import BytesIO
 from datetime import datetime
 from os import environ
@@ -129,8 +130,9 @@ def collect_states(result_paths):
             states.append(columns)
         
         for key in file_keys:
-            if state[key]:
-                state[key] = join(dirname(result_path), state[key])
+            resource = state[key]
+            if resource and urlparse(resource).scheme in ('file', ''):
+                state[key] = join(dirname(result_path), urlparse(resource).path)
         
         states.append([state[key] for key in columns])
     
@@ -160,7 +162,10 @@ def upload_states(s3, states, run_name):
         
         yyyymmdd = datetime.utcnow().strftime('%Y%m%d')
         
-        if state['cache']:
+        if urlparse(state.get('cache', '')).scheme == 'http' and state['fingerprint']:
+            # Do not re-upload an existing remote cached file.
+            pass
+        elif state['cache']:
             # e.g. /20141204/us-wa-king.zip
             _, cache_ext = splitext(state['cache'])
             key_name = '/{}/{}{}'.format(yyyymmdd, source, cache_ext)

@@ -18,6 +18,7 @@ from . import paths
 
 from .cache import (
     CacheResult,
+    get_cache_details,
     DownloadTask,
     URLDownloadTask,
 )
@@ -89,18 +90,13 @@ def cache(srcjson, destdir, extras):
     # we should zip them together before uploading to S3 instead of picking
     # the first one only.
     filepath_to_upload = abspath(downloaded_files[0])
-
+    
     #
     # Find the cached data and hold on to it.
     #
-    cache_name = basename(filepath_to_upload)
-    if exists(filepath_to_upload):
-        resultdir = join(destdir, 'cached')
-        if not exists(resultdir):
-            mkdir(resultdir)
-        move(filepath_to_upload, join(resultdir, cache_name))
-        if 'cache' not in data:
-            data['cache'] = 'file://' + join(abspath(resultdir), cache_name)
+    resultdir = join(destdir, 'cached')
+    data['cache'], data['fingerprint'] \
+        = get_cache_details(filepath_to_upload, resultdir, data)
 
     rmtree(workdir)
 

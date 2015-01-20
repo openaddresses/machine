@@ -11,11 +11,14 @@ import shutil
 import itertools
 
 from re import search
-from os.path import join, dirname
+from os import mkdir
+from hashlib import md5
+from os.path import join, dirname, basename, exists, abspath
 from urllib.parse import urlencode, urlparse, urljoin
 from subprocess import check_output
 from tempfile import mkstemp
 from hashlib import sha1
+from shutil import move
 from time import time
 
 import requests
@@ -54,6 +57,33 @@ class CacheResult:
     def todict(self):
         return dict(cache=self.cache, fingerprint=self.fingerprint, version=self.version)
 
+
+def get_cache_details(filepath, resultdir, data):
+    ''' 
+    '''
+    if not exists(filepath):
+        raise Exception('cached file {} is missing'.format(filepath))
+        
+    fingerprint = md5()
+
+    with open(filepath) as file:
+        for line in file:
+            fingerprint.update(line)
+    
+    # Determine if anything needs to be done at all.
+    if urlparse(data.get('cache', '')).scheme == 'http' and 'fingerprint' in data:
+        if fingerprint.hexdigest() == data['fingerprint']:
+            return data['cache'], data['fingerprint']
+    
+    cache_name = basename(filepath)
+
+    if not exists(resultdir):
+        mkdir(resultdir)
+
+    move(filepath, join(resultdir, cache_name))
+    data_cache = 'file://' + join(abspath(resultdir), cache_name)
+    
+    return data_cache, fingerprint.hexdigest()
 
 class DownloadError(Exception):
     pass
