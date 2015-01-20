@@ -197,6 +197,11 @@ def setup_logger(logfile = None, log_level = logging.DEBUG, log_stderr = True, l
     for old_handler in openaddr_logger.handlers:
         openaddr_logger.removeHandler(old_handler)
 
+    # Tell multiprocessing to log messages as well. Multiprocessing can interact strangely
+    # with logging, see http://bugs.python.org/issue23278
+    mp_logger = multiprocessing.get_logger()
+    mp_logger.propagate=True
+
     log_config_file = os.path.expanduser(log_config_file)
     if os.path.exists(log_config_file):
         # Use a JSON config file in the user's home directory if it exists
@@ -208,15 +213,20 @@ def setup_logger(logfile = None, log_level = logging.DEBUG, log_stderr = True, l
         openaddr_logger.info("Using logger config at %s", log_config_file)
     else:
         # No config file? Set up some sensible defaults
+
+        # Set multiprocessing level as requested
+        mp_logger.setLevel(log_level)
+
+        everything_logger = logging.getLogger()
         # Set up a logger to stderr
         if log_stderr:
             handler1 = logging.StreamHandler()
             handler1.setLevel(log_level)
             handler1.setFormatter(logging.Formatter(log_format.format('%(relativeCreated)10.1f')))
-            openaddr_logger.addHandler(handler1)
+            everything_logger.addHandler(handler1)
         # Set up a logger to a file
         if logfile:
             handler2 = logging.FileHandler(logfile, mode='w')
             handler2.setLevel(log_level)
             handler2.setFormatter(logging.Formatter(log_format.format('%(asctime)s')))
-            openaddr_logger.addHandler(handler2)
+            everything_logger.addHandler(handler2)
