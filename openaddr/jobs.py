@@ -134,8 +134,10 @@ def run_all_process_ones(source_files, destination, source_extras):
             pass
         except StopIteration:
             # The whole queue is done, so go ahead and exit
-            _L.info("All jobs complete!")
+            _L.info("All jobs complete, closing the pool.")
             pool.close()
+            _L.info("Joining to the pool.")
+            pool.join()
             return results
         except KeyboardInterrupt:      # What about SystemExit?
             # User hit Ctrl-C; just propagate this up so Python aborts
