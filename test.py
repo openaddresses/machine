@@ -73,6 +73,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('www.ci.berkeley.ca.us', '/uploadedFiles/IT/GIS/Parcels.zip'):
             local_path = join(data_dirname, 'us-ca-berkeley-excerpt.zip')
         
+        if (host, path) == ('www.ci.berkeley.ca.us', '/uploadedFiles/IT/GIS/No-Parcels.zip'):
+            return response(404, 'Nobody here but us coats')
+        
         if (host, path) == ('data.openoakland.org', '/sites/default/files/OakParcelsGeo2013_0.zip'):
             local_path = join(data_dirname, 'us-ca-oakland-excerpt.zip')
         
@@ -113,12 +116,11 @@ class TestOA (unittest.TestCase):
                        in DictReader(buffer, dialect='excel-tab')])
         
         for (source, state) in states.items():
-            self.assertTrue(bool(state['cache']), 'Checking for cache in {}'.format(source))
-            self.assertTrue(bool(state['version']), 'Checking for version in {}'.format(source))
-            self.assertTrue(bool(state['fingerprint']), 'Checking for fingerprint in {}'.format(source))
+            if 'berkeley-404' not in source:
+                self.assertTrue(bool(state['cache']), 'Checking for cache in {}'.format(source))
+                self.assertTrue(bool(state['version']), 'Checking for version in {}'.format(source))
+                self.assertTrue(bool(state['fingerprint']), 'Checking for fingerprint in {}'.format(source))
             
-            if 'carson' not in source:
-                # TODO: why does Carson lack geometry type and sample data?
                 self.assertTrue(bool(state['geometry type']), 'Checking for geometry type in {}'.format(source))
                 self.assertTrue(bool(state['sample']), 'Checking for sample in {}'.format(source))
 
@@ -137,9 +139,10 @@ class TestOA (unittest.TestCase):
         rows = [dict(zip(data[0], row)) for row in data[1:]]
         
         for state in rows:
-            self.assertTrue(bool(state['cache']))
-            self.assertTrue(bool(state['version']))
-            self.assertTrue(bool(state['fingerprint']))
+            if 'berkeley-404' not in state['source']:
+                self.assertTrue(bool(state['cache']))
+                self.assertTrue(bool(state['version']))
+                self.assertTrue(bool(state['fingerprint']))
         
     def test_single_ac(self):
         ''' Test complete process_one.process on Alameda County sample data.
@@ -192,7 +195,7 @@ class TestOA (unittest.TestCase):
         with open(join(dirname(state_path), state['processed'])) as file:
             self.assertTrue('555 E CARSON ST' in file.read())
 
-    def test_single_car2(self):
+    def test_single_car_cached(self):
         ''' Test complete process_one.process on Carson sample data.
         '''
         source = join(self.src_dir, 'us-ca-carson-cached.json')
@@ -258,6 +261,20 @@ class TestOA (unittest.TestCase):
             sample_data = json.load(file)
         
         self.assertTrue('APN' in sample_data[0])
+
+    def test_single_berk_404(self):
+        ''' Test complete process_one.process on 404 sample data.
+        '''
+        source = join(self.src_dir, 'us-ca-berkeley-404.json')
+        
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+        
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        self.assertTrue(state['cache'] is None)
+        self.assertTrue(state['processed'] is None)
 
 @contextmanager
 def locked_open(filename):

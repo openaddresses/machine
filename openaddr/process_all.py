@@ -162,7 +162,7 @@ def upload_states(s3, states, run_name):
         
         yyyymmdd = datetime.utcnow().strftime('%Y%m%d')
         
-        if urlparse(state.get('cache', '')).scheme == 'http' and state['fingerprint']:
+        if urlparse(state['cache'] or '').scheme in ('http', 'https') and state['fingerprint']:
             # Do not re-upload an existing remote cached file.
             pass
         elif state['cache']:

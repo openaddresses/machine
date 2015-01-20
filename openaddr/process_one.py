@@ -95,6 +95,8 @@ def write_state(source, destination, log_handler, cache_result, conform_result, 
             state_cache = relpath(cache_path2, statedir)
         else:
             state_cache = cache_result.cache
+    else:
+        state_cache = None
 
     if conform_result.path:
         _, _, processed_path1, _, _, _ = urlparse(conform_result.path)

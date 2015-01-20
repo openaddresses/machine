@@ -224,6 +224,9 @@ class URLDownloadTask(DownloadTask):
             except Exception as e:
                 raise DownloadError("Could not connect to URL", e)
 
+            if resp.status_code in range(400, 499):
+                raise DownloadError('{} response from {}'.format(resp.status_code, source_url))
+            
             size = 0
             with open(file_path, 'wb') as fp:
                 for chunk in resp.iter_content(self.CHUNK):
