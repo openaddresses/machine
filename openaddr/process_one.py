@@ -28,6 +28,10 @@ def process(source, destination, extras=dict()):
     cache_result, conform_result = CacheResult.empty(), ConformResult.empty()
 
     try:
+        with open(temp_src) as file:
+            if json.load(file).get('skip', None):
+                raise ValueError('Source says to skip')
+    
         # Cache source data.
         cache_result = cache(temp_src, temp_dir, extras)
     
@@ -45,7 +49,7 @@ def process(source, destination, extras=dict()):
                 _L.info('Processed data in {}'.format(conform_result.path))
     
     except Exception:
-        _L.error('Error in process_one.process()', exc_info=True)
+        _L.warning('Error in process_one.process()', exc_info=True)
 
     # Write output
     state_path = write_state(source, destination, log_handler,

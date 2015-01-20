@@ -116,7 +116,11 @@ class TestOA (unittest.TestCase):
                        in DictReader(buffer, dialect='excel-tab')])
         
         for (source, state) in states.items():
-            if 'berkeley-404' not in source:
+            if 'berkeley-404' in source or 'oakland-skip' in source:
+                self.assertFalse(bool(state['cache']), 'Checking for cache in {}'.format(source))
+                self.assertFalse(bool(state['version']), 'Checking for version in {}'.format(source))
+                self.assertFalse(bool(state['fingerprint']), 'Checking for fingerprint in {}'.format(source))
+            else:
                 self.assertTrue(bool(state['cache']), 'Checking for cache in {}'.format(source))
                 self.assertTrue(bool(state['version']), 'Checking for version in {}'.format(source))
                 self.assertTrue(bool(state['fingerprint']), 'Checking for fingerprint in {}'.format(source))
@@ -139,7 +143,11 @@ class TestOA (unittest.TestCase):
         rows = [dict(zip(data[0], row)) for row in data[1:]]
         
         for state in rows:
-            if 'berkeley-404' not in state['source']:
+            if 'berkeley-404' in state['source'] or 'oakland-skip' in state['source']:
+                self.assertFalse(bool(state['cache']))
+                self.assertFalse(bool(state['version']))
+                self.assertFalse(bool(state['fingerprint']))
+            else:
                 self.assertTrue(bool(state['cache']))
                 self.assertTrue(bool(state['version']))
                 self.assertTrue(bool(state['fingerprint']))
@@ -271,6 +279,21 @@ class TestOA (unittest.TestCase):
             sample_data = json.load(file)
         
         self.assertTrue('FID_PARCEL' in sample_data[0])
+
+    def test_single_oak_skip(self):
+        ''' Test complete process_one.process on Oakland sample data.
+        '''
+        source = join(self.src_dir, 'us-ca-oakland-skip.json')
+        
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+        
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        self.assertTrue(state['cache'] is None)
+        # This test data does not contain a working conform object
+        self.assertTrue(state['processed'] is None)
 
     def test_single_berk(self):
         ''' Test complete process_one.process on Berkeley sample data.
