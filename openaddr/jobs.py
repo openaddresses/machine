@@ -111,6 +111,7 @@ def run_all_process_ones(source_files, destination, source_extras):
 
     # Result collection object
     results = OrderedDict()
+    result_count = 0
 
     # Set up a pool to run our jobs. (don't use maxtasksperchild, causes problems.)
     pool = multiprocessing.Pool(processes=thread_count)
@@ -127,6 +128,7 @@ def run_all_process_ones(source_files, destination, source_extras):
             completed_path, result = result_iter.next(timeout=report_interval)
             _L.info("Result received for %s", completed_path)
             results[completed_path] = result
+            result_count += 1
         except multiprocessing.TimeoutError:
             # Not an error; just the timeout from next() letting us check in on queue status
             pass
@@ -141,9 +143,10 @@ def run_all_process_ones(source_files, destination, source_extras):
         except:
             # Some other exception; should almost never occur, usually process() catches errors
             _L.error("Task threw an exception that process() didn't catch", exc_info=True)
+            result_count += 1
             # Swallow the error so that the whole pool doesn't die.
         finally:
-            _L.info("Job completion: %d/%d = %d%%", len(results), len(tasks), (100*len(results)/len(tasks)))
+            _L.info("Job completion: %d/%d = %d%%", result_count, len(tasks), (100*result_count/len(tasks)))
 
     if abort_requested:
         _L.warning("Job abort requested, bailing out of conform jobs.")
