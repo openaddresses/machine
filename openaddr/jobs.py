@@ -1,7 +1,11 @@
 '''Run many conform jobs in parallel.
    The basic implementation is Python's multiprocessing.Pool
-   We add a SIGALRM timeout to every job to ensure a global runtime.
-   The master process will shut the pool down on SIGUSR1.
+
+   Signals used:
+   SIGUSR1: send to master process to shut down all work and proceed to reporting
+   SIGUSR2: send to master process to print stack trace and drop to debugger
+   SIGALRM: send to a worker to time it out. (we set an alarm on each worker)
+   SIGTERM: not explicitly handled. killing a worker causes weird failures, avoid.
 '''
 
 import logging; _L = logging.getLogger('openaddr.jobs')
@@ -79,6 +83,13 @@ def abort_pool(signum, frame):
         _L.error("...processes exited. All jobs aborted.")
         _L.error("Process should exit in < %d seconds", report_interval)
 
+def invoke_debugger(signum, frame):
+    '''Signal handler to print a stack trace and drop into debugger on the controlling terminal.
+    '''
+    _L.error("=== Debugger invoked ===")
+    _L.error("=== Stack trace of parent process ===\n %s", ''.join(traceback.format_stack(frame)))
+    import pdb; pdb.set_trace()
+
 def run_all_process_ones(source_files, destination, source_extras):
     ''' Run process_one.process() for all source files in parallel, return a collection of results.
     '''
@@ -92,6 +103,7 @@ def run_all_process_ones(source_files, destination, source_extras):
 
     # Set up a signal handler to terminate the pool. Last ditch abort without losing all work.
     signal.signal(signal.SIGUSR1, abort_pool)
+    signal.signal(signal.SIGUSR2, invoke_debugger)
 
     # Create task objects
     tasks = tuple(Task(source_path, destination, source_extras.get(source_path, {})) for source_path in source_files)
