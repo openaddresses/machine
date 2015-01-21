@@ -54,12 +54,12 @@ def process(source, destination, extras=dict()):
     finally:
         # Make sure this gets done no matter what
         logging.getLogger('openaddr').removeHandler(log_handler)
-        rmtree(temp_dir)
 
     # Write output
     state_path = write_state(source, destination, log_handler,
                              cache_result, conform_result, temp_dir)
 
+    rmtree(temp_dir)
     return state_path
 
 class LogFilter:
