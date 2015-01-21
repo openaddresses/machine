@@ -50,13 +50,16 @@ def process(source, destination, extras=dict()):
     
     except Exception:
         _L.warning('Error in process_one.process()', exc_info=True)
+    
+    finally:
+        # Make sure this gets done no matter what
+        logging.getLogger('openaddr').removeHandler(log_handler)
+        rmtree(temp_dir)
 
     # Write output
     state_path = write_state(source, destination, log_handler,
                              cache_result, conform_result, temp_dir)
 
-    logging.getLogger('openaddr').removeHandler(log_handler)
-    rmtree(temp_dir)
     return state_path
 
 class LogFilter:
