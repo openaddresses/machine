@@ -22,15 +22,17 @@ import setproctitle
 
 from . import process_one
 
-### Configuration variables
+#
+# Configuration variables
+#
 
-### After this many seconds, a job will be killed with SIGALRM
-global_job_timeout = 30*60
+# After this many seconds, a job will be killed with SIGALRM
+global_job_timeout = 60 * 60
 
-### Seconds between job queue status updates
+# Seconds between job queue status updates
 report_interval = 60
 
-### Number of jobs to run at once
+# Number of jobs to run at once
 thread_count = multiprocessing.cpu_count() * 2
 
 # Global variables used to manage killing the pool
