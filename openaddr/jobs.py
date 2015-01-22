@@ -195,7 +195,7 @@ def setup_logger(logfile = None, log_level = logging.DEBUG, log_stderr = True, l
     openaddr_logger = logging.getLogger('openaddr')
 
     # Default logging format. {0} will be replaced with a destination-appropriate timestamp
-    log_format = '%(threadName)11s  {0} %(levelname)06s: %(message)s'
+    log_format = '%(process)06s  {0} %(levelname)06s: %(message)s'
 
     # Set the logger level to show everything, and filter down in the handlers.
     openaddr_logger.setLevel(logging.DEBUG)
