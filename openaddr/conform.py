@@ -969,7 +969,7 @@ class TestConformCli (unittest.TestCase):
             self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824)
 
     # TODO: add tests for GeoJSON sources
-
+    @unittest.skip('Outdated ESRI/GeoJSON test, should be updated to ESRI/csv')
     def test_lake_man_split2(self):
         rc, dest_path = self._run_conform_on_source('lake-man-split2', 'geojson')
         self.assertEqual(0, rc)
