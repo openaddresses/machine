@@ -91,6 +91,12 @@ class TestOA (unittest.TestCase):
             elif body_data.get('outSR') == ['4326']:
                 local_path = join(data_dirname, 'us-ca-carson-0.json')
 
+        if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1'):
+            qs = parse_qs(query)
+
+            if qs.get('f') == ['json']:
+                local_path = join(data_dirname, 'us-ca-carson-metadata.json')
+
         if (host, path) == ('data.openaddresses.io', '/20000101/us-ca-carson-cached.json'):
             local_path = join(data_dirname, 'us-ca-carson-cache.geojson')
         
@@ -188,7 +194,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
-        self.assertEqual(state['fingerprint'], '5026521299ac109ff81782938d7eb995')
+        self.assertEqual(state['fingerprint'], 'b548d1f9f1e19824a90d456e90518991')
         # TODO: re-enable test of processing once conform supports geojson
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
@@ -216,7 +222,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
-        self.assertEqual(state['fingerprint'], '5026521299ac109ff81782938d7eb995')
+        self.assertEqual(state['fingerprint'], 'b548d1f9f1e19824a90d456e90518991')
         # TODO: re-enable test of processing once conform supports geojson
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
@@ -244,7 +250,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
-        self.assertEqual(state['fingerprint'], '5026521299ac109ff81782938d7eb995')
+        self.assertEqual(state['fingerprint'], 'b548d1f9f1e19824a90d456e90518991')
         # TODO: re-enable test of processing once conform supports geojson
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)

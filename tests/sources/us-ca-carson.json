@@ -12,7 +12,7 @@
         "lat": "y",
         "number": "SITENUMBER",
         "street": "SITESTREET",
-        "type": "geojson",
+        "type": "csv",
         "postal_code": "sitezip"
     }
 }
