@@ -2,7 +2,8 @@ from __future__ import absolute_import, division, print_function
 from future import standard_library; standard_library.install_aliases()
 import logging; _L = logging.getLogger('openaddr.cache')
 
-import json
+import ogr
+import unicodecsv
 import os
 import errno
 import socket
@@ -10,11 +11,10 @@ import mimetypes
 import shutil
 import itertools
 
-from re import search
 from os import mkdir
 from hashlib import md5
-from os.path import join, dirname, basename, exists, abspath
-from urllib.parse import urlencode, urlparse, urljoin
+from os.path import join, basename, exists, abspath
+from urllib.parse import urlparse
 from subprocess import check_output
 from tempfile import mkstemp
 from hashlib import sha1
@@ -243,54 +243,41 @@ class URLDownloadTask(DownloadTask):
 class EsriRestDownloadTask(DownloadTask):
     USER_AGENT = 'openaddresses-extract/1.0 (https://github.com/openaddresses/openaddresses)'
 
-    def convert_esrijson_to_geojson(self, geom_type, esri_feature):
+    def build_ogr_geometry(self, geom_type, esri_feature):
         if geom_type == 'esriGeometryPoint':
-            geometry = {
-                "type": "Point",
-                "coordinates": [
-                    esri_feature['geometry']['x'],
-                    esri_feature['geometry']['y']
-                ]
-            }
+            geom = ogr.Geometry(ogr.wkbPoint)
+            geom.AddPoint(esri_feature['geometry']['x'], esri_feature['geometry']['y'])
         elif geom_type == 'esriGeometryMultipoint':
-            geometry = {
-                "type": "MultiPoint",
-                "coordinates": [
-                    [geom[0], geom[1]] for geom in esri_feature['geometry']['points']
-                ]
-            }
+            geom = ogr.Geometry(ogr.wkbMultiPoint)
+            for point in esri_feature['geometry']['points']:
+                pt = ogr.Geometry(ogr.wkbPoint)
+                pt.AddPoint(point[0], point[1])
+                geom.AddGeometry(pt)
         elif geom_type == 'esriGeometryPolygon':
-            geometry = {
-                "type": "Polygon",
-                "coordinates": [
-                    [
-                        [geom[0], geom[1]] for geom in ring
-                    ] for ring in esri_feature['geometry']['rings']
-                ]
-            }
+            geom = ogr.Geometry(ogr.wkbPolygon)
+            for esri_ring in esri_feature['geometry']['rings']:
+                ring = ogr.Geometry(ogr.wkbLinearRing)
+                for esri_pt in esri_ring:
+                    ring.AddPoint(esri_pt[0], esri_pt[1])
+                geom.AddGeometry(ring)
         elif geom_type == 'esriGeometryPolyline':
-            geometry = {
-                "type": "MultiLineString",
-                "coordinates": [
-                    [
-                        [geom[0], geom[1]] for geom in path
-                    ] for path in esri_feature['geometry']['paths']
-                ]
-            }
+            geom = ogr.Geometry(ogr.wkbMultiLineString)
+            for esri_ring in esri_feature['geometry']['rings']:
+                line = ogr.Geometry(ogr.wkbLineString)
+                for esri_pt in esri_ring:
+                    line.AddPoint(esri_pt[0], esri_pt[1])
+                geom.AddGeometry(line)
+
+        if geom:
+            return geom
         else:
             raise KeyError("Don't know how to convert esri geometry type {}".format(geom_type))
-
-        return {
-            "type": "Feature",
-            "properties": esri_feature.get('attributes'),
-            "geometry": geometry
-        }
 
     def get_file_path(self, url, dir_path):
         ''' Return a local file path in a directory for a URL.
         '''
         _, host, path, _, _, _ = urlparse(url)
-        hash, path_ext = sha1((host + path).encode('utf-8')), '.json'
+        hash, path_ext = sha1((host + path).encode('utf-8')), '.csv'
 
         # With no source prefix like "us-ca-oakland" use the host as a hint.
         name_base = '{}-{}'.format(self.source_prefix or host, hash.hexdigest()[:8])
@@ -315,6 +302,27 @@ class EsriRestDownloadTask(DownloadTask):
 
             headers = {'User-Agent': self.USER_AGENT}
 
+            # Get the fields
+            query_args = {
+                'f': 'json'
+            }
+            response = requests.get(source_url, params=query_args, headers=headers, timeout=_http_timeout)
+
+            if response.status_code != 200:
+                raise DownloadError('Could not retrieve field names from ESRI source: HTTP {} {}'.format(
+                    response.status_code,
+                    response.text
+                ))
+
+            metadata = response.json()
+            field_names = [f['name'] for f in metadata['fields']]
+            if 'X' not in field_names:
+                field_names.append('X')
+            if 'Y' not in field_names:
+                field_names.append('Y')
+            if 'geom' not in field_names:
+                field_names.append('geom')
+
             # Get all the OIDs
             query_url = source_url + '/query'
             query_args = {
@@ -323,10 +331,19 @@ class EsriRestDownloadTask(DownloadTask):
                 'f': 'json',
             }
             response = requests.get(query_url, params=query_args, headers=headers, timeout=_http_timeout)
+
+            if response.status_code != 200:
+                raise DownloadError('Could not retrieve object IDs from ESRI source: HTTP {} {}'.format(
+                    response.status_code,
+                    response.text
+                ))
+
             oids = response.json().get('objectIds', [])
 
-            with open(file_path, 'w') as f:
-                f.write('{\n"type": "FeatureCollection",\n"features": [\n')
+            with open(file_path, 'wb') as f:
+                writer = unicodecsv.DictWriter(f, fieldnames=field_names, encoding='utf-8')
+                writer.writeheader()
+
                 oid_iter = iter(oids)
                 due = time() + 7200
                 while True:
@@ -350,6 +367,13 @@ class EsriRestDownloadTask(DownloadTask):
                     try:
                         response = requests.post(query_url, headers=headers, data=query_args, timeout=_http_timeout)
                         _L.debug("Requesting %s", response.url)
+
+                        if response.status_code != 200:
+                            raise DownloadError('Could not retrieve this chunk of objects from ESRI source: HTTP {} {}'.format(
+                                response.status_code,
+                                response.text
+                            ))
+
                         data = response.json()
                     except socket.timeout as e:
                         raise DownloadError("Timeout when connecting to URL", e)
@@ -363,22 +387,22 @@ class EsriRestDownloadTask(DownloadTask):
 
                     error = data.get('error')
                     if error:
-                        raise DownloadError("Problem querying ESRI dataset: %s", error['message'])
+                        raise DownloadError("Problem querying ESRI dataset: {}" .format(error['message']))
 
                     geometry_type = data.get('geometryType')
                     features = data.get('features')
 
-                    f.write(',\n'.join([
-                        json.dumps(self.convert_esrijson_to_geojson(geometry_type, feature)) for feature in features
-                    ]))
+                    for feature in features:
+                        ogr_geom = self.build_ogr_geometry(geometry_type, feature)
+                        row = feature.get('attributes', {})
+                        row['geom'] = ogr_geom.ExportToWkt()
+                        centroid = ogr_geom.Centroid()
+                        row['X'] = round(centroid.GetX(), 7)
+                        row['Y'] = round(centroid.GetY(), 7)
 
-                    size += len(features)
-                    if len(features) == 0:
-                        break
-                    else:
-                        f.write(',\n')
+                        writer.writerow(row)
+                        size += 1
 
-                f.write('\n]\n}\n')
             _L.info("Downloaded %s ESRI features for file %s", size, file_path)
             output_files.append(file_path)
         return output_files
