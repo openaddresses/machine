@@ -153,7 +153,11 @@ parser.add_argument('-l', '--logfile', help='Optional log file name.')
 
 parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
                     action='store_const', dest='loglevel',
-                    const=logging.DEBUG, default=logging.WARNING)
+                    const=logging.DEBUG, default=logging.INFO)
+
+parser.add_argument('-q', '--quiet', help='Turn off most logging',
+                    action='store_const', dest='loglevel',
+                    const=logging.WARNING, default=logging.INFO)
 
 def main():
     '''
