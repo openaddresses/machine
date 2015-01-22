@@ -252,7 +252,7 @@ def find_source_path(source_definition, source_paths):
                     return c
             _L.warning("Source names file %s but could not find it", source_file_name)
             return None
-    elif conform["type"] == "geojson":
+    elif conform["type"] == "geojson" and source_definition["type"] != "ESRI":
         candidates = []
         for fn in source_paths:
             basename, ext = os.path.splitext(fn)
@@ -268,6 +268,9 @@ def find_source_path(source_definition, source_paths):
             _L.warning("Found more than one JSON file in source, can't pick one")
             # geojson spec currently doesn't include a file attribute. Maybe it should?
             return None
+    elif conform["type"] == "geojson" and source_definition["type"] == "ESRI":
+        # Old style ESRI conform: ESRI downloader should only give us a single cache.csv file
+        return source_paths[0]
     elif conform["type"] == "csv":
         # We don't expect to be handed a list of files
         return source_paths[0]
@@ -628,10 +631,18 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     to longitude and latitude in EPSG:4326.
     """
     # TODO: handle non-SHP sources
-    if source_definition["conform"]["type"] in ("shapefile", "shapefile-polygon", "geojson", "xml"):
+    if source_definition["conform"]["type"] in ("shapefile", "shapefile-polygon", "xml"):
         ogr_source_to_csv(source_definition, source_path, extract_path)
     elif source_definition["conform"]["type"] == "csv":
         csv_source_to_csv(source_definition, source_path, extract_path)
+    elif source_definition["conform"]["type"] == "geojson":
+        # GeoJSON sources have some awkward legacy with ESRI, see issue #34
+        if source_definition["type"] == "ESRI":
+            _L.info("ESRI GeoJSON source found; treating it as CSV")
+            csv_source_to_csv(source_definition, source_path, extract_path)
+        else:
+            _L.info("Non-ESRI GeoJSON source found; this code is not well tested.")
+            ogr_source_to_csv(source_definition, source_path, extract_path)
     else:
         raise Exception("Unsupported source type %s" % source_definition["conform"]["type"])
 
@@ -1036,13 +1047,21 @@ class TestConformMisc(unittest.TestCase):
         self.assertEqual(None, find_source_path(broken_conform, ["foo.shp"]))
 
     def test_find_geojson_source_path(self):
-        geojson_conform = {"conform": {"type": "geojson"}}
+        geojson_conform = {"type": "notESRI", "conform": {"type": "geojson"}}
         self.assertEqual("foo.json", find_source_path(geojson_conform, ["foo.json"]))
         self.assertEqual("FOO.JSON", find_source_path(geojson_conform, ["FOO.JSON"]))
         self.assertEqual("xyzzy/FOO.JSON", find_source_path(geojson_conform, ["xyzzy/FOO.JSON"]))
         self.assertEqual("foo.json", find_source_path(geojson_conform, ["foo.json", "foo.prj", "foo.shx"]))
         self.assertEqual(None, find_source_path(geojson_conform, ["nope.txt"]))
         self.assertEqual(None, find_source_path(geojson_conform, ["foo.json", "bar.json"]))
+
+    def test_find_esri_source_path(self):
+        # test that the legacy ESRI/GeoJSON style works
+        old_conform = {"type": "ESRI", "conform": {"type": "geojson"}}
+        self.assertEqual("foo.csv", find_source_path(old_conform, ["foo.csv"]))
+        # test that the new ESRI/CSV style works
+        new_conform = {"type": "ESRI", "conform": {"type": "csv"}}
+        self.assertEqual("foo.csv", find_source_path(new_conform, ["foo.csv"]))
 
     def test_find_csv_source_path(self):
         csv_conform = {"conform": {"type": "csv"}}
