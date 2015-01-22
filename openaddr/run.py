@@ -3,11 +3,32 @@ import logging; _L = logging.getLogger('openaddr.run')
 from os import environ
 from os.path import join, dirname
 from argparse import ArgumentParser
+from operator import attrgetter
+from itertools import groupby
 from time import time, sleep
 
 from . import jobs
 from boto.ec2 import EC2Connection
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
+
+def get_bid_amount(ec2, instance_type):
+    ''' Get a bid estimate for a given instance type.
+    
+        Returns median price + $0.01 for the cheapest AWS availability zone.
+    '''
+    history = ec2.get_spot_price_history(instance_type=instance_type)
+
+    get_az = attrgetter('availability_zone')
+    median = 1.00
+    
+    for (zone, zone_history) in groupby(sorted(history, key=get_az), get_az):
+        zone_prices = [h.price for h in zone_history]
+        zone_median = sorted(zone_prices)[len(zone_prices)/2]
+
+        _L.debug('Median ${:.4f}/hour in {} zone'.format(zone_median, zone))
+        median = min(median, zone_median)
+    
+    return median + 0.01
 
 parser = ArgumentParser(description='Run some source files.')
 
@@ -56,11 +77,8 @@ def main():
     ec2_access_key = args.ec2_access_key or environ.get('EC2_ACCESS_KEY_ID', args.access_key)
     ec2_secret_key = args.ec2_secret_key or environ.get('EC2_SECRET_ACCESS_KEY', args.secret_key)
     ec2 = EC2Connection(ec2_access_key, ec2_secret_key)
-
-    history = ec2.get_spot_price_history(instance_type=args.instance_type)
-    median = sorted([h.price for h in history])[len(history)/2]
-    bid = median + .01
-
+    
+    bid = get_bid_amount(ec2, args.instance_type)
     _L.info('Bidding ${:.4f}/hour for {} instance'.format(bid, args.instance_type))
     
     #
