@@ -195,10 +195,8 @@ class TestOA (unittest.TestCase):
         
         self.assertTrue(state['cache'] is not None)
         self.assertEqual(state['fingerprint'], 'b548d1f9f1e19824a90d456e90518991')
-        # TODO: re-enable test of processing once conform supports geojson
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
-        self.assertEqual(state['geometry type'], 'Point')
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -206,9 +204,8 @@ class TestOA (unittest.TestCase):
         self.assertEqual(len(sample_data), 6)
         self.assertTrue('SITEFRAC' in sample_data[0])
         
-        return   # TODO geojson
         with open(join(dirname(state_path), state['processed'])) as file:
-            self.assertTrue('555 E CARSON ST' in file.read())
+            self.assertTrue('555,Carson Street' in file.read())
 
     def test_single_car_cached(self):
         ''' Test complete process_one.process on Carson sample data.
@@ -223,10 +220,8 @@ class TestOA (unittest.TestCase):
         
         self.assertTrue(state['cache'] is not None)
         self.assertEqual(state['fingerprint'], 'b548d1f9f1e19824a90d456e90518991')
-        # TODO: re-enable test of processing once conform supports geojson
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
-        self.assertEqual(state['geometry type'], 'Point')
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -234,9 +229,8 @@ class TestOA (unittest.TestCase):
         self.assertEqual(len(sample_data), 6)
         self.assertTrue('SITEFRAC' in sample_data[0])
         
-        return   # TODO geojson
         with open(join(dirname(state_path), state['processed'])) as file:
-            self.assertTrue('555 E CARSON ST' in file.read())
+            self.assertTrue('555,Carson Street' in file.read())
 
     def test_single_car_old_cached(self):
         ''' Test complete process_one.process on Carson sample data.
@@ -251,10 +245,8 @@ class TestOA (unittest.TestCase):
         
         self.assertTrue(state['cache'] is not None)
         self.assertEqual(state['fingerprint'], 'b548d1f9f1e19824a90d456e90518991')
-        # TODO: re-enable test of processing once conform supports geojson
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
-        self.assertEqual(state['geometry type'], 'Point')
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -262,9 +254,8 @@ class TestOA (unittest.TestCase):
         self.assertEqual(len(sample_data), 6)
         self.assertTrue('SITEFRAC' in sample_data[0])
         
-        return   # TODO geojson
         with open(join(dirname(state_path), state['processed'])) as file:
-            self.assertTrue('555 E CARSON ST' in file.read())
+            self.assertTrue('555,Carson Street' in file.read())
 
     def test_single_oak(self):
         ''' Test complete process_one.process on Oakland sample data.
