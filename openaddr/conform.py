@@ -7,7 +7,8 @@ import logging; _L = logging.getLogger('openaddr.conform')
 import os
 import errno
 import tempfile
-import unicodecsv
+import sys
+import unicodecsv; unicodecsv.field_size_limit(sys.maxsize)
 import json
 import copy
 import sys

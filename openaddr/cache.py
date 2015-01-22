@@ -3,7 +3,8 @@ from future import standard_library; standard_library.install_aliases()
 import logging; _L = logging.getLogger('openaddr.cache')
 
 import ogr
-import unicodecsv
+import sys
+import unicodecsv; unicodecsv.field_size_limit(sys.maxsize)
 import os
 import errno
 import socket
@@ -315,6 +316,13 @@ class EsriRestDownloadTask(DownloadTask):
                 ))
 
             metadata = response.json()
+
+            error = metadata.get('error')
+            if error:
+                raise DownloadError("Problem querying ESRI field names: {}" .format(error['message']))
+            if not metadata.get('fields'):
+                raise DownloadError("No fields available in the source")
+
             field_names = [f['name'] for f in metadata['fields']]
             if 'X' not in field_names:
                 field_names.append('X')
