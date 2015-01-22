@@ -6,6 +6,7 @@ echo 'cloning' > /var/www/html/state.txt
 git clone -b ditch-node https://github.com/openaddresses/machine /tmp/machine
 
 echo 'installing' > /var/www/html/state.txt
+/tmp/machine/ec2/swap.sh
 /tmp/machine/chef/run.sh
 
 echo 'processing' > /var/www/html/state.txt
