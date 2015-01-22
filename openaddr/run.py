@@ -1,4 +1,4 @@
-import logging; _L = logging.getLogger('openaddr.')
+import logging; _L = logging.getLogger('openaddr.run')
 
 from os import environ
 from os.path import join, dirname
@@ -64,9 +64,9 @@ def main():
     _L.info('Bidding ${:.4f}/hour for {} instance'.format(bid, args.instance_type))
     
     #
-    # Request a spot instance with 99GB storage.
+    # Request a spot instance with 200GB storage.
     #
-    device_sda1 = BlockDeviceType(size=99, delete_on_termination=True)
+    device_sda1 = BlockDeviceType(size=200, delete_on_termination=True)
     device_map = BlockDeviceMapping(); device_map['/dev/sda1'] = device_sda1
     
     spot_args = dict(instance_type=args.instance_type, user_data=user_data,

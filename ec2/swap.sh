@@ -1,4 +1,4 @@
-#!/usr/bin/bash -e
+#!/bin/bash -e
 
 IFS=$'\n'
 for line in `cat /proc/mounts`; do
