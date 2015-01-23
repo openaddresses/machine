@@ -401,15 +401,18 @@ class EsriRestDownloadTask(DownloadTask):
                     features = data.get('features')
 
                     for feature in features:
-                        ogr_geom = self.build_ogr_geometry(geometry_type, feature)
-                        row = feature.get('attributes', {})
-                        row['geom'] = ogr_geom.ExportToWkt()
-                        centroid = ogr_geom.Centroid()
-                        row['X'] = round(centroid.GetX(), 7)
-                        row['Y'] = round(centroid.GetY(), 7)
+                        try:
+                            ogr_geom = self.build_ogr_geometry(geometry_type, feature)
+                            row = feature.get('attributes', {})
+                            row['geom'] = ogr_geom.ExportToWkt()
+                            centroid = ogr_geom.Centroid()
+                            row['X'] = round(centroid.GetX(), 7)
+                            row['Y'] = round(centroid.GetY(), 7)
 
-                        writer.writerow(row)
-                        size += 1
+                            writer.writerow(row)
+                            size += 1
+                        except TypeError:
+                            _L.debug("Skipping a geometry", exc_info=True)
 
             _L.info("Downloaded %s ESRI features for file %s", size, file_path)
             output_files.append(file_path)
