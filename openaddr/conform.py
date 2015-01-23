@@ -630,7 +630,6 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     The extracted file will be in UTF-8 and will have X and Y columns corresponding
     to longitude and latitude in EPSG:4326.
     """
-    # TODO: handle non-SHP sources
     if source_definition["conform"]["type"] in ("shapefile", "shapefile-polygon", "xml"):
         ogr_source_to_csv(source_definition, source_path, extract_path)
     elif source_definition["conform"]["type"] == "csv":
