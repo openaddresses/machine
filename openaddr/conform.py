@@ -7,8 +7,6 @@ import logging; _L = logging.getLogger('openaddr.conform')
 import os
 import errno
 import tempfile
-import sys
-import unicodecsv; unicodecsv.field_size_limit(sys.maxsize)
 import json
 import copy
 import sys
@@ -16,6 +14,12 @@ import sys
 from zipfile import ZipFile
 from argparse import ArgumentParser
 from locale import getpreferredencoding
+
+if sys.version_info[0] == 2:
+    import unicodecsv as csv
+    csv.field_size_limit(sys.maxsize)
+else:
+    import csv
 
 from .sample import sample_geojson
 from .expand import expand_street_name
@@ -372,7 +376,7 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
 
     # Write a CSV file with one row per feature in the OGR source
     with open(dest_path, 'wb') as f:
-        writer = unicodecsv.DictWriter(f, fieldnames=out_fieldnames, encoding='utf-8')
+        writer = csv.DictWriter(f, fieldnames=out_fieldnames, encoding='utf-8')
         writer.writeheader()
 
         in_feature = in_layer.GetNextFeature()
@@ -425,7 +429,7 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
             headers = source_definition["conform"]["headers"]
             if (headers == -1):
                 # Read a row off the file to see how many columns it has
-                temp_reader = unicodecsv.reader(source_fp, encoding=enc, delimiter=delim)
+                temp_reader = csv.reader(source_fp, encoding=enc, delimiter=delim)
                 first_row = temp_reader.next()
                 num_columns = len(first_row)
                 source_fp.seek(0)
@@ -445,7 +449,7 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
             # check the source doesn't specify skiplines without headers
             assert not source_definition["conform"].has_key("skiplines")
 
-        reader = unicodecsv.DictReader(source_fp, encoding=enc, delimiter=delim, fieldnames=in_fieldnames)
+        reader = csv.DictReader(source_fp, encoding=enc, delimiter=delim, fieldnames=in_fieldnames)
         num_fields = len(reader.fieldnames)
 
         # Construct headers for the extracted CSV file
@@ -459,7 +463,7 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
 
         # Write the extracted CSV file
         with open(dest_path, 'wb') as dest_fp:
-            writer = unicodecsv.DictWriter(dest_fp, out_fieldnames)
+            writer = csv.DictWriter(dest_fp, out_fieldnames)
             writer.writeheader()
             # For every row in the source CSV
             for source_row in reader:
@@ -662,10 +666,10 @@ def transform_to_out_csv(source_definition, extract_path, dest_path):
 
     # Read through the extract CSV
     with open(extract_path, 'rb') as extract_fp:
-        reader = unicodecsv.DictReader(extract_fp, encoding='utf-8')
+        reader = csv.DictReader(extract_fp, encoding='utf-8')
         # Write to the destination CSV
         with open(dest_path, 'wb') as dest_fp:
-            writer = unicodecsv.DictWriter(dest_fp, _openaddr_csv_schema)
+            writer = csv.DictWriter(dest_fp, _openaddr_csv_schema)
             writer.writeheader()
             # For every row in the extract
             for extract_row in reader:
@@ -865,7 +869,7 @@ class TestConformCli (unittest.TestCase):
         self.assertEqual(0, rc)
 
         with open(dest_path) as fp:
-            reader = unicodecsv.DictReader(fp)
+            reader = csv.DictReader(fp)
             self.assertEqual(['LON', 'LAT', 'NUMBER', 'STREET'], reader.fieldnames)
 
             rows = list(reader)
@@ -892,7 +896,7 @@ class TestConformCli (unittest.TestCase):
         self.assertEqual(0, rc)
         
         with open(dest_path) as fp:
-            rows = list(unicodecsv.DictReader(fp))
+            rows = list(csv.DictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '915')
             self.assertEqual(rows[0]['STREET'], 'Edward Avenue')
             self.assertEqual(rows[1]['NUMBER'], '3273')
@@ -911,7 +915,7 @@ class TestConformCli (unittest.TestCase):
         self.assertEqual(0, rc)
         
         with open(dest_path) as fp:
-            rows = list(unicodecsv.DictReader(fp))
+            rows = list(csv.DictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '35845')
             self.assertEqual(rows[0]['STREET'], 'Eklutna Lake Road')
             self.assertEqual(rows[1]['NUMBER'], '35850')
@@ -930,7 +934,7 @@ class TestConformCli (unittest.TestCase):
         self.assertEqual(0, rc)
         
         with open(dest_path) as fp:
-            rows = list(unicodecsv.DictReader(fp))
+            rows = list(csv.DictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '85')
             self.assertEqual(rows[0]['STREET'], 'Maitland Drive')
             self.assertEqual(rows[1]['NUMBER'], '81')
@@ -948,7 +952,7 @@ class TestConformCli (unittest.TestCase):
         rc, dest_path = self._run_conform_on_source('lake-man-utf8', 'shp')
         self.assertEqual(0, rc)
         with open(dest_path) as fp:
-            rows = list(unicodecsv.DictReader(fp, encoding='utf-8'))
+            rows = list(csv.DictReader(fp, encoding='utf-8'))
             self.assertEqual(rows[0]['STREET'], u'Pz Espa\u00f1a')
 
     def test_lake_man_shp_epsg26943(self):
@@ -956,7 +960,7 @@ class TestConformCli (unittest.TestCase):
         self.assertEqual(0, rc)
 
         with open(dest_path) as fp:
-            rows = list(unicodecsv.DictReader(fp))
+            rows = list(csv.DictReader(fp))
             self.assertAlmostEqual(float(rows[0]['LAT']), 37.802612637607439)
             self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824)
 
@@ -965,7 +969,7 @@ class TestConformCli (unittest.TestCase):
         self.assertEqual(0, rc)
 
         with open(dest_path) as fp:
-            rows = list(unicodecsv.DictReader(fp))
+            rows = list(csv.DictReader(fp))
             self.assertAlmostEqual(float(rows[0]['LAT']), 37.802612637607439)
             self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824)
 
@@ -977,7 +981,7 @@ class TestConformCli (unittest.TestCase):
         self.assertEqual(0, rc)
 
         with open(dest_path) as fp:
-            rows = list(unicodecsv.DictReader(fp))
+            rows = list(csv.DictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '1')
             self.assertEqual(rows[0]['STREET'], 'Spectrum Pointe Drive #320')
             self.assertEqual(rows[1]['NUMBER'], '')
@@ -996,7 +1000,7 @@ class TestConformCli (unittest.TestCase):
         rc, dest_path = self._run_conform_on_source('jp-nara', 'csv')
         self.assertEqual(0, rc)
         with open(dest_path) as fp:
-            rows = list(unicodecsv.DictReader(fp))
+            rows = list(csv.DictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '2543-6')
             self.assertAlmostEqual(float(rows[0]['LON']), 135.955104)
             self.assertAlmostEqual(float(rows[0]['LAT']), 34.607832)
@@ -1008,7 +1012,7 @@ class TestConformCli (unittest.TestCase):
         rc, dest_path = self._run_conform_on_source('lake-man-3740', 'csv')
         self.assertEqual(0, rc)
         with open(dest_path) as fp:
-            rows = list(unicodecsv.DictReader(fp))
+            rows = list(csv.DictReader(fp))
             self.assertAlmostEqual(float(rows[0]['LAT']), 37.802612637607439, places=5)
             self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824, places=5)
             self.assertEqual(rows[0]['NUMBER'], '5')
@@ -1019,7 +1023,7 @@ class TestConformCli (unittest.TestCase):
         rc, dest_path = self._run_conform_on_source('lake-man-gml', 'gml')
         self.assertEqual(0, rc)
         with open(dest_path) as fp:
-            rows = list(unicodecsv.DictReader(fp))
+            rows = list(csv.DictReader(fp))
             self.assertEqual(6, len(rows))
             self.assertAlmostEqual(float(rows[0]['LAT']), 37.802612637607439)
             self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824)

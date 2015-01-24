@@ -4,7 +4,6 @@ import logging; _L = logging.getLogger('openaddr.cache')
 
 import ogr
 import sys
-import unicodecsv; unicodecsv.field_size_limit(sys.maxsize)
 import os
 import errno
 import socket
@@ -21,6 +20,12 @@ from tempfile import mkstemp
 from hashlib import sha1
 from shutil import move
 from time import time
+
+if sys.version_info[0] == 2:
+    import unicodecsv as csv
+    csv.field_size_limit(sys.maxsize)
+else:
+    import csv
 
 import requests
 import requests_ftp
@@ -349,7 +354,7 @@ class EsriRestDownloadTask(DownloadTask):
             oids = response.json().get('objectIds', [])
 
             with open(file_path, 'wb') as f:
-                writer = unicodecsv.DictWriter(f, fieldnames=field_names, encoding='utf-8')
+                writer = csv.DictWriter(f, fieldnames=field_names, encoding='utf-8')
                 writer.writeheader()
 
                 oid_iter = iter(oids)

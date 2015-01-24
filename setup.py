@@ -1,8 +1,17 @@
 from setuptools import setup
 from os.path import join, dirname
+import sys
 
 with open(join(dirname(__file__), 'openaddr', 'VERSION')) as file:
     version = file.read().strip()
+
+conditional_requirements = list()
+
+if sys.version_info[0] == 2:
+    conditional_requirements += [
+        # https://github.com/jdunck/python-unicodecsv
+        'unicodecsv >= 0.9.4',
+    ]
 
 setup(
     name = 'OpenAddresses-Machine',
@@ -26,9 +35,6 @@ setup(
         # https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1306991/comments/10
         'requests==2.2.1',
 
-        # https://github.com/jdunck/python-unicodecsv
-        'unicodecsv >= 0.9.4',
-
         # https://pypi.python.org/pypi/requests-ftp, appears no longer maintained.
         'requests-ftp >= 0.2.0',
 
@@ -37,7 +43,8 @@ setup(
 
         # https://pypi.python.org/pypi/setproctitle/
         'setproctitle >= 1.1.8'
-        ],
+
+        ] + conditional_requirements,
     entry_points = dict(
         console_scripts = [
             'openaddr-render-us = openaddr.render:main',
