@@ -6,9 +6,12 @@ cache:
   apt: true
 before_install:
   - sudo apt-get update -y
-  - sudo apt-get install -y -qq libgdal1h python-numpy python-scientific python-shapely python-qt4 proj gmsh gmt python-gdal python-cairo
+  - sudo apt-get install -y -qq libgdal1h proj gmsh gmt
+  - sudo apt-get install -y -qq python-numpy python-scientific python-shapely python-qt4 python-gdal python-cairo
+  - sudo apt-get install -y -qq python3-numpy python3-pyqt4 python3-gdal python3-cairo
 install:
   - for DIR in /home/travis/virtualenv/python3*/lib/*/site-packages; do echo '/usr/lib/python3/dist-packages' >> $DIR/system.pth; echo '/usr/local/lib/python3/dist-packages' >> $DIR/system.pth; done
   - for DIR in /home/travis/virtualenv/python*/lib/*/site-packages; do echo '/usr/lib/python2.7/dist-packages' >> $DIR/system.pth; echo '/usr/local/lib/python2.7/dist-packages' >> $DIR/system.pth; done
   - sudo chef/run.sh
+  - pip install -U .
 script:  python test.py
