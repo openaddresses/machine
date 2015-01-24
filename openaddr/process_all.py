@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, print_function
-from future import standard_library; standard_library.install_aliases()
-
 import logging; _L = logging.getLogger('openaddr.process_all')
+
+from .compat import standard_library
 
 from argparse import ArgumentParser
 from collections import defaultdict

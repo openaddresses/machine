@@ -1,8 +1,9 @@
 # coding=ascii
 
 from __future__ import absolute_import, division, print_function
-from future import standard_library; standard_library.install_aliases()
 import logging; _L = logging.getLogger('openaddr.conform')
+
+from .compat import csv, standard_library
 
 import os
 import errno

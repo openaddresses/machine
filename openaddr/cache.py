@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
-from future import standard_library; standard_library.install_aliases()
 import logging; _L = logging.getLogger('openaddr.cache')
+
+from .compat import csv, standard_library
 
 import ogr
 import sys
@@ -20,8 +21,6 @@ from tempfile import mkstemp
 from hashlib import sha1
 from shutil import move
 from time import time
-
-from .compat import csv
 
 import requests
 import requests_ftp
