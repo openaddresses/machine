@@ -8,9 +8,9 @@ from os.path import join, basename, dirname, exists, splitext, relpath
 from shutil import copy, move, rmtree
 from argparse import ArgumentParser
 from os import mkdir, rmdir, close
+from _thread import get_ident
 import tempfile, json, csv
 
-from .compat import thread_ident
 from . import cache, conform, CacheResult, ConformResult
 
 def process(source, destination, extras=dict()):
@@ -67,7 +67,7 @@ class LogFilter:
     '''
     def __init__(self):
         # Seems to work as unique ID with multiprocessing.Process() as well as threading.Thread()
-        self.thread_id = thread_ident()
+        self.thread_id = get_ident()
     
     def filter(self, record):
         return record.thread == self.thread_id
