@@ -21,11 +21,7 @@ from hashlib import sha1
 from shutil import move
 from time import time
 
-if sys.version_info[0] == 2:
-    import unicodecsv as csv
-    csv.field_size_limit(sys.maxsize)
-else:
-    import csv
+from .compat import csv
 
 import requests
 import requests_ftp

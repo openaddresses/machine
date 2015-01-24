@@ -15,12 +15,7 @@ from zipfile import ZipFile
 from argparse import ArgumentParser
 from locale import getpreferredencoding
 
-if sys.version_info[0] == 2:
-    import unicodecsv as csv
-    csv.field_size_limit(sys.maxsize)
-else:
-    import csv
-
+from .compat import csv
 from .sample import sample_geojson
 from .expand import expand_street_name
 

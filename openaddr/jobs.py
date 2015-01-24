@@ -20,7 +20,7 @@ import os.path
 import json
 import setproctitle
 
-from . import process_one
+from . import process_one, compat
 
 #
 # Configuration variables
@@ -66,7 +66,11 @@ def timeout(timeout):
             signal.alarm(0)  # Alarm removed
             return result
 
-        new_f.func_name = f.func_name
+        if compat.PY2:
+            new_f.func_name = f.func_name
+        else:
+            new_f.__name__ = f.__name__
+
         return new_f
 
     return decorate
