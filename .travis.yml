@@ -1,18 +1,26 @@
 language: python
 python:
   - "2.7"
-  - "3.2_with_system_site_packages"
+  - "3.3"
 cache:
   apt: true
 before_install:
+  # Although we include chef, we need to pre-install a number of dependencies
+  # to adapt to Travis Ubuntu apt sources and virtualenv environment.
+  #   https://github.com/travis-ci/travis-ci/issues/2683#issuecomment-52720150
+  #   https://github.com/travis-ci/travis-ci/issues/2938
   - sudo apt-get update -y
   - sudo apt-get install -y -qq libgdal1h proj gmsh gmt
   - sudo apt-get install -y -qq libgdal1-dev python3-dev python-dev
   - sudo apt-get install -y -qq libffi-dev libcairo2
 install:
-  # Determine GDAL library version and install a compatible python binding:
+  # Determine GDAL library version and install a compatible python binding.
+  #   http://gis.stackexchange.com/questions/28966/python-gdal-package-missing-header-file-when-installing-via-pip
   - V=`dpkg -s libgdal1-dev | grep Version | cut -d' ' -f2 | cut -d'-' -f1`; env CPLUS_INCLUDE_PATH=/usr/include/gdal C_INCLUDE_PATH=/usr/include/gdal pip install "GDAL==$V"
-  # cairocffi is a drop-in replacement for Pycairo, which is absent from pip:
+  #
+  # cairocffi is a drop-in replacement for Pycairo, which is absent from pip.
+  #   http://stackoverflow.com/questions/11491268/install-pycairo-in-virtualenv
+  #   https://pythonhosted.org/cairocffi/
   - pip install cairocffi
   - sudo chef/run.sh
   - pip install -U .
