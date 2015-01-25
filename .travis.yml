@@ -1,6 +1,6 @@
 language: python
 python:
-  - "2.7_with_system_site_packages"
+  - "2.7"
   - "3.2_with_system_site_packages"
 cache:
   apt: true
@@ -10,7 +10,9 @@ before_install:
   - sudo apt-get install -y -qq libgdal1-dev python3-dev python-dev
   - sudo apt-get install -y -qq libffi-dev libcairo2
 install:
+  # Determine GDAL library version and install a compatible python binding:
   - V=`dpkg -s libgdal1-dev | grep Version | cut -d' ' -f2 | cut -d'-' -f1`; env CPLUS_INCLUDE_PATH=/usr/include/gdal C_INCLUDE_PATH=/usr/include/gdal pip install "GDAL==$V"
+  # cairocffi is a drop-in replacement for Pycairo, which is absent from pip:
   - pip install cairocffi
   - sudo chef/run.sh
   - pip install -U .
