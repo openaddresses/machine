@@ -39,6 +39,7 @@ from openaddr.sample import TestSample
 from openaddr.cache import TestCacheExtensionGuessing
 from openaddr.conform import TestConformCli, TestConformTransforms, TestConformMisc, TestConformCsv
 from openaddr.expand import TestExpand
+from openaddr.render import TestRender
 
 class TestOA (unittest.TestCase):
     

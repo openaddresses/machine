@@ -12,3 +12,9 @@ if PY2:
 else:
     import csv
     standard_library = None
+
+try:
+    import cairo
+except ImportError:
+    # http://stackoverflow.com/questions/11491268/install-pycairo-in-virtualenv
+    import cairocffi as cairo

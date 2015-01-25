@@ -6,7 +6,7 @@ from itertools import combinations
 from os.path import join, dirname
 import json
 
-from cairo import ImageSurface, Context, FORMAT_ARGB32
+from .compat import cairo
 from osgeo import ogr, osr
 
 from . import paths
@@ -29,8 +29,8 @@ def make_context(width=960, resolution=1):
     hoffset = -left
     voffset = -top
 
-    surface = ImageSurface(FORMAT_ARGB32, hsize, vsize)
-    context = Context(surface)
+    surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, hsize, vsize)
+    context = cairo.Context(surface)
     context.scale(hscale, vscale)
     context.translate(hoffset, voffset)
     
@@ -240,3 +240,26 @@ def render(sources, width, resolution, filename):
 
 if __name__ == '__main__':
     exit(main())
+
+
+
+# Test suite. This code could be in a separate file
+
+import unittest, tempfile, os, tempfile, subprocess
+
+class TestRender (unittest.TestCase):
+
+    def test_render(self):
+        sources = join(dirname(__file__), '..', 'tests', 'sources')
+        handle, filename = tempfile.mkstemp(prefix='render-', suffix='.png')
+        os.close(handle)
+        
+        try:
+            render(sources, 512, 1, filename)
+            info = str(subprocess.check_output(('file', filename)))
+
+            self.assertTrue('PNG image data' in info)
+            self.assertTrue('512 x 294' in info)
+            self.assertTrue('8-bit/color RGBA' in info)
+        finally:
+            os.remove(filename)
