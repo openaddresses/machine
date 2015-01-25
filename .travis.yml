@@ -7,11 +7,11 @@ cache:
 before_install:
   - sudo apt-get update -y
   - sudo apt-get install -y -qq libgdal1h proj gmsh gmt
-  - sudo apt-get install -y -qq python-numpy python-scientific python-shapely python-qt4 python-gdal
-  - sudo apt-get install -y -qq python3-numpy python3-pyqt4 python3-gdal
+  - sudo apt-get install -y -qq libgdal1-dev python3-dev python-dev
   - sudo apt-get install -y -qq libffi-dev libcairo2
 install:
-  - sudo chef/run.sh
+  - V=`dpkg -s libgdal1-dev | grep Version | cut -d' ' -f2 | cut -d'-' -f1`; env CPLUS_INCLUDE_PATH=/usr/include/gdal C_INCLUDE_PATH=/usr/include/gdal pip install "GDAL==$V"
   - pip install cairocffi
+  - sudo chef/run.sh
   - pip install -U .
 script:  python test.py
