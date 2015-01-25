@@ -244,7 +244,7 @@ def find_source_path(source_definition, source_paths):
             return candidates[0]
         else:
             # Multiple candidates; look for the one named by the file attribute
-            if not conform.has_key("file"):
+            if "file" not in conform:
                 _L.warning("Multiple shapefiles found, but source has no file attribute.")
                 return None
             source_file_name = conform["file"]
@@ -277,7 +277,7 @@ def find_source_path(source_definition, source_paths):
         return source_paths[0]
     elif conform["type"] == "xml":
         # Return file if it's specified, else return the first .gml file we find
-        if conform.has_key("file"):
+        if "file" in conform:
             for fn in source_paths:
                 # Consider it a match if the basename matches; directory names are a mess
                 if os.path.basename(conform["file"]) == os.path.basename(fn):
@@ -349,7 +349,7 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
     if in_layer.TestCapability(ogr.OLCStringsAsUTF8):
         # OGR turned this to UTF 8 for us
         shp_encoding = 'utf-8'
-    elif source_definition["conform"].has_key("encoding"):
+    elif "encoding" in source_definition["conform"]:
         shp_encoding = source_definition["conform"]["encoding"]
     else:
         _L.warn("No encoding given and OGR couldn't guess. Trying ISO-8859-1, YOLO!")
@@ -421,7 +421,7 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
         in_fieldnames = None   # in most cases, we let the csv module figure these out
 
         # headers processing tag
-        if (source_definition["conform"].has_key("headers")):
+        if "headers" in source_definition["conform"]:
             headers = source_definition["conform"]["headers"]
             if (headers == -1):
                 # Read a row off the file to see how many columns it has
@@ -436,14 +436,14 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
                 # matches the sources in our collection as of January 2015
                 # this code handles the case for Korean inputs where there are
                 # two lines of headers and we want to skip the first one
-                assert source_definition["conform"].has_key("skiplines")
+                assert "skiplines" in source_definition["conform"]
                 assert source_definition["conform"]["skiplines"] == headers
                 # Skip N lines to get to the real header. headers=2 means we skip one line
                 for n in range(1, headers):
                     source_fp.next()
         else:
             # check the source doesn't specify skiplines without headers
-            assert not source_definition["conform"].has_key("skiplines")
+            assert "skiplines" not in source_definition["conform"]
 
         reader = csv.DictReader(source_fp, encoding=enc, delimiter=delim, fieldnames=in_fieldnames)
         num_fields = len(reader.fieldnames)
@@ -472,7 +472,7 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
 _transform_cache = {}
 def _transform_to_4326(srs):
     "Given a string like EPSG:2913, return an OGR transform object to turn it in to EPSG:4326"
-    if not _transform_cache.has_key(srs):
+    if srs not in _transform_cache:
         epsg_id = int(srs[5:]) if srs.startswith("EPSG:") else int(srs)
         # Manufacture a transform object if it's not in the cache
         in_spatial_ref = osr.SpatialReference()
@@ -487,11 +487,11 @@ def row_extract_and_reproject(source_definition, source_row):
     # Find the lat and lon in the source; work around case mismatch
     lat_name = source_definition["conform"]["lat"]
     lon_name = source_definition["conform"]["lon"]
-    if source_row.has_key(lon_name):
+    if lon_name in source_row:
         source_x = source_row[lon_name]
     else:
         source_x = source_row[lon_name.upper()]
-    if source_row.has_key(lat_name):
+    if lat_name in source_row:
         source_y = source_row[lat_name]
     else:
         source_y = source_row[lat_name.upper()]
@@ -502,7 +502,7 @@ def row_extract_and_reproject(source_definition, source_row):
         if n in out_row: del out_row[n]
 
     # Reproject the coordinates if necessary
-    if not source_definition["conform"].has_key("srs"):
+    if "srs" not in source_definition["conform"]:
         out_x = source_x
         out_y = source_y
     else:
@@ -537,11 +537,11 @@ def row_transform_and_convert(sd, row):
     row = row_smash_case(sd, row)
 
     c = sd["conform"]
-    if c.has_key("merge"):
+    if "merge" in c:
         row = row_merge_street(sd, row)
-    if c.has_key("advanced_merge"):
+    if "advanced_merge" in c:
         row = row_advanced_merge(sd, row)
-    if c.has_key("split"):
+    if "split" in c:
         row = row_split_address(sd, row)
     row = row_convert_to_out(sd, row)
     row = row_canonicalize_street_and_number(sd, row)
@@ -553,11 +553,11 @@ def conform_smash_case(source_definition):
     new_sd = copy.deepcopy(source_definition)
     conform = new_sd["conform"]
     for k in ("split", "lat", "lon", "street", "number"):
-        if conform.has_key(k):
+        if k in conform:
             conform[k] = conform[k].lower()
-    if conform.has_key("merge"):
+    if "merge" in conform:
         conform["merge"] = [s.lower() for s in conform["merge"]]
-    if conform.has_key("advanced_merge"):
+    if "advanced_merge" in conform:
         for new_col, spec in conform["advanced_merge"].items():
             spec["fields"] = [s.lower() for s in spec["fields"]]
     return new_sd
@@ -676,7 +676,7 @@ def conform_cli(source_definition, source_path, dest_path):
     "Command line entry point for conforming a downloaded source to an output CSV."
     # TODO: this tool only works if the source creates a single output
 
-    if not source_definition.has_key("conform"):
+    if "conform" not in source_definition:
         return 1
     if not source_definition["conform"].get("type", None) in ["shapefile", "shapefile-polygon", "geojson", "csv", "xml"]:
         _L.warn("Skipping file with unknown conform: %s", source_path)

@@ -241,7 +241,7 @@ def expand_street_name(street_name):
     # Now substitute each word if it looks like an abbreviation
     tokenized = street_name.split(' ')
     for i, s in enumerate(tokenized):
-        if abbreviation_table.has_key(s):
+        if s in abbreviation_table:
             tokenized[i] = abbreviation_table[s]
         # Special case Saint/Street depending on position
         if s == "st":
