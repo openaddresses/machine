@@ -139,7 +139,7 @@ def write_state(source, destination, log_handler, cache_result, conform_result, 
             out.writerow(row)
     
     with open(join(statedir, 'index.json'), 'w') as file:
-        json.dump(zip(*state), file, indent=2)
+        json.dump(list(zip(*state)), file, indent=2)
                
         _L.info('Wrote to state: {}'.format(file.name))
         return file.name

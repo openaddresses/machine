@@ -75,14 +75,14 @@ def sample_geojson(stream, max_features):
 
         for (prefix2, event2, value2) in data:
             if event2 == 'map_key' and value2 == 'type':
-                prefix3, event3, value3 = data.next()
+                prefix3, event3, value3 = next(data)
             
                 if event3 != 'string' and value3 != 'FeatureCollection':
                     # We only want GeoJSON feature collections
                     raise ValueError((prefix3, event3, value3))
             
             elif event2 == 'map_key' and value2 == 'features':
-                prefix4, event4, value4 = data.next()
+                prefix4, event4, value4 = next(data)
             
                 if event4 != 'start_array':
                     # We only want lists of features here.
@@ -104,11 +104,11 @@ def sample_geojson(stream, max_features):
 class TestSample (unittest.TestCase):
     
     def test_sample(self):
-        geojson_input = '''{ "type": "FeatureCollection", "features": [
-                           { "type": "Feature", "geometry": {"type": "Point", "coordinates": [102.0, 0.5]}, "properties": {"prop0": "value0"} },
-                           { "type": "Feature", "geometry": { "type": "LineString", "coordinates": [ [102.0, 0.0], [103.0, 1.0], [104.0, 0.0], [105.0, 1.0] ] }, "properties": { "prop0": "value0", "prop1": 0.0 } },
-                           { "type": "Feature", "geometry": { "type": "Polygon", "coordinates": [ [ [100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0] ] ] }, "properties": { "prop0": "value0", "prop1": {"this": "that"}, "prop2": true, "prop3": null } }
-                           ] }'''
+        geojson_input = b'''{ "type": "FeatureCollection", "features": [
+                            { "type": "Feature", "geometry": {"type": "Point", "coordinates": [102.0, 0.5]}, "properties": {"prop0": "value0"} },
+                            { "type": "Feature", "geometry": { "type": "LineString", "coordinates": [ [102.0, 0.0], [103.0, 1.0], [104.0, 0.0], [105.0, 1.0] ] }, "properties": { "prop0": "value0", "prop1": 0.0 } },
+                            { "type": "Feature", "geometry": { "type": "Polygon", "coordinates": [ [ [100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0] ] ] }, "properties": { "prop0": "value0", "prop1": {"this": "that"}, "prop2": true, "prop3": null } }
+                            ] }'''
         
         geojson0 = json.loads(sample_geojson(BytesIO(geojson_input), max_features=0))
         self.assertEqual(len(geojson0['features']), 0)
