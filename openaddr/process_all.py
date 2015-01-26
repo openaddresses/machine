@@ -6,9 +6,8 @@ from .compat import standard_library
 from argparse import ArgumentParser
 from collections import defaultdict
 from os.path import join, basename, relpath, splitext, dirname
-from csv import writer, DictReader
 from urllib.parse import urlparse
-from io import BytesIO
+from io import BytesIO, TextIOWrapper
 from datetime import datetime
 from os import environ
 from json import dumps
@@ -17,6 +16,7 @@ from glob import glob
 import json
 
 from . import paths, jobs, S3, render, summarize
+from .compat import PY2, csvwriter, csvDictReader
 
 parser = ArgumentParser(description='Run some source files.')
 
@@ -94,7 +94,7 @@ def read_state(s3, sourcedir):
         _L.debug('Found state in {}'.format(state_key.name))
 
         state_file = BytesIO(state_key.get_contents_as_string())
-        rows = DictReader(state_file, dialect='excel-tab')
+        rows = csvDictReader(state_file, dialect='excel-tab', encoding='utf-8')
         
         for row in rows:
             key = join(sourcedir, row['source'])
@@ -200,7 +200,11 @@ def upload_states(s3, states, run_name):
         new_states.append([state[col] for col in columns])
     
     state_file = BytesIO()
-    out = writer(state_file, dialect='excel-tab')
+
+    if PY2:
+        out = csvwriter(state_file, dialect='excel-tab', encoding='utf-8')
+    else:
+        out = csvwriter(TextIOWrapper(state_file, encoding='utf-8'), dialect='excel-tab')
     
     for state in new_states:
         out.writerow(state)

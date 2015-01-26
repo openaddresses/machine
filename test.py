@@ -11,7 +11,7 @@ All logging is suppressed unless --logall or -l specified
 
 
 from __future__ import absolute_import, division, print_function
-from openaddr.compat import csv, standard_library
+from openaddr.compat import standard_library, csvDictReader
 
 import unittest
 import shutil
@@ -119,7 +119,7 @@ class TestOA (unittest.TestCase):
         # Go looking for state.txt in fake S3.
         buffer = BytesIO(self.s3._read_fake_key('runs/test/state.txt'))
         states = dict([(row['source'], row) for row
-                       in csv.DictReader(buffer, dialect='excel-tab')])
+                       in csvDictReader(buffer, dialect='excel-tab')])
         
         for (source, state) in states.items():
             if 'berkeley-404' in source or 'oakland-skip' in source:

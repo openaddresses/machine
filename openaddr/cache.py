@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, print_function
 import logging; _L = logging.getLogger('openaddr.cache')
 
-from .compat import csv, standard_library
+from .compat import standard_library
 
 import ogr
 import sys
@@ -28,6 +28,8 @@ requests_ftp.monkeypatch_session()
 
 # HTTP timeout in seconds, used in various calls to requests.get() and requests.post()
 _http_timeout = 180
+
+from .compat import csvopen, csvDictWriter
 
 def mkdirsp(path):
     try:
@@ -348,8 +350,8 @@ class EsriRestDownloadTask(DownloadTask):
 
             oids = response.json().get('objectIds', [])
 
-            with open(file_path, 'wb') as f:
-                writer = csv.DictWriter(f, fieldnames=field_names, encoding='utf-8')
+            with csvopen(file_path, 'w', encoding='utf-8') as f:
+                writer = csvDictWriter(f, fieldnames=field_names, encoding='utf-8')
                 writer.writeheader()
 
                 oid_iter = iter(oids)
