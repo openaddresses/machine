@@ -708,7 +708,8 @@ def main():
     from .jobs import setup_logger
     setup_logger(logfile = args.logfile, log_level = logging.DEBUG if args.verbose else logging.WARNING)
 
-    source_definition = json.load(file(args.source_json))
+    with open(args.source_json) as file:
+        source_definition = json.load(file)
     rc = conform_cli(source_definition, args.source_path, args.dest_path)
     return rc
 
@@ -846,7 +847,8 @@ class TestConformCli (unittest.TestCase):
 
     def _run_conform_on_source(self, source_name, ext):
         "Helper method to run a conform on the named source. Assumes naming convention."
-        source_definition = json.load(file(os.path.join(self.conforms_dir, "%s.json" % source_name)))
+        with open(os.path.join(self.conforms_dir, "%s.json" % source_name)) as file:
+            source_definition = json.load(file)
         source_path = os.path.join(self.conforms_dir, "%s.%s" % (source_name, ext))
         dest_path = os.path.join(self.testdir, '%s-conformed.csv' % source_name)
 

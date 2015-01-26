@@ -134,7 +134,7 @@ def guess_url_file_extension(url):
         #
         if scheme in ('http', 'https'):
             response = requests.get(url, stream=True, timeout=_http_timeout)
-            content_chunk = response.iter_content(99).next()
+            content_chunk = next(response.iter_content(99))
             headers = response.headers
             response.close()
         elif scheme in ('file', ''):
@@ -172,7 +172,7 @@ def get_content_mimetype(chunk):
     mime_type = check_output(('file', '--mime-type', '-b', file)).strip()
     os.remove(file)
     
-    return mime_type
+    return mime_type.decode('utf-8')
 
 class URLDownloadTask(DownloadTask):
     USER_AGENT = 'openaddresses-extract/1.0 (https://github.com/openaddresses/openaddresses)'
@@ -431,19 +431,19 @@ class TestCacheExtensionGuessing (unittest.TestCase):
         tests_dirname = join(os.getcwd(), 'tests')
         
         if host == 'fake-cwd.local':
-            with open(tests_dirname + path) as file:
+            with open(tests_dirname + path, 'rb') as file:
                 type, _ = mimetypes.guess_type(file.name)
                 return httmock.response(200, file.read(), headers={'Content-Type': type})
         
         elif (host, path) == ('www.ci.berkeley.ca.us', '/uploadedFiles/IT/GIS/Parcels.zip'):
-            with open(join(tests_dirname, 'data', 'us-ca-berkeley-excerpt.zip')) as file:
+            with open(join(tests_dirname, 'data', 'us-ca-berkeley-excerpt.zip'), 'rb') as file:
                 return httmock.response(200, file.read(), headers={'Content-Type': 'application/octet-stream'})
 
         elif (host, path) == ('data.sfgov.org', '/download/kvej-w5kb/ZIPPED%20SHAPEFILE'):
             return httmock.response(302, '', headers={'Location': 'http://apps.sfgov.org/datafiles/view.php?file=sfgis/eas_addresses_with_units.zip'})
 
         elif (host, path, query) == ('apps.sfgov.org', '/datafiles/view.php', 'file=sfgis/eas_addresses_with_units.zip'):
-            with open(join(tests_dirname, 'data', 'us-ca-san_francisco-excerpt.zip')) as file:
+            with open(join(tests_dirname, 'data', 'us-ca-san_francisco-excerpt.zip'), 'rb') as file:
                 return httmock.response(200, file.read(), headers={'Content-Type': 'application/download', 'Content-Disposition': 'attachment; filename=eas_addresses_with_units.zip;'})
 
         raise NotImplementedError(url.geturl())
