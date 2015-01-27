@@ -59,6 +59,7 @@ def process(source, destination, extras=dict()):
     state_path = write_state(source, destination, log_handler,
                              cache_result, conform_result, temp_dir)
 
+    log_handler.close()
     rmtree(temp_dir)
     return state_path
 

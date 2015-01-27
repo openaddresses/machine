@@ -393,7 +393,7 @@ class FakeKey:
         self.s3._write_fake_key(self.name, string)
         
     def set_contents_from_filename(self, filename, **kwargs):
-        with open(filename) as file:
+        with open(filename, 'rb') as file:
             self.s3._write_fake_key(self.name, file.read())
 
 if __name__ == '__main__':

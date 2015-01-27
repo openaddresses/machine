@@ -345,7 +345,6 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
 
     # Determine the appropriate text encoding. This is complicated in OGR, see
     # https://github.com/openaddresses/machine/issues/42
-    assert sys.version_info.major == 2      # Python 3 requires more thought
     if in_layer.TestCapability(ogr.OLCStringsAsUTF8):
         # OGR turned this to UTF 8 for us
         shp_encoding = 'utf-8'
@@ -384,7 +383,8 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
                 field_value = in_feature.GetField(i)
                 if isinstance(field_value, str):
                     # Convert OGR's byte sequence strings to Python Unicode strings
-                    field_value = field_value.decode(shp_encoding)
+                    field_value = field_value.decode(shp_encoding) \
+                        if hasattr(field_value, 'decode') else field_value
                 row[field_defn.GetNameRef()] = field_value
             geom = in_feature.GetGeometryRef()
             if geom is not None:
