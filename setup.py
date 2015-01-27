@@ -22,6 +22,7 @@ setup(
     url = 'https://github.com/openaddresses/machine',
     author = 'Michal Migurski',
     author_email = 'mike-pypi@teczno.com',
+    description = 'In-progress scripts for running OpenAddresses on a complete data set and publishing the results.',
     packages = ['openaddr'],
     package_data = {
         'openaddr': [

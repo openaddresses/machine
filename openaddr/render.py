@@ -50,19 +50,22 @@ def load_geoids(directory):
     
     return geoids
 
-def load_alpha2s(directory):
-    ''' Load a set of ISO 3166 Alpha 2s that should be rendered.
+def load_iso3166s(directory):
+    ''' Load a set of ISO 3166 codes that should be rendered.
     '''
-    alpha2s = set()
+    iso3166s = set()
 
-    for path in glob(join(directory, '??.json')):
+    for path in glob(join(directory, '*.json')):
         with open(path) as file:
             data = json.load(file)
     
-        if 'alpha2' in data.get('coverage', {}).get('ISO 3166', {}):
-            alpha2s.add(data['coverage']['ISO 3166']['alpha2'])
+        if 'code' in data.get('coverage', {}).get('ISO 3166', {}):
+            iso3166s.add(data['coverage']['ISO 3166']['code'])
     
-    return alpha2s
+        elif 'alpha2' in data.get('coverage', {}).get('ISO 3166', {}):
+            iso3166s.add(data['coverage']['ISO 3166']['alpha2'])
+    
+    return iso3166s
 
 def load_geometries(directory):
     ''' Load a set of GeoJSON geometries should be rendered.
@@ -176,7 +179,7 @@ def render(sources, width, resolution, filename):
 
     # Load data
     geoids = load_geoids(sources)
-    alpha2s = load_alpha2s(sources)
+    iso3166s = load_iso3166s(sources)
     geometries = load_geometries(sources)
 
     geodata = join(dirname(__file__), 'geodata')
@@ -184,6 +187,7 @@ def render(sources, width, resolution, filename):
     lakes_ds = ogr.Open(join(geodata, 'ne_50m_lakes-54029.shp'))
     countries_ds = ogr.Open(join(geodata, 'ne_50m_admin_0_countries-54029.shp'))
     countries_borders_ds = ogr.Open(join(geodata, 'ne_50m_admin_0_boundary_lines_land-54029.shp'))
+    admin1s_ds = ogr.Open(join(geodata, 'ne_10m_admin_1_states_provinces-54029.shp'))
     us_state_ds = ogr.Open(join(geodata, 'cb_2013_us_state_20m-54029.shp'))
     us_county_ds = ogr.Open(join(geodata, 'cb_2013_us_county_20m-54029.shp'))
 
@@ -191,11 +195,13 @@ def render(sources, width, resolution, filename):
     lakes_features = [f for f in lakes_ds.GetLayer(0) if f.GetField('scalerank') == 0]
     countries_features = list(countries_ds.GetLayer(0))
     countries_borders_features = list(countries_borders_ds.GetLayer(0))
+    admin1s_features = list(admin1s_ds.GetLayer(0))
     us_state_features = list(us_state_ds.GetLayer(0))
     us_county_features = list(us_county_ds.GetLayer(0))
     data_states = [f for f in us_state_features if f.GetFieldAsString('GEOID') in geoids]
     data_counties = [f for f in us_county_features if f.GetFieldAsString('GEOID') in geoids]
-    data_countries = [f for f in countries_features if f.GetFieldAsString('iso_a2') in alpha2s]
+    data_countries = [f for f in countries_features if f.GetFieldAsString('iso_a2') in iso3166s]
+    data_admin1s = [f for f in admin1s_features if f.GetFieldAsString('iso_3166_2') in iso3166s]
     
     # Draw each border between neighboring states exactly once.
     state_borders = [s1.GetGeometryRef().Intersection(s2.GetGeometryRef())
@@ -209,6 +215,10 @@ def render(sources, width, resolution, filename):
     # Fill populated countries
     context.set_source_rgb(0x74/0xff, 0xA5/0xff, 0x78/0xff)
     fill_features(context, data_countries)
+
+    # Fill Admin-1 (ISO-3166-2) subdivisions
+    context.set_source_rgb(0x74/0xff, 0xA5/0xff, 0x78/0xff)
+    fill_features(context, data_admin1s)
 
     # Fill populated U.S. states
     context.set_source_rgb(0x74/0xff, 0xA5/0xff, 0x78/0xff)
