@@ -677,7 +677,7 @@ def conform_cli(source_definition, source_path, dest_path):
     if "conform" not in source_definition:
         return 1
     if not source_definition["conform"].get("type", None) in ["shapefile", "shapefile-polygon", "geojson", "csv", "xml"]:
-        _L.warn("Skipping file with unknown conform: %s", source_path)
+        _L.warning("Skipping file with unknown conform: %s", source_path)
         return 1
 
     # Create a temporary filename for the intermediate extracted source CSV
@@ -1101,11 +1101,15 @@ class TestConformCsv(unittest.TestCase):
         "Convert a CSV source (list of byte strings) and return output as a list of unicode strings"
         self.assertNotEqual(type(src_bytes), type(u''))
         src_path = os.path.join(self.testdir, "input.csv")
-        open(src_path, "w+b").write(b'\n'.join(src_bytes))
+        
+        with open(src_path, "w+b") as file:
+            file.write(b'\n'.join(src_bytes))
 
         dest_path = os.path.join(self.testdir, "output.csv")
         csv_source_to_csv(conform, src_path, dest_path)
-        return [s.decode('utf-8').strip() for s in open(dest_path, 'rb')]
+        
+        with open(dest_path, 'rb') as file:
+            return [s.decode('utf-8').strip() for s in file]
 
     def test_simple(self):
         c = { "conform": { "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" } }
