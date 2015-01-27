@@ -105,7 +105,7 @@ class TestOA (unittest.TestCase):
 
         if local_path:
             type, _ = guess_type(local_path)
-            with open(local_path) as file:
+            with open(local_path, 'rb') as file:
                 return response(200, file.read(), headers={'Content-Type': type})
         
         raise NotImplementedError(url.geturl())

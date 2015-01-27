@@ -71,7 +71,7 @@ def compare_cache_details(filepath, resultdir, data):
         
     fingerprint = md5()
 
-    with open(filepath) as file:
+    with open(filepath, 'rb') as file:
         for line in file:
             fingerprint.update(line)
     
@@ -366,7 +366,7 @@ class EsriRestDownloadTask(DownloadTask):
                         raise RuntimeError('Ran out of time caching Esri features')
 
                     query_args = {
-                        'objectIds': ','.join(map(unicode, oid_chunk)),
+                        'objectIds': ','.join(map(str, oid_chunk)),
                         'geometryPrecision': 7,
                         'returnGeometry': 'true',
                         'outSR': 4326,

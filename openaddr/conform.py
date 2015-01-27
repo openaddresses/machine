@@ -192,8 +192,8 @@ class ExcerptDataTask(object):
         
         layer_defn = layer.GetLayerDefn()
         fieldcount = layer_defn.GetFieldCount()
-        fieldnames = [layer_defn.GetFieldDefn(i).GetName().decode(encoding)
-                      for i in range(fieldcount)]
+        fieldnames = [layer_defn.GetFieldDefn(i).GetName() for i in range(fieldcount)]
+        fieldnames = [f.decode(encoding) if hasattr(f, 'decode') else f for f in fieldnames]
 
         data_sample = [fieldnames]
         
