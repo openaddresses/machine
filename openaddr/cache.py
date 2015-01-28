@@ -117,6 +117,7 @@ def guess_url_file_extension(url):
     ''' Get a filename extension for a URL using various hints.
     '''
     scheme, _, path, _, query, _ = urlparse(url)
+    mimetypes.add_type('application/x-zip-compressed', '.zip', False)
     
     _, likely_ext = os.path.splitext(path)
     bad_extensions = '', '.cgi', '.php', '.aspx', '.asp', '.do'
@@ -153,12 +154,12 @@ def guess_url_file_extension(url):
             #
             mime_type = get_content_mimetype(content_chunk)
             _L.debug('file says "{}" for {}'.format(mime_type, url))
-            path_ext = mimetypes.guess_extension(mime_type)
+            path_ext = mimetypes.guess_extension(mime_type, False)
     
         else:
             content_type = headers['content-type'].split(';')[0]
             _L.debug('Content-Type says "{}" for {}'.format(content_type, url))
-            path_ext = mimetypes.guess_extension(content_type)
+            path_ext = mimetypes.guess_extension(content_type, False)
     
     return path_ext
 
@@ -446,6 +447,9 @@ class TestCacheExtensionGuessing (unittest.TestCase):
             with open(join(tests_dirname, 'data', 'us-ca-san_francisco-excerpt.zip'), 'rb') as file:
                 return httmock.response(200, file.read(), headers={'Content-Type': 'application/download', 'Content-Disposition': 'attachment; filename=eas_addresses_with_units.zip;'})
 
+        elif (host, path, query) == ('dcatlas.dcgis.dc.gov', '/catalog/download.asp', 'downloadID=2182&downloadTYPE=ESRI'):
+            return httmock.response(200, b'FAKE'*99, headers={'Content-Type': 'application/x-zip-compressed'})
+
         raise NotImplementedError(url.geturl())
     
     def test_urls(self):
@@ -455,3 +459,4 @@ class TestCacheExtensionGuessing (unittest.TestCase):
             assert guess_url_file_extension('http://fake-cwd.local/data/us-ca-oakland-excerpt.zip') == '.zip'
             assert guess_url_file_extension('http://www.ci.berkeley.ca.us/uploadedFiles/IT/GIS/Parcels.zip') == '.zip'
             assert guess_url_file_extension('https://data.sfgov.org/download/kvej-w5kb/ZIPPED%20SHAPEFILE') == '.zip'
+            assert guess_url_file_extension('http://dcatlas.dcgis.dc.gov/catalog/download.asp?downloadID=2182&downloadTYPE=ESRI') == '.zip'
