@@ -390,9 +390,17 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
             if geom is not None:
                 geom.Transform(coordTransform)
                 # Calculate the centroid of the geometry and write it as X and Y columns
-                centroid = geom.Centroid()
-                row['X'] = centroid.GetX()
-                row['Y'] = centroid.GetY()
+                try:
+                    centroid = geom.Centroid()
+                except RuntimeError as e:
+                    if 'Invalid number of points in LinearRing found' not in str(e):
+                        raise
+                    xmin, xmax, ymin, ymax = geom.GetEnvelope()
+                    row['X'] = xmin/2 + xmax/2
+                    row['Y'] = ymin/2 + ymax/2
+                else:
+                    row['X'] = centroid.GetX()
+                    row['Y'] = centroid.GetY()
             else:
                 row['X'] = None
                 row['Y'] = None
