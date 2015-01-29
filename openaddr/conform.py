@@ -600,7 +600,7 @@ def row_split_address(sd, row):
 
 def row_canonicalize_street_and_number(sd, row):
     "Expand abbreviations and otherwise canonicalize street name and number"
-    row["NUMBER"] = row["NUMBER"].strip()
+    row["NUMBER"] = (row["NUMBER"] or '').strip()
     if row["NUMBER"].endswith(".0"):
         row["NUMBER"] = row["NUMBER"][:-2]
     row["STREET"] = expand_street_name(row["STREET"])
@@ -799,6 +799,11 @@ class TestConformTransforms (unittest.TestCase):
                      ("324.5", "324.5")):
             r = row_canonicalize_street_and_number({}, {"NUMBER": a, "STREET": ""})
             self.assertEqual(e, r["NUMBER"])
+
+    def test_row_canonicalize_street_and_no_number(self):
+        r = row_canonicalize_street_and_number({}, {"NUMBER": None, "STREET": " OAK DR."})
+        self.assertEqual("", r["NUMBER"])
+        self.assertEqual("Oak Drive", r["STREET"])
 
     def test_row_round_lat_lon(self):
         r = row_round_lat_lon({}, {"LON": "39.14285717777", "LAT": "-121.20"})
