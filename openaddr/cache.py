@@ -486,35 +486,35 @@ class TestCacheEsriDownload (unittest.TestCase):
         data_dirname = join(dirname(__file__), '..', 'tests', 'data')
         local_path = False
         
-        if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1/query'):
+        if host == 'www.carsonproperty.info':
             qs = parse_qs(query)
-            body_data = parse_qs(request.body) if request.body else {}
+            
+            if path == '/ArcGIS/rest/services/basemap/MapServer/1/query':
+                body_data = parse_qs(request.body) if request.body else {}
 
-            if qs.get('returnIdsOnly') == ['true']:
-                local_path = join(data_dirname, 'us-ca-carson-ids-only.json')
-            elif body_data.get('outSR') == ['4326']:
-                local_path = join(data_dirname, 'us-ca-carson-0.json')
-
-        if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1'):
+                if qs.get('returnIdsOnly') == ['true']:
+                    local_path = join(data_dirname, 'us-ca-carson-ids-only.json')
+                elif body_data.get('outSR') == ['4326']:
+                    local_path = join(data_dirname, 'us-ca-carson-0.json')
+            
+            elif path == '/ArcGIS/rest/services/basemap/MapServer/1':
+                if qs.get('f') == ['json']:
+                    local_path = join(data_dirname, 'us-ca-carson-metadata.json')
+        
+        if host == 'gis.cmpdd.org':
             qs = parse_qs(query)
+            
+            if path == '/arcgis/rest/services/Viewers/Madison/MapServer/13/query':
+                body_data = parse_qs(request.body) if request.body else {}
 
-            if qs.get('f') == ['json']:
-                local_path = join(data_dirname, 'us-ca-carson-metadata.json')
-
-        if (host, path) == ('gis.cmpdd.org', '/arcgis/rest/services/Viewers/Madison/MapServer/13/query'):
-            qs = parse_qs(query)
-            body_data = parse_qs(request.body) if request.body else {}
-
-            if qs.get('returnIdsOnly') == ['true']:
-                local_path = join(data_dirname, 'invalid-ids-only.json')
-            elif body_data.get('outSR') == ['4326']:
-                local_path = join(data_dirname, 'invalid-0.json')
-
-        if (host, path) == ('gis.cmpdd.org', '/arcgis/rest/services/Viewers/Madison/MapServer/13'):
-            qs = parse_qs(query)
-
-            if qs.get('f') == ['json']:
-                local_path = join(data_dirname, 'invalid-metadata.json')
+                if qs.get('returnIdsOnly') == ['true']:
+                    local_path = join(data_dirname, 'us-ms-madison-ids-only.json')
+                elif body_data.get('outSR') == ['4326']:
+                    local_path = join(data_dirname, 'us-ms-madison-0.json')
+            
+            elif path == '/arcgis/rest/services/Viewers/Madison/MapServer/13':
+                if qs.get('f') == ['json']:
+                    local_path = join(data_dirname, 'us-ms-madison-metadata.json')
 
         if local_path:
             type, _ = mimetypes.guess_type(local_path)
@@ -523,12 +523,12 @@ class TestCacheEsriDownload (unittest.TestCase):
         
         raise NotImplementedError(url.geturl())
     
-    def test_download_good(self):
+    def test_download_carson(self):
         with httmock.HTTMock(self.response_content):
-            download = EsriRestDownloadTask('us-ca-carson')
-            download.download(['http://www.carsonproperty.info/ArcGIS/rest/services/basemap/MapServer/1'], self.workdir)
+            task = EsriRestDownloadTask('us-ca-carson')
+            task.download(['http://www.carsonproperty.info/ArcGIS/rest/services/basemap/MapServer/1'], self.workdir)
     
-    def test_download_invalid_linestring(self):
+    def test_download_madison(self):
         with httmock.HTTMock(self.response_content):
-            download = EsriRestDownloadTask('us-ca-carson')
-            download.download(['http://gis.cmpdd.org/arcgis/rest/services/Viewers/Madison/MapServer/13'], self.workdir)
+            task = EsriRestDownloadTask('us-ms-madison')
+            task.download(['http://gis.cmpdd.org/arcgis/rest/services/Viewers/Madison/MapServer/13'], self.workdir)
