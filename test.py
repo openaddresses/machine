@@ -36,7 +36,7 @@ from httmock import response, HTTMock
         
 from openaddr import paths, cache, conform, jobs, S3, process_all, process_one
 from openaddr.sample import TestSample
-from openaddr.cache import TestCacheExtensionGuessing
+from openaddr.cache import TestCacheExtensionGuessing, TestCacheEsriDownload
 from openaddr.conform import TestConformCli, TestConformTransforms, TestConformMisc, TestConformCsv
 from openaddr.expand import TestExpand
 from openaddr.render import TestRender

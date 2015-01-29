@@ -14,8 +14,8 @@ import itertools
 
 from os import mkdir
 from hashlib import md5
-from os.path import join, basename, exists, abspath
-from urllib.parse import urlparse
+from os.path import join, basename, exists, abspath, dirname
+from urllib.parse import urlparse, parse_qs
 from subprocess import check_output
 from tempfile import mkstemp
 from hashlib import sha1
@@ -408,9 +408,17 @@ class EsriRestDownloadTask(DownloadTask):
                             ogr_geom = self.build_ogr_geometry(geometry_type, feature)
                             row = feature.get('attributes', {})
                             row['geom'] = ogr_geom.ExportToWkt()
-                            centroid = ogr_geom.Centroid()
-                            row['X'] = round(centroid.GetX(), 7)
-                            row['Y'] = round(centroid.GetY(), 7)
+                            try:
+                                centroid = ogr_geom.Centroid()
+                            except RuntimeError as e:
+                                if 'Invalid number of points in LinearRing found' not in str(e):
+                                    raise
+                                xmin, xmax, ymin, ymax = ogr_geom.GetEnvelope()
+                                row['X'] = round(xmin/2 + xmax/2, 7)
+                                row['Y'] = round(ymin/2 + ymax/2, 7)
+                            else:
+                                row['X'] = round(centroid.GetX(), 7)
+                                row['Y'] = round(centroid.GetY(), 7)
 
                             writer.writerow(row)
                             size += 1
@@ -421,7 +429,7 @@ class EsriRestDownloadTask(DownloadTask):
             output_files.append(file_path)
         return output_files
 
-import unittest, httmock
+import unittest, httmock, tempfile
 
 class TestCacheExtensionGuessing (unittest.TestCase):
 
@@ -429,7 +437,7 @@ class TestCacheExtensionGuessing (unittest.TestCase):
         ''' Fake HTTP responses for use with HTTMock in tests.
         '''
         scheme, host, path, _, query, _ = urlparse(url.geturl())
-        tests_dirname = join(os.getcwd(), 'tests')
+        tests_dirname = join(dirname(__file__), '..', 'tests')
         
         if host == 'fake-cwd.local':
             with open(tests_dirname + path, 'rb') as file:
@@ -460,3 +468,67 @@ class TestCacheExtensionGuessing (unittest.TestCase):
             assert guess_url_file_extension('http://www.ci.berkeley.ca.us/uploadedFiles/IT/GIS/Parcels.zip') == '.zip'
             assert guess_url_file_extension('https://data.sfgov.org/download/kvej-w5kb/ZIPPED%20SHAPEFILE') == '.zip'
             assert guess_url_file_extension('http://dcatlas.dcgis.dc.gov/catalog/download.asp?downloadID=2182&downloadTYPE=ESRI') == '.zip'
+
+class TestCacheEsriDownload (unittest.TestCase):
+
+    def setUp(self):
+        ''' Prepare a clean temporary directory, and work there.
+        '''
+        self.workdir = tempfile.mkdtemp(prefix='testCache-')
+    
+    def tearDown(self):
+        shutil.rmtree(self.workdir)
+
+    def response_content(self, url, request):
+        ''' Fake HTTP responses for use with HTTMock in tests.
+        '''
+        scheme, host, path, _, query, _ = urlparse(url.geturl())
+        data_dirname = join(dirname(__file__), '..', 'tests', 'data')
+        local_path = False
+        
+        if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1/query'):
+            qs = parse_qs(query)
+            body_data = parse_qs(request.body) if request.body else {}
+
+            if qs.get('returnIdsOnly') == ['true']:
+                local_path = join(data_dirname, 'us-ca-carson-ids-only.json')
+            elif body_data.get('outSR') == ['4326']:
+                local_path = join(data_dirname, 'us-ca-carson-0.json')
+
+        if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1'):
+            qs = parse_qs(query)
+
+            if qs.get('f') == ['json']:
+                local_path = join(data_dirname, 'us-ca-carson-metadata.json')
+
+        if (host, path) == ('gis.cmpdd.org', '/arcgis/rest/services/Viewers/Madison/MapServer/13/query'):
+            qs = parse_qs(query)
+            body_data = parse_qs(request.body) if request.body else {}
+
+            if qs.get('returnIdsOnly') == ['true']:
+                local_path = join(data_dirname, 'invalid-ids-only.json')
+            elif body_data.get('outSR') == ['4326']:
+                local_path = join(data_dirname, 'invalid-0.json')
+
+        if (host, path) == ('gis.cmpdd.org', '/arcgis/rest/services/Viewers/Madison/MapServer/13'):
+            qs = parse_qs(query)
+
+            if qs.get('f') == ['json']:
+                local_path = join(data_dirname, 'invalid-metadata.json')
+
+        if local_path:
+            type, _ = mimetypes.guess_type(local_path)
+            with open(local_path, 'rb') as file:
+                return httmock.response(200, file.read(), headers={'Content-Type': type})
+        
+        raise NotImplementedError(url.geturl())
+    
+    def test_download_good(self):
+        with httmock.HTTMock(self.response_content):
+            download = EsriRestDownloadTask('us-ca-carson')
+            download.download(['http://www.carsonproperty.info/ArcGIS/rest/services/basemap/MapServer/1'], self.workdir)
+    
+    def test_download_invalid_linestring(self):
+        with httmock.HTTMock(self.response_content):
+            download = EsriRestDownloadTask('us-ca-carson')
+            download.download(['http://gis.cmpdd.org/arcgis/rest/services/Viewers/Madison/MapServer/13'], self.workdir)
