@@ -1,8 +1,8 @@
 OA Machine
 ==========
 
-In-progress scripts for running OpenAddresses on a complete data set and publishing
-the results. Uses [OpenAddresses](https://github.com/openaddresses/openaddresses),
+Scripts for running OpenAddresses on a complete data set and publishing
+the results. Uses [OpenAddresses](https://github.com/openaddresses/openaddresses)
 data sources to work.
 
 Status
@@ -10,6 +10,8 @@ Status
 
 This code is being used to process the complete OA dataset on an expected-weekly
 basis, with output visible at [data.openaddresses.io](http://data.openaddresses.io).
+
+[![Build Status](https://travis-ci.org/openaddresses/machine.svg?branch=master)](https://travis-ci.org/openaddresses/machine)
 
 Installation scripts for preparing a fresh install of Ubuntu 14.04 can be found
 in `chef`. Run them from a Git checkout like this:
