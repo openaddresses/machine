@@ -2,9 +2,8 @@ OA Machine
 ==========
 
 In-progress scripts for running OpenAddresses on a complete data set and publishing
-the results. Uses [openaddresses](https://github.com/openaddresses/openaddresses),
-[openaddresses-conform](https://github.com/openaddresses/openaddresses-conform),
-and other components of OpenAddresses to work.
+the results. Uses [OpenAddresses](https://github.com/openaddresses/openaddresses),
+data sources to work.
 
 Status
 ------
@@ -40,10 +39,7 @@ Development
 -----------
 
 Modify the contents of [`openaddr/paths.py`](openaddr/paths.py) with locations
-of your local [openaddresses](https://github.com/openaddresses/openaddresses),
-[openaddresses-conform](https://github.com/openaddresses/openaddresses-conform),
-[openaddresses-cache](https://github.com/openaddresses/openaddresses-cache),
-and other components of OpenAddresses.
+of your local [openaddresses](https://github.com/openaddresses/openaddresses).
 
 Test the OpenAddresses machine with `test.py`:
 
