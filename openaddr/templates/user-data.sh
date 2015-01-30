@@ -3,7 +3,7 @@ apt-get update -y
 apt-get install -y git apache2
 
 echo 'cloning' > /var/www/html/state.txt
-git clone -b ditch-node https://github.com/openaddresses/machine /tmp/machine
+git clone https://github.com/openaddresses/machine /tmp/machine
 
 echo 'installing' > /var/www/html/state.txt
 /tmp/machine/ec2/swap.sh
