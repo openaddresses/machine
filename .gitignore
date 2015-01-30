@@ -2,3 +2,10 @@
 render-*.png
 testrun-20??-??-??*
 out
+build
+*.egg-info
+dist
+venv?-*
+state-*.txt
+state-*.json
+env-*
