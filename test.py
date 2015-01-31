@@ -165,8 +165,10 @@ class TestOA (unittest.TestCase):
         names = ZipFile(bytes).namelist()
         
         for state in rows:
-            name = '{0}.csv'.format(*splitext(state['source']))
-            self.assertTrue(name in names, 'Looking for {} in zip'.format(name))
+            source = state['source']
+            if 'san_francisco' in source or 'alameda_county' in source or 'carson' in source:
+                name = '{0}.csv'.format(*splitext(state['source']))
+                self.assertTrue(name in names, 'Looking for {} in zip'.format(name))
         
     def test_single_ac(self):
         ''' Test complete process_one.process on Alameda County sample data.
