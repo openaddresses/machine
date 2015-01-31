@@ -161,7 +161,7 @@ class TestOA (unittest.TestCase):
         #
         # Check for a zip with everything.
         #
-        bytes = BytesIO(self.s3._read_fake_key('processed.zip'))
+        bytes = BytesIO(self.s3._read_fake_key('openaddresses-complete.zip'))
         names = ZipFile(bytes).namelist()
         
         for state in rows:

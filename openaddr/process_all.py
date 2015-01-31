@@ -240,8 +240,9 @@ def upload_states(s3, states, run_name):
         archive.write(d['processed'], source + ext)
     
     archive.close()
+    zip_key = s3.new_key('openaddresses-complete.zip')
     zip_args = dict(policy='public-read', headers={'Content-Type': 'application/zip'})
-    s3.new_key('processed.zip').set_contents_from_string(bytes.getvalue(), **zip_args)
+    zip_key.set_contents_from_string(bytes.getvalue(), **zip_args)
     
     return new_states
 
