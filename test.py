@@ -23,9 +23,10 @@ import pickle
 import logging
 from os import close, environ, mkdir, remove
 from io import BytesIO
+from zipfile import ZipFile
 from mimetypes import guess_type
 from urllib.parse import urlparse, parse_qs
-from os.path import dirname, join, basename, exists
+from os.path import dirname, join, basename, exists, splitext
 from fcntl import lockf, LOCK_EX, LOCK_UN
 from contextlib import contextmanager
 from subprocess import Popen, PIPE
@@ -156,6 +157,16 @@ class TestOA (unittest.TestCase):
                 self.assertTrue(bool(state['cache']))
                 self.assertTrue(bool(state['version']))
                 self.assertTrue(bool(state['fingerprint']))
+        
+        #
+        # Check for a zip with everything.
+        #
+        bytes = BytesIO(self.s3._read_fake_key('processed.zip'))
+        names = ZipFile(bytes).namelist()
+        
+        for state in rows:
+            name = '{0}.csv'.format(*splitext(state['source']))
+            self.assertTrue(name in names, 'Looking for {} in zip'.format(name))
         
     def test_single_ac(self):
         ''' Test complete process_one.process on Alameda County sample data.
