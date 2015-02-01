@@ -9,7 +9,7 @@ from os.path import join, basename, relpath, splitext, dirname
 from urllib.parse import urlparse
 from io import BytesIO, TextIOWrapper
 from datetime import datetime
-from zipfile import ZipFile
+from zipfile import ZipFile, ZIP_DEFLATED
 from os import environ
 from json import dumps
 from time import time
@@ -228,7 +228,7 @@ def upload_states(s3, states, run_name):
     
     # Gather the one big zip
     bytes = BytesIO()
-    archive = ZipFile(bytes, mode='w')
+    archive = ZipFile(bytes, mode='w', compression=ZIP_DEFLATED)
     
     for state in states[1:]:
         d = dict(zip(columns, state))
