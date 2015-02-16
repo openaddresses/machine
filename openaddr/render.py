@@ -135,14 +135,16 @@ def stroke_geometries(ctx, geometries):
                     draw_line(ctx, points[0], points[1:])
                 ctx.stroke()
 
-def fill_features(ctx, features):
+def fill_features(ctx, features, rgb):
     '''
     '''
-    return fill_geometries(ctx, [f.GetGeometryRef() for f in features])
+    return fill_geometries(ctx, [f.GetGeometryRef() for f in features], rgb)
     
-def fill_geometries(ctx, geometries):
+def fill_geometries(ctx, geometries, rgb):
     '''
     '''
+    ctx.set_source_rgb(*rgb)
+
     for geometry in geometries:
         if geometry.GetGeometryType() == ogr.wkbMultiPolygon:
             parts = geometry
@@ -212,6 +214,7 @@ def render(sources, width, resolution, filename):
     us_state_ds = ogr.Open(join(geodata, 'cb_2013_us_state_20m-54029.shp'))
     us_county_ds = ogr.Open(join(geodata, 'cb_2013_us_county_20m-54029.shp'))
 
+    # Pick out features
     coastline_features = list(coastline_ds.GetLayer(0))
     lakes_features = [f for f in lakes_ds.GetLayer(0) if f.GetField('scalerank') == 0]
     countries_features = list(countries_ds.GetLayer(0))
@@ -219,6 +222,8 @@ def render(sources, width, resolution, filename):
     admin1s_features = list(admin1s_ds.GetLayer(0))
     us_state_features = list(us_state_ds.GetLayer(0))
     us_county_features = list(us_county_ds.GetLayer(0))
+
+    # Assign features to good or bad lists
     good_data_states = [f for f in us_state_features if f.GetFieldAsString('GEOID') in good_geoids]
     good_data_counties = [f for f in us_county_features if f.GetFieldAsString('GEOID') in good_geoids]
     bad_data_states = [f for f in us_state_features if f.GetFieldAsString('GEOID') in bad_geoids]
@@ -233,50 +238,47 @@ def render(sources, width, resolution, filename):
                      for (s1, s2) in combinations(us_state_features, 2)
                      if s1.GetGeometryRef().Intersects(s2.GetGeometryRef())]
     
+    # Set up some colors
+    silver = 0xdd/0xff, 0xdd/0xff, 0xdd/0xff
+    white = 0xff/0xff, 0xff/0xff, 0xff/0xff
+    black = 0, 0, 0
+    light_red = 244/0xff, 109/0xff, 67/0xff
+    dark_red = 215/0xff, 48/0xff, 39/0xff
+    light_green = 0x74/0xff, 0xA5/0xff, 0x78/0xff
+    dark_green = 0x1C/0xff, 0x89/0xff, 0x3F/0xff
+    
     # Fill countries background
-    context.set_source_rgb(0xdd/0xff, 0xdd/0xff, 0xdd/0xff)
-    fill_features(context, countries_features)
+    fill_features(context, countries_features, silver)
 
     # Fill populated countries
-    context.set_source_rgb(244/0xff, 109/0xff, 67/0xff)
-    fill_features(context, bad_data_countries)
-    context.set_source_rgb(0x74/0xff, 0xA5/0xff, 0x78/0xff)
-    fill_features(context, good_data_countries)
+    fill_features(context, bad_data_countries, light_red)
+    fill_features(context, good_data_countries, light_green)
 
     # Fill Admin-1 (ISO-3166-2) subdivisions
-    context.set_source_rgb(244/0xff, 109/0xff, 67/0xff)
-    fill_features(context, bad_data_admin1s)
-    context.set_source_rgb(0x74/0xff, 0xA5/0xff, 0x78/0xff)
-    fill_features(context, good_data_admin1s)
+    fill_features(context, bad_data_admin1s, light_red)
+    fill_features(context, good_data_admin1s, light_green)
 
     # Fill populated U.S. states
-    context.set_source_rgb(244/0xff, 109/0xff, 67/0xff)
-    fill_features(context, bad_data_states)
-    context.set_source_rgb(0x74/0xff, 0xA5/0xff, 0x78/0xff)
-    fill_features(context, good_data_states)
+    fill_features(context, bad_data_states, light_red)
+    fill_features(context, good_data_states, light_green)
 
     # Fill populated U.S. counties
-    context.set_source_rgb(215/0xff, 48/0xff, 39/0xff)
-    fill_features(context, bad_data_counties)
-    context.set_source_rgb(0x1C/0xff, 0x89/0xff, 0x3F/0xff)
-    fill_features(context, good_data_counties)
+    fill_features(context, bad_data_counties, dark_red)
+    fill_features(context, good_data_counties, dark_green)
 
     # Fill other given geometries
-    context.set_source_rgb(215/0xff, 48/0xff, 39/0xff)
-    fill_geometries(context, bad_geometries)
-    context.set_source_rgb(0x1C/0xff, 0x89/0xff, 0x3F/0xff)
-    fill_geometries(context, good_geometries)
+    fill_geometries(context, bad_geometries, dark_red)
+    fill_geometries(context, good_geometries, dark_green)
 
     # Outline countries and boundaries, fill lakes
-    context.set_source_rgb(0, 0, 0)
+    context.set_source_rgb(*black)
     context.set_line_width(.25 * resolution / scale)
     stroke_geometries(context, state_borders)
     stroke_features(context, countries_borders_features)
 
-    context.set_source_rgb(0xff/0xff, 0xff/0xff, 0xff/0xff)
-    fill_features(context, lakes_features)
+    fill_features(context, lakes_features, white)
 
-    context.set_source_rgb(0, 0, 0)
+    context.set_source_rgb(*black)
     context.set_line_width(.5 * resolution / scale)
     stroke_features(context, coastline_features)
 
