@@ -3,7 +3,7 @@ from __future__ import division
 from glob import glob
 from argparse import ArgumentParser
 from itertools import combinations
-from os.path import join, dirname
+from os.path import join, dirname, basename
 import json
 
 from .compat import cairo
@@ -36,41 +36,50 @@ def make_context(width=960, resolution=1):
     
     return surface, context, hscale
 
-def load_geoids(directory):
+def load_geoids(directory, good_sources):
     ''' Load a set of U.S. Census GEOIDs that should be rendered.
     '''
-    geoids = set()
+    good_geoids, bad_geoids = set(), set()
 
     for path in glob(join(directory, 'us-*.json')):
         with open(path) as file:
             data = json.load(file)
     
         if 'geoid' in data.get('coverage', {}).get('US Census', {}):
-            geoids.add(data['coverage']['US Census']['geoid'])
+            if basename(path) in good_sources:
+                good_geoids.add(data['coverage']['US Census']['geoid'])
+            else:
+                bad_geoids.add(data['coverage']['US Census']['geoid'])
     
-    return geoids
+    return good_geoids, bad_geoids
 
-def load_iso3166s(directory):
+def load_iso3166s(directory, good_sources):
     ''' Load a set of ISO 3166 codes that should be rendered.
     '''
-    iso3166s = set()
+    good_iso3166s, bad_iso3166s = set(), set()
 
     for path in glob(join(directory, '*.json')):
         with open(path) as file:
             data = json.load(file)
     
         if 'code' in data.get('coverage', {}).get('ISO 3166', {}):
-            iso3166s.add(data['coverage']['ISO 3166']['code'])
+            if basename(path) in good_sources:
+                good_iso3166s.add(data['coverage']['ISO 3166']['code'])
+            else:
+                bad_iso3166s.add(data['coverage']['ISO 3166']['code'])
     
         elif 'alpha2' in data.get('coverage', {}).get('ISO 3166', {}):
-            iso3166s.add(data['coverage']['ISO 3166']['alpha2'])
+            if basename(path) in good_sources:
+                good_iso3166s.add(data['coverage']['ISO 3166']['alpha2'])
+            else:
+                bad_iso3166s.add(data['coverage']['ISO 3166']['alpha2'])
     
-    return iso3166s
+    return good_iso3166s, bad_iso3166s
 
-def load_geometries(directory):
+def load_geometries(directory, good_sources):
     ''' Load a set of GeoJSON geometries should be rendered.
     '''
-    geometries = list()
+    good_geometries, bad_geometries = list(), list()
 
     sref_geo = osr.SpatialReference(); sref_geo.ImportFromEPSG(4326)
     sref_map = osr.SpatialReference(); sref_map.ImportFromEPSG(54029)
@@ -88,9 +97,13 @@ def load_geometries(directory):
                 continue
 
             geometry.Transform(project)
-            geometries.append(geometry)
+
+            if basename(path) in good_sources:
+                good_geometries.append(geometry)
+            else:
+                bad_geometries.append(geometry)
     
-    return geometries
+    return good_geometries, bad_geometries
 
 def stroke_features(ctx, features):
     '''
@@ -176,11 +189,19 @@ def render(sources, width, resolution, filename):
     '''
     # Prepare output surface
     surface, context, scale = make_context(width, resolution)
+    
+    # Load state
+    import requests, urlparse
+    got = requests.get('http://data.openaddresses.io/state.json')
+    got = requests.get(urlparse.urljoin(got.url, got.json()))
+    columns, rows = got.json()[0], got.json()[1:]
+    state = [dict(zip(columns, row)) for row in rows]
+    good_sources = set([s['source'] for s in state if (s['cache'] and s['processed'])])
 
     # Load data
-    geoids = load_geoids(sources)
-    iso3166s = load_iso3166s(sources)
-    geometries = load_geometries(sources)
+    good_geoids, bad_geoids = load_geoids(sources, good_sources)
+    good_iso3166s, bad_iso3166s = load_iso3166s(sources, good_sources)
+    good_geometries, bad_geometries = load_geometries(sources, good_sources)
 
     geodata = join(dirname(__file__), 'geodata')
     coastline_ds = ogr.Open(join(geodata, 'ne_50m_coastline-54029.shp'))
@@ -198,10 +219,14 @@ def render(sources, width, resolution, filename):
     admin1s_features = list(admin1s_ds.GetLayer(0))
     us_state_features = list(us_state_ds.GetLayer(0))
     us_county_features = list(us_county_ds.GetLayer(0))
-    data_states = [f for f in us_state_features if f.GetFieldAsString('GEOID') in geoids]
-    data_counties = [f for f in us_county_features if f.GetFieldAsString('GEOID') in geoids]
-    data_countries = [f for f in countries_features if f.GetFieldAsString('iso_a2') in iso3166s]
-    data_admin1s = [f for f in admin1s_features if f.GetFieldAsString('iso_3166_2') in iso3166s]
+    good_data_states = [f for f in us_state_features if f.GetFieldAsString('GEOID') in good_geoids]
+    good_data_counties = [f for f in us_county_features if f.GetFieldAsString('GEOID') in good_geoids]
+    bad_data_states = [f for f in us_state_features if f.GetFieldAsString('GEOID') in bad_geoids]
+    bad_data_counties = [f for f in us_county_features if f.GetFieldAsString('GEOID') in bad_geoids]
+    good_data_countries = [f for f in countries_features if f.GetFieldAsString('iso_a2') in good_iso3166s]
+    good_data_admin1s = [f for f in admin1s_features if f.GetFieldAsString('iso_3166_2') in good_iso3166s]
+    bad_data_countries = [f for f in countries_features if f.GetFieldAsString('iso_a2') in bad_iso3166s]
+    bad_data_admin1s = [f for f in admin1s_features if f.GetFieldAsString('iso_3166_2') in bad_iso3166s]
     
     # Draw each border between neighboring states exactly once.
     state_borders = [s1.GetGeometryRef().Intersection(s2.GetGeometryRef())
@@ -213,24 +238,34 @@ def render(sources, width, resolution, filename):
     fill_features(context, countries_features)
 
     # Fill populated countries
+    context.set_source_rgb(244/0xff, 109/0xff, 67/0xff)
+    fill_features(context, bad_data_countries)
     context.set_source_rgb(0x74/0xff, 0xA5/0xff, 0x78/0xff)
-    fill_features(context, data_countries)
+    fill_features(context, good_data_countries)
 
     # Fill Admin-1 (ISO-3166-2) subdivisions
+    context.set_source_rgb(244/0xff, 109/0xff, 67/0xff)
+    fill_features(context, bad_data_admin1s)
     context.set_source_rgb(0x74/0xff, 0xA5/0xff, 0x78/0xff)
-    fill_features(context, data_admin1s)
+    fill_features(context, good_data_admin1s)
 
     # Fill populated U.S. states
+    context.set_source_rgb(244/0xff, 109/0xff, 67/0xff)
+    fill_features(context, bad_data_states)
     context.set_source_rgb(0x74/0xff, 0xA5/0xff, 0x78/0xff)
-    fill_features(context, data_states)
+    fill_features(context, good_data_states)
 
     # Fill populated U.S. counties
+    context.set_source_rgb(215/0xff, 48/0xff, 39/0xff)
+    fill_features(context, bad_data_counties)
     context.set_source_rgb(0x1C/0xff, 0x89/0xff, 0x3F/0xff)
-    fill_features(context, data_counties)
+    fill_features(context, good_data_counties)
 
     # Fill other given geometries
+    context.set_source_rgb(215/0xff, 48/0xff, 39/0xff)
+    fill_geometries(context, bad_geometries)
     context.set_source_rgb(0x1C/0xff, 0x89/0xff, 0x3F/0xff)
-    fill_geometries(context, geometries)
+    fill_geometries(context, good_geometries)
 
     # Outline countries and boundaries, fill lakes
     context.set_source_rgb(0, 0, 0)
