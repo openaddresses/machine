@@ -51,14 +51,23 @@ def main():
     #
     _L.info("Doing the work")
     run_name = '{:.3f}'.format(time())
-    process(s3, paths.sources, run_name)
+    state = process(s3, paths.sources, run_name)
+
+    #
+    # Prepare set of good sources
+    #
+    columns, rows = state[0], state[1:]
+    all_sources = [dict(zip(columns, row)) for row in rows]
+    good_sources = set([s['source'] for s in all_sources
+                        if (s['cache'] and s['processed'])])
     
     #
     # Talk about the work
     #
     _L.info("Talking about the work")
-    render.render(paths.sources, 960, 2, 'render-{}.png'.format(run_name))
-    render_data = open('render-{}.png'.format(run_name)).read()
+    png_filename = 'render-{}.png'.format(run_name)
+    render.render(paths.sources, good_sources, 960, 2, png_filename)
+    render_data = open(png_filename).read()
     render_key = s3.new_key(join('runs', run_name, 'render.png'))
     render_key.set_contents_from_string(render_data, policy='public-read',
                                         headers={'Content-Type': 'image/png'})
@@ -108,7 +117,7 @@ def read_state(s3, sourcedir):
     return states
 
 def process(s3, sourcedir, run_name):
-    '''
+    ''' Return list of state data in JSON form from upload_states().
     '''
     # Find existing cache information
     source_extras = read_state(s3, sourcedir)
@@ -120,7 +129,9 @@ def process(s3, sourcedir, run_name):
     
     results = jobs.run_all_process_ones(source_files, 'out', source_extras)
     states = collect_states([path for path in results.values() if path])
-    upload_states(s3, states, run_name)
+    uploaded = upload_states(s3, states, run_name)
+    
+    return uploaded
 
 def collect_states(result_paths):
     ''' Read a list of process_one.process() result paths, collect into one list.
@@ -157,7 +168,7 @@ def upload_file(s3, keyname, filename):
     return url, key.md5
 
 def upload_states(s3, states, run_name):
-    '''
+    ''' Return list of state data in JSON form.
     '''
     _L.info("Uploading states")
     columns = states[0]
