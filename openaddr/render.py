@@ -53,6 +53,16 @@ def load_live_state():
     good_sources = [s['source'] for s in state if (s['cache'] and s['processed'])]
     return set(good_sources)
 
+def load_fake_state(sources_dir):
+    '''
+    '''
+    fake_sources = set()
+
+    for path in glob(join(sources_dir, '*.json')):
+        fake_sources.add(basename(path))
+    
+    return fake_sources
+
 def load_geoids(directory, good_sources):
     ''' Load a set of U.S. Census GEOIDs that should be rendered.
     '''
@@ -184,7 +194,7 @@ def draw_line(ctx, start, points):
     for point in points:
         ctx.line_to(*point)
 
-parser = ArgumentParser(description='Draw a map of worldwide address coverage, using most-recent state from http://data.openaddresses.io.')
+parser = ArgumentParser(description='Draw a map of worldwide address coverage.')
 
 parser.set_defaults(resolution=1, width=960)
 
@@ -197,11 +207,14 @@ parser.add_argument('--1x', dest='resolution', action='store_const', const=1,
 parser.add_argument('--width', dest='width', type=int,
                     help='Width in pixels.')
 
+parser.add_argument('--use-state', dest='use_state', action='store_const',
+                    const=True, default=False, help='Use live state from http://data.openaddresses.io/state.json.')
+
 parser.add_argument('filename', help='Output PNG filename.')
 
 def main():
     args = parser.parse_args()
-    good_sources = load_live_state()
+    good_sources = load_live_state() if args.use_state else load_fake_state(paths.sources)
     return render(paths.sources, good_sources, args.width, args.resolution, args.filename)
 
 def render(sources_dir, good_sources, width, resolution, filename=None):
@@ -214,9 +227,7 @@ def render(sources_dir, good_sources, width, resolution, filename=None):
         width, resolution, filename = good_sources, width, resolution
     
         # Use fake sources
-        good_sources = set()
-        for path in glob(join(sources_dir, '*.json')):
-            good_sources.add(basename(path))
+        good_sources = load_fake_state(sources_dir)
     
     return _render_state(sources_dir, good_sources, width, resolution, filename)
 
