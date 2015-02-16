@@ -1,13 +1,16 @@
 from __future__ import division
+import logging; _L = logging.getLogger('openaddr.render')
 
 from glob import glob
 from argparse import ArgumentParser
 from itertools import combinations
 from os.path import join, dirname, basename
+from urlparse import urljoin
 import json
 
 from .compat import cairo
 from osgeo import ogr, osr
+import requests
 
 from . import paths
 
@@ -35,6 +38,18 @@ def make_context(width=960, resolution=1):
     context.translate(hoffset, voffset)
     
     return surface, context, hscale
+
+def load_live_state():
+    '''
+    '''
+    got = requests.get('http://data.openaddresses.io/state.json')
+    got = requests.get(urljoin(got.url, got.json()))
+
+    columns, rows = got.json()[0], got.json()[1:]
+    state = [dict(zip(columns, row)) for row in rows]
+
+    good_sources = [s['source'] for s in state if (s['cache'] and s['processed'])]
+    return set(good_sources)
 
 def load_geoids(directory, good_sources):
     ''' Load a set of U.S. Census GEOIDs that should be rendered.
@@ -167,7 +182,7 @@ def draw_line(ctx, start, points):
     for point in points:
         ctx.line_to(*point)
 
-parser = ArgumentParser(description='Draw a map of continental U.S. address coverage.')
+parser = ArgumentParser(description='Draw a map of worldwide address coverage, using most-recent state from http://data.openaddresses.io.')
 
 parser.set_defaults(resolution=1, width=960)
 
@@ -184,26 +199,35 @@ parser.add_argument('filename', help='Output PNG filename.')
 
 def main():
     args = parser.parse_args()
-    return render(paths.sources, args.width, args.resolution, args.filename)
+    good_sources = load_live_state()
+    return render(paths.sources, good_sources, args.width, args.resolution, args.filename)
 
-def render(sources, width, resolution, filename):
+def render(sources_dir, good_sources, width, resolution, filename=None):
+    ''' Resolution: 1 for 100%, 2 for 200%, etc.
+    '''
+    if filename is None:
+        _L.warning('Using deprecated arguments for openaddr.render.render()')
+    
+        # Adapt to old arguments: (sources_dir, width, resolution, filename)
+        width, resolution, filename = good_sources, width, resolution
+    
+        # Use fake sources
+        good_sources = set()
+        for path in glob(join(sources_dir, '*.json')):
+            good_sources.add(basename(path))
+    
+    return _render_state(sources_dir, good_sources, width, resolution, filename)
+
+def _render_state(sources_dir, good_sources, width, resolution, filename):
     ''' Resolution: 1 for 100%, 2 for 200%, etc.
     '''
     # Prepare output surface
     surface, context, scale = make_context(width, resolution)
     
-    # Load state
-    import requests, urlparse
-    got = requests.get('http://data.openaddresses.io/state.json')
-    got = requests.get(urlparse.urljoin(got.url, got.json()))
-    columns, rows = got.json()[0], got.json()[1:]
-    state = [dict(zip(columns, row)) for row in rows]
-    good_sources = set([s['source'] for s in state if (s['cache'] and s['processed'])])
-
     # Load data
-    good_geoids, bad_geoids = load_geoids(sources, good_sources)
-    good_iso3166s, bad_iso3166s = load_iso3166s(sources, good_sources)
-    good_geometries, bad_geometries = load_geometries(sources, good_sources)
+    good_geoids, bad_geoids = load_geoids(sources_dir, good_sources)
+    good_iso3166s, bad_iso3166s = load_iso3166s(sources_dir, good_sources)
+    good_geometries, bad_geometries = load_geometries(sources_dir, good_sources)
 
     geodata = join(dirname(__file__), 'geodata')
     coastline_ds = ogr.Open(join(geodata, 'ne_50m_coastline-54029.shp'))
@@ -297,6 +321,23 @@ import unittest, tempfile, os, tempfile, subprocess
 class TestRender (unittest.TestCase):
 
     def test_render(self):
+        sources = join(dirname(__file__), '..', 'tests', 'sources')
+        handle, filename = tempfile.mkstemp(prefix='render-', suffix='.png')
+        os.close(handle)
+        
+        try:
+            render(sources, set(), 512, 1, filename)
+            info = str(subprocess.check_output(('file', filename)))
+
+            self.assertTrue('PNG image data' in info)
+            self.assertTrue('512 x 294' in info)
+            self.assertTrue('8-bit/color RGBA' in info)
+        finally:
+            os.remove(filename)
+
+    def test_render_old(self):
+        ''' Make sure the deprecated function signature for render() still works.
+        '''
         sources = join(dirname(__file__), '..', 'tests', 'sources')
         handle, filename = tempfile.mkstemp(prefix='render-', suffix='.png')
         os.close(handle)
