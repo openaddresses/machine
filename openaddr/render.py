@@ -1,11 +1,13 @@
 from __future__ import division
 import logging; _L = logging.getLogger('openaddr.render')
 
+from .compat import standard_library
+
 from glob import glob
 from argparse import ArgumentParser
 from itertools import combinations
 from os.path import join, dirname, basename
-from urlparse import urljoin
+from urllib.parse import urljoin
 import json
 
 from .compat import cairo
