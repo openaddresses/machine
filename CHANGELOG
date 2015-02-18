@@ -1,3 +1,6 @@
+2015-02-17: 1.4.1
+- Fixed detection of geometry type in ESRI sources.
+
 2015-02-16: 1.4.0
 - Added rendered map color display of source status.
 
