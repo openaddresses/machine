@@ -138,6 +138,15 @@ class TestOA (unittest.TestCase):
                 self.assertTrue(bool(state['processed']), "Checking for processed in {}".format(source))
             else:
                 self.assertFalse(bool(state['processed']), "Checking for processed in {}".format(source))
+            
+            if 'berkeley-404' in source or 'oakland-skip' in source:
+                self.assertFalse(bool(state['geometry type']))
+            elif 'berkeley' in source or 'oakland' in source:
+                self.assertEqual(state['geometry type'], 'Polygon')
+            elif 'san_francisco' in source or 'alameda_county' in source:
+                self.assertEqual(state['geometry type'], 'Point')
+            elif 'carson' in source:
+                self.assertEqual(state['geometry type'], 'Point 2.5D')
 
         #
         # Check the JSON version of the data.

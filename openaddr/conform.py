@@ -205,7 +205,14 @@ class ExcerptDataTask(object):
             if len(data_sample) == 6:
                 break
         
-        geometry_type = geometry_types.get(layer_defn.GetGeomType(), None)
+        # Determine geometry_type from layer, sample, or give up.
+        if layer_defn.GetGeomType() in geometry_types:
+            geometry_type = geometry_types.get(layer_defn.GetGeomType(), None)
+        elif fieldnames[-3:] == ['X', 'Y', 'geom']:
+            geometry = ogr.CreateGeometryFromWkt(data_sample[1][-1])
+            geometry_type = geometry_types.get(geometry.GetGeometryType(), None)
+        else:
+            geometry_type = None
 
         return data_sample, geometry_type
 
