@@ -218,6 +218,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['fingerprint'], 'b548d1f9f1e19824a90d456e90518991')
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
+        self.assertEqual(state['geometry type'], 'Point 2.5D')
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -243,6 +244,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['fingerprint'], 'b548d1f9f1e19824a90d456e90518991')
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
+        self.assertEqual(state['geometry type'], 'Point 2.5D')
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -268,6 +270,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['fingerprint'], 'b548d1f9f1e19824a90d456e90518991')
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
+        self.assertEqual(state['geometry type'], 'Point 2.5D')
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
