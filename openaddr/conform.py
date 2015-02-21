@@ -323,11 +323,14 @@ class ConvertToCsvTask(object):
             dest_path = os.path.join(convert_path, basename + ".csv")
             rc = conform_cli(source_definition, source_path, dest_path)
             if rc == 0:
+                with open(dest_path) as file:
+                    addr_count = sum(1 for line in file) - 1
+
                 # Success! Return the path of the output CSV
-                return dest_path
+                return dest_path, addr_count
 
         # Conversion must have failed
-        return None
+        return None, 0
 
 def ogr_source_to_csv(source_definition, source_path, dest_path):
     "Convert a single shapefile or GeoJSON in source_path and put it in dest_path"
@@ -664,12 +667,12 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
 _openaddr_csv_schema = ["LON", "LAT", "NUMBER", "STREET"]
 
 def transform_to_out_csv(source_definition, extract_path, dest_path):
-    """Transform an extracted source CSV to the OpenAddresses output CSV by applying conform rules
-    source_definition: description of the source, containing the conform object
-    extract_path: extracted CSV file to process
-    dest_path: path for output file in OpenAddress CSV
-    """
+    ''' Transform an extracted source CSV to the OpenAddresses output CSV by applying conform rules.
 
+        source_definition: description of the source, containing the conform object
+        extract_path: extracted CSV file to process
+        dest_path: path for output file in OpenAddress CSV
+    '''
     # Convert all field names in the conform spec to lower case
     source_definition = conform_smash_case(source_definition)
 
