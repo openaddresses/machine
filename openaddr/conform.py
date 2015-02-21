@@ -56,19 +56,21 @@ class ConformResult:
     processed = None
     sample = None
     geometry_type = None
+    address_count = None
     path = None
     elapsed = None
     
-    def __init__(self, processed, sample, geometry_type, path, elapsed):
+    def __init__(self, processed, sample, geometry_type, address_count, path, elapsed):
         self.processed = processed
         self.sample = sample
         self.geometry_type = geometry_type
+        self.address_count = address_count
         self.path = path
         self.elapsed = elapsed
 
     @staticmethod
     def empty():
-        return ConformResult(None, None, None, None, None)
+        return ConformResult(None, None, None, None, None, None)
 
     def todict(self):
         return dict(processed=self.processed, sample=self.sample)

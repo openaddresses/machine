@@ -17,7 +17,7 @@ from . import S3, paths
 def load_states(s3):
     # Find existing cache information
     state_key = s3.get_key('state.txt')
-    states, counts = list(), dict(processed=0, cached=0, sources=0)
+    states, counts = list(), dict(processed=0, cached=0, sources=0, addresses=0)
 
     if state_key:
         state_link = state_key.get_contents_as_string()
@@ -43,6 +43,7 @@ def load_states(s3):
             counts['sources'] += 1
             counts['cached'] += 1 if row['cache'] else 0
             counts['processed'] += 1 if row['processed'] else 0
+            counts['addresses'] += int(row['address count'] or 0)
 
             with open(join(paths.sources, row['source'])) as file:
                 data = json.load(file)

@@ -161,7 +161,7 @@ def conform(srcjson, destdir, extras):
         _L.info("Converted to %s with %d addresses", csv_path, addr_count)
     except Exception as e:
         _L.warning("Error doing conform; skipping", exc_info=True)
-        csv_path = None
+        csv_path, addr_count = None, 0
 
     out_path = None
     if csv_path is not None and exists(csv_path):
@@ -173,5 +173,6 @@ def conform(srcjson, destdir, extras):
     return ConformResult(data.get('processed', None),
                          data_sample,
                          geometry_type,
+                         addr_count,
                          out_path,
                          datetime.now() - start)
