@@ -23,7 +23,11 @@ from .expand import expand_street_name
 from osgeo import ogr, osr
 ogr.UseExceptions()
 
-GEOM_FIELDNAME = 'oa:geom'
+# Field names for use in cached CSV files.
+# X and Y must be 'x' and 'y' for now, matching attribute tag documentation:
+# https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#attribute-tags
+GEOM_FIELDNAME = 'OA:geom'
+X_FIELDNAME, Y_FIELDNAME = 'x', 'y'
 
 geometry_types = {
     ogr.wkbPoint: 'Point',
@@ -212,7 +216,7 @@ class ExcerptDataTask(object):
         # Determine geometry_type from layer, sample, or give up.
         if layer_defn.GetGeomType() in geometry_types:
             geometry_type = geometry_types.get(layer_defn.GetGeomType(), None)
-        elif fieldnames[-3:] == ['X', 'Y', GEOM_FIELDNAME]:
+        elif fieldnames[-3:] == [X_FIELDNAME, Y_FIELDNAME, GEOM_FIELDNAME]:
             geometry = ogr.CreateGeometryFromWkt(data_sample[1][-1])
             geometry_type = geometry_types.get(geometry.GetGeometryType(), None)
         else:
@@ -375,8 +379,8 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
     for i in range(0, in_layer_defn.GetFieldCount()):
         field_defn = in_layer_defn.GetFieldDefn(i)
         out_fieldnames.append(field_defn.GetName())
-    out_fieldnames.append('X')
-    out_fieldnames.append('Y')
+    out_fieldnames.append(X_FIELDNAME)
+    out_fieldnames.append(Y_FIELDNAME)
 
     # Set up a transformation from the source SRS to EPSG:4326
     outSpatialRef = osr.SpatialReference()
@@ -410,14 +414,14 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
                     if 'Invalid number of points in LinearRing found' not in str(e):
                         raise
                     xmin, xmax, ymin, ymax = geom.GetEnvelope()
-                    row['X'] = xmin/2 + xmax/2
-                    row['Y'] = ymin/2 + ymax/2
+                    row[X_FIELDNAME] = xmin/2 + xmax/2
+                    row[Y_FIELDNAME] = ymin/2 + ymax/2
                 else:
-                    row['X'] = centroid.GetX()
-                    row['Y'] = centroid.GetY()
+                    row[X_FIELDNAME] = centroid.GetX()
+                    row[Y_FIELDNAME] = centroid.GetY()
             else:
-                row['X'] = None
-                row['Y'] = None
+                row[X_FIELDNAME] = None
+                row[Y_FIELDNAME] = None
 
             writer.writerow(row)
 
@@ -474,9 +478,9 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
         old_latlon = [source_definition["conform"]["lat"], source_definition["conform"]["lon"]]
         old_latlon.extend([s.upper() for s in old_latlon])
         out_fieldnames = [fn for fn in reader.fieldnames if fn not in old_latlon]
-        # Append our special names X and Y
-        out_fieldnames.append("X")
-        out_fieldnames.append("Y")
+        # Append our special names X_FIELDNAME and Y_FIELDNAME
+        out_fieldnames.append(X_FIELDNAME)
+        out_fieldnames.append(Y_FIELDNAME)
 
         # Write the extracted CSV file
         with csvopen(dest_path, 'w', encoding='utf-8') as dest_fp:
@@ -544,8 +548,8 @@ def row_extract_and_reproject(source_definition, source_row):
             out_y = ""
 
     # Add the reprojected data to the output CSV
-    out_row["X"] = out_x
-    out_row["Y"] = out_y
+    out_row[X_FIELDNAME] = out_x
+    out_row[Y_FIELDNAME] = out_y
     return out_row
 
 ### Row-level conform code. Inputs and outputs are individual rows in a CSV file.
@@ -564,10 +568,10 @@ def row_transform_and_convert(sd, row):
         row = row_advanced_merge(sd, row)
     if "split" in c:
         row = row_split_address(sd, row)
-    row = row_convert_to_out(sd, row)
-    row = row_canonicalize_street_and_number(sd, row)
-    row = row_round_lat_lon(sd, row)
-    return row
+    row2 = row_convert_to_out(sd, row)
+    row3 = row_canonicalize_street_and_number(sd, row2)
+    row4 = row_round_lat_lon(sd, row3)
+    return row4
 
 def conform_smash_case(source_definition):
     "Convert all named fields in source_definition object to lowercase. Returns new object."
@@ -583,10 +587,11 @@ def conform_smash_case(source_definition):
             spec["fields"] = [s.lower() for s in spec["fields"]]
     return new_sd
 
-def row_smash_case(sd, row):
+def row_smash_case(sd, input):
     "Convert all field names to lowercase. Slow, but necessary for imprecise conform specs."
-    row = { k.lower(): v for (k, v) in row.items() }
-    return row
+    output = { k.lower(): v for (k, v) in input.items() if k not in (X_FIELDNAME, Y_FIELDNAME) }
+    output.update({ k: v for (k, v) in input.items() if k in (X_FIELDNAME, Y_FIELDNAME) })
+    return output
 
 def row_merge_street(sd, row):
     "Merge multiple columns like 'Maple','St' to 'Maple St'"
@@ -636,8 +641,8 @@ def row_convert_to_out(sd, row):
     "Convert a row from the source schema to OpenAddresses output schema"
     # note: sd["conform"]["lat"] and lon were already applied in the extraction from source
     return {
-        "LON": row.get("x", None),
-        "LAT": row.get("y", None),
+        "LON": row.get(X_FIELDNAME, None),
+        "LAT": row.get(Y_FIELDNAME, None),
         "NUMBER": row.get(sd["conform"]["number"], None),
         "STREET": row.get(sd["conform"]["street"], None)
     }
@@ -760,8 +765,8 @@ class TestConformTransforms (unittest.TestCase):
                          r)
 
     def test_row_convert_to_out(self):
-        d = { "conform": { "street": "s", "number": "n", "lon": "x", "lat": "y" } }
-        r = row_convert_to_out(d, {"s": "MAPLE LN", "n": "123", "x": "-119.2", "y": "39.3"})
+        d = { "conform": { "street": "s", "number": "n" } }
+        r = row_convert_to_out(d, {"s": "MAPLE LN", "n": "123", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3"})
         self.assertEqual({"LON": "-119.2", "LAT": "39.3", "STREET": "MAPLE LN", "NUMBER": "123"}, r)
 
     def test_row_merge_street(self):
@@ -793,11 +798,11 @@ class TestConformTransforms (unittest.TestCase):
 
     def test_transform_and_convert(self):
         d = { "conform": { "street": "auto_street", "number": "n", "merge": ["s1", "s2"], "lon": "y", "lat": "x" } }
-        r = row_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", "X": "-119.2", "Y": "39.3" })
+        r = row_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
         self.assertEqual({"STREET": "Maple Street", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3"}, r)
 
         d = { "conform": { "street": "auto_street", "number": "auto_number", "split": "s", "lon": "y", "lat": "x" } }
-        r = row_transform_and_convert(d, { "s": "123 MAPLE ST", "X": "-119.2", "Y": "39.3" })
+        r = row_transform_and_convert(d, { "s": "123 MAPLE ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
         self.assertEqual({"STREET": "Maple Street", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3"}, r)
 
     def test_row_canonicalize_street_and_number(self):
@@ -846,21 +851,21 @@ class TestConformTransforms (unittest.TestCase):
     def test_row_extract_and_reproject(self):
         d = { "conform" : { "lon": "longitude", "lat": "latitude" } }
         r = row_extract_and_reproject(d, {"longitude": "-122.3", "latitude": "39.1"})
-        self.assertEqual({"Y": "39.1", "X": "-122.3"}, r)
+        self.assertEqual({Y_FIELDNAME: "39.1", X_FIELDNAME: "-122.3"}, r)
 
         d = { "conform" : { "lon": "x", "lat": "y" } }
         r = row_extract_and_reproject(d, {"X": "-122.3", "Y": "39.1" })
-        self.assertEqual({"X": "-122.3", "Y": "39.1"}, r)
+        self.assertEqual({X_FIELDNAME: "-122.3", Y_FIELDNAME: "39.1"}, r)
 
         d = { "conform" : { "lon": "X", "lat": "Y", "srs": "EPSG:2913" } }
-        r = row_extract_and_reproject(d, {"X": "7655634.924", "Y": "668868.414"})
-        self.assertAlmostEqual(-122.630842186650796, float(r["X"]))
-        self.assertAlmostEqual(45.481554393851063, float(r["Y"]))
+        r = row_extract_and_reproject(d, {'X': "7655634.924", 'Y': "668868.414"})
+        self.assertAlmostEqual(-122.630842186650796, float(r[X_FIELDNAME]))
+        self.assertAlmostEqual(45.481554393851063, float(r[Y_FIELDNAME]))
 
         d = { "conform" : { "lon": "X", "lat": "Y", "srs": "EPSG:2913" } }
-        r = row_extract_and_reproject(d, {"X": "", "Y": ""})
-        self.assertEqual("", r["X"])
-        self.assertEqual("", r["Y"])
+        r = row_extract_and_reproject(d, {'X': "", 'Y': ""})
+        self.assertEqual("", r[X_FIELDNAME])
+        self.assertEqual("", r[Y_FIELDNAME])
 
 class TestConformCli (unittest.TestCase):
     "Test the command line interface creates valid output files from test input"
@@ -1111,11 +1116,11 @@ class TestConformCsv(unittest.TestCase):
     # to convert the input to bytes with the tested encoding.
     _ascii_header_in = u'STREETNAME,NUMBER,LATITUDE,LONGITUDE'
     _ascii_row_in = u'MAPLE ST,123,39.3,-121.2'
-    _ascii_header_out = u'STREETNAME,NUMBER,X,Y'
+    _ascii_header_out = u'STREETNAME,NUMBER,{X_FIELDNAME},{Y_FIELDNAME}'.format(**globals())
     _ascii_row_out = u'MAPLE ST,123,-121.2,39.3'
     _unicode_header_in = u'STRE\u00c9TNAME,NUMBER,\u7def\u5ea6,LONGITUDE'
     _unicode_row_in = u'\u2603 ST,123,39.3,-121.2'
-    _unicode_header_out = u'STRE\u00c9TNAME,NUMBER,X,Y'
+    _unicode_header_out = u'STRE\u00c9TNAME,NUMBER,{X_FIELDNAME},{Y_FIELDNAME}'.format(**globals())
     _unicode_row_out = u'\u2603 ST,123,-121.2,39.3'
 
     def setUp(self):
@@ -1180,15 +1185,15 @@ class TestConformCsv(unittest.TestCase):
         d = (u'\u5927\u5b57\u30fb\u753a\u4e01\u76ee\u540d,NUMBER,\u7def\u5ea6,LONGITUDE'.encode('shift-jis'),
              u'\u6771 ST,123,39.3,-121.2'.encode('shift-jis'))
         r = self._convert(c, d)
-        self.assertEqual(u'\u5927\u5b57\u30fb\u753a\u4e01\u76ee\u540d,NUMBER,X,Y', r[0])
-        self.assertEqual(u'\u6771 ST,123,-121.2,39.3', r[1])
+        self.assertEqual(r[0], u'\u5927\u5b57\u30fb\u753a\u4e01\u76ee\u540d,NUMBER,{X_FIELDNAME},{Y_FIELDNAME}'.format(**globals()))
+        self.assertEqual(r[1], u'\u6771 ST,123,-121.2,39.3')
 
     def test_headers_minus_one(self):
         c = { "conform": { "headers": -1, "type": "csv", "lon": "COLUMN4", "lat": "COLUMN3" } }
         d = (u'MAPLE ST,123,39.3,-121.2'.encode('ascii'),)
         r = self._convert(c, d)
-        self.assertEqual(u'COLUMN1,COLUMN2,X,Y', r[0])
-        self.assertEqual(u'MAPLE ST,123,-121.2,39.3', r[1])
+        self.assertEqual(r[0], u'COLUMN1,COLUMN2,{X_FIELDNAME},{Y_FIELDNAME}'.format(**globals()))
+        self.assertEqual(r[1], u'MAPLE ST,123,-121.2,39.3')
 
     def test_headers_and_skiplines(self):
         c = {"conform": { "headers": 2, "skiplines": 2, "type": "csv", "lon": "LONGITUDE", "lat": "LATITUDE" } }
@@ -1207,8 +1212,8 @@ class TestConformCsv(unittest.TestCase):
         d = (u'n,s,X,Y'.encode('ascii'),
              u'3203,SE WOODSTOCK BLVD,-122.629314,45.479425'.encode('ascii'))
         r = self._convert(c, d)
-        self.assertEqual(u'n,s,X,Y', r[0])
-        self.assertEqual(u'3203,SE WOODSTOCK BLVD,-122.629314,45.479425', r[1])
+        self.assertEqual(r[0], u'n,s,{X_FIELDNAME},{Y_FIELDNAME}'.format(**globals()))
+        self.assertEqual(r[1], u'3203,SE WOODSTOCK BLVD,-122.629314,45.479425')
 
     def test_srs(self):
         # This is an example inspired by the hipsters in us-or-portland
@@ -1216,8 +1221,8 @@ class TestConformCsv(unittest.TestCase):
         d = (u'n,s,X,Y'.encode('ascii'),
              u'3203,SE WOODSTOCK BLVD,7655634.924,668868.414'.encode('ascii'))
         r = self._convert(c, d)
-        self.assertEqual(u'n,s,X,Y', r[0])
-        self.assertEqual(u'3203,SE WOODSTOCK BLVD,-122.6308422,45.4815544', r[1])
+        self.assertEqual(r[0], u'n,s,{X_FIELDNAME},{Y_FIELDNAME}'.format(**globals()))
+        self.assertEqual(r[1], u'3203,SE WOODSTOCK BLVD,-122.6308422,45.4815544')
 
     def test_too_many_columns(self):
         "Check that we don't barf on input with too many columns in some rows"

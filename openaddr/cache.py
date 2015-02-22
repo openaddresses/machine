@@ -30,7 +30,7 @@ requests_ftp.monkeypatch_session()
 _http_timeout = 180
 
 from .compat import csvopen, csvDictWriter
-from .conform import GEOM_FIELDNAME
+from .conform import X_FIELDNAME, Y_FIELDNAME, GEOM_FIELDNAME
 
 def mkdirsp(path):
     try:
@@ -328,10 +328,10 @@ class EsriRestDownloadTask(DownloadTask):
                 raise DownloadError("No fields available in the source")
 
             field_names = [f['name'] for f in metadata['fields']]
-            if 'X' not in field_names:
-                field_names.append('X')
-            if 'Y' not in field_names:
-                field_names.append('Y')
+            if X_FIELDNAME not in field_names:
+                field_names.append(X_FIELDNAME)
+            if Y_FIELDNAME not in field_names:
+                field_names.append(Y_FIELDNAME)
             if GEOM_FIELDNAME not in field_names:
                 field_names.append(GEOM_FIELDNAME)
 
@@ -415,11 +415,11 @@ class EsriRestDownloadTask(DownloadTask):
                                 if 'Invalid number of points in LinearRing found' not in str(e):
                                     raise
                                 xmin, xmax, ymin, ymax = ogr_geom.GetEnvelope()
-                                row['X'] = round(xmin/2 + xmax/2, 7)
-                                row['Y'] = round(ymin/2 + ymax/2, 7)
+                                row[X_FIELDNAME] = round(xmin/2 + xmax/2, 7)
+                                row[Y_FIELDNAME] = round(ymin/2 + ymax/2, 7)
                             else:
-                                row['X'] = round(centroid.GetX(), 7)
-                                row['Y'] = round(centroid.GetY(), 7)
+                                row[X_FIELDNAME] = round(centroid.GetX(), 7)
+                                row[Y_FIELDNAME] = round(centroid.GetY(), 7)
 
                             writer.writerow(row)
                             size += 1
