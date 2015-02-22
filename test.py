@@ -216,7 +216,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
-        self.assertEqual(state['fingerprint'], 'b548d1f9f1e19824a90d456e90518991')
+        self.assertEqual(state['fingerprint'], '22a0df756a3e05f5f24892e607f2f4a6')
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point 2.5D')
@@ -242,7 +242,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
-        self.assertEqual(state['fingerprint'], 'b548d1f9f1e19824a90d456e90518991')
+        self.assertEqual(state['fingerprint'], '22a0df756a3e05f5f24892e607f2f4a6')
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point 2.5D')
@@ -268,7 +268,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
-        self.assertEqual(state['fingerprint'], 'b548d1f9f1e19824a90d456e90518991')
+        self.assertEqual(state['fingerprint'], '22a0df756a3e05f5f24892e607f2f4a6')
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point 2.5D')

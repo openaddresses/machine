@@ -30,6 +30,7 @@ requests_ftp.monkeypatch_session()
 _http_timeout = 180
 
 from .compat import csvopen, csvDictWriter
+from .conform import GEOM_FIELDNAME
 
 def mkdirsp(path):
     try:
@@ -331,8 +332,8 @@ class EsriRestDownloadTask(DownloadTask):
                 field_names.append('X')
             if 'Y' not in field_names:
                 field_names.append('Y')
-            if 'geom' not in field_names:
-                field_names.append('geom')
+            if GEOM_FIELDNAME not in field_names:
+                field_names.append(GEOM_FIELDNAME)
 
             # Get all the OIDs
             query_url = source_url + '/query'
@@ -407,7 +408,7 @@ class EsriRestDownloadTask(DownloadTask):
                         try:
                             ogr_geom = self.build_ogr_geometry(geometry_type, feature)
                             row = feature.get('attributes', {})
-                            row['geom'] = ogr_geom.ExportToWkt()
+                            row[GEOM_FIELDNAME] = ogr_geom.ExportToWkt()
                             try:
                                 centroid = ogr_geom.Centroid()
                             except RuntimeError as e:

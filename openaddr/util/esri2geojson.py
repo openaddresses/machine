@@ -11,6 +11,7 @@ from shutil import rmtree
 from os import remove
 
 from ..cache import EsriRestDownloadTask
+from ..conform import GEOM_FIELDNAME
 
 from osgeo import ogr
 
@@ -46,7 +47,7 @@ def write_vrt_file(csv_path):
         </OGRVRTDataSource>
         '''
     
-    geom_name = 'geom'
+    geom_name = GEOM_FIELDNAME
     geom_type = guess_geom_type(csv_path, geom_name)
     csv_dir = dirname(csv_path)
     csv_base, _ = splitext(basename(csv_path))

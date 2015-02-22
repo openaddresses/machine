@@ -23,6 +23,8 @@ from .expand import expand_street_name
 from osgeo import ogr, osr
 ogr.UseExceptions()
 
+GEOM_FIELDNAME = 'oa:geom'
+
 geometry_types = {
     ogr.wkbPoint: 'Point',
     ogr.wkbPoint25D: 'Point 2.5D',
@@ -210,7 +212,7 @@ class ExcerptDataTask(object):
         # Determine geometry_type from layer, sample, or give up.
         if layer_defn.GetGeomType() in geometry_types:
             geometry_type = geometry_types.get(layer_defn.GetGeomType(), None)
-        elif fieldnames[-3:] == ['X', 'Y', 'geom']:
+        elif fieldnames[-3:] == ['X', 'Y', GEOM_FIELDNAME]:
             geometry = ogr.CreateGeometryFromWkt(data_sample[1][-1])
             geometry_type = geometry_types.get(geometry.GetGeometryType(), None)
         else:
