@@ -41,6 +41,7 @@ from openaddr.cache import TestCacheExtensionGuessing, TestCacheEsriDownload
 from openaddr.conform import TestConformCli, TestConformTransforms, TestConformMisc, TestConformCsv
 from openaddr.expand import TestExpand
 from openaddr.render import TestRender
+from openaddr.util.esri2geojson import TestEsri2GeoJSON
 
 class TestOA (unittest.TestCase):
     
