@@ -1,3 +1,5 @@
+''' Convenience utility for converting ESRI feature service to GeoJSON.
+'''
 from __future__ import absolute_import, division, print_function
 import logging; _L = logging.getLogger('openaddr.util.esri2geojson')
 
@@ -17,10 +19,8 @@ geometry_types = dict([(getattr(ogr, attr), attr) for attr in dir(ogr)
                        if attr.startswith('wkb')])
 
 def guess_geom_type(csv_path, geom_name):
+    ''' Look at the first row of the given CSV to determine its geometry type.
     '''
-    '''
-    ogr.UseExceptions()
-
     with open(csv_path) as file:
         rows = DictReader(file)
         geom = ogr.CreateGeometryFromWkt(rows.next().get(geom_name))
@@ -29,7 +29,9 @@ def guess_geom_type(csv_path, geom_name):
     return False
 
 def write_vrt_file(csv_path):
-    '''
+    ''' Generate a VRT file to help OGR read CSV file.
+    
+        http://www.gdal.org/drv_vrt.html
     '''
     vrt_template = '''
         <OGRVRTDataSource>
@@ -48,8 +50,8 @@ def write_vrt_file(csv_path):
     geom_type = guess_geom_type(csv_path, geom_name)
     csv_dir = dirname(csv_path)
     csv_base, _ = splitext(basename(csv_path))
-    
     vrt_path = join(csv_dir, csv_base + '.vrt')
+
     with open(vrt_path, 'w') as file:
         file.write(vrt_template.format(**locals()))
 
@@ -58,10 +60,11 @@ def write_vrt_file(csv_path):
     return vrt_path
 
 def esri2geojson(esri_url, geojson_path):
-    '''
+    ''' Convert single ESRI feature service URL to GeoJSON file.
     '''
     workdir = mkdtemp(prefix='esri2geojson-')
-    
+    ogr.UseExceptions()
+
     try:
         task = EsriRestDownloadTask('esri')
         (csv_path, ) = task.download([esri_url], workdir)
@@ -86,10 +89,10 @@ def esri2geojson(esri_url, geojson_path):
 
         _L.info('Removed {workdir}'.format(**locals()))
 
-parser = ArgumentParser(description='Run one source file locally, prints output path.')
+parser = ArgumentParser(description='Convert single ESRI feature service URL to GeoJSON file.')
 
-parser.add_argument('source', help='Required ESRI source URL.')
-parser.add_argument('destination', help='Required output GeoJSON filename.')
+parser.add_argument('esri_url', help='Required ESRI source URL.')
+parser.add_argument('geojson_path', help='Required output GeoJSON filename.')
 
 parser.add_argument('-l', '--logfile', help='Optional log file name.')
 
@@ -107,7 +110,7 @@ def main():
     args = parser.parse_args()
     setup_logger(logfile=args.logfile, log_level=args.loglevel)
 
-    return esri2geojson(args.source, args.destination)
+    return esri2geojson(args.esri_url, args.geojson_path)
 
 if __name__ == '__main__':
     exit(main())

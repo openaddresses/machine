@@ -23,7 +23,7 @@ setup(
     author = 'Michal Migurski',
     author_email = 'mike-pypi@teczno.com',
     description = 'In-progress scripts for running OpenAddresses on a complete data set and publishing the results.',
-    packages = ['openaddr'],
+    packages = ['openaddr', 'openaddr.util'],
     package_data = {
         'openaddr': [
             'geodata/*.shp', 'geodata/*.shx', 'geodata/*.prj', 'geodata/*.dbf',
@@ -53,7 +53,8 @@ setup(
             'openaddr-process = openaddr.process_all:main',
             'openaddr-process-one = openaddr.process_one:main',
             'openaddr-ec2-run = openaddr.run:main',
-            'openaddr-pyconform = openaddr.conform:main'
+            'openaddr-pyconform = openaddr.conform:main',
+            'openaddr-esri2geojson = openaddr.util.esri2geojson:main'
         ]
     )
 )

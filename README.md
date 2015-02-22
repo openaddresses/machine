@@ -50,3 +50,10 @@ Test the OpenAddresses machine with `test.py`:
 Run the complete process from the `openaddr` module:
 
     python -m openaddr.process_all -a <AWS key> -s <AWS secret> -l <log> data.openaddresses.io
+
+Extras
+------
+
+Convert remote ESRI feature services to GeoJSON with `openaddr-esri2geojson`:
+
+    openaddr-esri2geojson <ESRI URL> <GeoJSON path>
