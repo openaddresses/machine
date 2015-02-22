@@ -1,3 +1,6 @@
+2015-02-21: 1.4.2
+- Added total address display in summary view.
+
 2015-02-17: 1.4.1
 - Fixed detection of geometry type in ESRI sources.
 
