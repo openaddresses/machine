@@ -8,6 +8,7 @@ from operator import itemgetter
 from os.path import join, dirname, splitext
 from dateutil.parser import parse as parse_datetime
 from os import environ
+from re import compile
 
 from jinja2 import Environment, FileSystemLoader
 from requests import get
@@ -82,8 +83,19 @@ def load_states(s3):
     
     return last_modified, states, counts
 
+def nice_integer(number):
+    ''' Format a number like '999,999,999'
+    '''
+    string = str(number)
+    pattern = compile(r'^(\d+)(\d\d\d)\b')
+    
+    while pattern.match(string):
+        string = pattern.sub(r'\1,\2', string)
+    
+    return string
+
 def main():
-    s3 = S3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'openaddresses-cfa')
+    s3 = S3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'data-test.openaddresses.io')
     print(summarize(s3).encode('utf8'))
 
 def summarize(s3):
@@ -91,6 +103,7 @@ def summarize(s3):
     '''
     env = Environment(loader=FileSystemLoader(join(dirname(__file__), 'templates')))
     env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
+    env.filters['nice_integer'] = nice_integer
     template = env.get_template('state.html')
 
     last_modified, states, counts = load_states(s3)
