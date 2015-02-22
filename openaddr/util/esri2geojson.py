@@ -23,9 +23,9 @@ def guess_geom_type(csv_path, geom_name):
     ''' Look at the first row of the given CSV to determine its geometry type.
     '''
     with open(csv_path) as file:
-        rows = DictReader(file)
-        geom = ogr.CreateGeometryFromWkt(rows.next().get(geom_name))
-        return geometry_types.get(geom.GetGeometryType(), False)
+        for row in DictReader(file):
+            geom = ogr.CreateGeometryFromWkt(row.get(geom_name))
+            return geometry_types.get(geom.GetGeometryType(), False)
     
     return False
 
@@ -34,8 +34,7 @@ def write_vrt_file(csv_path):
     
         http://www.gdal.org/drv_vrt.html
     '''
-    vrt_template = '''
-        <OGRVRTDataSource>
+    vrt_template = '''<OGRVRTDataSource>
             <OGRVRTLayer name="{csv_base}">
                 <SrcDataSource>{csv_path}</SrcDataSource>
                 <SrcLayer>{csv_base}</SrcLayer>
@@ -43,9 +42,8 @@ def write_vrt_file(csv_path):
                     <GeometryType>{geom_type}</GeometryType>
                     <SRS>EPSG:4326</SRS>
                 </GeometryField>
-            </OGRVRTLayer>w
-        </OGRVRTDataSource>
-        '''
+            </OGRVRTLayer>
+        </OGRVRTDataSource>'''
     
     geom_name = GEOM_FIELDNAME
     geom_type = guess_geom_type(csv_path, geom_name)
