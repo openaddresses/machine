@@ -272,11 +272,10 @@ class EsriRestDownloadTask(DownloadTask):
                 for esri_pt in esri_ring:
                     line.AddPoint(esri_pt[0], esri_pt[1])
                 geom.AddGeometry(line)
-
-        if geom:
-            return geom
         else:
             raise KeyError("Don't know how to convert esri geometry type {}".format(geom_type))
+
+        return geom
 
     def get_file_path(self, url, dir_path):
         ''' Return a local file path in a directory for a URL.
