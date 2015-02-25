@@ -235,6 +235,9 @@ abbreviation_table = {
 
 def expand_street_name(street_name):
     "Perform expansion and conversion on street name"
+    if street_name is None:
+        return street_name
+
     # Strip whitespace, smash to lowercase, remove . from names
     street_name = street_name.strip().lower().replace(".", "")
 
@@ -269,6 +272,7 @@ import unittest
 class TestExpand(unittest.TestCase):
     def test_expand_street_name(self):
         for e, a in (
+            (None, None),
             ("", ""),
             ("Oak Drive", "OAK DR"),
             ("Oak Drive", "  OAK DR "),
