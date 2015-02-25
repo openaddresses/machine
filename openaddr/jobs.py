@@ -27,7 +27,7 @@ from . import process_one, compat
 #
 
 # After this many seconds, a job will be killed with SIGALRM
-global_job_timeout = 2 * 60 * 60
+global_job_timeout = 3 * 60 * 60
 
 # Seconds between job queue status updates
 report_interval = 60
