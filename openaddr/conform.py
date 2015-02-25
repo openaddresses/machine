@@ -24,10 +24,9 @@ from osgeo import ogr, osr
 ogr.UseExceptions()
 
 # Field names for use in cached CSV files.
-# X and Y must be 'x' and 'y' for now, matching attribute tag documentation:
-# https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#attribute-tags
+# We add columns to the extracted CSV with our own data with these names.
 GEOM_FIELDNAME = 'OA:geom'
-X_FIELDNAME, Y_FIELDNAME = 'x', 'y'
+X_FIELDNAME, Y_FIELDNAME = 'OA:x', 'OA:y'
 
 geometry_types = {
     ogr.wkbPoint: 'Point',
@@ -518,17 +517,24 @@ def _transform_to_4326(srs):
 
 def row_extract_and_reproject(source_definition, source_row):
     """Find lat/lon in source CSV data and store it in ESPG:4326 in X/Y in the row"""
-    # Find the lat and lon in the source; work around case mismatch
-    lat_name = source_definition["conform"]["lat"]
-    lon_name = source_definition["conform"]["lon"]
-    if lon_name in source_row:
+    if source_definition["conform"]["type"] == "csv":
+        # Conforms for CSV sources name the lat/lon columns from the original source data
+        lat_name = source_definition["conform"]["lat"]
+        lon_name = source_definition["conform"]["lon"]
+        if lon_name in source_row:
+            source_x = source_row[lon_name]
+        else:
+            source_x = source_row[lon_name.upper()]
+        if lat_name in source_row:
+            source_y = source_row[lat_name]
+        else:
+            source_y = source_row[lat_name.upper()]
+    else:
+        # All other sources (notably ESRI) use our own X_FIELDNAME convention
+        lat_name = Y_FIELDNAME
+        lon_name = X_FIELDNAME
         source_x = source_row[lon_name]
-    else:
-        source_x = source_row[lon_name.upper()]
-    if lat_name in source_row:
         source_y = source_row[lat_name]
-    else:
-        source_y = source_row[lat_name.upper()]
 
     # Prepare an output row with the source lat and lon columns deleted
     out_row = copy.deepcopy(source_row)
@@ -861,21 +867,24 @@ class TestConformTransforms (unittest.TestCase):
             self.assertEqual(e, r["LON"])
 
     def test_row_extract_and_reproject(self):
-        d = { "conform" : { "lon": "longitude", "lat": "latitude" } }
+        # CSV lat/lon column names
+        d = { "conform" : { "lon": "longitude", "lat": "latitude", "type": "csv" } }
         r = row_extract_and_reproject(d, {"longitude": "-122.3", "latitude": "39.1"})
         self.assertEqual({Y_FIELDNAME: "39.1", X_FIELDNAME: "-122.3"}, r)
 
-        d = { "conform" : { "lon": "x", "lat": "y" } }
-        r = row_extract_and_reproject(d, {"X": "-122.3", "Y": "39.1" })
+        # non-CSV lat/lon column names
+        d = { "conform" : { "lon": "x", "lat": "y", "type": "" } }
+        r = row_extract_and_reproject(d, {X_FIELDNAME: "-122.3", Y_FIELDNAME: "39.1" })
         self.assertEqual({X_FIELDNAME: "-122.3", Y_FIELDNAME: "39.1"}, r)
 
-        d = { "conform" : { "lon": "X", "lat": "Y", "srs": "EPSG:2913" } }
-        r = row_extract_and_reproject(d, {'X': "7655634.924", 'Y': "668868.414"})
+        # reprojection
+        d = { "conform" : { "srs": "EPSG:2913", "type": "" } }
+        r = row_extract_and_reproject(d, {X_FIELDNAME: "7655634.924", Y_FIELDNAME: "668868.414"})
         self.assertAlmostEqual(-122.630842186650796, float(r[X_FIELDNAME]))
         self.assertAlmostEqual(45.481554393851063, float(r[Y_FIELDNAME]))
 
-        d = { "conform" : { "lon": "X", "lat": "Y", "srs": "EPSG:2913" } }
-        r = row_extract_and_reproject(d, {'X': "", 'Y': ""})
+        d = { "conform" : { "lon": "X", "lat": "Y", "srs": "EPSG:2913", "type": "" } }
+        r = row_extract_and_reproject(d, {X_FIELDNAME: "", Y_FIELDNAME: ""})
         self.assertEqual("", r[X_FIELDNAME])
         self.assertEqual("", r[Y_FIELDNAME])
 

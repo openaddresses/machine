@@ -3,8 +3,8 @@
     "cache": "http://fake-cache/lake-man-split2.json",
     "type": "ESRI",
     "conform": {
-        "lon": "x",
-        "lat": "y",
+        "lon": "NONSENSE",
+        "lat": "Y",
         "split": "MAILSTREET",
         "number": "auto_number",
         "street": "auto_street",
