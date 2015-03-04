@@ -288,8 +288,17 @@ def find_source_path(source_definition, source_paths):
         # Old style ESRI conform: ESRI downloader should only give us a single cache.csv file
         return source_paths[0]
     elif conform["type"] == "csv":
-        # We don't expect to be handed a list of files
-        return source_paths[0]
+        # Return file if it's specified, else return the first file we find
+        if "file" in conform:
+            for fn in source_paths:
+                # Consider it a match if the basename matches; directory names are a mess
+                if os.path.basename(conform["file"]) == os.path.basename(fn):
+                    return fn
+            _L.warning("Conform named %s as file but we could not find it." % conform["file"])
+            return None
+        else:
+            return source_paths[0]
+
     elif conform["type"] == "xml":
         # Return file if it's specified, else return the first .gml file we find
         if "file" in conform:
@@ -1100,6 +1109,10 @@ class TestConformMisc(unittest.TestCase):
     def test_find_csv_source_path(self):
         csv_conform = {"conform": {"type": "csv"}}
         self.assertEqual("foo.csv", find_source_path(csv_conform, ["foo.csv"]))
+        csv_file_conform = {"conform": {"type": "csv", "file":"bar.txt"}}
+        self.assertEqual("bar.txt", find_source_path(csv_file_conform, ["license.pdf", "bar.txt"]))
+        self.assertEqual("aa/bar.txt", find_source_path(csv_file_conform, ["license.pdf", "aa/bar.txt"]))
+        self.assertEqual(None, find_source_path(csv_file_conform, ["foo.txt"]))
 
     def test_find_xml_source_path(self):
         c = {"conform": {"type": "xml"}}
