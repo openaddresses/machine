@@ -1109,6 +1109,10 @@ class TestConformMisc(unittest.TestCase):
     def test_find_csv_source_path(self):
         csv_conform = {"conform": {"type": "csv"}}
         self.assertEqual("foo.csv", find_source_path(csv_conform, ["foo.csv"]))
+        csv_file_conform = {"conform": {"type": "csv", "file":"bar.txt"}}
+        self.assertEqual("bar.txt", find_source_path(csv_file_conform, ["license.pdf", "bar.txt"]))
+        self.assertEqual("aa/bar.txt", find_source_path(csv_file_conform, ["license.pdf", "aa/bar.txt"]))
+        self.assertEqual(None, find_source_path(csv_file_conform, ["foo.txt"]))
 
     def test_find_xml_source_path(self):
         c = {"conform": {"type": "xml"}}
