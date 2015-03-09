@@ -16,13 +16,19 @@ import requests
 
 from . import paths
 
-WORLD, USA = 'world', 'united states'
+# Areas
+WORLD, USA = 54029, 2163
 
 def make_context(width=960, resolution=1, area=WORLD):
     ''' Get Cairo surface, context, and drawing scale.
     
-        World extent: (-19918964.35, -8269767.91) - (19918964.18, 14041770.96)
-        U.S. extent: (-2031905.05, -2114924.96) - (2516373.83, 732103.34)
+        Global extent, World Van der Grinten I:
+        (-19918964.35, -8269767.91) - (19918964.18, 14041770.96)
+        http://spatialreference.org/ref/esri/54029/
+
+        U.S. extent, National Atlas Equal Area:
+        (-2031905.05, -2114924.96) - (2516373.83, 732103.34)
+        http://spatialreference.org/ref/epsg/2163/
     '''
     if area == WORLD:
         left, top = -18000000, 14050000
