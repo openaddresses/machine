@@ -16,13 +16,23 @@ import requests
 
 from . import paths
 
-def make_context(width=960, resolution=1):
+WORLD, USA = 'world', 'united states'
+
+def make_context(width=960, resolution=1, area=WORLD):
     ''' Get Cairo surface, context, and drawing scale.
     
         World extent: (-19918964.35, -8269767.91) - (19918964.18, 14041770.96)
+        U.S. extent: (-2031905.05, -2114924.96) - (2516373.83, 732103.34)
     '''
-    left, top = -18000000, 14050000
-    right, bottom = 19500000, -7500000
+    if area == WORLD:
+        left, top = -18000000, 14050000
+        right, bottom = 19500000, -7500000
+    elif area == USA:
+        left, top = -2040000, 740000
+        right, bottom = 2525000, -2130000
+    else:
+        raise RuntimeError('Unknown area "{}"'.format(area))
+
     aspect = (right - left) / (top - bottom)
 
     hsize = int(resolution * width)
@@ -196,7 +206,7 @@ def draw_line(ctx, start, points):
 
 parser = ArgumentParser(description='Draw a map of worldwide address coverage.')
 
-parser.set_defaults(resolution=1, width=960)
+parser.set_defaults(resolution=1, width=960, area=WORLD)
 
 parser.add_argument('--2x', dest='resolution', action='store_const', const=2,
                     help='Draw at double resolution.')
@@ -212,12 +222,19 @@ parser.add_argument('--use-state', dest='use_state', action='store_const',
 
 parser.add_argument('filename', help='Output PNG filename.')
 
+parser.add_argument('--world', dest='area', action='store_const', const=WORLD,
+                    help='Render the whole world.')
+
+parser.add_argument('--usa', dest='area', action='store_const', const=USA,
+                    help='Render the United States.')
+
 def main():
     args = parser.parse_args()
     good_sources = load_live_state() if args.use_state else load_fake_state(paths.sources)
-    return render(paths.sources, good_sources, args.width, args.resolution, args.filename)
+    return render(paths.sources, good_sources, args.width, args.resolution,
+                  args.filename, args.area)
 
-def render(sources_dir, good_sources, width, resolution, filename=None):
+def render(sources_dir, good_sources, width, resolution, filename=None, area=WORLD):
     ''' Resolution: 1 for 100%, 2 for 200%, etc.
     '''
     if filename is None:
@@ -229,13 +246,18 @@ def render(sources_dir, good_sources, width, resolution, filename=None):
         # Use fake sources
         good_sources = load_fake_state(sources_dir)
     
-    return _render_state(sources_dir, good_sources, width, resolution, filename)
+    return _render_state(sources_dir, good_sources, width, resolution, filename, area)
 
-def _render_state(sources_dir, good_sources, width, resolution, filename):
+def first_layer_list(datasource):
+    ''' Return features as a list, or an empty list.
+    '''
+    return list(datasource.GetLayer(0) if hasattr(datasource, 'GetLayer') else [])
+
+def _render_state(sources_dir, good_sources, width, resolution, filename, area):
     ''' Resolution: 1 for 100%, 2 for 200%, etc.
     '''
     # Prepare output surface
-    surface, context, scale = make_context(width, resolution)
+    surface, context, scale = make_context(width, resolution, area)
     
     # Load data
     good_geoids, bad_geoids = load_geoids(sources_dir, good_sources)
@@ -243,22 +265,37 @@ def _render_state(sources_dir, good_sources, width, resolution, filename):
     good_geometries, bad_geometries = load_geometries(sources_dir, good_sources)
 
     geodata = join(dirname(__file__), 'geodata')
-    coastline_ds = ogr.Open(join(geodata, 'ne_50m_coastline-54029.shp'))
-    lakes_ds = ogr.Open(join(geodata, 'ne_50m_lakes-54029.shp'))
-    countries_ds = ogr.Open(join(geodata, 'ne_50m_admin_0_countries-54029.shp'))
-    countries_borders_ds = ogr.Open(join(geodata, 'ne_50m_admin_0_boundary_lines_land-54029.shp'))
-    admin1s_ds = ogr.Open(join(geodata, 'ne_10m_admin_1_states_provinces-54029.shp'))
-    us_state_ds = ogr.Open(join(geodata, 'cb_2013_us_state_20m-54029.shp'))
-    us_county_ds = ogr.Open(join(geodata, 'cb_2013_us_county_20m-54029.shp'))
+
+    if area == WORLD:
+        landarea_ds = ogr.Open(join(geodata, 'ne_50m_admin_0_countries-54029.shp'))
+        coastline_ds = ogr.Open(join(geodata, 'ne_50m_coastline-54029.shp'))
+        lakes_ds = ogr.Open(join(geodata, 'ne_50m_lakes-54029.shp'))
+        countries_ds = ogr.Open(join(geodata, 'ne_50m_admin_0_countries-54029.shp'))
+        countries_borders_ds = ogr.Open(join(geodata, 'ne_50m_admin_0_boundary_lines_land-54029.shp'))
+        admin1s_ds = ogr.Open(join(geodata, 'ne_10m_admin_1_states_provinces-54029.shp'))
+        us_state_ds = ogr.Open(join(geodata, 'cb_2013_us_state_20m-54029.shp'))
+        us_county_ds = ogr.Open(join(geodata, 'cb_2013_us_county_20m-54029.shp'))
+    elif area == USA:
+        landarea_ds = ogr.Open(join(geodata, 'cb_2013_us_nation_20m-2163.shp'))
+        coastline_ds = ogr.Open(join(geodata, 'cb_2013_us_nation_20m-2163.shp'))
+        lakes_ds = None
+        countries_ds = None
+        countries_borders_ds = None
+        admin1s_ds = None
+        us_state_ds = ogr.Open(join(geodata, 'cb_2013_us_state_20m-2163.shp'))
+        us_county_ds = ogr.Open(join(geodata, 'cb_2013_us_county_20m-2163.shp'))
+    else:
+        raise RuntimeError('Unknown area "{}"'.format(area))
 
     # Pick out features
-    coastline_features = list(coastline_ds.GetLayer(0))
-    lakes_features = [f for f in lakes_ds.GetLayer(0) if f.GetField('scalerank') == 0]
-    countries_features = list(countries_ds.GetLayer(0))
-    countries_borders_features = list(countries_borders_ds.GetLayer(0))
-    admin1s_features = list(admin1s_ds.GetLayer(0))
-    us_state_features = list(us_state_ds.GetLayer(0))
-    us_county_features = list(us_county_ds.GetLayer(0))
+    landarea_features = first_layer_list(landarea_ds)
+    coastline_features = first_layer_list(coastline_ds)
+    lakes_features = [f for f in first_layer_list(lakes_ds) if f.GetField('scalerank') == 0]
+    countries_features = first_layer_list(countries_ds)
+    countries_borders_features = first_layer_list(countries_borders_ds)
+    admin1s_features = first_layer_list(admin1s_ds)
+    us_state_features = first_layer_list(us_state_ds)
+    us_county_features = first_layer_list(us_county_ds)
 
     # Assign features to good or bad lists
     good_data_states = [f for f in us_state_features if f.GetFieldAsString('GEOID') in good_geoids]
@@ -284,8 +321,8 @@ def _render_state(sources_dir, good_sources, width, resolution, filename):
     light_green = 0x74/0xff, 0xA5/0xff, 0x78/0xff
     dark_green = 0x1C/0xff, 0x89/0xff, 0x3F/0xff
     
-    # Fill countries background
-    fill_features(context, countries_features, silver)
+    # Fill land area background
+    fill_features(context, landarea_features, silver)
 
     # Fill populated countries
     fill_features(context, bad_data_countries, light_red)
