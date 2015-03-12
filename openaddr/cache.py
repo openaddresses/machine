@@ -249,6 +249,9 @@ class EsriRestDownloadTask(DownloadTask):
     USER_AGENT = 'openaddresses-extract/1.0 (https://github.com/openaddresses/openaddresses)'
 
     def build_ogr_geometry(self, geom_type, esri_feature):
+        if 'geometry' not in esri_feature:
+            raise TypeError("No geometry for feature")
+
         if geom_type == 'esriGeometryPoint':
             geom = ogr.Geometry(ogr.wkbPoint)
             geom.AddPoint(esri_feature['geometry']['x'], esri_feature['geometry']['y'])
