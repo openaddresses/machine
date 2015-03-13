@@ -649,12 +649,14 @@ def row_round_lat_lon(sd, row):
 def row_convert_to_out(sd, row):
     "Convert a row from the source schema to OpenAddresses output schema"
     # note: sd["conform"]["lat"] and lon were already applied in the extraction from source
+    postcode_key = sd['conform'].get('postcode', False)
+    
     return {
         "LON": row.get(X_FIELDNAME, None),
         "LAT": row.get(Y_FIELDNAME, None),
         "NUMBER": row.get(sd["conform"]["number"], None),
         "STREET": row.get(sd["conform"]["street"], None),
-        "POSTCODE": row.get(sd["conform"]["postcode"], None)
+        "POSTCODE": row.get(postcode_key, None) if postcode_key else None
     }
 
 ### File-level conform code. Inputs and outputs are filenames.
@@ -777,7 +779,7 @@ class TestConformTransforms (unittest.TestCase):
     def test_row_convert_to_out(self):
         d = { "conform": { "street": "s", "number": "n" } }
         r = row_convert_to_out(d, {"s": "MAPLE LN", "n": "123", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3"})
-        self.assertEqual({"LON": "-119.2", "LAT": "39.3", "STREET": "MAPLE LN", "NUMBER": "123"}, r)
+        self.assertEqual({"LON": "-119.2", "LAT": "39.3", "STREET": "MAPLE LN", "NUMBER": "123", "POSTCODE": None}, r)
 
     def test_row_merge_street(self):
         d = { "conform": { "merge": [ "n", "t" ] } }
@@ -809,11 +811,11 @@ class TestConformTransforms (unittest.TestCase):
     def test_transform_and_convert(self):
         d = { "conform": { "street": "auto_street", "number": "n", "merge": ["s1", "s2"], "lon": "y", "lat": "x" } }
         r = row_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
-        self.assertEqual({"STREET": "Maple Street", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3"}, r)
+        self.assertEqual({"STREET": "Maple Street", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3", 'POSTCODE': None}, r)
 
         d = { "conform": { "street": "auto_street", "number": "auto_number", "split": "s", "lon": "y", "lat": "x" } }
         r = row_transform_and_convert(d, { "s": "123 MAPLE ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
-        self.assertEqual({"STREET": "Maple Street", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3"}, r)
+        self.assertEqual({"STREET": "Maple Street", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3", 'POSTCODE': None}, r)
 
     def test_row_canonicalize_street_and_number(self):
         r = row_canonicalize_street_and_number({}, {"NUMBER": "324 ", "STREET": " OAK DR."})
