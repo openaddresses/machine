@@ -216,7 +216,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
-        self.assertEqual(state['fingerprint'], '4fbadc9c46f90084d31571684a88b36c')
+        self.assertEqual(state['fingerprint'], '4eafdbf201a68a5b8de3e05f6706829e')
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point 2.5D')
@@ -228,7 +228,9 @@ class TestOA (unittest.TestCase):
         self.assertTrue('SITEFRAC' in sample_data[0])
         
         with open(join(dirname(state_path), state['processed'])) as file:
-            self.assertTrue('555,Carson Street' in file.read())
+            data = file.read().strip()
+            self.assertEqual(6, len(data.split('\n')))
+            self.assertTrue('555,Carson Street' in data)
 
     def test_single_car_cached(self):
         ''' Test complete process_one.process on Carson sample data.
@@ -242,7 +244,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
-        self.assertEqual(state['fingerprint'], '4fbadc9c46f90084d31571684a88b36c')
+        self.assertEqual(state['fingerprint'], '4eafdbf201a68a5b8de3e05f6706829e')
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point 2.5D')
@@ -268,7 +270,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
-        self.assertEqual(state['fingerprint'], '4fbadc9c46f90084d31571684a88b36c')
+        self.assertEqual(state['fingerprint'], '4eafdbf201a68a5b8de3e05f6706829e')
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point 2.5D')
