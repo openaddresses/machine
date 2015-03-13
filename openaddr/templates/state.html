@@ -161,6 +161,18 @@
 
         return false;
     }
+    
+    function choosemap(src)
+    {
+        var img = document.getElementById('render-img');
+        
+        if(img)
+        {
+            img.src = src;
+        }
+        
+        return false;
+    }
 
 </script>
 </head>
@@ -184,7 +196,12 @@
     A plain text version of data on this page can be found at
     <a href="state.txt">state.txt</a>.
 </p>
-<p><img src="render.png" width="100%"></p>
+<p>
+    Show map:
+    <button onclick="choosemap('render-world.png')">World</button>
+    <button onclick="choosemap('render-usa.png')">United States</button>
+</p>
+<p><img src="render-world.png" width="100%" id="render-img"></p>
 <table>
     <tr>
         <th class="name">Name</th>
