@@ -65,10 +65,19 @@ def main():
     # Talk about the work
     #
     _L.info("Talking about the work")
-    png_filename = 'render-{}.png'.format(run_name)
-    render.render(paths.sources, good_sources, 960, 2, png_filename)
-    render_data = open(png_filename).read()
-    render_key = s3.new_key(join('runs', run_name, 'render.png'))
+    for (area, area_name) in [(render.WORLD, 'world'), (render.USA, 'usa')]:
+        png_filename = 'render-{}-{}.png'.format(run_name, area_name)
+        render.render(paths.sources, good_sources, 960, 2, png_filename, area)
+        render_data = open(png_filename).read()
+        render_path = 'render-{}.png'.format(area_name)
+        render_key = s3.new_key(join('runs', run_name, render_path))
+        render_key.set_contents_from_string(render_data, policy='public-read',
+                                            headers={'Content-Type': 'image/png'})
+
+    png_usa_filename = 'render-{}-usa.png'.format(run_name)
+    render.render(paths.sources, good_sources, 960, 2, png_usa_filename, render.USA)
+    render_data = open(png_usa_filename).read()
+    render_key = s3.new_key(join('runs', run_name, 'render-usa.png'))
     render_key.set_contents_from_string(render_data, policy='public-read',
                                         headers={'Content-Type': 'image/png'})
 
