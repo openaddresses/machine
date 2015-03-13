@@ -1,3 +1,9 @@
+2015-03-12: 1.6.0
+- Fixed error with missing street names.
+- Added support for named CSV files in conform objects.
+- Added postcode column output.
+- Added USA map render.
+
 2015-02-24: 1.5.1
 - Extended global job timeout to three hours.
 
