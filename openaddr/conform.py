@@ -653,7 +653,8 @@ def row_convert_to_out(sd, row):
         "LON": row.get(X_FIELDNAME, None),
         "LAT": row.get(Y_FIELDNAME, None),
         "NUMBER": row.get(sd["conform"]["number"], None),
-        "STREET": row.get(sd["conform"]["street"], None)
+        "STREET": row.get(sd["conform"]["street"], None),
+        "POSTCODE": row.get(sd["conform"]["postcode"], None)
     }
 
 ### File-level conform code. Inputs and outputs are filenames.
@@ -682,7 +683,7 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
         raise Exception("Unsupported source type %s" % source_definition["conform"]["type"])
 
 # The canonical output schema for conform
-_openaddr_csv_schema = ["LON", "LAT", "NUMBER", "STREET"]
+_openaddr_csv_schema = ["LON", "LAT", "NUMBER", "STREET", "POSTCODE"]
 
 def transform_to_out_csv(source_definition, extract_path, dest_path):
     ''' Transform an extracted source CSV to the OpenAddresses output CSV by applying conform rules.
@@ -907,7 +908,7 @@ class TestConformCli (unittest.TestCase):
 
         with csvopen(dest_path) as fp:
             reader = csvDictReader(fp)
-            self.assertEqual(['LON', 'LAT', 'NUMBER', 'STREET'], reader.fieldnames)
+            self.assertEqual(['LON', 'LAT', 'NUMBER', 'STREET', 'POSTCODE'], reader.fieldnames)
 
             rows = list(reader)
 
