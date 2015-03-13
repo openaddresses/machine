@@ -173,7 +173,7 @@ class TestEsri2GeoJSON (unittest.TestCase):
             data = json.load(file)
         
         self.assertEqual(data['type'], 'FeatureCollection')
-        self.assertEqual(len(data['features']), 99)
+        self.assertEqual(len(data['features']), 5)
 
         self.assertEqual(data['features'][0]['type'], 'Feature')
         self.assertEqual(data['features'][0]['geometry']['type'], 'Point')
