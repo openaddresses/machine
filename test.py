@@ -228,7 +228,9 @@ class TestOA (unittest.TestCase):
         self.assertTrue('SITEFRAC' in sample_data[0])
         
         with open(join(dirname(state_path), state['processed'])) as file:
-            self.assertTrue('555,Carson Street' in file.read())
+            data = file.read()
+            self.assertEqual(101, len(data.split('\n')))
+            self.assertTrue('555,Carson Street' in data)
 
     def test_single_car_cached(self):
         ''' Test complete process_one.process on Carson sample data.
