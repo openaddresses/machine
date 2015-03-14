@@ -516,9 +516,22 @@ def _transform_to_4326(srs):
     return _transform_cache[srs]
 
 def row_extract_and_reproject(source_definition, source_row):
-    """Find lat/lon in source CSV data and store it in ESPG:4326 in X/Y in the row"""
-    if source_definition["conform"]["type"] == "csv":
-        # Conforms for CSV sources name the lat/lon columns from the original source data
+    ''' Find lat/lon in source CSV data and store it in ESPG:4326 in X/Y in the row
+    '''
+    # Ignore any lat/lon names for natively geographic sources.
+    ignore_conform_names = bool(source_definition['conform']['type'] != 'csv')
+
+    # ESRI-derived source CSV is synthetic; we should ignore any lat/lon names.
+    ignore_conform_names |= bool(source_definition['type'] == 'ESRI')
+    
+    if ignore_conform_names:
+        # Use our own X_FIELDNAME convention
+        lat_name = Y_FIELDNAME
+        lon_name = X_FIELDNAME
+        source_x = source_row[lon_name]
+        source_y = source_row[lat_name]
+    else:
+        # Conforms can name the lat/lon columns from the original source data
         lat_name = source_definition["conform"]["lat"]
         lon_name = source_definition["conform"]["lon"]
         if lon_name in source_row:
@@ -529,12 +542,6 @@ def row_extract_and_reproject(source_definition, source_row):
             source_y = source_row[lat_name]
         else:
             source_y = source_row[lat_name.upper()]
-    else:
-        # All other sources (notably ESRI) use our own X_FIELDNAME convention
-        lat_name = Y_FIELDNAME
-        lon_name = X_FIELDNAME
-        source_x = source_row[lon_name]
-        source_y = source_row[lat_name]
 
     # Prepare an output row with the source lat and lon columns deleted
     out_row = copy.deepcopy(source_row)
