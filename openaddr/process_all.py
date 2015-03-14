@@ -10,7 +10,8 @@ from urllib.parse import urlparse
 from io import BytesIO, TextIOWrapper
 from datetime import datetime
 from zipfile import ZipFile, ZIP_DEFLATED
-from os import environ
+from os import environ, close, remove
+from tempfile import mkstemp
 from json import dumps
 from time import time
 from glob import glob
@@ -176,6 +177,28 @@ def upload_file(s3, keyname, filename):
     
     return url, key.md5
 
+def package_result(source, processed_path):
+    '''
+    '''
+    _, ext = splitext(processed_path)
+    handle, zip_path = mkstemp(prefix=source, suffix='.zip')
+    close(handle)
+    
+    zip_file = ZipFile(zip_path, mode='w', compression=ZIP_DEFLATED)
+
+    if ext == '.csv':
+        # Add virtual format to make CSV readable by QGIS, OGR, etc.
+        # More information: http://www.gdal.org/drv_vrt.html
+        template = join(dirname(__file__), 'templates', 'conform-result.vrt')
+        with open(template) as file:
+            content = file.read().format(source=source)
+            zip_file.writestr(source + '.vrt', content)
+    
+    zip_file.write(processed_path, source + ext)
+    zip_file.close()
+    
+    return zip_path
+
 def upload_states(s3, states, run_name):
     ''' Return list of state data in JSON form.
     '''
@@ -208,9 +231,10 @@ def upload_states(s3, states, run_name):
     
         if state['processed']:
             # e.g. /us-tx-denton.csv
-            _, processed_ext = splitext(state['processed'])
-            key_name = '/{}{}'.format(source, processed_ext)
-            state['processed'], _ = upload_file(s3, key_name, state['processed'])
+            key_name = '/{}.zip'.format(source)
+            zip_path = package_result(source, state['processed'])
+            state['processed'], _ = upload_file(s3, key_name, zip_path)
+            remove(zip_path)
     
         if state['output']:
             # e.g. /runs/<run name>/us-tx-denton.txt

@@ -137,6 +137,15 @@ class TestOA (unittest.TestCase):
 
             if 'san_francisco' in source or 'alameda_county' in source or 'carson' in source:
                 self.assertTrue(bool(state['processed']), "Checking for processed in {}".format(source))
+                
+                with HTTMock(self.response_content):
+                    got = get(state['processed'])
+                    zip_file = ZipFile(BytesIO(got.content), mode='r')
+                
+                source_base, _ = splitext(source)
+                self.assertTrue(source_base + '.csv' in zip_file.namelist())
+                self.assertTrue(source_base + '.vrt' in zip_file.namelist())
+                
             else:
                 self.assertFalse(bool(state['processed']), "Checking for processed in {}".format(source))
             
