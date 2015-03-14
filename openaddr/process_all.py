@@ -185,6 +185,15 @@ def package_result(source, processed_path):
     close(handle)
     
     zip_file = ZipFile(zip_path, mode='w', compression=ZIP_DEFLATED)
+
+    if ext == '.csv':
+        # Add virtual format to make CSV readable by QGIS, OGR, etc.
+        # More information: http://www.gdal.org/drv_vrt.html
+        template = join(dirname(__file__), 'templates', 'conform-result.vrt')
+        with open(template) as file:
+            content = file.read().format(source=source)
+            zip_file.writestr(source + '.vrt', content)
+    
     zip_file.write(processed_path, source + ext)
     zip_file.close()
     

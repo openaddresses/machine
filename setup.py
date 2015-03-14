@@ -27,7 +27,8 @@ setup(
     package_data = {
         'openaddr': [
             'geodata/*.shp', 'geodata/*.shx', 'geodata/*.prj', 'geodata/*.dbf',
-            'geodata/*.cpg', 'templates/*.html', 'templates/*.sh', 'VERSION'
+            'geodata/*.cpg', 'templates/*.html', 'templates/*.sh', 'VERSION',
+            'templates/*.vrt'
         ]
     },
     install_requires = [
