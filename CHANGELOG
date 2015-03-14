@@ -1,3 +1,8 @@
+2015-03-14: 1.6.2
+- Added Europe map render.
+- Added .vrt files to newly-zipped processed results.
+- Fixed ambiguously-named "x" and "y" columns in CSV internals.
+
 2015-03-12: 1.6.1
 - Fixed error on ESRI features with missing geometry.
 
