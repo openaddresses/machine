@@ -17,7 +17,7 @@ import requests
 from . import paths
 
 # Areas
-WORLD, USA = 54029, 2163
+WORLD, USA, EUROPE = 54029, 2163, 'Europe'
 
 def make_context(width=960, resolution=1, area=WORLD):
     ''' Get Cairo surface, context, and drawing scale.
@@ -29,6 +29,10 @@ def make_context(width=960, resolution=1, area=WORLD):
         U.S. extent, National Atlas Equal Area:
         (-2031905.05, -2114924.96) - (2516373.83, 732103.34)
         http://spatialreference.org/ref/epsg/2163/
+    
+        Europe extent, World Van der Grinten I:
+        (-2679330, 3644860) - (5725981, 8635513)
+        http://spatialreference.org/ref/esri/54029/
     '''
     if area == WORLD:
         left, top = -18000000, 14050000
@@ -36,6 +40,9 @@ def make_context(width=960, resolution=1, area=WORLD):
     elif area == USA:
         left, top = -2040000, 740000
         right, bottom = 2525000, -2130000
+    elif area == EUROPE:
+        left, top = -2700000, 8700000
+        right, bottom = 5800000, 3600000
     else:
         raise RuntimeError('Unknown area "{}"'.format(area))
 
@@ -234,6 +241,9 @@ parser.add_argument('--world', dest='area', action='store_const', const=WORLD,
 parser.add_argument('--usa', dest='area', action='store_const', const=USA,
                     help='Render the United States.')
 
+parser.add_argument('--europe', dest='area', action='store_const', const=EUROPE,
+                    help='Render Europe.')
+
 def main():
     args = parser.parse_args()
     good_sources = load_live_state() if args.use_state else load_fake_state(paths.sources)
@@ -272,7 +282,7 @@ def _render_state(sources_dir, good_sources, width, resolution, filename, area):
 
     geodata = join(dirname(__file__), 'geodata')
 
-    if area == WORLD:
+    if area in (WORLD, EUROPE):
         landarea_ds = ogr.Open(join(geodata, 'ne_50m_admin_0_countries-54029.shp'))
         coastline_ds = ogr.Open(join(geodata, 'ne_50m_coastline-54029.shp'))
         lakes_ds = ogr.Open(join(geodata, 'ne_50m_lakes-54029.shp'))

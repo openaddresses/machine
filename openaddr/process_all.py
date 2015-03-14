@@ -66,7 +66,9 @@ def main():
     # Talk about the work
     #
     _L.info("Talking about the work")
-    for (area, area_name) in [(render.WORLD, 'world'), (render.USA, 'usa')]:
+    areas = (render.WORLD, 'world'), (render.USA, 'usa'), (render.EUROPE, 'europe')
+    
+    for (area, area_name) in areas:
         png_filename = 'render-{}-{}.png'.format(run_name, area_name)
         render.render(paths.sources, good_sources, 960, 2, png_filename, area)
         render_data = open(png_filename).read()
