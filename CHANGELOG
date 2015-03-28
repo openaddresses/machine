@@ -1,3 +1,6 @@
+2015-03-28: 1.6.4
+- Fixed render size for point sources.
+
 2015-03-28: 1.6.3
 - Fixed support for rendering point sources.
 

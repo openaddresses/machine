@@ -185,12 +185,12 @@ def stroke_geometries(ctx, geometries):
                     draw_line(ctx, points[0], points[1:])
                 ctx.stroke()
 
-def fill_features(ctx, features, scale, rgb):
+def fill_features(ctx, features, muppx, rgb):
     '''
     '''
-    return fill_geometries(ctx, [f.GetGeometryRef() for f in features], scale, rgb)
+    return fill_geometries(ctx, [f.GetGeometryRef() for f in features], muppx, rgb)
     
-def fill_geometries(ctx, geometries, scale, rgb):
+def fill_geometries(ctx, geometries, muppx, rgb):
     '''
     '''
     ctx.set_source_rgb(*rgb)
@@ -201,7 +201,7 @@ def fill_geometries(ctx, geometries, scale, rgb):
         elif geometry.GetGeometryType() == ogr.wkbPolygon:
             parts = [geometry]
         elif geometry.GetGeometryType() == ogr.wkbPoint:
-            buffer = geometry.Buffer(3 / scale, 3)
+            buffer = geometry.Buffer(2 * muppx, 3)
             parts = [buffer]
         else:
             raise NotImplementedError()
@@ -340,39 +340,42 @@ def _render_state(sources_dir, good_sources, width, resolution, filename, area):
     light_green = 0x74/0xff, 0xA5/0xff, 0x78/0xff
     dark_green = 0x1C/0xff, 0x89/0xff, 0x3F/0xff
     
+    # Map units per pixel
+    muppx = resolution / scale
+    
     # Fill land area background
-    fill_features(context, landarea_features, scale, silver)
+    fill_features(context, landarea_features, muppx, silver)
 
     # Fill populated countries
-    fill_features(context, bad_data_countries, scale, light_red)
-    fill_features(context, good_data_countries, scale, light_green)
+    fill_features(context, bad_data_countries, muppx, light_red)
+    fill_features(context, good_data_countries, muppx, light_green)
 
     # Fill Admin-1 (ISO-3166-2) subdivisions
-    fill_features(context, bad_data_admin1s, scale, light_red)
-    fill_features(context, good_data_admin1s, scale, light_green)
+    fill_features(context, bad_data_admin1s, muppx, light_red)
+    fill_features(context, good_data_admin1s, muppx, light_green)
 
     # Fill populated U.S. states
-    fill_features(context, bad_data_states, scale, light_red)
-    fill_features(context, good_data_states, scale, light_green)
+    fill_features(context, bad_data_states, muppx, light_red)
+    fill_features(context, good_data_states, muppx, light_green)
 
     # Fill populated U.S. counties
-    fill_features(context, bad_data_counties, scale, dark_red)
-    fill_features(context, good_data_counties, scale, dark_green)
+    fill_features(context, bad_data_counties, muppx, dark_red)
+    fill_features(context, good_data_counties, muppx, dark_green)
 
     # Fill other given geometries
-    fill_geometries(context, bad_geometries, scale, dark_red)
-    fill_geometries(context, good_geometries, scale, dark_green)
+    fill_geometries(context, bad_geometries, muppx, dark_red)
+    fill_geometries(context, good_geometries, muppx, dark_green)
 
     # Outline countries and boundaries, fill lakes
     context.set_source_rgb(*black)
-    context.set_line_width(.25 * resolution / scale)
+    context.set_line_width(.25 * muppx)
     stroke_geometries(context, state_borders)
     stroke_features(context, countries_borders_features)
 
-    fill_features(context, lakes_features, scale, white)
+    fill_features(context, lakes_features, muppx, white)
 
     context.set_source_rgb(*black)
-    context.set_line_width(.5 * resolution / scale)
+    context.set_line_width(.5 * muppx)
     stroke_features(context, coastline_features)
 
     # Output
