@@ -340,7 +340,7 @@ def _render_state(sources_dir, good_sources, width, resolution, filename, area):
     light_green = 0x74/0xff, 0xA5/0xff, 0x78/0xff
     dark_green = 0x1C/0xff, 0x89/0xff, 0x3F/0xff
     
-    # Map units per pixel
+    # Map units per reference pixel (http://www.w3.org/TR/css3-values/#reference-pixel)
     muppx = resolution / scale
     
     # Fill land area background
