@@ -126,13 +126,13 @@ def load_iso3166s(directory, good_sources):
     
     return good_iso3166s, bad_iso3166s
 
-def load_geometries(directory, good_sources):
+def load_geometries(directory, good_sources, area):
     ''' Load a set of GeoJSON geometries should be rendered.
     '''
     good_geometries, bad_geometries = list(), list()
 
     sref_geo = osr.SpatialReference(); sref_geo.ImportFromEPSG(4326)
-    sref_map = osr.SpatialReference(); sref_map.ImportFromEPSG(54029)
+    sref_map = osr.SpatialReference(); sref_map.ImportFromEPSG(2163 if area == USA else 54029)
     project = osr.CoordinateTransformation(sref_geo, sref_map)
 
     for path in glob(join(directory, '*.json')):
@@ -185,12 +185,12 @@ def stroke_geometries(ctx, geometries):
                     draw_line(ctx, points[0], points[1:])
                 ctx.stroke()
 
-def fill_features(ctx, features, rgb):
+def fill_features(ctx, features, scale, rgb):
     '''
     '''
-    return fill_geometries(ctx, [f.GetGeometryRef() for f in features], rgb)
+    return fill_geometries(ctx, [f.GetGeometryRef() for f in features], scale, rgb)
     
-def fill_geometries(ctx, geometries, rgb):
+def fill_geometries(ctx, geometries, scale, rgb):
     '''
     '''
     ctx.set_source_rgb(*rgb)
@@ -200,6 +200,9 @@ def fill_geometries(ctx, geometries, rgb):
             parts = geometry
         elif geometry.GetGeometryType() == ogr.wkbPolygon:
             parts = [geometry]
+        elif geometry.GetGeometryType() == ogr.wkbPoint:
+            buffer = geometry.Buffer(3 / scale, 3)
+            parts = [buffer]
         else:
             raise NotImplementedError()
 
@@ -278,7 +281,7 @@ def _render_state(sources_dir, good_sources, width, resolution, filename, area):
     # Load data
     good_geoids, bad_geoids = load_geoids(sources_dir, good_sources)
     good_iso3166s, bad_iso3166s = load_iso3166s(sources_dir, good_sources)
-    good_geometries, bad_geometries = load_geometries(sources_dir, good_sources)
+    good_geometries, bad_geometries = load_geometries(sources_dir, good_sources, area)
 
     geodata = join(dirname(__file__), 'geodata')
 
@@ -338,27 +341,27 @@ def _render_state(sources_dir, good_sources, width, resolution, filename, area):
     dark_green = 0x1C/0xff, 0x89/0xff, 0x3F/0xff
     
     # Fill land area background
-    fill_features(context, landarea_features, silver)
+    fill_features(context, landarea_features, scale, silver)
 
     # Fill populated countries
-    fill_features(context, bad_data_countries, light_red)
-    fill_features(context, good_data_countries, light_green)
+    fill_features(context, bad_data_countries, scale, light_red)
+    fill_features(context, good_data_countries, scale, light_green)
 
     # Fill Admin-1 (ISO-3166-2) subdivisions
-    fill_features(context, bad_data_admin1s, light_red)
-    fill_features(context, good_data_admin1s, light_green)
+    fill_features(context, bad_data_admin1s, scale, light_red)
+    fill_features(context, good_data_admin1s, scale, light_green)
 
     # Fill populated U.S. states
-    fill_features(context, bad_data_states, light_red)
-    fill_features(context, good_data_states, light_green)
+    fill_features(context, bad_data_states, scale, light_red)
+    fill_features(context, good_data_states, scale, light_green)
 
     # Fill populated U.S. counties
-    fill_features(context, bad_data_counties, dark_red)
-    fill_features(context, good_data_counties, dark_green)
+    fill_features(context, bad_data_counties, scale, dark_red)
+    fill_features(context, good_data_counties, scale, dark_green)
 
     # Fill other given geometries
-    fill_geometries(context, bad_geometries, dark_red)
-    fill_geometries(context, good_geometries, dark_green)
+    fill_geometries(context, bad_geometries, scale, dark_red)
+    fill_geometries(context, good_geometries, scale, dark_green)
 
     # Outline countries and boundaries, fill lakes
     context.set_source_rgb(*black)
@@ -366,7 +369,7 @@ def _render_state(sources_dir, good_sources, width, resolution, filename, area):
     stroke_geometries(context, state_borders)
     stroke_features(context, countries_borders_features)
 
-    fill_features(context, lakes_features, white)
+    fill_features(context, lakes_features, scale, white)
 
     context.set_source_rgb(*black)
     context.set_line_width(.5 * resolution / scale)
