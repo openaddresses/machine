@@ -11,10 +11,14 @@ from . import jobs
 from boto.ec2 import EC2Connection
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 
-def get_bid_amount(ec2, instance_type):
+CHEAPSKATE='bid cheaply'
+BIGSPENDER='bid dearly'
+
+def get_bid_amount(ec2, instance_type, strategy=CHEAPSKATE):
     ''' Get a bid estimate for a given instance type.
     
-        Returns median price + $0.01 for the cheapest AWS availability zone.
+        Returns median price + $0.01 for a selected AWS availability zone.
+        Zone decided based on strategy, either CHEAPSKATE or BIGSPENDER.
     '''
     history = ec2.get_spot_price_history(instance_type=instance_type)
 
@@ -26,7 +30,13 @@ def get_bid_amount(ec2, instance_type):
         zone_median = sorted(zone_prices)[len(zone_prices)/2]
 
         _L.debug('Median ${:.4f}/hour in {} zone'.format(zone_median, zone))
-        median = min(median, zone_median)
+        
+        if strategy is CHEAPSKATE:
+            median = min(median, zone_median)
+        elif strategy is BIGSPENDER:
+            median = max(median, zone_median)
+        else:
+            raise ValueError('Unknown bid strategy, "{}"'.format(strategy))
     
     return median + 0.01
 
@@ -59,6 +69,14 @@ parser.add_argument('--security-group', default='default',
 parser.add_argument('--machine-image', default='ami-4ae27e22',
                     help='AMI identifier, defaults to Alestic Ubuntu 14.04 (ami-4ae27e22).')
 
+parser.add_argument('--cheapskate', dest='bid_strategy',
+                    const=CHEAPSKATE, default=CHEAPSKATE, action='store_const',
+                    help='Bid a low EC2 spot price, good for times of price stability.')
+
+parser.add_argument('--bigspender', dest='bid_strategy',
+                    const=BIGSPENDER, default=CHEAPSKATE, action='store_const',
+                    help='Bid a high EC2 spot price, better for times of price volatility.')
+
 def main():
     args = parser.parse_args()
     jobs.setup_logger(None)
@@ -78,7 +96,7 @@ def main():
     ec2_secret_key = args.ec2_secret_key or environ.get('EC2_SECRET_ACCESS_KEY', args.secret_key)
     ec2 = EC2Connection(ec2_access_key, ec2_secret_key)
     
-    bid = get_bid_amount(ec2, args.instance_type)
+    bid = get_bid_amount(ec2, args.instance_type, args.bid_strategy)
     _L.info('Bidding ${:.4f}/hour for {} instance'.format(bid, args.instance_type))
     
     #
