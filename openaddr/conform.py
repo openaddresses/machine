@@ -482,13 +482,16 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
         num_fields = len(reader.fieldnames)
 
         # Construct headers for the extracted CSV file
-        # Remove headers for the old lat and lon fields (uppercase versions too)
-        old_latlon = [source_definition["conform"]["lat"], source_definition["conform"]["lon"]]
-        old_latlon.extend([s.upper() for s in old_latlon])
-        out_fieldnames = [fn for fn in reader.fieldnames if fn not in old_latlon]
-        # Append our special names X_FIELDNAME and Y_FIELDNAME
-        out_fieldnames.append(X_FIELDNAME)
-        out_fieldnames.append(Y_FIELDNAME)
+        if source_definition["type"] == "ESRI":
+            # ESRI sources: just copy what the downloader gave us. (Already has OA:x and OA:y)
+            out_fieldnames = list(reader.fieldnames)
+        else:
+            # CSV sources: replace the source's lat/lon columns with OA:x and OA:y
+            old_latlon = [source_definition["conform"]["lat"], source_definition["conform"]["lon"]]
+            old_latlon.extend([s.upper() for s in old_latlon])
+            out_fieldnames = [fn for fn in reader.fieldnames if fn not in old_latlon]
+            out_fieldnames.append(X_FIELDNAME)
+            out_fieldnames.append(Y_FIELDNAME)
 
         # Write the extracted CSV file
         with csvopen(dest_path, 'w', encoding='utf-8') as dest_fp:
@@ -1264,5 +1267,23 @@ class TestConformCsv(unittest.TestCase):
              u'MAPLE ST,123,39.3,-121.2,EXTRY'.encode('ascii'))
         r = self._convert(c, d)
         self.assertEqual(2, len(r))
+        self.assertEqual(self._ascii_header_out, r[0])
+        self.assertEqual(self._ascii_row_out, r[1])
+
+    def test_esri_csv(self):
+        # Test that our ESRI-emitted CSV is converted correctly.
+        c = { "type": "ESRI", "conform": { "type": "geojson", "lat": "theseare", "lon": "ignored" } }
+        d = (u'STREETNAME,NUMBER,OA:x,OA:y'.encode('ascii'),
+             u'MAPLE ST,123,-121.2,39.3'.encode('ascii'))
+        r = self._convert(c, d)
+        self.assertEqual(self._ascii_header_out, r[0])
+        self.assertEqual(self._ascii_row_out, r[1])
+
+    def test_esri_csv_no_lat_lon(self):
+        # Test that the ESRI path works even without lat/lon tags. See issue #91
+        c = { "type": "ESRI", "conform": { "type": "geojson" } }
+        d = (u'STREETNAME,NUMBER,OA:x,OA:y'.encode('ascii'),
+             u'MAPLE ST,123,-121.2,39.3'.encode('ascii'))
+        r = self._convert(c, d)
         self.assertEqual(self._ascii_header_out, r[0])
         self.assertEqual(self._ascii_row_out, r[1])
