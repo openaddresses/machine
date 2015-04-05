@@ -35,10 +35,10 @@ setup(
         'boto >= 2.22.0', 'Jinja2 >= 2.7.0', 'dateutils >= 0.6', 'ijson >= 2.0',
         
         # https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1306991/comments/10
-        'requests==2.2.1',
+        'requests == 2.2.1',
 
         # https://pypi.python.org/pypi/requests-ftp, appears no longer maintained.
-        'requests-ftp >= 0.2.0',
+        'requests-ftp == 0.2.0',
 
         # https://github.com/patrys/httmock
         'httmock >= 1.2',
