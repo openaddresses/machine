@@ -19,6 +19,15 @@ from . import paths
 # Areas
 WORLD, USA, EUROPE = 54029, 2163, 'Europe'
 
+# WGS 84, http://spatialreference.org/ref/epsg/4326/
+EPSG4326 = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs'
+
+# US National Atlas Equal Area, http://spatialreference.org/ref/epsg/2163/
+EPSG2163 = '+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6370997 +b=6370997 +units=m +no_defs'
+
+# World Van der Grinten I, http://spatialreference.org/ref/esri/54029/
+ESRI54029 = '+proj=vandg +lon_0=0 +x_0=0 +y_0=0 +R_A +ellps=WGS84 +datum=WGS84 +units=m +no_defs'
+
 def make_context(width=960, resolution=1, area=WORLD):
     ''' Get Cairo surface, context, and drawing scale.
     
@@ -131,8 +140,9 @@ def load_geometries(directory, good_sources, area):
     '''
     good_geometries, bad_geometries = list(), list()
 
-    sref_geo = osr.SpatialReference(); sref_geo.ImportFromEPSG(4326)
-    sref_map = osr.SpatialReference(); sref_map.ImportFromEPSG(2163 if area == USA else 54029)
+    osr.UseExceptions()
+    sref_geo = osr.SpatialReference(); sref_geo.ImportFromProj4(EPSG4326)
+    sref_map = osr.SpatialReference(); sref_map.ImportFromProj4(EPSG2163 if area == USA else ESRI54029)
     project = osr.CoordinateTransformation(sref_geo, sref_map)
 
     for path in glob(join(directory, '*.json')):
