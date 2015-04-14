@@ -13,8 +13,7 @@ if sys.version_info[0] == 2:
         'future >= 0.14.3',
         
         # https://github.com/jdunck/python-unicodecsv
-        # 0.11.1 has a bug https://github.com/jdunck/python-unicodecsv/issues/54
-        'unicodecsv == 0.11.0',
+        'unicodecsv >= 0.11.2',
     ]
 
 setup(
