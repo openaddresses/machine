@@ -264,7 +264,7 @@
           {% if state.sample and state.sample_data %}
             <button onclick="return showhide(this, '{{ state.shortname }}-sample-data')">Show sample data</button>
           {% else %}
-            No sample data
+            No sample data ( <a href="{{ state.shortname }}.txt">log</a> )
           {% endif %}
         </td>
       </tr>
