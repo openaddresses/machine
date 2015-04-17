@@ -458,7 +458,7 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
             headers = source_definition["conform"]["headers"]
             if (headers == -1):
                 # Read a row off the file to see how many columns it has
-                temp_reader = csvreader(source_fp, encoding=enc, delimiter=delim)
+                temp_reader = csvreader(source_fp, encoding=enc, delimiter=str(delim))
                 first_row = next(temp_reader)
                 num_columns = len(first_row)
                 source_fp.seek(0)
