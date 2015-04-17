@@ -15,7 +15,7 @@ from requests import get
 
 from . import S3, paths
 
-def load_states(s3):
+def load_states(s3, source_dir):
     # Find existing cache information
     state_key = s3.get_key('state.txt')
     states, counts = list(), dict(processed=0, cached=0, sources=0, addresses=0)
@@ -46,7 +46,7 @@ def load_states(s3):
             counts['processed'] += 1 if row['processed'] else 0
             counts['addresses'] += int(row['address count'] or 0)
 
-            with open(join(paths.sources, row['source'])) as file:
+            with open(join(source_dir, row['source'])) as file:
                 data = json.load(file)
             
                 row['type'] = data.get('type', '').lower()
@@ -96,9 +96,9 @@ def nice_integer(number):
 
 def main():
     s3 = S3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'data-test.openaddresses.io')
-    print(summarize(s3).encode('utf8'))
+    print(summarize(s3, paths.sources).encode('utf8'))
 
-def summarize(s3):
+def summarize(s3, source_dir):
     ''' Return summary HTML.
     '''
     env = Environment(loader=FileSystemLoader(join(dirname(__file__), 'templates')))
@@ -106,7 +106,7 @@ def summarize(s3):
     env.filters['nice_integer'] = nice_integer
     template = env.get_template('state.html')
 
-    last_modified, states, counts = load_states(s3)
+    last_modified, states, counts = load_states(s3, source_dir)
     return template.render(states=states, last_modified=last_modified, counts=counts)
 
 if __name__ == '__main__':
