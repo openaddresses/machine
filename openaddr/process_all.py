@@ -22,6 +22,9 @@ from .compat import PY2, csvwriter, csvDictReader
 
 parser = ArgumentParser(description='Run some source files.')
 
+parser.add_argument('source_dir', nargs='?', default=paths.sources,
+                    help='Optional source directory. Defaults to value of openaddr.paths.sources: {}.'.format(paths.sources))
+
 parser.add_argument('bucketname',
                     help='Required S3 bucket name.')
 
@@ -52,7 +55,7 @@ def main():
     #
     _L.info("Doing the work")
     run_name = '{:.3f}'.format(time())
-    state = process(s3, paths.sources, run_name)
+    state = process(s3, args.source_dir, run_name)
 
     #
     # Prepare set of good sources
@@ -70,7 +73,7 @@ def main():
     
     for (area, area_name) in areas:
         png_filename = 'render-{}-{}.png'.format(run_name, area_name)
-        render.render(paths.sources, good_sources, 960, 2, png_filename, area)
+        render.render(args.source_dir, good_sources, 960, 2, png_filename, area)
         render_data = open(png_filename).read()
         render_path = 'render-{}.png'.format(area_name)
         render_key = s3.new_key(join('runs', run_name, render_path))
@@ -78,7 +81,7 @@ def main():
                                             headers={'Content-Type': 'image/png'})
 
     png_usa_filename = 'render-{}-usa.png'.format(run_name)
-    render.render(paths.sources, good_sources, 960, 2, png_usa_filename, render.USA)
+    render.render(args.source_dir, good_sources, 960, 2, png_usa_filename, render.USA)
     render_data = open(png_usa_filename).read()
     render_key = s3.new_key(join('runs', run_name, 'render-usa.png'))
     render_key.set_contents_from_string(render_data, policy='public-read',
