@@ -81,6 +81,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('data.openoakland.org', '/sites/default/files/OakParcelsGeo2013_0.zip'):
             local_path = join(data_dirname, 'us-ca-oakland-excerpt.zip')
         
+        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/cache/pl.zip'):
+            local_path = join(data_dirname, 'pl.zip')
+        
         if (host, path) == ('data.sfgov.org', '/download/kvej-w5kb/ZIPPED%20SHAPEFILE'):
             local_path = join(data_dirname, 'us-ca-san_francisco-excerpt.zip')
         
@@ -133,9 +136,10 @@ class TestOA (unittest.TestCase):
                 self.assertTrue(bool(state['version']), 'Checking for version in {}'.format(source))
                 self.assertTrue(bool(state['fingerprint']), 'Checking for fingerprint in {}'.format(source))
             
-                self.assertTrue(bool(state['sample']), 'Checking for sample in {}'.format(source))
+                if 'pl-' not in source:
+                    self.assertTrue(bool(state['sample']), 'Checking for sample in {}'.format(source))
 
-            if 'san_francisco' in source or 'alameda_county' in source or 'carson' in source:
+            if 'san_francisco' in source or 'alameda_county' in source or 'carson' in source or 'pl-' in source:
                 self.assertTrue(bool(state['processed']), "Checking for processed in {}".format(source))
                 
                 with HTTMock(self.response_content):
