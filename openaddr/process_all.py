@@ -87,7 +87,7 @@ def main():
     render_key.set_contents_from_string(render_data, policy='public-read',
                                         headers={'Content-Type': 'image/png'})
 
-    summary_html = summarize.summarize(s3)
+    summary_html = summarize.summarize(s3, args.source_dir)
     summary_link = join('runs', run_name, 'index.html')
     summary_key = s3.new_key(summary_link)
     summary_key.set_contents_from_string(summary_html, policy='public-read',
