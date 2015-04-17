@@ -1,3 +1,7 @@
+2015-04-16: 1.7.1
+- Fixed CSV decoding bugs.
+- Linked to logs for output with missing sample data.
+
 2015-04-06: 1.7.0
 - Added --bigspender and --cheapskate EC2 spot price options to openaddr-ec2-run.
 - Pinned requests-ftp to 0.2.0 for requests 2.2.1 compatibility.
