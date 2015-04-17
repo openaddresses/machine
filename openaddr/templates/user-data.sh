@@ -10,7 +10,7 @@ echo 'installing' > /var/www/html/state.txt
 /tmp/machine/chef/run.sh
 
 echo 'processing' > /var/www/html/state.txt
-openaddr-process -a {access_key} -s {secret_key} -l log.txt {bucketname}
+openaddr-process -a {access_key} -s {secret_key} -l log.txt /var/opt/openaddresses/sources {bucketname}
 
 echo 'terminating' > /var/www/html/state.txt
 shutdown -h now
