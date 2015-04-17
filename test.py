@@ -365,6 +365,54 @@ class TestOA (unittest.TestCase):
         
         self.assertTrue(state['cache'] is None)
         self.assertTrue(state['processed'] is None)
+        
+    def test_single_pl_ds(self):
+        ''' Test complete process_one.process on Polish sample data.
+        '''
+        source = join(self.src_dir, 'pl-dolnoslaskie.json')
+        
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+        
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        self.assertTrue(state['cache'] is not None)
+        self.assertTrue(state['processed'] is not None)
+        # self.assertTrue(state['sample'] is not None)
+        # self.assertEqual(state['geometry type'], 'Point')
+        # 
+        # with open(join(dirname(state_path), state['sample'])) as file:
+        #     sample_data = json.load(file)
+        # 
+        # self.assertEqual(len(sample_data), 6)
+        # self.assertTrue('ZIPCODE' in sample_data[0])
+        # self.assertTrue('OAKLAND' in sample_data[1])
+        # self.assertTrue('94612' in sample_data[1])
+        
+    def test_single_pl_l(self):
+        ''' Test complete process_one.process on Polish sample data.
+        '''
+        source = join(self.src_dir, 'pl-lodzkie.json')
+        
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+        
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        self.assertTrue(state['cache'] is not None)
+        self.assertTrue(state['processed'] is not None)
+        # self.assertTrue(state['sample'] is not None)
+        # self.assertEqual(state['geometry type'], 'Point')
+        # 
+        # with open(join(dirname(state_path), state['sample'])) as file:
+        #     sample_data = json.load(file)
+        # 
+        # self.assertEqual(len(sample_data), 6)
+        # self.assertTrue('ZIPCODE' in sample_data[0])
+        # self.assertTrue('OAKLAND' in sample_data[1])
+        # self.assertTrue('94612' in sample_data[1])
 
 @contextmanager
 def locked_open(filename):
