@@ -28,6 +28,7 @@ from .conform import (
     DecompressionTask,
     ExcerptDataTask,
     ConvertToCsvTask,
+    elaborate_filenames,
 )
 
 with open(join(dirname(__file__), 'VERSION')) as file:
@@ -142,7 +143,8 @@ def conform(srcjson, destdir, extras):
     _L.info("Downloaded to %s", downloaded_path)
 
     task2 = DecompressionTask.from_type_string(data.get('compression'))
-    decompressed_paths = task2.decompress(downloaded_path, workdir)
+    names = elaborate_filenames(data.get('conform', {}).get('file', None))
+    decompressed_paths = task2.decompress(downloaded_path, workdir, names)
     _L.info("Decompressed to %d files", len(decompressed_paths))
 
     task3 = ExcerptDataTask()
