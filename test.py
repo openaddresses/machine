@@ -1,3 +1,4 @@
+# coding=utf8
 """
 Run Python test suite via the standard unittest mechanism.
 Usage:
@@ -136,8 +137,7 @@ class TestOA (unittest.TestCase):
                 self.assertTrue(bool(state['version']), 'Checking for version in {}'.format(source))
                 self.assertTrue(bool(state['fingerprint']), 'Checking for fingerprint in {}'.format(source))
             
-                if 'pl-' not in source:
-                    self.assertTrue(bool(state['sample']), 'Checking for sample in {}'.format(source))
+                self.assertTrue(bool(state['sample']), 'Checking for sample in {}'.format(source))
 
             if 'san_francisco' in source or 'alameda_county' in source or 'carson' in source or 'pl-' in source:
                 self.assertTrue(bool(state['processed']), "Checking for processed in {}".format(source))
@@ -379,16 +379,16 @@ class TestOA (unittest.TestCase):
         
         self.assertTrue(state['cache'] is not None)
         self.assertTrue(state['processed'] is not None)
-        # self.assertTrue(state['sample'] is not None)
-        # self.assertEqual(state['geometry type'], 'Point')
-        # 
-        # with open(join(dirname(state_path), state['sample'])) as file:
-        #     sample_data = json.load(file)
-        # 
-        # self.assertEqual(len(sample_data), 6)
-        # self.assertTrue('ZIPCODE' in sample_data[0])
-        # self.assertTrue('OAKLAND' in sample_data[1])
-        # self.assertTrue('94612' in sample_data[1])
+        self.assertTrue(state['sample'] is not None)
+        self.assertEqual(state['geometry type'], 'Point')
+        
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('pad_numer_porzadkowy' in sample_data[0])
+        self.assertTrue(u'Wrocław' in sample_data[1])
+        self.assertTrue(u'Ulica Księcia Witolda ' in sample_data[1])
         
     def test_single_pl_l(self):
         ''' Test complete process_one.process on Polish sample data.
@@ -403,16 +403,16 @@ class TestOA (unittest.TestCase):
         
         self.assertTrue(state['cache'] is not None)
         self.assertTrue(state['processed'] is not None)
-        # self.assertTrue(state['sample'] is not None)
-        # self.assertEqual(state['geometry type'], 'Point')
-        # 
-        # with open(join(dirname(state_path), state['sample'])) as file:
-        #     sample_data = json.load(file)
-        # 
-        # self.assertEqual(len(sample_data), 6)
-        # self.assertTrue('ZIPCODE' in sample_data[0])
-        # self.assertTrue('OAKLAND' in sample_data[1])
-        # self.assertTrue('94612' in sample_data[1])
+        self.assertTrue(state['sample'] is not None)
+        self.assertEqual(state['geometry type'], 'Point')
+        
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('pad_numer_porzadkowy' in sample_data[0])
+        self.assertTrue(u'Gliwice' in sample_data[1])
+        self.assertTrue(u'Ulica Dworcowa ' in sample_data[1])
 
 @contextmanager
 def locked_open(filename):
