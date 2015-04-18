@@ -15,6 +15,7 @@ import sys
 from zipfile import ZipFile
 from argparse import ArgumentParser
 from locale import getpreferredencoding
+from os.path import splitext
 
 from .compat import csvopen, csvreader, csvDictReader, csvDictWriter
 from .sample import sample_geojson
@@ -100,12 +101,12 @@ class DecompressionTask(object):
 
 
 class NoopDecompressTask(DecompressionTask):
-    def decompress(self, source_paths, workdir):
+    def decompress(self, source_paths, workdir, filenames):
         return source_paths
 
 
 class ZipDecompressTask(DecompressionTask):
-    def decompress(self, source_paths, workdir):
+    def decompress(self, source_paths, workdir, filenames):
         output_files = []
         expand_path = os.path.join(workdir, 'unzipped')
         mkdirsp(expand_path)
@@ -113,6 +114,11 @@ class ZipDecompressTask(DecompressionTask):
         for source_path in source_paths:
             with ZipFile(source_path, 'r') as z:
                 for name in z.namelist():
+                    if len(filenames) and name not in filenames:
+                        # Download only the named file, if any.
+                        _L.debug("Skipped file {}".format(name))
+                        continue
+                
                     expanded_file_path = z.extract(name, expand_path)
                     _L.debug("Expanded file %s", expanded_file_path)
                     output_files.append(expanded_file_path)
@@ -222,6 +228,21 @@ class ExcerptDataTask(object):
             geometry_type = None
 
         return data_sample, geometry_type
+
+def elaborate_filenames(filename):
+    ''' Return a list of filenames for a single name from conform file tag.
+    
+        Used to expand example.shp with example.shx, example.dbf, and example.prj.
+    '''
+    if filename is None:
+        return []
+    
+    base, original_ext = splitext(filename.lower())
+    
+    if original_ext == '.shp':
+        return [base + ext for ext in (original_ext, '.shx', '.dbf', '.prj')]
+    
+    return [filename]
 
 def guess_source_encoding(datasource, layer):
     ''' Guess at a string encoding using hints from OGR and locale().

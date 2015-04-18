@@ -81,6 +81,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('data.openoakland.org', '/sites/default/files/OakParcelsGeo2013_0.zip'):
             local_path = join(data_dirname, 'us-ca-oakland-excerpt.zip')
         
+        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/cache/pl.zip'):
+            local_path = join(data_dirname, 'pl.zip')
+        
         if (host, path) == ('data.sfgov.org', '/download/kvej-w5kb/ZIPPED%20SHAPEFILE'):
             local_path = join(data_dirname, 'us-ca-san_francisco-excerpt.zip')
         
@@ -133,9 +136,10 @@ class TestOA (unittest.TestCase):
                 self.assertTrue(bool(state['version']), 'Checking for version in {}'.format(source))
                 self.assertTrue(bool(state['fingerprint']), 'Checking for fingerprint in {}'.format(source))
             
-                self.assertTrue(bool(state['sample']), 'Checking for sample in {}'.format(source))
+                if 'pl-' not in source:
+                    self.assertTrue(bool(state['sample']), 'Checking for sample in {}'.format(source))
 
-            if 'san_francisco' in source or 'alameda_county' in source or 'carson' in source:
+            if 'san_francisco' in source or 'alameda_county' in source or 'carson' in source or 'pl-' in source:
                 self.assertTrue(bool(state['processed']), "Checking for processed in {}".format(source))
                 
                 with HTTMock(self.response_content):
@@ -361,6 +365,54 @@ class TestOA (unittest.TestCase):
         
         self.assertTrue(state['cache'] is None)
         self.assertTrue(state['processed'] is None)
+        
+    def test_single_pl_ds(self):
+        ''' Test complete process_one.process on Polish sample data.
+        '''
+        source = join(self.src_dir, 'pl-dolnoslaskie.json')
+        
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+        
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        self.assertTrue(state['cache'] is not None)
+        self.assertTrue(state['processed'] is not None)
+        # self.assertTrue(state['sample'] is not None)
+        # self.assertEqual(state['geometry type'], 'Point')
+        # 
+        # with open(join(dirname(state_path), state['sample'])) as file:
+        #     sample_data = json.load(file)
+        # 
+        # self.assertEqual(len(sample_data), 6)
+        # self.assertTrue('ZIPCODE' in sample_data[0])
+        # self.assertTrue('OAKLAND' in sample_data[1])
+        # self.assertTrue('94612' in sample_data[1])
+        
+    def test_single_pl_l(self):
+        ''' Test complete process_one.process on Polish sample data.
+        '''
+        source = join(self.src_dir, 'pl-lodzkie.json')
+        
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+        
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        self.assertTrue(state['cache'] is not None)
+        self.assertTrue(state['processed'] is not None)
+        # self.assertTrue(state['sample'] is not None)
+        # self.assertEqual(state['geometry type'], 'Point')
+        # 
+        # with open(join(dirname(state_path), state['sample'])) as file:
+        #     sample_data = json.load(file)
+        # 
+        # self.assertEqual(len(sample_data), 6)
+        # self.assertTrue('ZIPCODE' in sample_data[0])
+        # self.assertTrue('OAKLAND' in sample_data[1])
+        # self.assertTrue('94612' in sample_data[1])
 
 @contextmanager
 def locked_open(filename):
