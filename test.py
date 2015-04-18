@@ -85,6 +85,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/cache/pl.zip'):
             local_path = join(data_dirname, 'pl.zip')
         
+        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/cache/jp-fukushima.zip'):
+            local_path = join(data_dirname, 'jp-fukushima.zip')
+        
         if (host, path) == ('data.sfgov.org', '/download/kvej-w5kb/ZIPPED%20SHAPEFILE'):
             local_path = join(data_dirname, 'us-ca-san_francisco-excerpt.zip')
         
@@ -413,6 +416,28 @@ class TestOA (unittest.TestCase):
         self.assertTrue('pad_numer_porzadkowy' in sample_data[0])
         self.assertTrue(u'Gliwice' in sample_data[1])
         self.assertTrue(u'Ulica Dworcowa ' in sample_data[1])
+
+    def test_single_jp_f(self):
+        ''' Test complete process_one.process on Japanese sample data.
+        '''
+        source = join(self.src_dir, 'jp-fukushima.json')
+        
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+        
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        self.assertTrue(state['sample'] is not None)
+        
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue(u'大字・町丁目名' in sample_data[0])
+        self.assertTrue(u'田沢字姥懐' in sample_data[1])
+        self.assertTrue('37.706391' in sample_data[1])
+        self.assertTrue('140.480007' in sample_data[1])
 
 @contextmanager
 def locked_open(filename):

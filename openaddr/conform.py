@@ -179,7 +179,7 @@ class ExcerptDataTask(object):
                 ds = None
         '''
         known_paths = [source_path for source_path in source_paths
-                       if os.path.splitext(source_path)[1] in self.known_types]
+                       if os.path.splitext(source_path)[1].lower() in self.known_types]
         
         if not known_paths:
             # we know nothing.
