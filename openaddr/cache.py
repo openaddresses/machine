@@ -162,12 +162,14 @@ def guess_url_file_extension(url):
             # file type.
             #
             if 'content-disposition' in headers:
-                pattern = r'attachment; filename=("?)(?P<filename>.+)\1'
+                pattern = r'attachment; filename=("?)(?P<filename>[^;]+)\1'
                 match = re.match(pattern, headers['content-disposition'], re.I)
                 if match:
                     _, attachment_ext = splitext(match.group('filename'))
-                    if path_ext != attachment_ext:
-                        _L.debug('Content-Disposition says "{}" instead'.format(match.group('filename')))
+                    if path_ext == attachment_ext:
+                        _L.debug('Content-Disposition agrees: "{}"'.format(match.group('filename')))
+                    else:
+                        _L.debug('Content-Disposition disagrees: "{}"'.format(match.group('filename')))
                         path_ext = False
         
         if not path_ext:
