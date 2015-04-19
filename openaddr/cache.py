@@ -11,10 +11,11 @@ import socket
 import mimetypes
 import shutil
 import itertools
+import re
 
 from os import mkdir
 from hashlib import md5
-from os.path import join, basename, exists, abspath, dirname
+from os.path import join, basename, exists, abspath, dirname, splitext
 from urllib.parse import urlparse, parse_qs
 from subprocess import check_output
 from tempfile import mkstemp
@@ -146,21 +147,37 @@ def guess_url_file_extension(url):
         else:
             raise ValueError('Unknown scheme "{}": {}'.format(scheme, url))
     
-        if 'content-disposition' in headers or 'content-type' not in headers:
+        path_ext = False
+        
+        # Guess path extension from Content-Type header
+        if 'content-type' in headers:
+            content_type = headers['content-type'].split(';')[0]
+            _L.debug('Content-Type says "{}" for {}'.format(content_type, url))
+            path_ext = mimetypes.guess_extension(content_type, False)
+
             #
+            # Uh-oh, see if Content-Disposition disagrees with Content-Type.
             # Socrata recently started using Content-Disposition instead
             # of normal response headers so it's no longer easy to identify
-            # file type. Shell out to `file` to peek at the content when we're
-            # unwilling to trust Content-Type header.
+            # file type.
+            #
+            if 'content-disposition' in headers:
+                pattern = r'attachment; filename=("?)(?P<filename>.+)\1'
+                match = re.match(pattern, headers['content-disposition'], re.I)
+                if match:
+                    _, attachment_ext = splitext(match.group('filename'))
+                    if path_ext != attachment_ext:
+                        _L.debug('Content-Disposition says "{}" instead'.format(match.group('filename')))
+                        path_ext = False
+        
+        if not path_ext:
+            #
+            # Headers didn't clearly define a known extension.
+            # Instead, shell out to `file` to peek at the content.
             #
             mime_type = get_content_mimetype(content_chunk)
             _L.debug('file says "{}" for {}'.format(mime_type, url))
             path_ext = mimetypes.guess_extension(mime_type, False)
-    
-        else:
-            content_type = headers['content-type'].split(';')[0]
-            _L.debug('Content-Type says "{}" for {}'.format(content_type, url))
-            path_ext = mimetypes.guess_extension(content_type, False)
     
     return path_ext
 
@@ -461,6 +478,9 @@ class TestCacheExtensionGuessing (unittest.TestCase):
         elif (host, path, query) == ('dcatlas.dcgis.dc.gov', '/catalog/download.asp', 'downloadID=2182&downloadTYPE=ESRI'):
             return httmock.response(200, b'FAKE'*99, headers={'Content-Type': 'application/x-zip-compressed'})
 
+        elif (host, path, query) == ('data.northcowichan.ca', '/DataBrowser/DownloadCsv', 'container=mncowichan&entitySet=PropertyReport&filter=NOFILTER'):
+            return httmock.response(200, b'FAKE,FAKE\n'*99, headers={'Content-Type': 'text/csv', 'Content-Disposition': 'attachment; filename=PropertyReport.csv'})
+
         raise NotImplementedError(url.geturl())
     
     def test_urls(self):
@@ -471,6 +491,7 @@ class TestCacheExtensionGuessing (unittest.TestCase):
             assert guess_url_file_extension('http://www.ci.berkeley.ca.us/uploadedFiles/IT/GIS/Parcels.zip') == '.zip'
             assert guess_url_file_extension('https://data.sfgov.org/download/kvej-w5kb/ZIPPED%20SHAPEFILE') == '.zip'
             assert guess_url_file_extension('http://dcatlas.dcgis.dc.gov/catalog/download.asp?downloadID=2182&downloadTYPE=ESRI') == '.zip'
+            assert guess_url_file_extension('http://data.northcowichan.ca/DataBrowser/DownloadCsv?container=mncowichan&entitySet=PropertyReport&filter=NOFILTER') == '.csv', guess_url_file_extension('http://data.northcowichan.ca/DataBrowser/DownloadCsv?container=mncowichan&entitySet=PropertyReport&filter=NOFILTER')
 
 class TestCacheEsriDownload (unittest.TestCase):
 
