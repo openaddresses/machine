@@ -547,7 +547,8 @@ def row_extract_and_reproject(source_definition, source_row):
 
     # ESRI-derived source CSV is synthetic; we should ignore any lat/lon names.
     ignore_conform_names |= bool(source_definition['type'] == 'ESRI')
-    
+
+    # Set local variables lon_name, source_x, lat_name, source_y
     if ignore_conform_names:
         # Use our own X_FIELDNAME convention
         lat_name = Y_FIELDNAME
@@ -571,6 +572,10 @@ def row_extract_and_reproject(source_definition, source_row):
     out_row = copy.deepcopy(source_row)
     for n in lon_name, lon_name.upper(), lat_name, lat_name.upper():
         if n in out_row: del out_row[n]
+
+    # Convert commas to periods for decimal numbers. (Not using locale.)
+    source_x = source_x.replace(',', '.')
+    source_y = source_y.replace(',', '.')
 
     # Reproject the coordinates if necessary
     if "srs" not in source_definition["conform"]:
@@ -918,6 +923,11 @@ class TestConformTransforms (unittest.TestCase):
         r = row_extract_and_reproject(d, {X_FIELDNAME: "", Y_FIELDNAME: ""})
         self.assertEqual("", r[X_FIELDNAME])
         self.assertEqual("", r[Y_FIELDNAME])
+
+        # commas in lat/lon columns (eg Iceland)
+        d = { "conform" : { "lon": "LONG_WGS84", "lat": "LAT_WGS84", "type": "csv" }, 'type': 'test' }
+        r = row_extract_and_reproject(d, {"LONG_WGS84": "-21,77", "LAT_WGS84": "64,11"})
+        self.assertEqual({Y_FIELDNAME: "64.11", X_FIELDNAME: "-21.77"}, r)
 
 class TestConformCli (unittest.TestCase):
     "Test the command line interface creates valid output files from test input"
