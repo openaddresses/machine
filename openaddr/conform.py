@@ -127,7 +127,7 @@ class ZipDecompressTask(DecompressionTask):
 class ExcerptDataTask(object):
     ''' Task for sampling three rows of data from datasource.
     '''
-    known_types = ('.shp', '.json', '.csv', '.kml')
+    known_types = ('.shp', '.json', '.csv', '.kml', '.gml')
 
     def excerpt(self, source_paths, workdir, encoding):
         '''
@@ -179,16 +179,17 @@ class ExcerptDataTask(object):
                 ds = None
         '''
         known_paths = [source_path for source_path in source_paths
-                       if os.path.splitext(source_path)[1] in self.known_types]
+                       if os.path.splitext(source_path)[1].lower() in self.known_types]
         
         if not known_paths:
             # we know nothing.
             return None
         
         data_path = known_paths[0]
+        _, data_ext = os.path.splitext(data_path.lower())
 
         # Sample a few GeoJSON features to save on memory for large datasets.
-        if os.path.splitext(data_path)[1] == '.json':
+        if data_ext == '.json':
             with open(data_path, 'r') as complete_layer:
                 temp_dir = os.path.dirname(data_path)
                 _, temp_path = tempfile.mkstemp(dir=temp_dir, suffix='.json')
@@ -202,6 +203,21 @@ class ExcerptDataTask(object):
 
         if not encoding:
             encoding = guess_source_encoding(datasource, layer)
+        
+        # GDAL has issues with non-UTF8 input CSV data, so use Python instead.
+        if data_ext == '.csv' and encoding not in ('utf8', 'utf-8'):
+            with csvopen(data_path, 'r', encoding=encoding) as file:
+                input = csvreader(file, encoding=encoding)
+                data_sample = [next(input) for i in range(6)]
+                
+                if GEOM_FIELDNAME in data_sample[0]:
+                    geom_index = data_sample[0].index(GEOM_FIELDNAME)
+                    geometry = ogr.CreateGeometryFromWkt(data_sample[1][geom_index])
+                    geometry_type = geometry_types.get(geometry.GetGeometryType(), None)
+                else:
+                    geometry_type = None
+
+            return data_sample, geometry_type
         
         layer_defn = layer.GetLayerDefn()
         fieldcount = layer_defn.GetFieldCount()

@@ -1,3 +1,4 @@
+# coding=utf8
 """
 Run Python test suite via the standard unittest mechanism.
 Usage:
@@ -84,6 +85,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/cache/pl.zip'):
             local_path = join(data_dirname, 'pl.zip')
         
+        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/cache/jp-fukushima.zip'):
+            local_path = join(data_dirname, 'jp-fukushima.zip')
+        
         if (host, path) == ('data.sfgov.org', '/download/kvej-w5kb/ZIPPED%20SHAPEFILE'):
             local_path = join(data_dirname, 'us-ca-san_francisco-excerpt.zip')
         
@@ -136,8 +140,7 @@ class TestOA (unittest.TestCase):
                 self.assertTrue(bool(state['version']), 'Checking for version in {}'.format(source))
                 self.assertTrue(bool(state['fingerprint']), 'Checking for fingerprint in {}'.format(source))
             
-                if 'pl-' not in source:
-                    self.assertTrue(bool(state['sample']), 'Checking for sample in {}'.format(source))
+                self.assertTrue(bool(state['sample']), 'Checking for sample in {}'.format(source))
 
             if 'san_francisco' in source or 'alameda_county' in source or 'carson' in source or 'pl-' in source:
                 self.assertTrue(bool(state['processed']), "Checking for processed in {}".format(source))
@@ -379,16 +382,16 @@ class TestOA (unittest.TestCase):
         
         self.assertTrue(state['cache'] is not None)
         self.assertTrue(state['processed'] is not None)
-        # self.assertTrue(state['sample'] is not None)
-        # self.assertEqual(state['geometry type'], 'Point')
-        # 
-        # with open(join(dirname(state_path), state['sample'])) as file:
-        #     sample_data = json.load(file)
-        # 
-        # self.assertEqual(len(sample_data), 6)
-        # self.assertTrue('ZIPCODE' in sample_data[0])
-        # self.assertTrue('OAKLAND' in sample_data[1])
-        # self.assertTrue('94612' in sample_data[1])
+        self.assertTrue(state['sample'] is not None)
+        self.assertEqual(state['geometry type'], 'Point')
+        
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('pad_numer_porzadkowy' in sample_data[0])
+        self.assertTrue(u'Wrocław' in sample_data[1])
+        self.assertTrue(u'Ulica Księcia Witolda ' in sample_data[1])
         
     def test_single_pl_l(self):
         ''' Test complete process_one.process on Polish sample data.
@@ -403,16 +406,38 @@ class TestOA (unittest.TestCase):
         
         self.assertTrue(state['cache'] is not None)
         self.assertTrue(state['processed'] is not None)
-        # self.assertTrue(state['sample'] is not None)
-        # self.assertEqual(state['geometry type'], 'Point')
-        # 
-        # with open(join(dirname(state_path), state['sample'])) as file:
-        #     sample_data = json.load(file)
-        # 
-        # self.assertEqual(len(sample_data), 6)
-        # self.assertTrue('ZIPCODE' in sample_data[0])
-        # self.assertTrue('OAKLAND' in sample_data[1])
-        # self.assertTrue('94612' in sample_data[1])
+        self.assertTrue(state['sample'] is not None)
+        self.assertEqual(state['geometry type'], 'Point')
+        
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('pad_numer_porzadkowy' in sample_data[0])
+        self.assertTrue(u'Gliwice' in sample_data[1])
+        self.assertTrue(u'Ulica Dworcowa ' in sample_data[1])
+
+    def test_single_jp_f(self):
+        ''' Test complete process_one.process on Japanese sample data.
+        '''
+        source = join(self.src_dir, 'jp-fukushima.json')
+        
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+        
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        self.assertTrue(state['sample'] is not None)
+        
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue(u'大字・町丁目名' in sample_data[0])
+        self.assertTrue(u'田沢字姥懐' in sample_data[1])
+        self.assertTrue('37.706391' in sample_data[1])
+        self.assertTrue('140.480007' in sample_data[1])
 
 @contextmanager
 def locked_open(filename):
