@@ -208,9 +208,11 @@ class ExcerptDataTask(object):
         if data_ext == '.csv' and encoding not in ('utf8', 'utf-8'):
             with csvopen(data_path, 'r', encoding=encoding) as file:
                 input = csvreader(file, encoding=encoding)
-                data_sample = [next(input) for i in range(6)]
-                
-                if GEOM_FIELDNAME in data_sample[0]:
+                data_sample = [row for (row, _) in zip(input, range(6))]
+
+                if len(data_sample) < 2:
+                    raise ValueError('Not enough rows in data source')
+                elif GEOM_FIELDNAME in data_sample[0]:
                     geom_index = data_sample[0].index(GEOM_FIELDNAME)
                     geometry = ogr.CreateGeometryFromWkt(data_sample[1][geom_index])
                     geometry_type = geometry_types.get(geometry.GetGeometryType(), None)
@@ -226,13 +228,13 @@ class ExcerptDataTask(object):
 
         data_sample = [fieldnames]
         
-        for feature in layer:
+        for (feature, _) in zip(layer, range(5)):
             row = [feature.GetField(i) for i in range(fieldcount)]
             row = [v.decode(encoding) if hasattr(v, 'decode') else v for v in row]
             data_sample.append(row)
 
-            if len(data_sample) == 6:
-                break
+        if len(data_sample) < 2:
+            raise ValueError('Not enough rows in data source')
         
         # Determine geometry_type from layer, sample, or give up.
         if layer_defn.GetGeomType() in geometry_types:
