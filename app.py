@@ -4,7 +4,7 @@ import json, os
 
 from flask import Flask, request, Response, current_app
 from uritemplate import expand
-from requests import get
+from requests import get, post
 
 app = Flask(__name__)
 app.config['GITHUB_AUTH'] = os.environ['GITHUB_TOKEN'], 'x-oauth-basic'
@@ -16,7 +16,9 @@ def index():
 @app.route('/hook', methods=['GET', 'POST'])
 def hook():
     github_auth = current_app.config['GITHUB_AUTH']
-    files = process_payload(json.loads(request.data), github_auth)
+    webhook_payload = json.loads(request.data)
+    files = process_payload(webhook_payload, github_auth)
+    update_status(webhook_payload, files, github_auth)
     
     serialize = lambda data: json.dumps(data, indent=2, sort_keys=True)
     response = '\n\n'.join(['{}:\n\n{}\n'.format(name, serialize(data))
@@ -82,6 +84,32 @@ def process_payload(payload, github_auth):
             raise ValueError('Unrecognized encoding "{}"'.format(encoding))
     
     return processed
+
+def update_status(payload, files, github_auth):
+    ''' Push pending status for head commit to Github status API.
+    '''
+    status = dict(context='openaddresses/hooked')
+    
+    if files:
+        status['state'] = 'pending'
+        status['description'] = 'Checking {}'.format(', '.join(files))
+    else:
+        status['state'] = 'success'
+        status['description'] = 'Nothing to check'
+    
+    commit_sha = payload['head_commit']['id']
+    status_url = payload['repository']['statuses_url']
+    status_url = expand(status_url, dict(sha=commit_sha))
+    
+    current_app.logger.debug('Status URL {}'.format(status_url))
+    
+    posted = post(status_url, data=json.dumps(status), auth=github_auth, headers={'Content-Type': 'application/json'})
+    
+    if posted.status_code not in range(200, 299):
+        raise ValueError('Failed status post to {}'.format(commit_sha))
+    
+    if posted.json()['state'] != status['state']:
+        raise ValueError('Mismatched status post to {}'.format(commit_sha))
 
 if __name__ == '__main__':
     app.run(debug=True)

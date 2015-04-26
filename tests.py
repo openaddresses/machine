@@ -1,6 +1,9 @@
+from __future__ import print_function
+
 from httmock import HTTMock, response
 from urlparse import parse_qsl
-import unittest, os
+from os.path import basename
+import unittest, json, os, sys
 
 os.environ['GITHUB_TOKEN'] = ''
 from app import app
@@ -16,8 +19,10 @@ class TestHook (unittest.TestCase):
         '''
         '''
         query = dict(parse_qsl(url.query))
+        MHP = request.method, url.hostname, url.path
+        response_headers = {'Content-Type': 'application/json; charset=utf-8'}
         
-        if (url.hostname, url.path) == ('api.github.com', '/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-alameda_county.json') and query.get('ref', '').startswith('e91fbc'):
+        if MHP == ('GET', 'api.github.com', '/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-alameda_county.json') and query.get('ref', '').startswith('e91fbc'):
             data = '''{
               "name": "us-ca-alameda_county.json",
               "path": "sources/us-ca-alameda_county.json",
@@ -37,9 +42,9 @@ class TestHook (unittest.TestCase):
               }
             }'''
             
-            return response(200, data, headers={'Content-Type': 'application/json; charset=utf-8'})
+            return response(200, data, headers=response_headers)
         
-        if (url.hostname, url.path) == ('api.github.com', '/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-san_francisco.json') and query.get('ref', '').startswith('ded44e'):
+        if MHP == ('GET', 'api.github.com', '/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-san_francisco.json') and query.get('ref', '').startswith('ded44e'):
             data = '''{
               "name": "us-ca-san_francisco.json",
               "path": "sources/us-ca-san_francisco.json",
@@ -59,9 +64,9 @@ class TestHook (unittest.TestCase):
               }
             }'''
             
-            return response(200, data, headers={'Content-Type': 'application/json; charset=utf-8'})
+            return response(200, data, headers=response_headers)
         
-        if (url.hostname, url.path) == ('api.github.com', '/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-berkeley.json') and query.get('ref', '').startswith('ded44e'):
+        if MHP == ('GET', 'api.github.com', '/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-berkeley.json') and query.get('ref', '').startswith('ded44e'):
             data = '''{
               "name": "us-ca-berkeley.json",
               "path": "sources/us-ca-berkeley.json",
@@ -81,8 +86,54 @@ class TestHook (unittest.TestCase):
               }
             }'''
             
-            return response(200, data, headers={'Content-Type': 'application/json; charset=utf-8'})
+            return response(200, data, headers=response_headers)
         
+        if MHP == ('POST', 'api.github.com', '/repos/openaddresses/hooked-on-sources/statuses/e5f1dcae83ab1ef1f736b969da617311f7f11564') \
+        or MHP == ('POST', 'api.github.com', '/repos/openaddresses/hooked-on-sources/statuses/e91fbc420f08890960f50f863626e1062f922522') \
+        or MHP == ('POST', 'api.github.com', '/repos/openaddresses/hooked-on-sources/statuses/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa'):
+            input = json.loads(request.body)
+            states = {
+                'e5f1dcae83ab1ef1f736b969da617311f7f11564': 'success',
+                'e91fbc420f08890960f50f863626e1062f922522': 'pending',
+                'ded44ed5f1733bb93d84f94afe9383e2d47bbbaa': 'pending'
+                }
+            
+            self.assertEqual(input['context'], 'openaddresses/hooked')
+            self.assertEqual(input['state'], states[basename(url.path)])
+            
+            data = '''{{
+              "context": "openaddresses/hooked", 
+              "created_at": "2015-04-26T23:45:39Z", 
+              "creator": {{
+                "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3", 
+                "events_url": "https://api.github.com/users/migurski/events{{/privacy}}", 
+                "followers_url": "https://api.github.com/users/migurski/followers", 
+                "following_url": "https://api.github.com/users/migurski/following{{/other_user}}", 
+                "gists_url": "https://api.github.com/users/migurski/gists{{/gist_id}}", 
+                "gravatar_id": "", 
+                "html_url": "https://github.com/migurski", 
+                "id": 58730, 
+                "login": "migurski", 
+                "organizations_url": "https://api.github.com/users/migurski/orgs", 
+                "received_events_url": "https://api.github.com/users/migurski/received_events", 
+                "repos_url": "https://api.github.com/users/migurski/repos", 
+                "site_admin": false, 
+                "starred_url": "https://api.github.com/users/migurski/starred{{/owner}}{{/repo}}", 
+                "subscriptions_url": "https://api.github.com/users/migurski/subscriptions", 
+                "type": "User", 
+                "url": "https://api.github.com/users/migurski"
+              }}, 
+              "description": "Checking ", 
+              "id": 999999999, 
+              "state": "{state}", 
+              "target_url": null, 
+              "updated_at": "2015-04-26T23:45:39Z", 
+              "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/statuses/xxxxxxxxx"
+            }}'''
+            
+            return response(201, data.format(**input), headers=response_headers)
+        
+        print('Unknowable URL "{}"'.format(url.geturl()), file=sys.stderr)
         raise ValueError('Unknowable URL "{}"'.format(url.geturl()))
 
     def test_webhook_one_commit(self):
