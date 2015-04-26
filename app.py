@@ -25,11 +25,14 @@ def hook():
         for filelist in (commit['added'], commit['modified']):
             touched.update(filelist)
         
+        for filename in commit['removed']:
+            touched.remove(filename)
+        
     print >> stderr, 'Touched files', list(touched)
     
     commit_sha = payload['head_commit']['id']
     
-    print >> stderr, 'Commit SHA', commit_sha
+    print >> stderr, 'Head commit SHA', commit_sha
     
     for filename in touched:
         
@@ -40,6 +43,10 @@ def hook():
         print >> stderr, 'Contents URL', contents_url
         
         got = get(contents_url)
+        
+        if got.status_code not in range(200, 299):
+            print >> stderr, 'Skipping', filename, '-', got.status_code
+            continue
         
         content, blob_sha = got.json()['content'], got.json()['sha']
         
