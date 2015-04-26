@@ -1,7 +1,9 @@
-from app import app
 from httmock import HTTMock, response
 from urlparse import parse_qsl
-import unittest
+import unittest, os
+
+os.environ['GITHUB_TOKEN'] = ''
+from app import app
 
 class TestHook (unittest.TestCase):
 

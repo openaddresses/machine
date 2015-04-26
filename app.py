@@ -1,13 +1,13 @@
-from sys import stderr
 from os.path import relpath, splitext
 from base64 import b64decode
-import json
+import json, os
 
-from flask import Flask, request, Response
+from flask import Flask, request, Response, current_app
 from uritemplate import expand
 from requests import get
 
 app = Flask(__name__)
+app.config['GITHUB_AUTH'] = os.environ['GITHUB_TOKEN'], 'x-oauth-basic'
 
 @app.route('/')
 def index():
@@ -15,7 +15,8 @@ def index():
 
 @app.route('/hook', methods=['GET', 'POST'])
 def hook():
-    files = process_payload(json.loads(request.data))
+    github_auth = current_app.config['GITHUB_AUTH']
+    files = process_payload(json.loads(request.data), github_auth)
     
     serialize = lambda data: json.dumps(data, indent=2, sort_keys=True)
     response = '\n\n'.join(['{}:\n\n{}\n'.format(name, serialize(data))
@@ -38,18 +39,16 @@ def get_touched_files(payload):
             # Skip files that no longer exist.
             touched.remove(filename)
         
-    print >> stderr, 'Touched files', ', '.join(touched)
+    current_app.logger.debug('Touched files {}'.format(', '.join(touched)))
     
     return touched
 
-def process_payload(payload):
+def process_payload(payload, github_auth):
     ''' Return a dictionary of file paths and decoded JSON contents.
     '''
     processed, touched = dict(), get_touched_files(payload)
     
     commit_sha = payload['head_commit']['id']
-    
-    print >> stderr, 'Head commit SHA', commit_sha
     
     for filename in touched:
         if relpath(filename, 'sources').startswith('..'):
@@ -64,18 +63,18 @@ def process_payload(payload):
         contents_url = expand(contents_url, dict(path=filename))
         contents_url = '{contents_url}?ref={commit_sha}'.format(**locals())
         
-        print >> stderr, 'Contents URL', contents_url
+        current_app.logger.debug('Contents URL {}'.format(contents_url))
         
-        got = get(contents_url)
+        got = get(contents_url, auth=github_auth)
         contents = got.json()
         
         if got.status_code not in range(200, 299):
-            print >> stderr, 'Skipping', filename, '-', got.status_code
+            current_app.logger.warning('Skipping {} - {}'.format(filename, got.status_code))
             continue
         
         content, encoding = contents['content'], contents['encoding']
         
-        print >> stderr, 'Contents SHA', contents['sha']
+        current_app.logger.debug('Contents SHA {}'.format(contents['sha']))
         
         if encoding == 'base64':
             processed[filename] = json.loads(b64decode(content))
