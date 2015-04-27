@@ -48,16 +48,25 @@ def get_touched_payload_files(payload):
 def get_touched_branch_files(payload, github_auth):
     ''' Return a set of files modified between master and payload head.
     '''
-    commit_sha = payload['head_commit']['id']
-    compare_url = payload['repository']['compare_url']
-    compare_url = expand(compare_url, dict(base='master', head=commit_sha))
+    branch_sha = payload['head_commit']['id']
+
+    compare1_url = payload['repository']['compare_url']
+    compare1_url = expand(compare1_url, dict(base='master', head=branch_sha))
+    current_app.logger.debug('Compare URL 1 {}'.format(compare1_url))
     
-    current_app.logger.debug('Compare URL {}'.format(compare_url))
+    compare1 = get(compare1_url, auth=github_auth).json()
+    merge_base_sha = compare1['merge_base_commit']['sha']
     
-    got = get(compare_url, auth=github_auth)
-    compare = got.json()
+    # That's no branch.
+    if merge_base_sha == branch_sha:
+        return set()
+
+    compare2_url = payload['repository']['compare_url']
+    compare2_url = expand(compare2_url, dict(base=merge_base_sha, head=branch_sha))
+    current_app.logger.debug('Compare URL 2 {}'.format(compare2_url))
     
-    touched = set([file['filename'] for file in compare['files']])
+    compare2 = get(compare2_url, auth=github_auth).json()
+    touched = set([file['filename'] for file in compare2['files']])
     current_app.logger.debug('Touched files {}'.format(', '.join(touched)))
     
     return touched
@@ -65,7 +74,10 @@ def get_touched_branch_files(payload, github_auth):
 def process_payload(payload, github_auth):
     ''' Return a dictionary of file paths and decoded JSON contents.
     '''
-    processed, touched = dict(), get_touched_branch_files(payload, github_auth)
+    processed = dict()
+
+    touched = get_touched_payload_files(payload)
+    touched |= get_touched_branch_files(payload, github_auth)
     
     commit_sha = payload['head_commit']['id']
     
