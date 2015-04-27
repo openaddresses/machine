@@ -26,7 +26,7 @@ def hook():
     
     return Response(response, headers={'Content-Type': 'text/plain'})
 
-def get_touched_files(payload):
+def get_touched_payload_files(payload):
     ''' Return a set of files modified in payload commits.
     '''
     touched = set()
@@ -45,10 +45,27 @@ def get_touched_files(payload):
     
     return touched
 
+def get_touched_branch_files(payload, github_auth):
+    ''' Return a set of files modified between master and payload head.
+    '''
+    commit_sha = payload['head_commit']['id']
+    compare_url = payload['repository']['compare_url']
+    compare_url = expand(compare_url, dict(base='master', head=commit_sha))
+    
+    current_app.logger.debug('Compare URL {}'.format(compare_url))
+    
+    got = get(compare_url, auth=github_auth)
+    compare = got.json()
+    
+    touched = set([file['filename'] for file in compare['files']])
+    current_app.logger.debug('Touched files {}'.format(', '.join(touched)))
+    
+    return touched
+
 def process_payload(payload, github_auth):
     ''' Return a dictionary of file paths and decoded JSON contents.
     '''
-    processed, touched = dict(), get_touched_files(payload)
+    processed, touched = dict(), get_touched_branch_files(payload, github_auth)
     
     commit_sha = payload['head_commit']['id']
     

@@ -88,18 +88,743 @@ class TestHook (unittest.TestCase):
             
             return response(200, data, headers=response_headers)
         
+        if MHP == ('GET', 'api.github.com', '/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-santa_clara_county.json') and query.get('ref', '').startswith('e5f1dc'):
+            data = '''{
+              "name": "us-ca-santa_clara_county.json",
+              "path": "sources/us-ca-santa_clara_county.json",
+              "sha": "84abff13dba318189f1f4d5c1605478127ceff5c",
+              "size": 908,
+              "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-santa_clara_county.json?ref=e5f1dcae83ab1ef1f736b969da617311f7f11564",
+              "html_url": "https://github.com/openaddresses/hooked-on-sources/blob/e5f1dcae83ab1ef1f736b969da617311f7f11564/sources/us-ca-santa_clara_county.json",
+              "git_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/blobs/84abff13dba318189f1f4d5c1605478127ceff5c",
+              "download_url": "https://raw.githubusercontent.com/openaddresses/hooked-on-sources/e5f1dcae83ab1ef1f736b969da617311f7f11564/sources/us-ca-santa_clara_county.json",
+              "type": "file",
+              "content": "ewogICAgImNvdmVyYWdlIjogewogICAgICAgICJVUyBDZW5zdXMiOiB7Imdl\\nb2lkIjogIjA2MDg1IiwgIm5hbWUiOiAiU2FudGEgQ2xhcmEgQ291bnR5Iiwg\\nInN0YXRlIjogIkNhbGlmb3JuaWEifSwKICAgICAgICAiY291bnRyeSI6ICJ1\\ncyIsCiAgICAgICAgInN0YXRlIjogImNhIiwKICAgICAgICAiY291bnR5Ijog\\nIlNhbnRhIENsYXJhIgogICAgfSwKICAgICJjb25mb3JtIjogewogICAgICAg\\nICJ0eXBlIjogInNoYXBlZmlsZSIsCiAgICAgICAgInBvc3Rjb2RlIjogIlpJ\\nUENPREUiLAogICAgICAgICJjaXR5IjogIkNJVFkiLAogICAgICAgICJudW1i\\nZXIiOiAiSE9VU0VOVU1URSIsCiAgICAgICAgIm1lcmdlIjogWyJTVFJFRVRO\\nQU1FIiwgIlNUUkVFVFRZUEUiXSwKICAgICAgICAic3RyZWV0IjogImF1dG9f\\nc3RyZWV0IiwKICAgICAgICAibG9uIjogIngiLAogICAgICAgICJsYXQiOiAi\\neSIKICAgIH0sCiAgICAiYXR0cmlidXRpb24iOiAiU2FudGEgQ2xhcmEgQ291\\nbnR5IiwKICAgICJkYXRhIjogImh0dHBzOi8vZ2l0aHViLmNvbS9kYXRhZGVz\\nay91cy1jYS1zYW50YV9jbGFyYV9jb3VudHktZ2lzLXNocC9ibG9iL21hc3Rl\\nci9RNF9GWTE0X0FkZHJlc3NfUG9pbnQuemlwP3Jhdz10cnVlIiwKICAgICJ3\\nZWJzaXRlIjogImh0dHBzOi8vc2Z0cC5zY2Nnb3Yub3JnL2NvdXJpZXIvd2Vi\\nLzEwMDBAL3dtTG9naW4uaHRtbCIsCiAgICAidHlwZSI6ICJodHRwIiwKICAg\\nICJjb21wcmVzc2lvbiI6ICJ6aXAiLAogICAgIm5vdGUiOiAiRmlsZSBkb3du\\nbG9hZCBpcyBiZWhpbmQgYSByZWdpc3RyYXRpb24gd2FsbCBvbiBnb3Zlcm5t\\nZW50IHNpdGUgc28gdGhlIHppcCB3YXMgZG93bmxvYWRlZCBpbiBOb3ZlbWJl\\nciAyMDE0IGFuZCB1cGxvYWRlZCB0byBHaXRIdWIgZm9yIHB1YmxpYyBob3N0\\naW5nLiIKfQo=\\n",
+              "encoding": "base64",
+              "_links": {
+                "self": "https://api.github.com/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-santa_clara_county.json?ref=e5f1dcae83ab1ef1f736b969da617311f7f11564",
+                "git": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/blobs/84abff13dba318189f1f4d5c1605478127ceff5c",
+                "html": "https://github.com/openaddresses/hooked-on-sources/blob/e5f1dcae83ab1ef1f736b969da617311f7f11564/sources/us-ca-santa_clara_county.json"
+              }
+            }'''
+            
+            return response(200, data, headers=response_headers)
+        
+        if MHP == ('GET', 'api.github.com', '/repos/openaddresses/hooked-on-sources/compare/master...e5f1dcae83ab1ef1f736b969da617311f7f11564'):
+            data = '''{
+              "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/compare/master...e5f1dcae83ab1ef1f736b969da617311f7f11564",
+              "html_url": "https://github.com/openaddresses/hooked-on-sources/compare/master...e5f1dcae83ab1ef1f736b969da617311f7f11564",
+              "permalink_url": "https://github.com/openaddresses/hooked-on-sources/compare/openaddresses:ded44ed...openaddresses:e5f1dca",
+              "diff_url": "https://github.com/openaddresses/hooked-on-sources/compare/master...e5f1dcae83ab1ef1f736b969da617311f7f11564.diff",
+              "patch_url": "https://github.com/openaddresses/hooked-on-sources/compare/master...e5f1dcae83ab1ef1f736b969da617311f7f11564.patch",
+              "base_commit": {
+                "sha": "ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                "commit": {
+                  "author": {
+                    "name": "Michal Migurski",
+                    "email": "mike@teczno.com",
+                    "date": "2015-04-26T00:25:55Z"
+                  },
+                  "committer": {
+                    "name": "Michal Migurski",
+                    "email": "mike@teczno.com",
+                    "date": "2015-04-26T00:25:55Z"
+                  },
+                  "message": "Added Berkeley",
+                  "tree": {
+                    "sha": "9d6ac64ea358034e23fba121f3833790f47b5d76",
+                    "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/trees/9d6ac64ea358034e23fba121f3833790f47b5d76"
+                  },
+                  "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/commits/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                  "comment_count": 0
+                },
+                "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                "html_url": "https://github.com/openaddresses/hooked-on-sources/commit/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                "comments_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa/comments",
+                "author": {
+                  "login": "migurski",
+                  "id": 58730,
+                  "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",
+                  "gravatar_id": "",
+                  "url": "https://api.github.com/users/migurski",
+                  "html_url": "https://github.com/migurski",
+                  "followers_url": "https://api.github.com/users/migurski/followers",
+                  "following_url": "https://api.github.com/users/migurski/following{/other_user}",
+                  "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",
+                  "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",
+                  "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",
+                  "organizations_url": "https://api.github.com/users/migurski/orgs",
+                  "repos_url": "https://api.github.com/users/migurski/repos",
+                  "events_url": "https://api.github.com/users/migurski/events{/privacy}",
+                  "received_events_url": "https://api.github.com/users/migurski/received_events",
+                  "type": "User",
+                  "site_admin": false
+                },
+                "committer": {
+                  "login": "migurski",
+                  "id": 58730,
+                  "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",
+                  "gravatar_id": "",
+                  "url": "https://api.github.com/users/migurski",
+                  "html_url": "https://github.com/migurski",
+                  "followers_url": "https://api.github.com/users/migurski/followers",
+                  "following_url": "https://api.github.com/users/migurski/following{/other_user}",
+                  "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",
+                  "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",
+                  "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",
+                  "organizations_url": "https://api.github.com/users/migurski/orgs",
+                  "repos_url": "https://api.github.com/users/migurski/repos",
+                  "events_url": "https://api.github.com/users/migurski/events{/privacy}",
+                  "received_events_url": "https://api.github.com/users/migurski/received_events",
+                  "type": "User",
+                  "site_admin": false
+                },
+                "parents": [
+                  {
+                    "sha": "73a81c5b337bd393273a222f1cd191d7e634df51",
+                    "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/73a81c5b337bd393273a222f1cd191d7e634df51",
+                    "html_url": "https://github.com/openaddresses/hooked-on-sources/commit/73a81c5b337bd393273a222f1cd191d7e634df51"
+                  }
+                ]
+              },
+              "merge_base_commit": {
+                "sha": "ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                "commit": {
+                  "author": {
+                    "name": "Michal Migurski",
+                    "email": "mike@teczno.com",
+                    "date": "2015-04-26T00:25:55Z"
+                  },
+                  "committer": {
+                    "name": "Michal Migurski",
+                    "email": "mike@teczno.com",
+                    "date": "2015-04-26T00:25:55Z"
+                  },
+                  "message": "Added Berkeley",
+                  "tree": {
+                    "sha": "9d6ac64ea358034e23fba121f3833790f47b5d76",
+                    "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/trees/9d6ac64ea358034e23fba121f3833790f47b5d76"
+                  },
+                  "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/commits/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                  "comment_count": 0
+                },
+                "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                "html_url": "https://github.com/openaddresses/hooked-on-sources/commit/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                "comments_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa/comments",
+                "author": {
+                  "login": "migurski",
+                  "id": 58730,
+                  "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",
+                  "gravatar_id": "",
+                  "url": "https://api.github.com/users/migurski",
+                  "html_url": "https://github.com/migurski",
+                  "followers_url": "https://api.github.com/users/migurski/followers",
+                  "following_url": "https://api.github.com/users/migurski/following{/other_user}",
+                  "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",
+                  "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",
+                  "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",
+                  "organizations_url": "https://api.github.com/users/migurski/orgs",
+                  "repos_url": "https://api.github.com/users/migurski/repos",
+                  "events_url": "https://api.github.com/users/migurski/events{/privacy}",
+                  "received_events_url": "https://api.github.com/users/migurski/received_events",
+                  "type": "User",
+                  "site_admin": false
+                },
+                "committer": {
+                  "login": "migurski",
+                  "id": 58730,
+                  "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",
+                  "gravatar_id": "",
+                  "url": "https://api.github.com/users/migurski",
+                  "html_url": "https://github.com/migurski",
+                  "followers_url": "https://api.github.com/users/migurski/followers",
+                  "following_url": "https://api.github.com/users/migurski/following{/other_user}",
+                  "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",
+                  "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",
+                  "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",
+                  "organizations_url": "https://api.github.com/users/migurski/orgs",
+                  "repos_url": "https://api.github.com/users/migurski/repos",
+                  "events_url": "https://api.github.com/users/migurski/events{/privacy}",
+                  "received_events_url": "https://api.github.com/users/migurski/received_events",
+                  "type": "User",
+                  "site_admin": false
+                },
+                "parents": [
+                  {
+                    "sha": "73a81c5b337bd393273a222f1cd191d7e634df51",
+                    "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/73a81c5b337bd393273a222f1cd191d7e634df51",
+                    "html_url": "https://github.com/openaddresses/hooked-on-sources/commit/73a81c5b337bd393273a222f1cd191d7e634df51"
+                  }
+                ]
+              },
+              "status": "ahead",
+              "ahead_by": 3,
+              "behind_by": 0,
+              "total_commits": 3,
+              "commits": [
+                {
+                  "sha": "b659130053b85cd3993b1a4653da1bf6231ec0b4",
+                  "commit": {
+                    "author": {
+                      "name": "Michal Migurski",
+                      "email": "mike@teczno.com",
+                      "date": "2015-04-26T00:48:58Z"
+                    },
+                    "committer": {
+                      "name": "Michal Migurski",
+                      "email": "mike@teczno.com",
+                      "date": "2015-04-26T00:48:58Z"
+                    },
+                    "message": "Added Santa Clara County",
+                    "tree": {
+                      "sha": "f0cd9b347f69397fcc79fcc434f077bf19af9520",
+                      "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/trees/f0cd9b347f69397fcc79fcc434f077bf19af9520"
+                    },
+                    "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/commits/b659130053b85cd3993b1a4653da1bf6231ec0b4",
+                    "comment_count": 0
+                  },
+                  "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/b659130053b85cd3993b1a4653da1bf6231ec0b4",
+                  "html_url": "https://github.com/openaddresses/hooked-on-sources/commit/b659130053b85cd3993b1a4653da1bf6231ec0b4",
+                  "comments_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/b659130053b85cd3993b1a4653da1bf6231ec0b4/comments",
+                  "author": {
+                    "login": "migurski",
+                    "id": 58730,
+                    "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",
+                    "gravatar_id": "",
+                    "url": "https://api.github.com/users/migurski",
+                    "html_url": "https://github.com/migurski",
+                    "followers_url": "https://api.github.com/users/migurski/followers",
+                    "following_url": "https://api.github.com/users/migurski/following{/other_user}",
+                    "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",
+                    "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",
+                    "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",
+                    "organizations_url": "https://api.github.com/users/migurski/orgs",
+                    "repos_url": "https://api.github.com/users/migurski/repos",
+                    "events_url": "https://api.github.com/users/migurski/events{/privacy}",
+                    "received_events_url": "https://api.github.com/users/migurski/received_events",
+                    "type": "User",
+                    "site_admin": false
+                  },
+                  "committer": {
+                    "login": "migurski",
+                    "id": 58730,
+                    "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",
+                    "gravatar_id": "",
+                    "url": "https://api.github.com/users/migurski",
+                    "html_url": "https://github.com/migurski",
+                    "followers_url": "https://api.github.com/users/migurski/followers",
+                    "following_url": "https://api.github.com/users/migurski/following{/other_user}",
+                    "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",
+                    "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",
+                    "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",
+                    "organizations_url": "https://api.github.com/users/migurski/orgs",
+                    "repos_url": "https://api.github.com/users/migurski/repos",
+                    "events_url": "https://api.github.com/users/migurski/events{/privacy}",
+                    "received_events_url": "https://api.github.com/users/migurski/received_events",
+                    "type": "User",
+                    "site_admin": false
+                  },
+                  "parents": [
+                    {
+                      "sha": "ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                      "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                      "html_url": "https://github.com/openaddresses/hooked-on-sources/commit/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa"
+                    }
+                  ]
+                },
+                {
+                  "sha": "0cbd51b8f6044e98c919dcabf93e3f4e1d58c035",
+                  "commit": {
+                    "author": {
+                      "name": "Michal Migurski",
+                      "email": "mike@teczno.com",
+                      "date": "2015-04-26T00:52:39Z"
+                    },
+                    "committer": {
+                      "name": "Michal Migurski",
+                      "email": "mike@teczno.com",
+                      "date": "2015-04-26T00:52:39Z"
+                    },
+                    "message": "Added Polish source",
+                    "tree": {
+                      "sha": "cf52bd865006bc0cd3deaba1b87a4d679a3410e0",
+                      "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/trees/cf52bd865006bc0cd3deaba1b87a4d679a3410e0"
+                    },
+                    "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/commits/0cbd51b8f6044e98c919dcabf93e3f4e1d58c035",
+                    "comment_count": 0
+                  },
+                  "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/0cbd51b8f6044e98c919dcabf93e3f4e1d58c035",
+                  "html_url": "https://github.com/openaddresses/hooked-on-sources/commit/0cbd51b8f6044e98c919dcabf93e3f4e1d58c035",
+                  "comments_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/0cbd51b8f6044e98c919dcabf93e3f4e1d58c035/comments",
+                  "author": {
+                    "login": "migurski",
+                    "id": 58730,
+                    "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",
+                    "gravatar_id": "",
+                    "url": "https://api.github.com/users/migurski",
+                    "html_url": "https://github.com/migurski",
+                    "followers_url": "https://api.github.com/users/migurski/followers",
+                    "following_url": "https://api.github.com/users/migurski/following{/other_user}",
+                    "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",
+                    "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",
+                    "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",
+                    "organizations_url": "https://api.github.com/users/migurski/orgs",
+                    "repos_url": "https://api.github.com/users/migurski/repos",
+                    "events_url": "https://api.github.com/users/migurski/events{/privacy}",
+                    "received_events_url": "https://api.github.com/users/migurski/received_events",
+                    "type": "User",
+                    "site_admin": false
+                  },
+                  "committer": {
+                    "login": "migurski",
+                    "id": 58730,
+                    "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",
+                    "gravatar_id": "",
+                    "url": "https://api.github.com/users/migurski",
+                    "html_url": "https://github.com/migurski",
+                    "followers_url": "https://api.github.com/users/migurski/followers",
+                    "following_url": "https://api.github.com/users/migurski/following{/other_user}",
+                    "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",
+                    "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",
+                    "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",
+                    "organizations_url": "https://api.github.com/users/migurski/orgs",
+                    "repos_url": "https://api.github.com/users/migurski/repos",
+                    "events_url": "https://api.github.com/users/migurski/events{/privacy}",
+                    "received_events_url": "https://api.github.com/users/migurski/received_events",
+                    "type": "User",
+                    "site_admin": false
+                  },
+                  "parents": [
+                    {
+                      "sha": "b659130053b85cd3993b1a4653da1bf6231ec0b4",
+                      "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/b659130053b85cd3993b1a4653da1bf6231ec0b4",
+                      "html_url": "https://github.com/openaddresses/hooked-on-sources/commit/b659130053b85cd3993b1a4653da1bf6231ec0b4"
+                    }
+                  ]
+                },
+                {
+                  "sha": "e5f1dcae83ab1ef1f736b969da617311f7f11564",
+                  "commit": {
+                    "author": {
+                      "name": "Michal Migurski",
+                      "email": "mike@teczno.com",
+                      "date": "2015-04-26T00:52:46Z"
+                    },
+                    "committer": {
+                      "name": "Michal Migurski",
+                      "email": "mike@teczno.com",
+                      "date": "2015-04-26T00:52:46Z"
+                    },
+                    "message": "Removed Polish source",
+                    "tree": {
+                      "sha": "f0cd9b347f69397fcc79fcc434f077bf19af9520",
+                      "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/trees/f0cd9b347f69397fcc79fcc434f077bf19af9520"
+                    },
+                    "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/commits/e5f1dcae83ab1ef1f736b969da617311f7f11564",
+                    "comment_count": 0
+                  },
+                  "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/e5f1dcae83ab1ef1f736b969da617311f7f11564",
+                  "html_url": "https://github.com/openaddresses/hooked-on-sources/commit/e5f1dcae83ab1ef1f736b969da617311f7f11564",
+                  "comments_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/e5f1dcae83ab1ef1f736b969da617311f7f11564/comments",
+                  "author": {
+                    "login": "migurski",
+                    "id": 58730,
+                    "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",
+                    "gravatar_id": "",
+                    "url": "https://api.github.com/users/migurski",
+                    "html_url": "https://github.com/migurski",
+                    "followers_url": "https://api.github.com/users/migurski/followers",
+                    "following_url": "https://api.github.com/users/migurski/following{/other_user}",
+                    "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",
+                    "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",
+                    "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",
+                    "organizations_url": "https://api.github.com/users/migurski/orgs",
+                    "repos_url": "https://api.github.com/users/migurski/repos",
+                    "events_url": "https://api.github.com/users/migurski/events{/privacy}",
+                    "received_events_url": "https://api.github.com/users/migurski/received_events",
+                    "type": "User",
+                    "site_admin": false
+                  },
+                  "committer": {
+                    "login": "migurski",
+                    "id": 58730,
+                    "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",
+                    "gravatar_id": "",
+                    "url": "https://api.github.com/users/migurski",
+                    "html_url": "https://github.com/migurski",
+                    "followers_url": "https://api.github.com/users/migurski/followers",
+                    "following_url": "https://api.github.com/users/migurski/following{/other_user}",
+                    "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",
+                    "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",
+                    "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",
+                    "organizations_url": "https://api.github.com/users/migurski/orgs",
+                    "repos_url": "https://api.github.com/users/migurski/repos",
+                    "events_url": "https://api.github.com/users/migurski/events{/privacy}",
+                    "received_events_url": "https://api.github.com/users/migurski/received_events",
+                    "type": "User",
+                    "site_admin": false
+                  },
+                  "parents": [
+                    {
+                      "sha": "0cbd51b8f6044e98c919dcabf93e3f4e1d58c035",
+                      "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/0cbd51b8f6044e98c919dcabf93e3f4e1d58c035",
+                      "html_url": "https://github.com/openaddresses/hooked-on-sources/commit/0cbd51b8f6044e98c919dcabf93e3f4e1d58c035"
+                    }
+                  ]
+                }
+              ],
+              "files": [
+                {
+                  "sha": "84abff13dba318189f1f4d5c1605478127ceff5c",
+                  "filename": "sources/us-ca-santa_clara_county.json",
+                  "status": "added",
+                  "additions": 24,
+                  "deletions": 0,
+                  "changes": 24,
+                  "blob_url": "https://github.com/openaddresses/hooked-on-sources/blob/e5f1dcae83ab1ef1f736b969da617311f7f11564/sources/us-ca-santa_clara_county.json",
+                  "raw_url": "https://github.com/openaddresses/hooked-on-sources/raw/e5f1dcae83ab1ef1f736b969da617311f7f11564/sources/us-ca-santa_clara_county.json",
+                  "contents_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-santa_clara_county.json?ref=e5f1dcae83ab1ef1f736b969da617311f7f11564",
+                  "patch": "@@ -0,0 +1,24 @@\\n+{\\n+    \\"coverage\\": {\\n+        \\"US Census\\": {\\"geoid\\": \\"06085\\", \\"name\\": \\"Santa Clara County\\", \\"state\\": \\"California\\"},\\n+        \\"country\\": \\"us\\",\\n+        \\"state\\": \\"ca\\",\\n+        \\"county\\": \\"Santa Clara\\"\\n+    },\\n+    \\"conform\\": {\\n+        \\"type\\": \\"shapefile\\",\\n+        \\"postcode\\": \\"ZIPCODE\\",\\n+        \\"city\\": \\"CITY\\",\\n+        \\"number\\": \\"HOUSENUMTE\\",\\n+        \\"merge\\": [\\"STREETNAME\\", \\"STREETTYPE\\"],\\n+        \\"street\\": \\"auto_street\\",\\n+        \\"lon\\": \\"x\\",\\n+        \\"lat\\": \\"y\\"\\n+    },\\n+    \\"attribution\\": \\"Santa Clara County\\",\\n+    \\"data\\": \\"https://github.com/datadesk/us-ca-santa_clara_county-gis-shp/blob/master/Q4_FY14_Address_Point.zip?raw=true\\",\\n+    \\"website\\": \\"https://sftp.sccgov.org/courier/web/1000@/wmLogin.html\\",\\n+    \\"type\\": \\"http\\",\\n+    \\"compression\\": \\"zip\\",\\n+    \\"note\\": \\"File download is behind a registration wall on government site so the zip was downloaded in November 2014 and uploaded to GitHub for public hosting.\\"\\n+}"
+                }
+              ]
+            }'''
+            
+            return response(200, data, headers=response_headers)
+        
+        if MHP == ('GET', 'api.github.com', '/repos/openaddresses/hooked-on-sources/compare/master...e91fbc420f08890960f50f863626e1062f922522'):
+            data = '''{
+              "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/compare/master...e91fbc420f08890960f50f863626e1062f922522",
+              "html_url": "https://github.com/openaddresses/hooked-on-sources/compare/master...e91fbc420f08890960f50f863626e1062f922522",
+              "permalink_url": "https://github.com/openaddresses/hooked-on-sources/compare/openaddresses:ded44ed...openaddresses:e91fbc4",
+              "diff_url": "https://github.com/openaddresses/hooked-on-sources/compare/master...e91fbc420f08890960f50f863626e1062f922522.diff",
+              "patch_url": "https://github.com/openaddresses/hooked-on-sources/compare/master...e91fbc420f08890960f50f863626e1062f922522.patch",
+              "base_commit": {
+                "sha": "ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                "commit": {
+                  "author": {
+                    "name": "Michal Migurski",
+                    "email": "mike@teczno.com",
+                    "date": "2015-04-26T00:25:55Z"
+                  },
+                  "committer": {
+                    "name": "Michal Migurski",
+                    "email": "mike@teczno.com",
+                    "date": "2015-04-26T00:25:55Z"
+                  },
+                  "message": "Added Berkeley",
+                  "tree": {
+                    "sha": "9d6ac64ea358034e23fba121f3833790f47b5d76",
+                    "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/trees/9d6ac64ea358034e23fba121f3833790f47b5d76"
+                  },
+                  "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/commits/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                  "comment_count": 0
+                },
+                "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                "html_url": "https://github.com/openaddresses/hooked-on-sources/commit/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                "comments_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa/comments",
+                "author": {
+                  "login": "migurski",
+                  "id": 58730,
+                  "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",
+                  "gravatar_id": "",
+                  "url": "https://api.github.com/users/migurski",
+                  "html_url": "https://github.com/migurski",
+                  "followers_url": "https://api.github.com/users/migurski/followers",
+                  "following_url": "https://api.github.com/users/migurski/following{/other_user}",
+                  "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",
+                  "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",
+                  "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",
+                  "organizations_url": "https://api.github.com/users/migurski/orgs",
+                  "repos_url": "https://api.github.com/users/migurski/repos",
+                  "events_url": "https://api.github.com/users/migurski/events{/privacy}",
+                  "received_events_url": "https://api.github.com/users/migurski/received_events",
+                  "type": "User",
+                  "site_admin": false
+                },
+                "committer": {
+                  "login": "migurski",
+                  "id": 58730,
+                  "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",
+                  "gravatar_id": "",
+                  "url": "https://api.github.com/users/migurski",
+                  "html_url": "https://github.com/migurski",
+                  "followers_url": "https://api.github.com/users/migurski/followers",
+                  "following_url": "https://api.github.com/users/migurski/following{/other_user}",
+                  "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",
+                  "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",
+                  "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",
+                  "organizations_url": "https://api.github.com/users/migurski/orgs",
+                  "repos_url": "https://api.github.com/users/migurski/repos",
+                  "events_url": "https://api.github.com/users/migurski/events{/privacy}",
+                  "received_events_url": "https://api.github.com/users/migurski/received_events",
+                  "type": "User",
+                  "site_admin": false
+                },
+                "parents": [
+                  {
+                    "sha": "73a81c5b337bd393273a222f1cd191d7e634df51",
+                    "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/73a81c5b337bd393273a222f1cd191d7e634df51",
+                    "html_url": "https://github.com/openaddresses/hooked-on-sources/commit/73a81c5b337bd393273a222f1cd191d7e634df51"
+                  }
+                ]
+              },
+              "merge_base_commit": {
+                "sha": "e91fbc420f08890960f50f863626e1062f922522",
+                "commit": {
+                  "author": {
+                    "name": "Michal Migurski",
+                    "email": "mike@teczno.com",
+                    "date": "2015-04-26T00:16:12Z"
+                  },
+                  "committer": {
+                    "name": "Michal Migurski",
+                    "email": "mike@teczno.com",
+                    "date": "2015-04-26T00:16:12Z"
+                  },
+                  "message": "Added first source",
+                  "tree": {
+                    "sha": "f5e85249cee39d0e84ed936d31a9c08c1eaaa539",
+                    "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/trees/f5e85249cee39d0e84ed936d31a9c08c1eaaa539"
+                  },
+                  "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/commits/e91fbc420f08890960f50f863626e1062f922522",
+                  "comment_count": 0
+                },
+                "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/e91fbc420f08890960f50f863626e1062f922522",
+                "html_url": "https://github.com/openaddresses/hooked-on-sources/commit/e91fbc420f08890960f50f863626e1062f922522",
+                "comments_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/e91fbc420f08890960f50f863626e1062f922522/comments",
+                "author": {
+                  "login": "migurski",
+                  "id": 58730,
+                  "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",
+                  "gravatar_id": "",
+                  "url": "https://api.github.com/users/migurski",
+                  "html_url": "https://github.com/migurski",
+                  "followers_url": "https://api.github.com/users/migurski/followers",
+                  "following_url": "https://api.github.com/users/migurski/following{/other_user}",
+                  "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",
+                  "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",
+                  "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",
+                  "organizations_url": "https://api.github.com/users/migurski/orgs",
+                  "repos_url": "https://api.github.com/users/migurski/repos",
+                  "events_url": "https://api.github.com/users/migurski/events{/privacy}",
+                  "received_events_url": "https://api.github.com/users/migurski/received_events",
+                  "type": "User",
+                  "site_admin": false
+                },
+                "committer": {
+                  "login": "migurski",
+                  "id": 58730,
+                  "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",
+                  "gravatar_id": "",
+                  "url": "https://api.github.com/users/migurski",
+                  "html_url": "https://github.com/migurski",
+                  "followers_url": "https://api.github.com/users/migurski/followers",
+                  "following_url": "https://api.github.com/users/migurski/following{/other_user}",
+                  "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",
+                  "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",
+                  "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",
+                  "organizations_url": "https://api.github.com/users/migurski/orgs",
+                  "repos_url": "https://api.github.com/users/migurski/repos",
+                  "events_url": "https://api.github.com/users/migurski/events{/privacy}",
+                  "received_events_url": "https://api.github.com/users/migurski/received_events",
+                  "type": "User",
+                  "site_admin": false
+                },
+                "parents": [
+                  {
+                    "sha": "c52204fd40f17f9da243df09e6d1107d48768afd",
+                    "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/c52204fd40f17f9da243df09e6d1107d48768afd",
+                    "html_url": "https://github.com/openaddresses/hooked-on-sources/commit/c52204fd40f17f9da243df09e6d1107d48768afd"
+                  }
+                ]
+              },
+              "status": "behind",
+              "ahead_by": 0,
+              "behind_by": 2,
+              "total_commits": 0,
+              "commits": [
+
+              ],
+              "files": [
+
+              ]
+            }'''
+            
+            return response(200, data, headers=response_headers)
+        
+        if MHP == ('GET', 'api.github.com', '/repos/openaddresses/hooked-on-sources/compare/master...ded44ed5f1733bb93d84f94afe9383e2d47bbbaa'):
+            data = '''{
+              "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/compare/master...ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+              "html_url": "https://github.com/openaddresses/hooked-on-sources/compare/master...ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+              "permalink_url": "https://github.com/openaddresses/hooked-on-sources/compare/openaddresses:ded44ed...openaddresses:ded44ed",
+              "diff_url": "https://github.com/openaddresses/hooked-on-sources/compare/master...ded44ed5f1733bb93d84f94afe9383e2d47bbbaa.diff",
+              "patch_url": "https://github.com/openaddresses/hooked-on-sources/compare/master...ded44ed5f1733bb93d84f94afe9383e2d47bbbaa.patch",
+              "base_commit": {
+                "sha": "ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                "commit": {
+                  "author": {
+                    "name": "Michal Migurski",
+                    "email": "mike@teczno.com",
+                    "date": "2015-04-26T00:25:55Z"
+                  },
+                  "committer": {
+                    "name": "Michal Migurski",
+                    "email": "mike@teczno.com",
+                    "date": "2015-04-26T00:25:55Z"
+                  },
+                  "message": "Added Berkeley",
+                  "tree": {
+                    "sha": "9d6ac64ea358034e23fba121f3833790f47b5d76",
+                    "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/trees/9d6ac64ea358034e23fba121f3833790f47b5d76"
+                  },
+                  "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/commits/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                  "comment_count": 0
+                },
+                "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                "html_url": "https://github.com/openaddresses/hooked-on-sources/commit/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                "comments_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa/comments",
+                "author": {
+                  "login": "migurski",
+                  "id": 58730,
+                  "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",
+                  "gravatar_id": "",
+                  "url": "https://api.github.com/users/migurski",
+                  "html_url": "https://github.com/migurski",
+                  "followers_url": "https://api.github.com/users/migurski/followers",
+                  "following_url": "https://api.github.com/users/migurski/following{/other_user}",
+                  "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",
+                  "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",
+                  "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",
+                  "organizations_url": "https://api.github.com/users/migurski/orgs",
+                  "repos_url": "https://api.github.com/users/migurski/repos",
+                  "events_url": "https://api.github.com/users/migurski/events{/privacy}",
+                  "received_events_url": "https://api.github.com/users/migurski/received_events",
+                  "type": "User",
+                  "site_admin": false
+                },
+                "committer": {
+                  "login": "migurski",
+                  "id": 58730,
+                  "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",
+                  "gravatar_id": "",
+                  "url": "https://api.github.com/users/migurski",
+                  "html_url": "https://github.com/migurski",
+                  "followers_url": "https://api.github.com/users/migurski/followers",
+                  "following_url": "https://api.github.com/users/migurski/following{/other_user}",
+                  "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",
+                  "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",
+                  "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",
+                  "organizations_url": "https://api.github.com/users/migurski/orgs",
+                  "repos_url": "https://api.github.com/users/migurski/repos",
+                  "events_url": "https://api.github.com/users/migurski/events{/privacy}",
+                  "received_events_url": "https://api.github.com/users/migurski/received_events",
+                  "type": "User",
+                  "site_admin": false
+                },
+                "parents": [
+                  {
+                    "sha": "73a81c5b337bd393273a222f1cd191d7e634df51",
+                    "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/73a81c5b337bd393273a222f1cd191d7e634df51",
+                    "html_url": "https://github.com/openaddresses/hooked-on-sources/commit/73a81c5b337bd393273a222f1cd191d7e634df51"
+                  }
+                ]
+              },
+              "merge_base_commit": {
+                "sha": "ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                "commit": {
+                  "author": {
+                    "name": "Michal Migurski",
+                    "email": "mike@teczno.com",
+                    "date": "2015-04-26T00:25:55Z"
+                  },
+                  "committer": {
+                    "name": "Michal Migurski",
+                    "email": "mike@teczno.com",
+                    "date": "2015-04-26T00:25:55Z"
+                  },
+                  "message": "Added Berkeley",
+                  "tree": {
+                    "sha": "9d6ac64ea358034e23fba121f3833790f47b5d76",
+                    "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/trees/9d6ac64ea358034e23fba121f3833790f47b5d76"
+                  },
+                  "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/commits/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                  "comment_count": 0
+                },
+                "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                "html_url": "https://github.com/openaddresses/hooked-on-sources/commit/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa",
+                "comments_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa/comments",
+                "author": {
+                  "login": "migurski",
+                  "id": 58730,
+                  "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",
+                  "gravatar_id": "",
+                  "url": "https://api.github.com/users/migurski",
+                  "html_url": "https://github.com/migurski",
+                  "followers_url": "https://api.github.com/users/migurski/followers",
+                  "following_url": "https://api.github.com/users/migurski/following{/other_user}",
+                  "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",
+                  "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",
+                  "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",
+                  "organizations_url": "https://api.github.com/users/migurski/orgs",
+                  "repos_url": "https://api.github.com/users/migurski/repos",
+                  "events_url": "https://api.github.com/users/migurski/events{/privacy}",
+                  "received_events_url": "https://api.github.com/users/migurski/received_events",
+                  "type": "User",
+                  "site_admin": false
+                },
+                "committer": {
+                  "login": "migurski",
+                  "id": 58730,
+                  "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",
+                  "gravatar_id": "",
+                  "url": "https://api.github.com/users/migurski",
+                  "html_url": "https://github.com/migurski",
+                  "followers_url": "https://api.github.com/users/migurski/followers",
+                  "following_url": "https://api.github.com/users/migurski/following{/other_user}",
+                  "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",
+                  "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",
+                  "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",
+                  "organizations_url": "https://api.github.com/users/migurski/orgs",
+                  "repos_url": "https://api.github.com/users/migurski/repos",
+                  "events_url": "https://api.github.com/users/migurski/events{/privacy}",
+                  "received_events_url": "https://api.github.com/users/migurski/received_events",
+                  "type": "User",
+                  "site_admin": false
+                },
+                "parents": [
+                  {
+                    "sha": "73a81c5b337bd393273a222f1cd191d7e634df51",
+                    "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits/73a81c5b337bd393273a222f1cd191d7e634df51",
+                    "html_url": "https://github.com/openaddresses/hooked-on-sources/commit/73a81c5b337bd393273a222f1cd191d7e634df51"
+                  }
+                ]
+              },
+              "status": "identical",
+              "ahead_by": 0,
+              "behind_by": 0,
+              "total_commits": 0,
+              "commits": [
+
+              ],
+              "files": [
+
+              ]
+            }'''
+            
+            return response(200, data, headers=response_headers)
+        
         if MHP == ('POST', 'api.github.com', '/repos/openaddresses/hooked-on-sources/statuses/e5f1dcae83ab1ef1f736b969da617311f7f11564') \
         or MHP == ('POST', 'api.github.com', '/repos/openaddresses/hooked-on-sources/statuses/e91fbc420f08890960f50f863626e1062f922522') \
         or MHP == ('POST', 'api.github.com', '/repos/openaddresses/hooked-on-sources/statuses/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa'):
             input = json.loads(request.body)
             states = {
-                'e5f1dcae83ab1ef1f736b969da617311f7f11564': 'success',
-                'e91fbc420f08890960f50f863626e1062f922522': 'pending',
-                'ded44ed5f1733bb93d84f94afe9383e2d47bbbaa': 'pending'
+                'e5f1dcae83ab1ef1f736b969da617311f7f11564': 'pending',
+                'e91fbc420f08890960f50f863626e1062f922522': 'success',
+                'ded44ed5f1733bb93d84f94afe9383e2d47bbbaa': 'success'
                 }
             
             self.assertEqual(input['context'], 'openaddresses/hooked')
-            self.assertEqual(input['state'], states[basename(url.path)])
+            self.assertEqual(input['state'], states[basename(url.path)], 'Bad state "{}" for {}'.format(input['state'], url.geturl()))
             
             data = '''{{
               "context": "openaddresses/hooked", 
@@ -309,8 +1034,8 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data)
         
         self.assertEqual(posted.status_code, 200)
-        self.assertTrue('us-ca-alameda_county' in posted.data)
-        self.assertTrue('data.acgov.org' in posted.data)
+        self.assertFalse('us-ca-alameda_county' in posted.data)
+        self.assertFalse('data.acgov.org' in posted.data)
 
     def test_webhook_two_commits(self):
         '''
@@ -507,10 +1232,10 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data)
         
         self.assertEqual(posted.status_code, 200)
-        self.assertTrue('us-ca-san_francisco' in posted.data)
-        self.assertTrue('data.sfgov.org' in posted.data)
-        self.assertTrue('us-ca-berkeley' in posted.data)
-        self.assertTrue('www.ci.berkeley.ca.us' in posted.data)
+        self.assertFalse('us-ca-san_francisco' in posted.data)
+        self.assertFalse('data.sfgov.org' in posted.data)
+        self.assertFalse('us-ca-berkeley' in posted.data)
+        self.assertFalse('www.ci.berkeley.ca.us' in posted.data)
 
     def test_webhook_add_remove(self):
         '''
@@ -719,6 +1444,8 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data)
         
         self.assertEqual(posted.status_code, 200)
+        self.assertTrue('us-ca-santa_clara_county' in posted.data)
+        self.assertTrue('sftp.sccgov.org' in posted.data)
         self.assertFalse('pl-dolnoslaskie' in posted.data)
 
 if __name__ == '__main__':
