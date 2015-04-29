@@ -18,10 +18,14 @@ def hook():
     github_auth = current_app.config['GITHUB_AUTH']
     webhook_payload = json.loads(request.data)
     files = process_payload(webhook_payload, github_auth)
-    update_status(webhook_payload, files, github_auth)
+    status_url = get_status_url(webhook_payload)
     
-    serialize = lambda data: json.dumps(data, indent=2, sort_keys=True)
-    response = '\n\n'.join(['{}:\n\n{}\n'.format(name, serialize(data))
+    if files:
+        update_pending_status(status_url, files, github_auth)
+    else:
+        update_empty_status(status_url, github_auth)
+    
+    response = '\n\n'.join(['{}:\n\n{}\n'.format(name, data)
                             for (name, data) in sorted(files.items())])
     
     return Response(response, headers={'Content-Type': 'text/plain'})
@@ -72,7 +76,7 @@ def get_touched_branch_files(payload, github_auth):
     return touched
 
 def process_payload(payload, github_auth):
-    ''' Return a dictionary of file paths and decoded JSON contents.
+    ''' Return a dictionary of file paths and raw JSON contents.
     '''
     processed = dict()
 
@@ -108,37 +112,50 @@ def process_payload(payload, github_auth):
         current_app.logger.debug('Contents SHA {}'.format(contents['sha']))
         
         if encoding == 'base64':
-            processed[filename] = json.loads(b64decode(content))
+            processed[filename] = b64decode(content)
         else:
             raise ValueError('Unrecognized encoding "{}"'.format(encoding))
     
     return processed
 
-def update_status(payload, files, github_auth):
-    ''' Push pending status for head commit to Github status API.
+def get_status_url(payload):
+    ''' Get Github status API URL from webhook payload.
     '''
-    status = dict(context='openaddresses/hooked')
-    
-    if files:
-        status['state'] = 'pending'
-        status['description'] = 'Checking {}'.format(', '.join(files))
-    else:
-        status['state'] = 'success'
-        status['description'] = 'Nothing to check'
-    
     commit_sha = payload['head_commit']['id']
     status_url = payload['repository']['statuses_url']
     status_url = expand(status_url, dict(sha=commit_sha))
     
     current_app.logger.debug('Status URL {}'.format(status_url))
     
-    posted = post(status_url, data=json.dumps(status), auth=github_auth, headers={'Content-Type': 'application/json'})
+    return status_url
+
+def post_status(status_url, status_json, github_auth):
+    ''' POST status JSON to Github status API.
+    '''
+    posted = post(status_url, data=json.dumps(status_json), auth=github_auth,
+                  headers={'Content-Type': 'application/json'})
     
     if posted.status_code not in range(200, 299):
-        raise ValueError('Failed status post to {}'.format(commit_sha))
+        raise ValueError('Failed status post to {}'.format(status_url))
     
-    if posted.json()['state'] != status['state']:
-        raise ValueError('Mismatched status post to {}'.format(commit_sha))
+    if posted.json()['state'] != status_json['state']:
+        raise ValueError('Mismatched status post to {}'.format(status_url))
+
+def update_pending_status(status_url, files, github_auth):
+    ''' Push pending status for head commit to Github status API.
+    '''
+    status = dict(context='openaddresses/hooked', state='pending',
+                  description='Checking {}'.format(', '.join(files)))
+    
+    return post_status(status_url, status, github_auth)
+
+def update_empty_status(status_url, github_auth):
+    ''' Push success status for head commit to Github status API.
+    '''
+    status = dict(context='openaddresses/hooked', state='success',
+                  description='Nothing to check')
+    
+    return post_status(status_url, status, github_auth)
 
 if __name__ == '__main__':
     app.run(debug=True)
