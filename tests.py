@@ -2,14 +2,15 @@ from __future__ import print_function
 
 from httmock import HTTMock, response
 from logging import StreamHandler, DEBUG
-from urlparse import parse_qsl
+from urlparse import parse_qsl, urlparse
 from os.path import basename
-from hashlib import sha1
+from hashlib import md5
 
 import unittest, json, os, sys
 
 os.environ['GITHUB_TOKEN'] = ''
-from app import app
+os.environ['SECRET_KEY'] = 'boop'
+from app import app, MAGIC_OK_MESSAGE
 
 class TestHook (unittest.TestCase):
 
@@ -17,18 +18,20 @@ class TestHook (unittest.TestCase):
         '''
         '''
         self.client = app.test_client()
-        self.last_state = dict()
-        self.job_contents = dict()
+        self.last_status_state = None
+        self.last_status_message = None
+        self.last_job_url = None
         
         handler = StreamHandler(stream=sys.stderr)
         handler.setLevel(DEBUG)
         app.logger.addHandler(handler)
-
+    
     def response_content(self, url, request):
         '''
         '''
         query = dict(parse_qsl(url.query))
-        GH, MHP = 'api.github.com', (request.method, url.hostname, url.path)
+        MHP = request.method, url.hostname, url.path
+        GH, JQ = 'api.github.com', 'job-queue.openaddresses.io'
         response_headers = {'Content-Type': 'application/json; charset=utf-8'}
         
         if MHP == ('GET', GH, '/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-alameda_county.json') and query.get('ref', '').startswith('e91fbc'):
@@ -72,23 +75,29 @@ class TestHook (unittest.TestCase):
         or MHP == ('POST', GH, '/repos/openaddresses/hooked-on-sources/statuses/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa') \
         or MHP == ('POST', GH, '/repos/openaddresses/hooked-on-sources/statuses/3147668047a0bec6d481c0e42995f7c5e5eac637'):
             input = json.loads(request.body)
-            self.last_state[basename(url.path)] = input['state']
+            self.last_status_state = input['state']
+            self.last_status_message = input['description']
             self.assertEqual(input['context'], 'openaddresses/hooked')
             
             data = '''{{\r              "context": "openaddresses/hooked", \r              "created_at": "2015-04-26T23:45:39Z", \r              "creator": {{\r                "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3", \r                "events_url": "https://api.github.com/users/migurski/events{{/privacy}}", \r                "followers_url": "https://api.github.com/users/migurski/followers", \r                "following_url": "https://api.github.com/users/migurski/following{{/other_user}}", \r                "gists_url": "https://api.github.com/users/migurski/gists{{/gist_id}}", \r                "gravatar_id": "", \r                "html_url": "https://github.com/migurski", \r                "id": 58730, \r                "login": "migurski", \r                "organizations_url": "https://api.github.com/users/migurski/orgs", \r                "received_events_url": "https://api.github.com/users/migurski/received_events", \r                "repos_url": "https://api.github.com/users/migurski/repos", \r                "site_admin": false, \r                "starred_url": "https://api.github.com/users/migurski/starred{{/owner}}{{/repo}}", \r                "subscriptions_url": "https://api.github.com/users/migurski/subscriptions", \r                "type": "User", \r                "url": "https://api.github.com/users/migurski"\r              }}, \r              "description": "Checking ", \r              "id": 999999999, \r              "state": "{state}", \r              "target_url": null, \r              "updated_at": "2015-04-26T23:45:39Z", \r              "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/statuses/xxxxxxxxx"\r            }}'''
             return response(201, data.format(**input), headers=response_headers)
         
-        if MHP == ('POST', 'job-queue.openaddresses.io', '/jobs/'):
-            hash = sha1(request.body).hexdigest()
-            redirect = '{}://{}/jobs/{}'.format(url.scheme, url.hostname, hash)
-            self.job_contents[hash] = json.loads(request.body)
+        if MHP == ('POST', JQ, '/jobs/'):
+            input = json.loads(request.body)
+            self.last_job_url = urlparse(input['callback'])
+            
+            # Simulate a queuing error with Santa Clara County
+            if 'sources/us-ca-santa_clara_county.json' in input['files']:
+                return response(400, 'Uh oh')
+
+            hash = md5(request.body).hexdigest()
+            redirect = 'http://job-queue.openaddresses.io/jobs/{}'.format(hash)
             
             return response(303, 'Over there', headers={'Location': redirect})
         
-        if MHP == ('GET', 'job-queue.openaddresses.io', '/jobs/b03a85fb76da854dd940fd4c4153a266b37ca948') \
-        or MHP == ('GET', 'job-queue.openaddresses.io', '/jobs/7a4ea989aef2fa85589ea7967c653f762af975f8') \
-        or MHP == ('GET', 'job-queue.openaddresses.io', '/jobs/e36ecdd7c1098d9ed885640a8c07ff5c8e76174c'):
-            return response(200, '{}', headers=response_headers)
+        if MHP == ('GET', JQ, '/jobs/ee0b79ba74184d9b181f004ff9a402b8') \
+        or MHP == ('GET', JQ, '/jobs/ef58442ae22247e100b2bbc1e0d810c4'):
+            return response(200, 'I am a job')
         
         print('Unknowable Request {} "{}"'.format(request.method, url.geturl()), file=sys.stderr)
         raise ValueError('Unknowable Request {} "{}"'.format(request.method, url.geturl()))
@@ -102,9 +111,23 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data)
         
         self.assertEqual(posted.status_code, 200)
-        self.assertEqual(self.last_state['e91fbc420f08890960f50f863626e1062f922522'], 'pending')
+        self.assertEqual(self.last_status_state, 'pending')
         self.assertTrue('us-ca-alameda_county' in posted.data, 'Alameda County source should be present in master commit')
         self.assertTrue('data.acgov.org' in posted.data, 'Alameda County domain name should be present in master commit')
+        
+        # Pretend that queued job completed successfully.
+        
+        with HTTMock(self.response_content):
+            got = self.client.get(self.last_job_url.path)
+            self.assertEqual(got.status_code, 200)
+
+            posted = self.client.post(self.last_job_url.path, data=MAGIC_OK_MESSAGE)
+            self.assertTrue(posted.status_code in range(200, 299))
+        
+            got = self.client.get(self.last_job_url.path)
+            self.assertEqual(got.status_code, 200)
+
+        self.assertEqual(self.last_status_state, 'success')
 
     def test_webhook_two_master_commits(self):
         ''' Push two commits with San Francisco and Berkeley sources directly to master.
@@ -115,12 +138,27 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data)
         
         self.assertEqual(posted.status_code, 200)
-        self.assertEqual(self.last_state['ded44ed5f1733bb93d84f94afe9383e2d47bbbaa'], 'pending')
+        self.assertEqual(self.last_status_state, 'pending')
         self.assertTrue('us-ca-san_francisco' in posted.data, 'San Francisco source should be present in master commit')
         self.assertTrue('data.sfgov.org' in posted.data, 'San Francisco URL should be present in master commit')
         self.assertTrue('us-ca-berkeley' in posted.data, 'Berkeley source should be present in master commit')
         self.assertTrue('www.ci.berkeley.ca.us' in posted.data, 'Berkeley URL should be present in master commit')
         self.assertFalse('us-ca-alameda_county' in posted.data, 'Alameda County source should be absent from master commit')
+        
+        # Pretend that queued job failed.
+        
+        with HTTMock(self.response_content):
+            got = self.client.get(self.last_job_url.path)
+            self.assertEqual(got.status_code, 200)
+
+            posted = self.client.post(self.last_job_url.path, data='Something went wrong')
+            self.assertTrue(posted.status_code in range(200, 299))
+        
+            got = self.client.get(self.last_job_url.path)
+            self.assertEqual(got.status_code, 200)
+        
+        self.assertEqual(self.last_status_state, 'failure')
+        self.assertTrue('Something went wrong' in self.last_status_message)
 
     def test_webhook_two_branch_commits(self):
         ''' Push two commits with addition and removal of Polish source to a branch.
@@ -134,13 +172,28 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data)
         
         self.assertEqual(posted.status_code, 200)
-        self.assertEqual(self.last_state['e5f1dcae83ab1ef1f736b969da617311f7f11564'], 'pending')
+        self.assertEqual(self.last_status_state, 'error')
+        self.assertTrue('us-ca-santa_clara_county' in self.last_status_message, 'Santa Clara County source should be present in error message')
         self.assertTrue('us-ca-santa_clara_county' in posted.data, 'Santa Clara County source should be present in branch commit')
         self.assertTrue('sftp.sccgov.org' in posted.data, 'Santa Clara County URL should be present in branch commit')
         self.assertFalse('us-ca-contra_costa_county' in posted.data, 'Contra Costa County should be absent from branch commit')
         self.assertFalse('pl-dolnoslaskie' in posted.data, 'Polish source should be absent from branch commit')
         self.assertFalse('us-ca-san_francisco' in posted.data, 'San Francisco source should be absent from branch commit')
         self.assertFalse('us-ca-berkeley' in posted.data, 'Berkeley source should be absent from branch commit')
+        
+        # Verify that queued job was never created.
+        
+        with HTTMock(self.response_content):
+            got = self.client.get(self.last_job_url.path)
+            self.assertTrue(got.status_code in range(400, 499))
+
+            posted = self.client.post(self.last_job_url.path, data=MAGIC_OK_MESSAGE)
+            self.assertTrue(posted.status_code in range(400, 499))
+
+            got = self.client.get(self.last_job_url.path)
+            self.assertTrue(got.status_code in range(400, 499))
+        
+        self.assertEqual(self.last_status_state, 'error')
 
     def test_webhook_empty_master_commit(self):
         ''' Push one empty commit directly to master.
@@ -151,7 +204,7 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data)
         
         self.assertEqual(posted.status_code, 200)
-        self.assertEqual(self.last_state['3147668047a0bec6d481c0e42995f7c5e5eac637'], 'success')
+        self.assertEqual(self.last_status_state, 'success')
         self.assertFalse('us-ca-contra_costa_county' in posted.data, 'Contra Costa County should be absent from master commit')
         self.assertFalse('us-ca-san_francisco' in posted.data, 'San Francisco source should be absent from master commit')
         self.assertFalse('us-ca-berkeley' in posted.data, 'Berkeley source should be absent from master commit')

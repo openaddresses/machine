@@ -1,5 +1,7 @@
 from os.path import relpath, splitext
+from urlparse import urljoin
 from base64 import b64decode
+from hashlib import sha1
 import json, os
 
 from flask import Flask, request, Response, current_app
@@ -8,12 +10,16 @@ from requests import get, post
 
 app = Flask(__name__)
 app.config['GITHUB_AUTH'] = os.environ['GITHUB_TOKEN'], 'x-oauth-basic'
+app.secret_key = os.environ['SECRET_KEY']
+
+from flask import session
+MAGIC_OK_MESSAGE = 'Everything is fine'
 
 @app.route('/')
 def index():
     return 'Yo.'
 
-@app.route('/hook', methods=['GET', 'POST'])
+@app.route('/hook', methods=['POST'])
 def hook():
     github_auth = current_app.config['GITHUB_AUTH']
     webhook_payload = json.loads(request.data)
@@ -21,8 +27,18 @@ def hook():
     status_url = get_status_url(webhook_payload)
     
     if files:
-        update_pending_status(status_url, files, github_auth)
-        add_to_job_queue(files)
+        try:
+            # Add the touched files to a job queue.
+            job_id, job_url = add_to_job_queue(request, files)
+        except Exception as e:
+            # Oops, tell Github something went wrong.
+            update_error_status(status_url, str(e), files.keys(), github_auth)
+        else:
+            # That worked, remember them in the session.
+            session['{}-filenames'.format(job_id)] = files.keys()
+            session['{}-status_url'.format(job_id)] = status_url
+            session['{}-job_url'.format(job_id)] = job_url
+            update_pending_status(status_url, job_url, files.keys(), github_auth)
     else:
         update_empty_status(status_url, github_auth)
     
@@ -30,6 +46,35 @@ def hook():
                             for (name, data) in sorted(files.items())])
     
     return Response(response, headers={'Content-Type': 'text/plain'})
+
+@app.route('/jobs/<job_id>', methods=['POST'])
+def post_job(job_id):
+    '''
+    '''
+    if '{}-job_url'.format(job_id) not in session:
+        return Response('Job {} not found'.format(job_id), 404)
+    
+    github_auth = current_app.config['GITHUB_AUTH']
+    status_url = session['{}-status_url'.format(job_id)]
+    filenames = session['{}-filenames'.format(job_id)]
+    job_url = session['{}-job_url'.format(job_id)]
+    message = request.data
+    
+    if message == MAGIC_OK_MESSAGE:
+        update_success_status(status_url, job_url, filenames, github_auth)
+    else:
+        update_failing_status(status_url, job_url, message, filenames, github_auth)
+    
+    return 'Job updated'
+
+@app.route('/jobs/<job_id>', methods=['GET'])
+def get_job(job_id):
+    '''
+    '''
+    if '{}-job_url'.format(job_id) not in session:
+        return Response('Job {} not found'.format(job_id), 404)
+    
+    return 'I am a job'
 
 def get_touched_payload_files(payload):
     ''' Return a set of files modified in payload commits.
@@ -130,7 +175,7 @@ def get_status_url(payload):
     
     return status_url
 
-def post_status(status_url, status_json, github_auth):
+def post_github_status(status_url, status_json, github_auth):
     ''' POST status JSON to Github status API.
     '''
     posted = post(status_url, data=json.dumps(status_json), auth=github_auth,
@@ -142,13 +187,31 @@ def post_status(status_url, status_json, github_auth):
     if posted.json()['state'] != status_json['state']:
         raise ValueError('Mismatched status post to {}'.format(status_url))
 
-def update_pending_status(status_url, files, github_auth):
+def update_pending_status(status_url, job_url, filenames, github_auth):
     ''' Push pending status for head commit to Github status API.
     '''
     status = dict(context='openaddresses/hooked', state='pending',
-                  description='Checking {}'.format(', '.join(files)))
+                  description='Checking {}'.format(', '.join(filenames)),
+                  target_url=job_url)
     
-    return post_status(status_url, status, github_auth)
+    return post_github_status(status_url, status, github_auth)
+
+def update_error_status(status_url, message, filenames, github_auth):
+    ''' Push error status for head commit to Github status API.
+    '''
+    status = dict(context='openaddresses/hooked', state='error',
+                  description='Errored on {}: {}'.format(', '.join(filenames), message))
+    
+    return post_github_status(status_url, status, github_auth)
+
+def update_failing_status(status_url, job_url, message, filenames, github_auth):
+    ''' Push failing status for head commit to Github status API.
+    '''
+    status = dict(context='openaddresses/hooked', state='failure',
+                  description='Failed on {}: {}'.format(', '.join(filenames), message),
+                  target_url=job_url)
+    
+    return post_github_status(status_url, status, github_auth)
 
 def update_empty_status(status_url, github_auth):
     ''' Push success status for head commit to Github status API.
@@ -156,18 +219,33 @@ def update_empty_status(status_url, github_auth):
     status = dict(context='openaddresses/hooked', state='success',
                   description='Nothing to check')
     
-    return post_status(status_url, status, github_auth)
+    return post_github_status(status_url, status, github_auth)
 
-def add_to_job_queue(files):
+def update_success_status(status_url, job_url, filenames, github_auth):
+    ''' Push success status for head commit to Github status API.
     '''
-    '''
-    queue_url = 'http://job-queue.openaddresses.io/jobs/'
+    status = dict(context='openaddresses/hooked', state='success',
+                  description='Succeeded on {}'.format(', '.join(filenames)),
+                  target_url=job_url)
     
-    posted = post(queue_url, data=json.dumps(files), allow_redirects=True,
+    return post_github_status(status_url, status, github_auth)
+
+def add_to_job_queue(request, files):
+    '''
+    '''
+    job_id = sha1(json.dumps(files)).hexdigest()
+    job_url = urljoin(request.url, '/jobs/{}'.format(job_id))
+
+    queue_msg = json.dumps({"callback": job_url, "files": files})
+    queue_url = 'http://job-queue.openaddresses.io/jobs/'
+
+    posted = post(queue_url, data=queue_msg, allow_redirects=True,
                   headers={'Content-Type': 'application/json'})
     
     if posted.status_code not in range(200, 299):
         raise ValueError('Failed status post to {}'.format(queue_url))
+    
+    return job_id, job_url
 
 if __name__ == '__main__':
     app.run(debug=True)
