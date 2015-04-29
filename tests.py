@@ -4,6 +4,8 @@ from httmock import HTTMock, response
 from logging import StreamHandler, DEBUG
 from urlparse import parse_qsl
 from os.path import basename
+from hashlib import sha1
+
 import unittest, json, os, sys
 
 os.environ['GITHUB_TOKEN'] = ''
@@ -16,6 +18,7 @@ class TestHook (unittest.TestCase):
         '''
         self.client = app.test_client()
         self.last_state = dict()
+        self.job_contents = dict()
         
         handler = StreamHandler(stream=sys.stderr)
         handler.setLevel(DEBUG)
@@ -75,8 +78,20 @@ class TestHook (unittest.TestCase):
             data = '''{{\r              "context": "openaddresses/hooked", \r              "created_at": "2015-04-26T23:45:39Z", \r              "creator": {{\r                "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3", \r                "events_url": "https://api.github.com/users/migurski/events{{/privacy}}", \r                "followers_url": "https://api.github.com/users/migurski/followers", \r                "following_url": "https://api.github.com/users/migurski/following{{/other_user}}", \r                "gists_url": "https://api.github.com/users/migurski/gists{{/gist_id}}", \r                "gravatar_id": "", \r                "html_url": "https://github.com/migurski", \r                "id": 58730, \r                "login": "migurski", \r                "organizations_url": "https://api.github.com/users/migurski/orgs", \r                "received_events_url": "https://api.github.com/users/migurski/received_events", \r                "repos_url": "https://api.github.com/users/migurski/repos", \r                "site_admin": false, \r                "starred_url": "https://api.github.com/users/migurski/starred{{/owner}}{{/repo}}", \r                "subscriptions_url": "https://api.github.com/users/migurski/subscriptions", \r                "type": "User", \r                "url": "https://api.github.com/users/migurski"\r              }}, \r              "description": "Checking ", \r              "id": 999999999, \r              "state": "{state}", \r              "target_url": null, \r              "updated_at": "2015-04-26T23:45:39Z", \r              "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/statuses/xxxxxxxxx"\r            }}'''
             return response(201, data.format(**input), headers=response_headers)
         
-        print('Unknowable URL "{}"'.format(url.geturl()), file=sys.stderr)
-        raise ValueError('Unknowable URL "{}"'.format(url.geturl()))
+        if MHP == ('POST', 'job-queue.openaddresses.io', '/jobs/'):
+            hash = sha1(request.body).hexdigest()
+            redirect = '{}://{}/jobs/{}'.format(url.scheme, url.hostname, hash)
+            self.job_contents[hash] = json.loads(request.body)
+            
+            return response(303, 'Over there', headers={'Location': redirect})
+        
+        if MHP == ('GET', 'job-queue.openaddresses.io', '/jobs/b03a85fb76da854dd940fd4c4153a266b37ca948') \
+        or MHP == ('GET', 'job-queue.openaddresses.io', '/jobs/7a4ea989aef2fa85589ea7967c653f762af975f8') \
+        or MHP == ('GET', 'job-queue.openaddresses.io', '/jobs/e36ecdd7c1098d9ed885640a8c07ff5c8e76174c'):
+            return response(200, '{}', headers=response_headers)
+        
+        print('Unknowable Request {} "{}"'.format(request.method, url.geturl()), file=sys.stderr)
+        raise ValueError('Unknowable Request {} "{}"'.format(request.method, url.geturl()))
 
     def test_webhook_one_master_commit(self):
         ''' Push a single commit with Alameda County source directly to master.

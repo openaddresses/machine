@@ -22,6 +22,7 @@ def hook():
     
     if files:
         update_pending_status(status_url, files, github_auth)
+        add_to_job_queue(files)
     else:
         update_empty_status(status_url, github_auth)
     
@@ -156,6 +157,17 @@ def update_empty_status(status_url, github_auth):
                   description='Nothing to check')
     
     return post_status(status_url, status, github_auth)
+
+def add_to_job_queue(files):
+    '''
+    '''
+    queue_url = 'http://job-queue.openaddresses.io/jobs/'
+    
+    posted = post(queue_url, data=json.dumps(files), allow_redirects=True,
+                  headers={'Content-Type': 'application/json'})
+    
+    if posted.status_code not in range(200, 299):
+        raise ValueError('Failed status post to {}'.format(queue_url))
 
 if __name__ == '__main__':
     app.run(debug=True)
