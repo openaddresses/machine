@@ -182,6 +182,9 @@ def get_status_url(payload):
 def post_github_status(status_url, status_json, github_auth):
     ''' POST status JSON to Github status API.
     '''
+    # Github only wants 140 chars of description.
+    status_json['description'] = status_json['description'][:140]
+    
     posted = post(status_url, data=json.dumps(status_json), auth=github_auth,
                   headers={'Content-Type': 'application/json'})
     
