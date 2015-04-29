@@ -15,6 +15,7 @@ class TestHook (unittest.TestCase):
         '''
         '''
         self.client = app.test_client()
+        self.last_state = dict()
         
         handler = StreamHandler(stream=sys.stderr)
         handler.setLevel(DEBUG)
@@ -68,23 +69,8 @@ class TestHook (unittest.TestCase):
         or MHP == ('POST', GH, '/repos/openaddresses/hooked-on-sources/statuses/ded44ed5f1733bb93d84f94afe9383e2d47bbbaa') \
         or MHP == ('POST', GH, '/repos/openaddresses/hooked-on-sources/statuses/3147668047a0bec6d481c0e42995f7c5e5eac637'):
             input = json.loads(request.body)
-
-            states = {
-                # Complete branch with new Santa Clara and added/removed Polish source.
-                'e5f1dcae83ab1ef1f736b969da617311f7f11564': 'pending',
-
-                # Added San Francisco directly to master.
-                'e91fbc420f08890960f50f863626e1062f922522': 'pending',
-
-                # Added Berkeley directly to master.
-                'ded44ed5f1733bb93d84f94afe9383e2d47bbbaa': 'pending',
-
-                # Empty commit directly to master.
-                '3147668047a0bec6d481c0e42995f7c5e5eac637': 'success',
-                }
-            
+            self.last_state[basename(url.path)] = input['state']
             self.assertEqual(input['context'], 'openaddresses/hooked')
-            self.assertEqual(input['state'], states[basename(url.path)], 'Bad state "{}" for {}'.format(input['state'], url.geturl()))
             
             data = '''{{\r              "context": "openaddresses/hooked", \r              "created_at": "2015-04-26T23:45:39Z", \r              "creator": {{\r                "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3", \r                "events_url": "https://api.github.com/users/migurski/events{{/privacy}}", \r                "followers_url": "https://api.github.com/users/migurski/followers", \r                "following_url": "https://api.github.com/users/migurski/following{{/other_user}}", \r                "gists_url": "https://api.github.com/users/migurski/gists{{/gist_id}}", \r                "gravatar_id": "", \r                "html_url": "https://github.com/migurski", \r                "id": 58730, \r                "login": "migurski", \r                "organizations_url": "https://api.github.com/users/migurski/orgs", \r                "received_events_url": "https://api.github.com/users/migurski/received_events", \r                "repos_url": "https://api.github.com/users/migurski/repos", \r                "site_admin": false, \r                "starred_url": "https://api.github.com/users/migurski/starred{{/owner}}{{/repo}}", \r                "subscriptions_url": "https://api.github.com/users/migurski/subscriptions", \r                "type": "User", \r                "url": "https://api.github.com/users/migurski"\r              }}, \r              "description": "Checking ", \r              "id": 999999999, \r              "state": "{state}", \r              "target_url": null, \r              "updated_at": "2015-04-26T23:45:39Z", \r              "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/statuses/xxxxxxxxx"\r            }}'''
             return response(201, data.format(**input), headers=response_headers)
@@ -101,6 +87,7 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data)
         
         self.assertEqual(posted.status_code, 200)
+        self.assertEqual(self.last_state['e91fbc420f08890960f50f863626e1062f922522'], 'pending')
         self.assertTrue('us-ca-alameda_county' in posted.data, 'Alameda County source should be present in master commit')
         self.assertTrue('data.acgov.org' in posted.data, 'Alameda County domain name should be present in master commit')
 
@@ -113,6 +100,7 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data)
         
         self.assertEqual(posted.status_code, 200)
+        self.assertEqual(self.last_state['ded44ed5f1733bb93d84f94afe9383e2d47bbbaa'], 'pending')
         self.assertTrue('us-ca-san_francisco' in posted.data, 'San Francisco source should be present in master commit')
         self.assertTrue('data.sfgov.org' in posted.data, 'San Francisco URL should be present in master commit')
         self.assertTrue('us-ca-berkeley' in posted.data, 'Berkeley source should be present in master commit')
@@ -131,6 +119,7 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data)
         
         self.assertEqual(posted.status_code, 200)
+        self.assertEqual(self.last_state['e5f1dcae83ab1ef1f736b969da617311f7f11564'], 'pending')
         self.assertTrue('us-ca-santa_clara_county' in posted.data, 'Santa Clara County source should be present in branch commit')
         self.assertTrue('sftp.sccgov.org' in posted.data, 'Santa Clara County URL should be present in branch commit')
         self.assertFalse('us-ca-contra_costa_county' in posted.data, 'Contra Costa County should be absent from branch commit')
@@ -147,6 +136,7 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data)
         
         self.assertEqual(posted.status_code, 200)
+        self.assertEqual(self.last_state['3147668047a0bec6d481c0e42995f7c5e5eac637'], 'success')
         self.assertFalse('us-ca-contra_costa_county' in posted.data, 'Contra Costa County should be absent from master commit')
         self.assertFalse('us-ca-san_francisco' in posted.data, 'San Francisco source should be absent from master commit')
         self.assertFalse('us-ca-berkeley' in posted.data, 'Berkeley source should be absent from master commit')
