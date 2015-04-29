@@ -7,12 +7,12 @@ import json, os
 from flask import Flask, request, Response, current_app
 from uritemplate import expand
 from requests import get, post
+from psycopg2 import connect
 
 app = Flask(__name__)
 app.config['GITHUB_AUTH'] = os.environ['GITHUB_TOKEN'], 'x-oauth-basic'
-app.secret_key = os.environ['SECRET_KEY']
+app.config['DATABASE_URL'] = os.environ['DATABASE_URL']
 
-from flask import session
 MAGIC_OK_MESSAGE = 'Everything is fine'
 
 @app.route('/')
@@ -34,10 +34,11 @@ def hook():
             # Oops, tell Github something went wrong.
             update_error_status(status_url, str(e), files.keys(), github_auth)
         else:
-            # That worked, remember them in the session.
-            session['{}-filenames'.format(job_id)] = files.keys()
-            session['{}-status_url'.format(job_id)] = status_url
-            session['{}-job_url'.format(job_id)] = job_url
+            # That worked, remember them in the database.
+            with db_connect(current_app) as conn:
+                with db_cursor(conn) as db:
+                    save_job(db, job_id, list(files.keys()), status_url, job_url)
+                
             update_pending_status(status_url, job_url, files.keys(), github_auth)
     else:
         update_empty_status(status_url, github_auth)
@@ -51,13 +52,14 @@ def hook():
 def post_job(job_id):
     '''
     '''
-    if '{}-job_url'.format(job_id) not in session:
-        return Response('Job {} not found'.format(job_id), 404)
+    with db_connect(current_app) as conn:
+        with db_cursor(conn) as db:
+            try:
+                filenames, status_url, job_url = read_job(db, job_id)
+            except TypeError:
+                return Response('Job {} not found'.format(job_id), 404)
     
     github_auth = current_app.config['GITHUB_AUTH']
-    status_url = session['{}-status_url'.format(job_id)]
-    filenames = session['{}-filenames'.format(job_id)]
-    job_url = session['{}-job_url'.format(job_id)]
     message = request.data
     
     if message == MAGIC_OK_MESSAGE:
@@ -71,8 +73,10 @@ def post_job(job_id):
 def get_job(job_id):
     '''
     '''
-    if '{}-job_url'.format(job_id) not in session:
-        return Response('Job {} not found'.format(job_id), 404)
+    with db_connect(current_app) as conn:
+        with db_cursor(conn) as db:
+            if read_job(db, job_id) is None:
+                return Response('Job {} not found'.format(job_id), 404)
     
     return 'I am a job'
 
@@ -246,6 +250,37 @@ def add_to_job_queue(request, files):
         raise ValueError('Failed status post to {}'.format(queue_url))
     
     return job_id, job_url
+
+def save_job(db, job_id, filenames, status_url, job_url):
+    ''' Save information about a job to the database.
+    
+        Throws an IntegrityError exception if the job ID exists.
+    '''
+    db.execute('''INSERT INTO jobs
+                  (filenames, github_status_url, job_queue_url, id)
+                  VALUES (%s, %s, %s, %s)''',
+               (filenames, status_url, job_url, job_id))
+
+def read_job(db, job_id):
+    ''' Read information about a job from the database.
+    
+        Returns (filenames, github_status_url, job_queue_url) or None.
+    '''
+    db.execute('''SELECT filenames, github_status_url, job_queue_url
+                  FROM jobs WHERE id = %s''', (job_id, ))
+    
+    try:
+        filenames, github_status_url, job_queue_url = db.fetchone()
+    except TypeError:
+        return None
+    else:
+        return filenames, github_status_url, job_queue_url
+
+def db_connect(app):
+    return connect(app.config['DATABASE_URL'])
+
+def db_cursor(conn):
+    return conn.cursor()
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -9,8 +9,8 @@ from hashlib import md5
 import unittest, json, os, sys
 
 os.environ['GITHUB_TOKEN'] = ''
-os.environ['SECRET_KEY'] = 'boop'
-from app import app, MAGIC_OK_MESSAGE
+os.environ['DATABASE_URL'] = 'postgres:///hooked_on_sources'
+from app import app, db_connect, db_cursor, MAGIC_OK_MESSAGE
 
 class TestHook (unittest.TestCase):
 
@@ -25,6 +25,13 @@ class TestHook (unittest.TestCase):
         handler = StreamHandler(stream=sys.stderr)
         handler.setLevel(DEBUG)
         app.logger.addHandler(handler)
+    
+    def tearDown(self):
+        '''
+        '''
+        with db_connect(app) as conn:
+            with db_cursor(conn) as db:
+                db.execute('TRUNCATE jobs')
     
     def response_content(self, url, request):
         '''
