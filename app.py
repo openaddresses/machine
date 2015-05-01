@@ -8,6 +8,7 @@ from flask import Flask, request, Response, current_app
 from uritemplate import expand
 from requests import get, post
 from psycopg2 import connect
+from pq import PQ
 
 app = Flask(__name__)
 app.config['GITHUB_AUTH'] = os.environ['GITHUB_TOKEN'], 'x-oauth-basic'
@@ -27,19 +28,19 @@ def hook():
     status_url = get_status_url(webhook_payload)
     
     if files:
-        try:
-            # Add the touched files to a job queue.
-            job_id, job_url = add_to_job_queue(request, files)
-        except Exception as e:
-            # Oops, tell Github something went wrong.
-            update_error_status(status_url, str(e), files.keys(), github_auth)
-        else:
-            # That worked, remember them in the database.
-            with db_connect(current_app) as conn:
-                with db_cursor(conn) as db:
+        with db_connect(current_app) as conn:
+            queue = db_queue(conn)
+            with queue as db:
+                try:
+                    # Add the touched files to a job queue.
+                    job_id, job_url = add_to_job_queue(request, files)
+                except Exception as e:
+                    # Oops, tell Github something went wrong.
+                    update_error_status(status_url, str(e), files.keys(), github_auth)
+                else:
+                    # That worked, remember them in the database.
                     save_job(db, job_id, list(files.keys()), status_url, job_url)
-                
-            update_pending_status(status_url, job_url, files.keys(), github_auth)
+                    update_pending_status(status_url, job_url, files.keys(), github_auth)
     else:
         update_empty_status(status_url, github_auth)
     
@@ -281,6 +282,9 @@ def read_job(db, job_id):
 
 def db_connect(app):
     return connect(app.config['DATABASE_URL'])
+
+def db_queue(conn):
+    return PQ(conn)['jobs']
 
 def db_cursor(conn):
     return conn.cursor()
