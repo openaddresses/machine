@@ -34,13 +34,14 @@ def hook():
             with queue as db:
                 try:
                     # Add the touched files to a job queue.
-                    job_id, job_url = add_to_job_queue(queue, request, files)
+                    job_id = add_to_job_queue(queue, files)
                 except Exception as e:
                     # Oops, tell Github something went wrong.
                     update_error_status(status_url, str(e), files.keys(), github_auth)
                 else:
                     # That worked, remember them in the database.
-                    save_job(db, job_id, list(files.keys()), status_url, job_url)
+                    save_job(db, job_id, list(files.keys()), status_url)
+                    job_url = urljoin(request.url, '/jobs/{id}'.format(id=job_id))
                     update_pending_status(status_url, job_url, files.keys(), github_auth)
     else:
         update_empty_status(status_url, github_auth)
@@ -54,12 +55,13 @@ def post_job(job_id):
     with db_connect(current_app) as conn:
         with db_cursor(conn) as db:
             try:
-                filenames, status_url, job_url = read_job(db, job_id)
+                filenames, status_url = read_job(db, job_id)
             except TypeError:
                 return Response('Job {} not found'.format(job_id), 404)
     
     github_auth = current_app.config['GITHUB_AUTH']
     message = request.data
+    job_url = request.url
     
     if message == MAGIC_OK_MESSAGE:
         update_success_status(status_url, job_url, filenames, github_auth)
@@ -236,41 +238,38 @@ def update_success_status(status_url, job_url, filenames, github_auth):
     
     return post_github_status(status_url, status, github_auth)
 
-def add_to_job_queue(queue, request, files):
+def add_to_job_queue(queue, files):
     '''
     '''
     job_id = sha1(json.dumps(files)).hexdigest()
-    job_url = urljoin(request.url, '/jobs/{}'.format(job_id))
-
-    queue_msg = json.dumps({"callback": job_url, "files": files})
-    queue.put(queue_msg)
+    queue.put({"id": job_id, "files": files})
     
-    return job_id, job_url
+    return job_id
 
-def save_job(db, job_id, filenames, status_url, job_url):
+def save_job(db, job_id, filenames, status_url):
     ''' Save information about a job to the database.
     
         Throws an IntegrityError exception if the job ID exists.
     '''
     db.execute('''INSERT INTO jobs
-                  (filenames, github_status_url, job_queue_url, id)
-                  VALUES (%s, %s, %s, %s)''',
-               (filenames, status_url, job_url, job_id))
+                  (filenames, github_status_url, id)
+                  VALUES (%s, %s, %s)''',
+               (filenames, status_url, job_id))
 
 def read_job(db, job_id):
     ''' Read information about a job from the database.
     
-        Returns (filenames, github_status_url, job_queue_url) or None.
+        Returns (filenames, github_status_url) or None.
     '''
-    db.execute('''SELECT filenames, github_status_url, job_queue_url
+    db.execute('''SELECT filenames, github_status_url
                   FROM jobs WHERE id = %s''', (job_id, ))
     
     try:
-        filenames, github_status_url, job_queue_url = db.fetchone()
+        filenames, github_status_url = db.fetchone()
     except TypeError:
         return None
     else:
-        return filenames, github_status_url, job_queue_url
+        return filenames, github_status_url
 
 def db_connect(app):
     return connect(app.config['DATABASE_URL'])
