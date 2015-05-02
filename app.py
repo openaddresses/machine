@@ -1,5 +1,5 @@
-from os.path import relpath, splitext
-from urlparse import urljoin
+from os.path import relpath, splitext, basename
+from urlparse import urljoin, urlparse
 from base64 import b64decode
 from uuid import uuid4
 import json, os
@@ -15,6 +15,7 @@ app.config['GITHUB_AUTH'] = os.environ['GITHUB_TOKEN'], 'x-oauth-basic'
 app.config['DATABASE_URL'] = os.environ['DATABASE_URL']
 
 MAGIC_OK_MESSAGE = 'Everything is fine'
+TASK_QUEUE, DONE_QUEUE = 'tasks', 'finished'
 
 @app.route('/')
 def index():
@@ -50,29 +51,6 @@ def hook():
                 save_job(db, job_id, tasks, status_url)
                 update_pending_status(status_url, job_url, files.keys(), github_auth)
                 return jsonify({'url': job_url, 'files': files})
-
-@app.route('/jobs/<job_id>', methods=['POST'])
-def post_job(job_id):
-    '''
-    '''
-    with db_connect(current_app) as conn:
-        with db_cursor(conn) as db:
-            try:
-                task_files, status_url = read_job(db, job_id)
-            except TypeError:
-                return Response('Job {} not found'.format(job_id), 404)
-    
-    github_auth = current_app.config['GITHUB_AUTH']
-    filenames = list(task_files.values())
-    message = request.data
-    job_url = request.url
-    
-    if message == MAGIC_OK_MESSAGE:
-        update_success_status(status_url, job_url, filenames, github_auth)
-    else:
-        update_failing_status(status_url, job_url, message, filenames, github_auth)
-    
-    return 'Job updated'
 
 @app.route('/jobs/<job_id>', methods=['GET'])
 def get_job(job_id):
@@ -293,11 +271,39 @@ def read_job(db, job_id):
     else:
         return filenames, github_status_url
 
-def db_connect(app):
-    return connect(app.config['DATABASE_URL'])
+def pop_finished_task_from_queue(queue, github_auth):
+    '''
+    '''
+    with queue as db:
+        task = queue.get()
+    
+        if task is None:
+            return
+    
+        job_url = task.data['url']
+        message = task.data['result']['message']
+        job_id = basename(urlparse(job_url).path)
 
-def db_queue(conn):
-    return PQ(conn, table='queue')['tasks']
+        try:
+            task_files, status_url = read_job(db, job_id)
+        except TypeError:
+            raise Exception('Job {} not found'.format(job_id))
+    
+        filenames = list(task_files.values())
+    
+        if message == MAGIC_OK_MESSAGE:
+            update_success_status(status_url, job_url, filenames, github_auth)
+        else:
+            update_failing_status(status_url, job_url, message, filenames, github_auth)
+
+def db_connect(app_or_dsn):
+    ''' Connect to database using Flask app instance or DSN string.
+    '''
+    dsn = app.config['DATABASE_URL'] if hasattr(app, 'config') else app_or_dsn
+    return connect(dsn)
+
+def db_queue(conn, name=None):
+    return PQ(conn, table='queue')[name or TASK_QUEUE]
 
 def db_cursor(conn):
     return conn.cursor()

@@ -10,7 +10,11 @@ import unittest, json, os, sys
 os.environ['GITHUB_TOKEN'] = ''
 os.environ['DATABASE_URL'] = 'postgres:///hooked_on_sources'
 
-from app import app, db_connect, db_cursor, MAGIC_OK_MESSAGE
+from app import (
+    app, db_connect, db_cursor, db_queue, pop_finished_task_from_queue,
+    TASK_QUEUE, DONE_QUEUE, MAGIC_OK_MESSAGE
+    )
+
 recreate_db = __import__('recreate-db')
 
 class TestHook (unittest.TestCase):
@@ -20,6 +24,8 @@ class TestHook (unittest.TestCase):
         '''
         recreate_db.main(app.config['DATABASE_URL'])
 
+        self.database_url = app.config['DATABASE_URL']
+        self.github_auth = app.config['GITHUB_AUTH']
         self.client = app.test_client()
         self.last_status_state = None
         self.last_status_message = None
@@ -110,20 +116,26 @@ class TestHook (unittest.TestCase):
         self.assertTrue('us-ca-alameda_county' in posted.data, 'Alameda County source should be present in master commit')
         self.assertTrue('data.acgov.org' in posted.data, 'Alameda County domain name should be present in master commit')
         
-        # Pretend that queued job completed successfully.
-        last_job_url = urlparse(json.loads(posted.data).get('url'))
+        # Look for the task in the task queue.
+        with db_connect(self.database_url) as conn:
+            task = db_queue(conn, TASK_QUEUE).get()
+            
+        self.assertTrue('us-ca-alameda_county' in task.data['name'])
         
-        with HTTMock(self.response_content):
-            got = self.client.get(last_job_url.path)
-            self.assertEqual(got.status_code, 200)
-
-            posted = self.client.post(last_job_url.path, data=MAGIC_OK_MESSAGE)
-            self.assertTrue(posted.status_code in range(200, 299))
+        # This is the JSON source payload, just make sure it parses.
+        content = json.loads(task.data.pop('content'))
+        task.data['result'] = dict(message=MAGIC_OK_MESSAGE)
         
-            got = self.client.get(last_job_url.path)
-            self.assertEqual(got.status_code, 200)
-
-        self.assertEqual(self.last_status_state, 'success')
+        # Put back a completion task to the done queue.
+        with db_connect(self.database_url) as conn:
+            db_queue(conn, DONE_QUEUE).put(task.data)
+        
+            # Handle completion task and check with Github.
+            with HTTMock(self.response_content):
+                pop_finished_task_from_queue(db_queue(conn, DONE_QUEUE), self.github_auth)
+        
+            # Check that Github knows the job to have been completed successfully.
+            self.assertEqual(self.last_status_state, 'success')
 
     def test_webhook_two_master_commits(self):
         ''' Push two commits with San Francisco and Berkeley sources directly to master.
@@ -141,21 +153,34 @@ class TestHook (unittest.TestCase):
         self.assertTrue('www.ci.berkeley.ca.us' in posted.data, 'Berkeley URL should be present in master commit')
         self.assertFalse('us-ca-alameda_county' in posted.data, 'Alameda County source should be absent from master commit')
         
-        last_job_url = urlparse(json.loads(posted.data).get('url'))
+        for message in ('Something went wrong', MAGIC_OK_MESSAGE):
+            # Look for the task in the task queue.
+            with db_connect(self.database_url) as conn:
+                task = db_queue(conn, TASK_QUEUE).get()
+            
+            self.assertTrue('us-ca-san_francisco' in task.data['name'] or 'us-ca-berkeley' in task.data['name'])
         
-        with HTTMock(self.response_content):
-            got = self.client.get(last_job_url.path)
-            self.assertEqual(got.status_code, 200)
+            # This is the JSON source payload, just make sure it parses.
+            content = json.loads(task.data.pop('content'))
+            task.data['result'] = dict(message=message)
+        
+            # Put back a completion task to the done queue.
+            with db_connect(self.database_url) as conn:
+                db_queue(conn, DONE_QUEUE).put(task.data)
+        
+        # Handle completion tasks and check with Github.
+        with db_connect(self.database_url) as conn:
+            with HTTMock(self.response_content):
+                pop_finished_task_from_queue(db_queue(conn, DONE_QUEUE), self.github_auth)
 
-            # Pretend that queued job failed.
-            posted = self.client.post(last_job_url.path, data='Something went wrong')
-            self.assertTrue(posted.status_code in range(200, 299))
+                # Check that Github hasn't been prematurely told about job failure.
+                self.assertEqual(self.last_status_state, 'pending')
+
+                pop_finished_task_from_queue(db_queue(conn, DONE_QUEUE), self.github_auth)
         
-            got = self.client.get(last_job_url.path)
-            self.assertEqual(got.status_code, 200)
-        
-        self.assertEqual(self.last_status_state, 'failure')
-        self.assertTrue('Something went wrong' in self.last_status_message)
+                # Check that Github knows the job to have been completed unsuccessfully.
+                self.assertEqual(self.last_status_state, 'failure')
+                self.assertTrue('Something went wrong' in self.last_status_message)
 
     def test_webhook_two_branch_commits(self):
         ''' Push two commits with addition and removal of Polish source to a branch.
