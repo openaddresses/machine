@@ -1,5 +1,5 @@
-from os.path import relpath, splitext, basename
-from urlparse import urljoin, urlparse
+from os.path import relpath, splitext
+from urlparse import urljoin
 from base64 import b64decode
 from uuid import uuid4
 import json, os
@@ -32,6 +32,9 @@ def hook():
         update_empty_status(status_url, github_auth)
         return jsonify({'url': None, 'files': []})
 
+    filenames = list(files.keys())
+    file_states = {name: None for name in filenames}
+
     job_id = calculate_job_id(files)
     job_url = urljoin(request.url, '/jobs/{id}'.format(id=job_id))
 
@@ -40,18 +43,17 @@ def hook():
         with queue as db:
             try:
                 # Add the touched files to a task queue.
-                tasks = add_files_to_queue(queue, job_url, files)
+                task_files = add_files_to_queue(queue, job_id, job_url, files)
             except Exception as e:
                 # Oops, tell Github something went wrong.
-                update_error_status(status_url, str(e), files.keys(), github_auth)
+                update_error_status(status_url, str(e), filenames, github_auth)
                 return Response(json.dumps({'error': str(e), 'files': files}),
                                 500, content_type='application/json')
             else:
                 # That worked, remember them in the database.
-                states = {name: None for name in files.keys()}
-                add_job(db, job_id, tasks, states, status_url)
-                update_pending_status(status_url, job_url, files.keys(), github_auth)
-                return jsonify({'url': job_url, 'files': files})
+                add_job(db, job_id, task_files, file_states, status_url)
+                update_pending_status(status_url, job_url, filenames, github_auth)
+                return jsonify({'id': job_id, 'url': job_url, 'files': files})
 
 @app.route('/jobs/<job_id>', methods=['GET'])
 def get_job(job_id):
@@ -235,13 +237,13 @@ def calculate_job_id(files):
     
     return job_id
 
-def add_files_to_queue(queue, job_url, files):
+def add_files_to_queue(queue, job_id, job_url, files):
     ''' Make a new task for each file, return dict of taks IDs to file names.
     '''
     tasks = {}
     
     for (name, content) in files.items():
-        task = queue.put(dict(url=job_url, name=name, content=content))
+        task = queue.put(dict(id=job_id, url=job_url, name=name, content=content))
         
         tasks[str(task)] = name
     
@@ -292,7 +294,7 @@ def pop_finished_task_from_queue(queue, github_auth):
         message = task.data['result']['message']
         job_url = task.data['url']
         filename = task.data['name']
-        job_id = basename(urlparse(job_url).path)
+        job_id = task.data['id']
 
         try:
             task_files, file_states, status_url = read_job(db, job_id)
