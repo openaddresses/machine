@@ -172,15 +172,11 @@ class TestHook (unittest.TestCase):
         with db_connect(self.database_url) as conn:
             with HTTMock(self.response_content):
                 pop_finished_task_from_queue(db_queue(conn, DONE_QUEUE), self.github_auth)
-
-                # Check that Github hasn't been prematurely told about job failure.
-                self.assertEqual(self.last_status_state, 'pending')
-
                 pop_finished_task_from_queue(db_queue(conn, DONE_QUEUE), self.github_auth)
         
                 # Check that Github knows the job to have been completed unsuccessfully.
                 self.assertEqual(self.last_status_state, 'failure')
-                self.assertTrue('Something went wrong' in self.last_status_message)
+                self.assertTrue('Failed' in self.last_status_message)
 
     def test_webhook_two_branch_commits(self):
         ''' Push two commits with addition and removal of Polish source to a branch.

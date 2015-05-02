@@ -48,7 +48,8 @@ def hook():
                                 500, content_type='application/json')
             else:
                 # That worked, remember them in the database.
-                save_job(db, job_id, tasks, status_url)
+                states = {name: None for name in files.keys()}
+                add_job(db, job_id, tasks, states, status_url)
                 update_pending_status(status_url, job_url, files.keys(), github_auth)
                 return jsonify({'url': job_url, 'files': files})
 
@@ -194,11 +195,11 @@ def update_error_status(status_url, message, filenames, github_auth):
     
     return post_github_status(status_url, status, github_auth)
 
-def update_failing_status(status_url, job_url, message, filenames, github_auth):
+def update_failing_status(status_url, job_url, bad_files, filenames, github_auth):
     ''' Push failing status for head commit to Github status API.
     '''
     status = dict(context='openaddresses/hooked', state='failure',
-                  description='Failed on {}: {}'.format(', '.join(filenames), message),
+                  description='Failed on {} from {}'.format(', '.join(bad_files), ', '.join(filenames)),
                   target_url=job_url)
     
     return post_github_status(status_url, status, github_auth)
@@ -246,30 +247,38 @@ def add_files_to_queue(queue, job_url, files):
     
     return tasks
 
-def save_job(db, job_id, task_files, status_url):
+def add_job(db, job_id, task_files, file_states, status_url):
     ''' Save information about a job to the database.
     
         Throws an IntegrityError exception if the job ID exists.
     '''
     db.execute('''INSERT INTO jobs
-                  (task_files, github_status_url, id)
-                  VALUES (%s::json, %s, %s)''',
-               (json.dumps(task_files), status_url, job_id))
+                  (task_files, file_states, github_status_url, id)
+                  VALUES (%s::json, %s::json, %s, %s)''',
+               (json.dumps(task_files), json.dumps(file_states), status_url, job_id))
+
+def write_job(db, job_id, task_files, file_states, status_url):
+    ''' Save information about a job to the database.
+    '''
+    db.execute('''UPDATE jobs
+                  SET task_files=%s::json, file_states=%s::json, github_status_url=%s
+                  WHERE id = %s''',
+               (json.dumps(task_files), json.dumps(file_states), status_url, job_id))
 
 def read_job(db, job_id):
     ''' Read information about a job from the database.
     
-        Returns (task_files, github_status_url) or None.
+        Returns (task_files, file_states, github_status_url) or None.
     '''
-    db.execute('''SELECT task_files, github_status_url
+    db.execute('''SELECT task_files, file_states, github_status_url
                   FROM jobs WHERE id = %s''', (job_id, ))
     
     try:
-        filenames, github_status_url = db.fetchone()
+        filenames, states, github_status_url = db.fetchone()
     except TypeError:
         return None
     else:
-        return filenames, github_status_url
+        return filenames, states, github_status_url
 
 def pop_finished_task_from_queue(queue, github_auth):
     '''
@@ -280,21 +289,33 @@ def pop_finished_task_from_queue(queue, github_auth):
         if task is None:
             return
     
-        job_url = task.data['url']
         message = task.data['result']['message']
+        job_url = task.data['url']
+        filename = task.data['name']
         job_id = basename(urlparse(job_url).path)
 
         try:
-            task_files, status_url = read_job(db, job_id)
+            task_files, file_states, status_url = read_job(db, job_id)
         except TypeError:
             raise Exception('Job {} not found'.format(job_id))
     
+        if filename not in file_states:
+            raise Exception('Unknown file from job {}: "{}"'.format(job_id, filename))
+        
         filenames = list(task_files.values())
-    
-        if message == MAGIC_OK_MESSAGE:
-            update_success_status(status_url, job_url, filenames, github_auth)
+        file_states[filename] = bool(message == MAGIC_OK_MESSAGE)
+        
+        write_job(db, job_id, task_files, file_states, status_url)
+        
+        if False in file_states.values():
+            bad_files = [name for (name, state) in file_states.items() if state is False]
+            update_failing_status(status_url, job_url, bad_files, filenames, github_auth)
+        
+        elif None in file_states.values():
+            update_pending_status(status_url, job_url, filenames, github_auth)
+        
         else:
-            update_failing_status(status_url, job_url, message, filenames, github_auth)
+            update_success_status(status_url, job_url, filenames, github_auth)
 
 def db_connect(app_or_dsn):
     ''' Connect to database using Flask app instance or DSN string.
