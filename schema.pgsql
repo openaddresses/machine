@@ -3,6 +3,6 @@ DROP TABLE IF EXISTS jobs;
 CREATE TABLE jobs
 (
     id                  VARCHAR(40) PRIMARY KEY,
-    filenames           TEXT ARRAY,
+    task_files          JSON,
     github_status_url   TEXT
 );

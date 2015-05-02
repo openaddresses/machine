@@ -39,14 +39,14 @@ def hook():
         with queue as db:
             try:
                 # Add the touched files to a task queue.
-                add_files_to_queue(queue, job_url, files)
+                tasks = add_files_to_queue(queue, job_url, files)
             except Exception as e:
                 # Oops, tell Github something went wrong.
                 update_error_status(status_url, str(e), files.keys(), github_auth)
                 return jsonify({'error': str(e), 'files': files})
             else:
                 # That worked, remember them in the database.
-                save_job(db, job_id, list(files.keys()), status_url)
+                save_job(db, job_id, tasks, status_url)
                 update_pending_status(status_url, job_url, files.keys(), github_auth)
                 return jsonify({'url': job_url, 'files': files})
 
@@ -57,11 +57,12 @@ def post_job(job_id):
     with db_connect(current_app) as conn:
         with db_cursor(conn) as db:
             try:
-                filenames, status_url = read_job(db, job_id)
+                task_files, status_url = read_job(db, job_id)
             except TypeError:
                 return Response('Job {} not found'.format(job_id), 404)
     
     github_auth = current_app.config['GITHUB_AUTH']
+    filenames = list(task_files.values())
     message = request.data
     job_url = request.url
     
@@ -249,27 +250,33 @@ def calculate_job_id(files):
     return job_id
 
 def add_files_to_queue(queue, job_url, files):
+    ''' Make a new task for each file, return dict of taks IDs to file names.
     '''
-    '''
+    tasks = {}
+    
     for (name, content) in files.items():
-        queue.put(dict(url=job_url, name=name, content=content))
+        task = queue.put(dict(url=job_url, name=name, content=content))
+        
+        tasks[str(task)] = name
+    
+    return tasks
 
-def save_job(db, job_id, filenames, status_url):
+def save_job(db, job_id, task_files, status_url):
     ''' Save information about a job to the database.
     
         Throws an IntegrityError exception if the job ID exists.
     '''
     db.execute('''INSERT INTO jobs
-                  (filenames, github_status_url, id)
-                  VALUES (%s, %s, %s)''',
-               (filenames, status_url, job_id))
+                  (task_files, github_status_url, id)
+                  VALUES (%s::json, %s, %s)''',
+               (json.dumps(task_files), status_url, job_id))
 
 def read_job(db, job_id):
     ''' Read information about a job from the database.
     
-        Returns (filenames, github_status_url) or None.
+        Returns (task_files, github_status_url) or None.
     '''
-    db.execute('''SELECT filenames, github_status_url
+    db.execute('''SELECT task_files, github_status_url
                   FROM jobs WHERE id = %s''', (job_id, ))
     
     try:
