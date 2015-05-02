@@ -1,7 +1,7 @@
 from os.path import relpath, splitext
 from urlparse import urljoin
 from base64 import b64decode
-from hashlib import sha1
+from uuid import uuid4
 import json, os
 
 from flask import Flask, request, Response, current_app, jsonify
@@ -24,7 +24,7 @@ def index():
 def hook():
     github_auth = current_app.config['GITHUB_AUTH']
     webhook_payload = json.loads(request.data)
-    files = process_payload(webhook_payload, github_auth)
+    files = process_payload_files(webhook_payload, github_auth)
     status_url = get_status_url(webhook_payload)
     
     if not files:
@@ -43,7 +43,8 @@ def hook():
             except Exception as e:
                 # Oops, tell Github something went wrong.
                 update_error_status(status_url, str(e), files.keys(), github_auth)
-                return jsonify({'error': str(e), 'files': files})
+                return Response(json.dumps({'error': str(e), 'files': files}),
+                                500, content_type='application/json')
             else:
                 # That worked, remember them in the database.
                 save_job(db, job_id, tasks, status_url)
@@ -129,10 +130,10 @@ def get_touched_branch_files(payload, github_auth):
     
     return touched
 
-def process_payload(payload, github_auth):
+def process_payload_files(payload, github_auth):
     ''' Return a dictionary of file paths and raw JSON contents.
     '''
-    processed = dict()
+    files = dict()
 
     touched = get_touched_payload_files(payload)
     touched |= get_touched_branch_files(payload, github_auth)
@@ -166,11 +167,11 @@ def process_payload(payload, github_auth):
         current_app.logger.debug('Contents SHA {}'.format(contents['sha']))
         
         if encoding == 'base64':
-            processed[filename] = b64decode(content)
+            files[filename] = b64decode(content)
         else:
             raise ValueError('Unrecognized encoding "{}"'.format(encoding))
     
-    return processed
+    return files
 
 def get_status_url(payload):
     ''' Get Github status API URL from webhook payload.
@@ -244,6 +245,12 @@ def update_success_status(status_url, job_url, filenames, github_auth):
 def calculate_job_id(files):
     '''
     '''
+    return str(uuid4())
+    
+    #
+    # Previously, we created a deterministic hash of
+    # the files, but for now that might be too optimistic.
+    #
     blob = json.dumps(files, ensure_ascii=True, sort_keys=True)
     job_id = sha1(blob).hexdigest()
     

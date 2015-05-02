@@ -174,7 +174,7 @@ class TestHook (unittest.TestCase):
             with HTTMock(self.response_content):
                 posted = self.client.post('/hook', data=data)
         
-        self.assertEqual(posted.status_code, 200)
+        self.assertEqual(posted.status_code, 500)
         self.assertEqual(self.last_status_state, 'error')
         self.assertTrue('us-ca-santa_clara_county' in self.last_status_message, 'Santa Clara County source should be present in error message')
         self.assertTrue('us-ca-santa_clara_county' in posted.data, 'Santa Clara County source should be present in branch commit')
