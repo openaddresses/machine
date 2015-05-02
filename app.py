@@ -26,27 +26,29 @@ def hook():
     webhook_payload = json.loads(request.data)
     files = process_payload(webhook_payload, github_auth)
     status_url = get_status_url(webhook_payload)
-    job_url = None
     
-    if files:
-        with db_connect(current_app) as conn:
-            queue = db_queue(conn)
-            with queue as db:
-                try:
-                    # Add the touched files to a job queue.
-                    job_id = add_to_job_queue(queue, files)
-                except Exception as e:
-                    # Oops, tell Github something went wrong.
-                    update_error_status(status_url, str(e), files.keys(), github_auth)
-                else:
-                    # That worked, remember them in the database.
-                    save_job(db, job_id, list(files.keys()), status_url)
-                    job_url = urljoin(request.url, '/jobs/{id}'.format(id=job_id))
-                    update_pending_status(status_url, job_url, files.keys(), github_auth)
-    else:
+    if not files:
         update_empty_status(status_url, github_auth)
-    
-    return jsonify({'url': job_url, 'files': files})
+        return jsonify({'url': None, 'files': []})
+
+    job_id = calculate_job_id(files)
+    job_url = urljoin(request.url, '/jobs/{id}'.format(id=job_id))
+
+    with db_connect(current_app) as conn:
+        queue = db_queue(conn)
+        with queue as db:
+            try:
+                # Add the touched files to a task queue.
+                add_files_to_queue(queue, job_url, files)
+            except Exception as e:
+                # Oops, tell Github something went wrong.
+                update_error_status(status_url, str(e), files.keys(), github_auth)
+                return jsonify({'error': str(e), 'files': files})
+            else:
+                # That worked, remember them in the database.
+                save_job(db, job_id, list(files.keys()), status_url)
+                update_pending_status(status_url, job_url, files.keys(), github_auth)
+                return jsonify({'url': job_url, 'files': files})
 
 @app.route('/jobs/<job_id>', methods=['POST'])
 def post_job(job_id):
@@ -238,13 +240,19 @@ def update_success_status(status_url, job_url, filenames, github_auth):
     
     return post_github_status(status_url, status, github_auth)
 
-def add_to_job_queue(queue, files):
+def calculate_job_id(files):
     '''
     '''
-    job_id = sha1(json.dumps(files)).hexdigest()
-    queue.put({"id": job_id, "files": files})
+    blob = json.dumps(files, ensure_ascii=True, sort_keys=True)
+    job_id = sha1(blob).hexdigest()
     
     return job_id
+
+def add_files_to_queue(queue, job_url, files):
+    '''
+    '''
+    for (name, content) in files.items():
+        queue.put(dict(url=job_url, name=name, content=content))
 
 def save_job(db, job_id, filenames, status_url):
     ''' Save information about a job to the database.
@@ -275,7 +283,7 @@ def db_connect(app):
     return connect(app.config['DATABASE_URL'])
 
 def db_queue(conn):
-    return PQ(conn)['jobs']
+    return PQ(conn, table='queue')['tasks']
 
 def db_cursor(conn):
     return conn.cursor()

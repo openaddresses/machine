@@ -16,7 +16,7 @@ def main(DATABASE_URL):
             
             db.execute('DROP TABLE queue')
 
-        pq = PQ(conn)
+        pq = PQ(conn, table='queue')
         pq.create()
 
 if __name__ == '__main__':
