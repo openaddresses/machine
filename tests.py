@@ -3,8 +3,7 @@ from __future__ import print_function
 from httmock import HTTMock, response
 from logging import StreamHandler, DEBUG
 from urlparse import parse_qsl, urlparse
-from os.path import basename
-from hashlib import md5
+from mock import patch
 
 import unittest, json, os, sys
 
@@ -32,14 +31,14 @@ class TestHook (unittest.TestCase):
         with db_connect(app) as conn:
             with db_cursor(conn) as db:
                 db.execute('TRUNCATE jobs')
+                db.execute('TRUNCATE queue')
     
     def response_content(self, url, request):
         '''
         '''
         query = dict(parse_qsl(url.query))
         MHP = request.method, url.hostname, url.path
-        GH, JQ = 'api.github.com', 'job-queue.openaddresses.io'
-        response_headers = {'Content-Type': 'application/json; charset=utf-8'}
+        GH, response_headers = 'api.github.com', {'Content-Type': 'application/json; charset=utf-8'}
         
         if MHP == ('GET', GH, '/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-alameda_county.json') and query.get('ref', '').startswith('e91fbc'):
             data = '''{\r              "name": "us-ca-alameda_county.json",\r              "path": "sources/us-ca-alameda_county.json",\r              "sha": "c9cd0ed30256ae64d5924b03b0423346501b92d8",\r              "size": 745,\r              "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-alameda_county.json?ref=e91fbc420f08890960f50f863626e1062f922522",\r              "html_url": "https://github.com/openaddresses/hooked-on-sources/blob/e91fbc420f08890960f50f863626e1062f922522/sources/us-ca-alameda_county.json",\r              "git_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/blobs/c9cd0ed30256ae64d5924b03b0423346501b92d8",\r              "download_url": "https://raw.githubusercontent.com/openaddresses/hooked-on-sources/e91fbc420f08890960f50f863626e1062f922522/sources/us-ca-alameda_county.json",\r              "type": "file",\r              "content": "ewogICAgImNvdmVyYWdlIjogewogICAgICAgICJVUyBDZW5zdXMiOiB7CiAg\\nICAgICAgICAgICJnZW9pZCI6ICIwNjAwMSIsCiAgICAgICAgICAgICJuYW1l\\nIjogIkFsYW1lZGEgQ291bnR5IiwKICAgICAgICAgICAgInN0YXRlIjogIkNh\\nbGlmb3JuaWEiCiAgICAgICAgfSwKICAgICAgICAiY291bnRyeSI6ICJ1cyIs\\nCiAgICAgICAgInN0YXRlIjogImNhIiwKICAgICAgICAiY291bnR5IjogIkFs\\nYW1lZGEiCiAgICB9LAogICAgImRhdGEiOiAiaHR0cHM6Ly9kYXRhLmFjZ292\\nLm9yZy9hcGkvZ2Vvc3BhdGlhbC84ZTRzLTdmNHY/bWV0aG9kPWV4cG9ydCZm\\nb3JtYXQ9T3JpZ2luYWwiLAogICAgImxpY2Vuc2UiOiAiaHR0cDovL3d3dy5h\\nY2dvdi5vcmcvYWNkYXRhL3Rlcm1zLmh0bSIsCiAgICAiYXR0cmlidXRpb24i\\nOiAiQWxhbWVkYSBDb3VudHkiLAogICAgInllYXIiOiAiIiwKICAgICJ0eXBl\\nIjogImh0dHAiLAogICAgImNvbXByZXNzaW9uIjogInppcCIsCiAgICAiY29u\\nZm9ybSI6IHsKICAgICAgICAibWVyZ2UiOiBbCiAgICAgICAgICAgICJmZWFu\\nbWUiLAogICAgICAgICAgICAiZmVhdHlwIgogICAgICAgIF0sCiAgICAgICAg\\nImxvbiI6ICJ4IiwKICAgICAgICAibGF0IjogInkiLAogICAgICAgICJudW1i\\nZXIiOiAic3RfbnVtIiwKICAgICAgICAic3RyZWV0IjogImF1dG9fc3RyZWV0\\nIiwKICAgICAgICAidHlwZSI6ICJzaGFwZWZpbGUiLAogICAgICAgICJwb3N0\\nY29kZSI6ICJ6aXBjb2RlIgogICAgfQp9Cg==\\n",\r              "encoding": "base64",\r              "_links": {\r                "self": "https://api.github.com/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-alameda_county.json?ref=e91fbc420f08890960f50f863626e1062f922522",\r                "git": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/blobs/c9cd0ed30256ae64d5924b03b0423346501b92d8",\r                "html": "https://github.com/openaddresses/hooked-on-sources/blob/e91fbc420f08890960f50f863626e1062f922522/sources/us-ca-alameda_county.json"\r              }\r            }'''
@@ -89,23 +88,6 @@ class TestHook (unittest.TestCase):
             data = '''{{\r              "context": "openaddresses/hooked", \r              "created_at": "2015-04-26T23:45:39Z", \r              "creator": {{\r                "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3", \r                "events_url": "https://api.github.com/users/migurski/events{{/privacy}}", \r                "followers_url": "https://api.github.com/users/migurski/followers", \r                "following_url": "https://api.github.com/users/migurski/following{{/other_user}}", \r                "gists_url": "https://api.github.com/users/migurski/gists{{/gist_id}}", \r                "gravatar_id": "", \r                "html_url": "https://github.com/migurski", \r                "id": 58730, \r                "login": "migurski", \r                "organizations_url": "https://api.github.com/users/migurski/orgs", \r                "received_events_url": "https://api.github.com/users/migurski/received_events", \r                "repos_url": "https://api.github.com/users/migurski/repos", \r                "site_admin": false, \r                "starred_url": "https://api.github.com/users/migurski/starred{{/owner}}{{/repo}}", \r                "subscriptions_url": "https://api.github.com/users/migurski/subscriptions", \r                "type": "User", \r                "url": "https://api.github.com/users/migurski"\r              }}, \r              "description": "Checking ", \r              "id": 999999999, \r              "state": "{state}", \r              "target_url": null, \r              "updated_at": "2015-04-26T23:45:39Z", \r              "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/statuses/xxxxxxxxx"\r            }}'''
             return response(201, data.format(**input), headers=response_headers)
         
-        if MHP == ('POST', JQ, '/jobs/'):
-            input = json.loads(request.body)
-            self.last_job_url = urlparse(input['callback'])
-            
-            # Simulate a queuing error with Santa Clara County
-            if 'sources/us-ca-santa_clara_county.json' in input['files']:
-                return response(400, 'Uh oh')
-
-            hash = md5(request.body).hexdigest()
-            redirect = 'http://job-queue.openaddresses.io/jobs/{}'.format(hash)
-            
-            return response(303, 'Over there', headers={'Location': redirect})
-        
-        if MHP == ('GET', JQ, '/jobs/ee0b79ba74184d9b181f004ff9a402b8') \
-        or MHP == ('GET', JQ, '/jobs/ef58442ae22247e100b2bbc1e0d810c4'):
-            return response(200, 'I am a job')
-        
         print('Unknowable Request {} "{}"'.format(request.method, url.geturl()), file=sys.stderr)
         raise ValueError('Unknowable Request {} "{}"'.format(request.method, url.geturl()))
 
@@ -123,15 +105,16 @@ class TestHook (unittest.TestCase):
         self.assertTrue('data.acgov.org' in posted.data, 'Alameda County domain name should be present in master commit')
         
         # Pretend that queued job completed successfully.
+        last_job_url = urlparse(json.loads(posted.data).get('url'))
         
         with HTTMock(self.response_content):
-            got = self.client.get(self.last_job_url.path)
+            got = self.client.get(last_job_url.path)
             self.assertEqual(got.status_code, 200)
 
-            posted = self.client.post(self.last_job_url.path, data=MAGIC_OK_MESSAGE)
+            posted = self.client.post(last_job_url.path, data=MAGIC_OK_MESSAGE)
             self.assertTrue(posted.status_code in range(200, 299))
         
-            got = self.client.get(self.last_job_url.path)
+            got = self.client.get(last_job_url.path)
             self.assertEqual(got.status_code, 200)
 
         self.assertEqual(self.last_status_state, 'success')
@@ -152,16 +135,17 @@ class TestHook (unittest.TestCase):
         self.assertTrue('www.ci.berkeley.ca.us' in posted.data, 'Berkeley URL should be present in master commit')
         self.assertFalse('us-ca-alameda_county' in posted.data, 'Alameda County source should be absent from master commit')
         
-        # Pretend that queued job failed.
+        last_job_url = urlparse(json.loads(posted.data).get('url'))
         
         with HTTMock(self.response_content):
-            got = self.client.get(self.last_job_url.path)
+            got = self.client.get(last_job_url.path)
             self.assertEqual(got.status_code, 200)
 
-            posted = self.client.post(self.last_job_url.path, data='Something went wrong')
+            # Pretend that queued job failed.
+            posted = self.client.post(last_job_url.path, data='Something went wrong')
             self.assertTrue(posted.status_code in range(200, 299))
         
-            got = self.client.get(self.last_job_url.path)
+            got = self.client.get(last_job_url.path)
             self.assertEqual(got.status_code, 200)
         
         self.assertEqual(self.last_status_state, 'failure')
@@ -175,8 +159,14 @@ class TestHook (unittest.TestCase):
         '''
         data = '''{\r          "ref": "refs/heads/branch",\r          "before": "b659130053b85cd3993b1a4653da1bf6231ec0b4",\r          "after": "e5f1dcae83ab1ef1f736b969da617311f7f11564",\r          "created": false,\r          "deleted": false,\r          "forced": false,\r          "base_ref": null,\r          "compare": "https://github.com/openaddresses/hooked-on-sources/compare/b659130053b8...e5f1dcae83ab",\r          "commits": [\r            {\r              "id": "0cbd51b8f6044e98c919dcabf93e3f4e1d58c035",\r              "distinct": true,\r              "message": "Added Polish source",\r              "timestamp": "2015-04-25T17:52:39-07:00",\r              "url": "https://github.com/openaddresses/hooked-on-sources/commit/0cbd51b8f6044e98c919dcabf93e3f4e1d58c035",\r              "author": {\r                "name": "Michal Migurski",\r                "email": "mike@teczno.com",\r                "username": "migurski"\r              },\r              "committer": {\r                "name": "Michal Migurski",\r                "email": "mike@teczno.com",\r                "username": "migurski"\r              },\r              "added": [\r                "sources/pl-dolnoslaskie.json"\r              ],\r              "removed": [\r\r              ],\r              "modified": [\r\r              ]\r            },\r            {\r              "id": "e5f1dcae83ab1ef1f736b969da617311f7f11564",\r              "distinct": true,\r              "message": "Removed Polish source",\r              "timestamp": "2015-04-25T17:52:46-07:00",\r              "url": "https://github.com/openaddresses/hooked-on-sources/commit/e5f1dcae83ab1ef1f736b969da617311f7f11564",\r              "author": {\r                "name": "Michal Migurski",\r                "email": "mike@teczno.com",\r                "username": "migurski"\r              },\r              "committer": {\r                "name": "Michal Migurski",\r                "email": "mike@teczno.com",\r                "username": "migurski"\r              },\r              "added": [\r\r              ],\r              "removed": [\r                "sources/pl-dolnoslaskie.json"\r              ],\r              "modified": [\r\r              ]\r            }\r          ],\r          "head_commit": {\r            "id": "e5f1dcae83ab1ef1f736b969da617311f7f11564",\r            "distinct": true,\r            "message": "Removed Polish source",\r            "timestamp": "2015-04-25T17:52:46-07:00",\r            "url": "https://github.com/openaddresses/hooked-on-sources/commit/e5f1dcae83ab1ef1f736b969da617311f7f11564",\r            "author": {\r              "name": "Michal Migurski",\r              "email": "mike@teczno.com",\r              "username": "migurski"\r            },\r            "committer": {\r              "name": "Michal Migurski",\r              "email": "mike@teczno.com",\r              "username": "migurski"\r            },\r            "added": [\r\r            ],\r            "removed": [\r              "sources/pl-dolnoslaskie.json"\r            ],\r            "modified": [\r\r            ]\r          },\r          "repository": {\r            "id": 34590951,\r            "name": "hooked-on-sources",\r            "full_name": "openaddresses/hooked-on-sources",\r            "owner": {\r              "name": "openaddresses",\r              "email": "openaddresses@gmail.com"\r            },\r            "private": false,\r            "html_url": "https://github.com/openaddresses/hooked-on-sources",\r            "description": "Temporary repository for testing Github webhook features",\r            "fork": false,\r            "url": "https://github.com/openaddresses/hooked-on-sources",\r            "forks_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/forks",\r            "keys_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/keys{/key_id}",\r            "collaborators_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/collaborators{/collaborator}",\r            "teams_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/teams",\r            "hooks_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/hooks",\r            "issue_events_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/issues/events{/number}",\r            "events_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/events",\r            "assignees_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/assignees{/user}",\r            "branches_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/branches{/branch}",\r            "tags_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/tags",\r            "blobs_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/blobs{/sha}",\r            "git_tags_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/tags{/sha}",\r            "git_refs_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/refs{/sha}",\r            "trees_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/trees{/sha}",\r            "statuses_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/statuses/{sha}",\r            "languages_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/languages",\r            "stargazers_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/stargazers",\r            "contributors_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/contributors",\r            "subscribers_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/subscribers",\r            "subscription_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/subscription",\r            "commits_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/commits{/sha}",\r            "git_commits_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/commits{/sha}",\r            "comments_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/comments{/number}",\r            "issue_comment_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/issues/comments{/number}",\r            "contents_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/contents/{+path}",\r            "compare_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/compare/{base}...{head}",\r            "merges_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/merges",\r            "archive_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/{archive_format}{/ref}",\r            "downloads_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/downloads",\r            "issues_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/issues{/number}",\r            "pulls_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/pulls{/number}",\r            "milestones_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/milestones{/number}",\r            "notifications_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/notifications{?since,all,participating}",\r            "labels_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/labels{/name}",\r            "releases_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/releases{/id}",\r            "created_at": 1430006167,\r            "updated_at": "2015-04-25T23:56:07Z",\r            "pushed_at": 1430009572,\r            "git_url": "git://github.com/openaddresses/hooked-on-sources.git",\r            "ssh_url": "git@github.com:openaddresses/hooked-on-sources.git",\r            "clone_url": "https://github.com/openaddresses/hooked-on-sources.git",\r            "svn_url": "https://github.com/openaddresses/hooked-on-sources",\r            "homepage": null,\r            "size": 0,\r            "stargazers_count": 0,\r            "watchers_count": 0,\r            "language": null,\r            "has_issues": true,\r            "has_downloads": true,\r            "has_wiki": true,\r            "has_pages": false,\r            "forks_count": 0,\r            "mirror_url": null,\r            "open_issues_count": 1,\r            "forks": 0,\r            "open_issues": 1,\r            "watchers": 0,\r            "default_branch": "master",\r            "stargazers": 0,\r            "master_branch": "master",\r            "organization": "openaddresses"\r          },\r          "pusher": {\r            "name": "migurski",\r            "email": "mike-github@teczno.com"\r          },\r          "organization": {\r            "login": "openaddresses",\r            "id": 6895392,\r            "url": "https://api.github.com/orgs/openaddresses",\r            "repos_url": "https://api.github.com/orgs/openaddresses/repos",\r            "events_url": "https://api.github.com/orgs/openaddresses/events",\r            "members_url": "https://api.github.com/orgs/openaddresses/members{/member}",\r            "public_members_url": "https://api.github.com/orgs/openaddresses/public_members{/member}",\r            "avatar_url": "https://avatars.githubusercontent.com/u/6895392?v=3",\r            "description": "The free and open global address collection "\r          },\r          "sender": {\r            "login": "migurski",\r            "id": 58730,\r            "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3",\r            "gravatar_id": "",\r            "url": "https://api.github.com/users/migurski",\r            "html_url": "https://github.com/migurski",\r            "followers_url": "https://api.github.com/users/migurski/followers",\r            "following_url": "https://api.github.com/users/migurski/following{/other_user}",\r            "gists_url": "https://api.github.com/users/migurski/gists{/gist_id}",\r            "starred_url": "https://api.github.com/users/migurski/starred{/owner}{/repo}",\r            "subscriptions_url": "https://api.github.com/users/migurski/subscriptions",\r            "organizations_url": "https://api.github.com/users/migurski/orgs",\r            "repos_url": "https://api.github.com/users/migurski/repos",\r            "events_url": "https://api.github.com/users/migurski/events{/privacy}",\r            "received_events_url": "https://api.github.com/users/migurski/received_events",\r            "type": "User",\r            "site_admin": false\r          }\r        }'''
         
-        with HTTMock(self.response_content):
-            posted = self.client.post('/hook', data=data)
+        with patch('app.add_to_job_queue') as add_to_job_queue:
+            def job_queue_fails(*args, **kwargs):
+                raise Exception('Nope')
+
+            add_to_job_queue.side_effect = job_queue_fails
+
+            with HTTMock(self.response_content):
+                posted = self.client.post('/hook', data=data)
         
         self.assertEqual(posted.status_code, 200)
         self.assertEqual(self.last_status_state, 'error')
@@ -189,17 +179,9 @@ class TestHook (unittest.TestCase):
         self.assertFalse('us-ca-berkeley' in posted.data, 'Berkeley source should be absent from branch commit')
         
         # Verify that queued job was never created.
+        last_job_url = json.loads(posted.data).get('url')
         
-        with HTTMock(self.response_content):
-            got = self.client.get(self.last_job_url.path)
-            self.assertTrue(got.status_code in range(400, 499))
-
-            posted = self.client.post(self.last_job_url.path, data=MAGIC_OK_MESSAGE)
-            self.assertTrue(posted.status_code in range(400, 499))
-
-            got = self.client.get(self.last_job_url.path)
-            self.assertTrue(got.status_code in range(400, 499))
-        
+        self.assertEqual(last_job_url, None)
         self.assertEqual(self.last_status_state, 'error')
 
     def test_webhook_empty_master_commit(self):

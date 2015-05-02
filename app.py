@@ -4,7 +4,7 @@ from base64 import b64decode
 from hashlib import sha1
 import json, os
 
-from flask import Flask, request, Response, current_app
+from flask import Flask, request, Response, current_app, jsonify
 from uritemplate import expand
 from requests import get, post
 from psycopg2 import connect
@@ -26,6 +26,7 @@ def hook():
     webhook_payload = json.loads(request.data)
     files = process_payload(webhook_payload, github_auth)
     status_url = get_status_url(webhook_payload)
+    job_url = None
     
     if files:
         with db_connect(current_app) as conn:
@@ -33,7 +34,7 @@ def hook():
             with queue as db:
                 try:
                     # Add the touched files to a job queue.
-                    job_id, job_url = add_to_job_queue(request, files)
+                    job_id, job_url = add_to_job_queue(queue, request, files)
                 except Exception as e:
                     # Oops, tell Github something went wrong.
                     update_error_status(status_url, str(e), files.keys(), github_auth)
@@ -44,10 +45,7 @@ def hook():
     else:
         update_empty_status(status_url, github_auth)
     
-    response = '\n\n'.join(['{}:\n\n{}\n'.format(name, data)
-                            for (name, data) in sorted(files.items())])
-    
-    return Response(response, headers={'Content-Type': 'text/plain'})
+    return jsonify({'url': job_url, 'files': files})
 
 @app.route('/jobs/<job_id>', methods=['POST'])
 def post_job(job_id):
@@ -238,20 +236,14 @@ def update_success_status(status_url, job_url, filenames, github_auth):
     
     return post_github_status(status_url, status, github_auth)
 
-def add_to_job_queue(request, files):
+def add_to_job_queue(queue, request, files):
     '''
     '''
     job_id = sha1(json.dumps(files)).hexdigest()
     job_url = urljoin(request.url, '/jobs/{}'.format(job_id))
 
     queue_msg = json.dumps({"callback": job_url, "files": files})
-    queue_url = 'http://job-queue.openaddresses.io/jobs/'
-
-    posted = post(queue_url, data=queue_msg, allow_redirects=True,
-                  headers={'Content-Type': 'application/json'})
-    
-    if posted.status_code not in range(200, 299):
-        raise ValueError('Failed status post to {}'.format(queue_url))
+    queue.put(queue_msg)
     
     return job_id, job_url
 
