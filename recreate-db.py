@@ -14,7 +14,7 @@ def main(DATABASE_URL):
             with open(schema_filename) as file:
                 db.execute(file.read())
             
-            db.execute('DROP TABLE queue')
+            db.execute('DROP TABLE IF EXISTS queue')
 
         pq = PQ(conn, table='queue')
         pq.create()
