@@ -211,7 +211,7 @@ class TestHook (unittest.TestCase):
                     pop_finished_task_from_queue(db_queue(conn, DONE_QUEUE), self.github_auth)
                 
                 if index == 0:
-                    # Check that Github knows the job to have been completed unsuccessfully.
+                    # Check that Github still thinks it's pending.
                     self.assertEqual(self.last_status_state, 'pending')
                 else:
                     # Check that Github knows the job to have been completed unsuccessfully.
