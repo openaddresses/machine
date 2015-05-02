@@ -63,10 +63,15 @@ def get_job(job_id):
     '''
     with db_connect(current_app) as conn:
         with db_cursor(conn) as db:
-            if read_job(db, job_id) is None:
+            try:
+                status, task_files, file_states, file_results, github_status_url = read_job(db, job_id)
+            except TypeError:
                 return Response('Job {} not found'.format(job_id), 404)
     
-    return 'I am a job'
+    job = dict(status=status, task_files=task_files, file_states=file_states,
+               file_results=file_results, github_status_url=github_status_url)
+    
+    return jsonify(job)
 
 def get_touched_payload_files(payload):
     ''' Return a set of files modified in payload commits.
