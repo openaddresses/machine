@@ -39,7 +39,7 @@ def do_work(job_id, job_contents):
     # Prepare return parameters
     r = { 'result_code': result_code,
           'output_url': '%s/%s' % (_web_base_url, job_id),
-          'message': 'A Zircon princess seemed to lost her senses' }
+          'message': lib.MAGIC_OK_MESSAGE }
 
     return r
 
