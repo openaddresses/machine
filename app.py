@@ -10,9 +10,12 @@ from requests import get, post
 from psycopg2 import connect
 from pq import PQ
 
+def load_config():
+    return dict(GITHUB_AUTH=(os.environ['GITHUB_TOKEN'], 'x-oauth-basic'),
+                DATABASE_URL=os.environ['DATABASE_URL'])
+
 app = Flask(__name__)
-app.config['GITHUB_AUTH'] = os.environ['GITHUB_TOKEN'], 'x-oauth-basic'
-app.config['DATABASE_URL'] = os.environ['DATABASE_URL']
+app.config.update(load_config())
 
 MAGIC_OK_MESSAGE = 'Everything is fine'
 TASK_QUEUE, DONE_QUEUE = 'tasks', 'finished'
