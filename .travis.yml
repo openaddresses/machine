@@ -1,0 +1,17 @@
+language: python
+python:
+  - "2.7"
+cache:
+  apt: true
+addons:
+  postgresql: "9.3"
+before_install:
+  - sudo apt-get update -y
+install:
+  - sudo chef/run.sh
+  - pip install -U .
+before_script:
+  - psql -U postgres -c "CREATE USER hooked WITH SUPERUSER PASSWORD 'sources'"
+  - psql -U postgres -c "CREATE DATABASE hooked_on_sources WITH OWNER hooked"
+env:  DATABASE_URL=postgres://hooked:sources@localhost/hooked_on_sources
+script:  python test.py

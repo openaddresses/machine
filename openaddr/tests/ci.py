@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+from os import environ
 from httmock import HTTMock, response
 from logging import StreamHandler, DEBUG
 from urlparse import parse_qsl, urlparse
@@ -8,7 +9,7 @@ from mock import patch
 import unittest, json, os, sys
 
 os.environ['GITHUB_TOKEN'] = ''
-os.environ['DATABASE_URL'] = 'postgres:///hooked_on_sources'
+os.environ['DATABASE_URL'] = environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
 
 from ..ci import (
     app, db_connect, db_cursor, db_queue, pop_finished_task_from_queue,
