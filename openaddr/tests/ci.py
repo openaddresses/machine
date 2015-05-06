@@ -15,14 +15,14 @@ from ..ci import (
     TASK_QUEUE, DONE_QUEUE, MAGIC_OK_MESSAGE
     )
 
-recreate_db = __import__('recreate-db')
+from ..ci import recreate_db
 
 class TestHook (unittest.TestCase):
 
     def setUp(self):
         '''
         '''
-        recreate_db.main(app.config['DATABASE_URL'])
+        recreate_db.recreate(app.config['DATABASE_URL'])
 
         self.database_url = app.config['DATABASE_URL']
         self.github_auth = app.config['GITHUB_AUTH']

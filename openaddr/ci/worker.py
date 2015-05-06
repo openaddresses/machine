@@ -7,7 +7,8 @@ This program pops jobs and runs them one at a time, then
 enqueues a new message on a separate PQ queue when the work is done."""
 
 import time, os, subprocess, psycopg2
-import lib
+
+from . import db_connect, db_queue, db_queue, MAGIC_OK_MESSAGE, DONE_QUEUE
 
 # File path and URL path for result directory. Should be S3.
 _web_output_dir = '/var/www/html/oa-runone'
@@ -39,7 +40,7 @@ def do_work(job_id, job_contents):
     # Prepare return parameters
     r = { 'result_code': result_code,
           'output_url': '%s/%s' % (_web_base_url, job_id),
-          'message': lib.MAGIC_OK_MESSAGE }
+          'message': MAGIC_OK_MESSAGE }
 
     return r
 
@@ -64,13 +65,13 @@ def run(task_data):
           'result' : result }
     return r
 
-def serve_queue():
+def main():
     "Single threaded worker to serve the job queue"
 
     # Connect to the queue
-    conn = lib.db_connect(os.environ['DATABASE_STRING'])
-    input_queue = lib.db_queue(conn)
-    output_queue = lib.db_queue(conn, lib.DONE_QUEUE)
+    conn = db_connect(os.environ['DATABASE_URL'])
+    input_queue = db_queue(conn)
+    output_queue = db_queue(conn, DONE_QUEUE)
 
     # Fetch and run jobs in a loop    
     while True:
@@ -82,4 +83,4 @@ def serve_queue():
 
 
 if __name__ == '__main__':
-    serve_queue()
+    exit(main())

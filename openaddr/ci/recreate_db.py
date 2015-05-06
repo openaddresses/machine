@@ -4,7 +4,7 @@ from os.path import join, dirname
 from pq import PQ
 from psycopg2 import connect
 
-def main(DATABASE_URL):
+def recreate(DATABASE_URL):
     '''
     '''
     schema_filename = join(dirname(__file__), 'schema.pgsql')
@@ -19,7 +19,11 @@ def main(DATABASE_URL):
         pq = PQ(conn, table='queue')
         pq.create()
 
-if __name__ == '__main__':
-    
+def main():
+    '''
+    '''
     DATABASE_URL = os.environ['DATABASE_URL']
-    exit(main(DATABASE_URL))
+    return recreate(DATABASE_URL)
+
+if __name__ == '__main__':
+    exit(main())

@@ -2,7 +2,7 @@ from sys import stderr
 from time import sleep
 from traceback import print_exc
 
-from app import (
+from . import (
     db_connect, db_queue, pop_finished_task_from_queue, DONE_QUEUE, load_config
     )
 
