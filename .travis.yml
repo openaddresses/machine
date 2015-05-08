@@ -8,7 +8,7 @@ addons:
 before_install:
   - sudo apt-get update -y
 install:
-  - sudo chef/run.sh
+  - sudo chef/run.sh webhooks
   - pip install -U .
 before_script:
   - psql -U postgres -c "CREATE USER hooked WITH SUPERUSER PASSWORD 'sources'"

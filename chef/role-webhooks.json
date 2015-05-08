@@ -1,6 +1,6 @@
 {
     "run_list":
     [
-        "python"
+        "openaddr"
     ]
 }
