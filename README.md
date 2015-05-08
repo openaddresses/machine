@@ -17,7 +17,7 @@ Installation scripts for preparing a fresh install of Ubuntu 14.04 can be found
 in `chef`. Run them from a Git checkout like this:
 
     sudo apt-get update
-    sudo chef/run.sh
+    sudo chef/run.sh batchmode
 
 Complete sources will be checked out to `/var/opt/openaddresses/sources`.
 

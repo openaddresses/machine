@@ -7,7 +7,7 @@ git clone https://github.com/openaddresses/machine /tmp/machine
 
 echo 'installing' > /var/www/html/state.txt
 /tmp/machine/ec2/swap.sh
-/tmp/machine/chef/run.sh
+/tmp/machine/chef/run.sh batchmode
 
 echo 'processing' > /var/www/html/state.txt
 openaddr-process -a {access_key} -s {secret_key} -l log.txt /var/opt/openaddresses/sources {bucketname}

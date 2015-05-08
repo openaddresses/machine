@@ -22,6 +22,6 @@ install:
   #   http://stackoverflow.com/questions/11491268/install-pycairo-in-virtualenv
   #   https://pythonhosted.org/cairocffi/
   - pip install cairocffi
-  - sudo chef/run.sh
+  - sudo chef/run.sh batchmode
   - pip install -U .
 script:  python test.py

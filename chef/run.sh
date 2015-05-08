@@ -16,5 +16,14 @@ if [ ! `which chef-solo` ]; then
     fi
 fi
 
+#
+# Use role JSON file from first argument name, but check if it exists.
+#
+if [ $# != 1 ]; then echo "Usage: $0 <role name>"; exit 1; fi
+
 cd `dirname $0`
-chef-solo -c $PWD/solo.rb -j $PWD/role-ubuntu.json
+ROLEFILE="${PWD}/role-${1}.json"
+
+if [ ! -f $ROLEFILE ]; then echo "$ROLEFILE does not exist"; exit 1; fi
+
+chef-solo -c $PWD/solo.rb -j $ROLEFILE
