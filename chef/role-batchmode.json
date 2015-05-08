@@ -1,7 +1,7 @@
 {
     "run_list":
     [
-        "python",
-        "openaddr-source"
+        "openaddr",
+        "sources"
     ]
 }
