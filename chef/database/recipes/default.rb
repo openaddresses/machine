@@ -4,6 +4,7 @@ user = node[:db_user]
 pass = node[:db_pass]
 host = node[:db_host]
 name = node[:db_name]
+database_url = "postgres://#{user}:#{pass}@#{host}/#{name}?sslmode=require"
 
 if host == 'localhost' then
   psql = 'psql'
@@ -13,7 +14,7 @@ end
 
 bash "create database" do
   user 'postgres'
-  environment({'DATABASE_URL' => "postgres://#{user}:#{pass}@#{host}/#{name}?sslmode=require", 'GITHUB_TOKEN' => ''})
+  environment({'DATABASE_URL' => database_url, 'GITHUB_TOKEN' => ''})
   code <<-CODE
   # #{psql} -c "DROP DATABASE IF EXISTS #{name}";
   # #{psql} -c "DROP USER IF EXISTS #{user}";
