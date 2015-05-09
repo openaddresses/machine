@@ -5,6 +5,7 @@
     "db_name": "openaddr",
     "run_list":
     [
+        "openaddr",
         "database"
     ]
 }

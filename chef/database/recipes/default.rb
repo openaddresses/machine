@@ -7,20 +7,20 @@ name = node[:db_name]
 database_url = "postgres://#{user}:#{pass}@#{host}/#{name}?sslmode=require"
 
 if host == 'localhost' then
-  psql = 'psql'
+  args = ''
 else
-  psql = "psql -h '#{host}'"
+  args = "-h '#{host}'"
 end
 
 bash "create database" do
   user 'postgres'
   environment({'DATABASE_URL' => database_url, 'GITHUB_TOKEN' => ''})
   code <<-CODE
-  # #{psql} -c "DROP DATABASE IF EXISTS #{name}";
-  # #{psql} -c "DROP USER IF EXISTS #{user}";
+  # psql #{args} -c "DROP DATABASE IF EXISTS #{name}";
+  # psql #{args} -c "DROP USER IF EXISTS #{user}";
 
-    #{psql} -c "CREATE USER #{user} WITH SUPERUSER PASSWORD '#{pass}'";
-    #{psql} -c "CREATE DATABASE #{name} WITH OWNER #{user}";
+    psql #{args} -c "CREATE USER #{user} WITH SUPERUSER PASSWORD '#{pass}'";
+    psql #{args} -c "CREATE DATABASE #{name} WITH OWNER #{user}";
 
     openaddr-ci-recreate-db
   CODE

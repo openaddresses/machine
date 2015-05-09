@@ -7,8 +7,8 @@
     "github_token": "{Github Token}",
     "run_list":
     [
-        "database",
         "openaddr",
+        "database",
         "account",
         "webhooks"
     ]

@@ -10,8 +10,5 @@ before_install:
 install:
   - sudo chef/run.sh webhooks
   - pip install -U .
-before_script:
-  - psql -U postgres -c "CREATE USER hooked WITH SUPERUSER PASSWORD 'sources'"
-  - psql -U postgres -c "CREATE DATABASE hooked_on_sources WITH OWNER hooked"
-env:  DATABASE_URL=postgres://hooked:sources@localhost/hooked_on_sources
+env:  DATABASE_URL=postgres://openaddr:openaddr@localhost/openaddr
 script:  python test.py
