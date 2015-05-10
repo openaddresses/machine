@@ -14,12 +14,7 @@ import sys
 import logging
 
 from openaddr import jobs
-
-from openaddr.tests import (
-    TestOA, TestSample, TestCacheExtensionGuessing, TestCacheEsriDownload,
-    TestConformCli, TestConformTransforms, TestConformMisc, TestConformCsv,
-    TestExpand, TestRender, TestEsri2GeoJSON
-    )
+from openaddr.tests import *
 
 if __name__ == '__main__':
     # Allow the user to turn on logging with -l or --logall
