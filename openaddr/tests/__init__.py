@@ -39,7 +39,7 @@ from ..sample import TestSample
 from .cache import TestCacheExtensionGuessing, TestCacheEsriDownload
 from .conform import TestConformCli, TestConformTransforms, TestConformMisc, TestConformCsv
 from .expand import TestExpand
-from ..render import TestRender
+from .render import TestRender
 from ..util.esri2geojson import TestEsri2GeoJSON
 
 class TestOA (unittest.TestCase):
