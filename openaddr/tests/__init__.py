@@ -36,13 +36,6 @@ from httmock import response, HTTMock
         
 from .. import paths, cache, conform, S3, process_all, process_one
 
-from .sample import TestSample
-from .cache import TestCacheExtensionGuessing, TestCacheEsriDownload
-from .conform import TestConformCli, TestConformTransforms, TestConformMisc, TestConformCsv
-from .expand import TestExpand
-from .render import TestRender
-from .util import TestEsri2GeoJSON
-
 class TestOA (unittest.TestCase):
     
     def setUp(self):

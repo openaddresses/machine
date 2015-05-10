@@ -14,7 +14,14 @@ import sys
 import logging
 
 from openaddr import jobs
-from openaddr.tests import *
+
+from openaddr.tests import TestOA
+from openaddr.tests.sample import TestSample
+from openaddr.tests.cache import TestCacheExtensionGuessing, TestCacheEsriDownload
+from openaddr.tests.conform import TestConformCli, TestConformTransforms, TestConformMisc, TestConformCsv
+from openaddr.tests.expand import TestExpand
+from openaddr.tests.render import TestRender
+from openaddr.tests.util import TestEsri2GeoJSON
 
 if __name__ == '__main__':
     # Allow the user to turn on logging with -l or --logall

@@ -24,4 +24,4 @@ install:
   - pip install cairocffi
   - sudo chef/run.sh batchmode
   - pip install -U .
-script:  python test.py
+script:  python setup.py test
