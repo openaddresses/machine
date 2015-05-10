@@ -8,7 +8,7 @@ addons:
 before_install:
   - sudo apt-get update -y
 install:
-  - sudo chef/run.sh webhooks
+  - sudo chef/run.sh testing
   - pip install -U .
 env:  DATABASE_URL=postgres://openaddr:openaddr@localhost/openaddr
-script:  python test.py
+script:  python setup.py test

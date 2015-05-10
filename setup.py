@@ -39,6 +39,7 @@ setup(
             'schema.pgsql'
         ]
     },
+    test_suite = 'openaddr.tests',
     install_requires = [
         'boto >= 2.22.0', 'Jinja2 >= 2.7.0', 'dateutils >= 0.6', 'ijson >= 2.0',
 
