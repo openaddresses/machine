@@ -23,12 +23,15 @@ setup(
     author = 'Michal Migurski',
     author_email = 'mike-pypi@teczno.com',
     description = 'In-progress scripts for running OpenAddresses on a complete data set and publishing the results.',
-    packages = ['openaddr', 'openaddr.util'],
+    packages = ['openaddr', 'openaddr.util', 'openaddr.tests'],
     package_data = {
         'openaddr': [
             'geodata/*.shp', 'geodata/*.shx', 'geodata/*.prj', 'geodata/*.dbf',
             'geodata/*.cpg', 'templates/*.html', 'templates/*.sh', 'VERSION',
             'templates/*.vrt'
+        ],
+        'openaddr.tests': [
+            'data/*.*', 'sources/*.*', 'conforms/*.*'
         ]
     },
     install_requires = [

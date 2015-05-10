@@ -136,7 +136,7 @@ class TestEsri2GeoJSON (unittest.TestCase):
         ''' Fake HTTP responses for use with HTTMock in tests.
         '''
         scheme, host, path, _, query, _ = urlparse(url.geturl())
-        data_dirname = join(dirname(__file__), '..', '..', 'tests', 'data')
+        data_dirname = join(dirname(__file__), '..', 'tests', 'data')
         local_path = None
         
         if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1/query'):

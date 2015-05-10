@@ -403,7 +403,7 @@ import unittest, tempfile, os, tempfile, subprocess
 class TestRender (unittest.TestCase):
 
     def test_render(self):
-        sources = join(dirname(__file__), '..', 'tests', 'sources')
+        sources = join(dirname(__file__), 'tests', 'sources')
         handle, filename = tempfile.mkstemp(prefix='render-', suffix='.png')
         os.close(handle)
         
@@ -420,7 +420,7 @@ class TestRender (unittest.TestCase):
     def test_render_old(self):
         ''' Make sure the deprecated function signature for render() still works.
         '''
-        sources = join(dirname(__file__), '..', 'tests', 'sources')
+        sources = join(dirname(__file__), 'tests', 'sources')
         handle, filename = tempfile.mkstemp(prefix='render-', suffix='.png')
         os.close(handle)
         

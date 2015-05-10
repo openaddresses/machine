@@ -951,7 +951,7 @@ class TestConformCli (unittest.TestCase):
     "Test the command line interface creates valid output files from test input"
     def setUp(self):
         self.testdir = tempfile.mkdtemp(prefix='openaddr-testPyConformCli-')
-        self.conforms_dir = os.path.join(os.path.dirname(__file__), '..', 'tests', 'conforms')
+        self.conforms_dir = os.path.join(os.path.dirname(__file__), 'tests', 'conforms')
 
     def tearDown(self):
         shutil.rmtree(self.testdir)

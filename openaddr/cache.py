@@ -459,7 +459,7 @@ class TestCacheExtensionGuessing (unittest.TestCase):
         ''' Fake HTTP responses for use with HTTMock in tests.
         '''
         scheme, host, path, _, query, _ = urlparse(url.geturl())
-        tests_dirname = join(dirname(__file__), '..', 'tests')
+        tests_dirname = join(dirname(__file__), 'tests')
         
         if host == 'fake-cwd.local':
             with open(tests_dirname + path, 'rb') as file:
@@ -509,7 +509,7 @@ class TestCacheEsriDownload (unittest.TestCase):
         ''' Fake HTTP responses for use with HTTMock in tests.
         '''
         scheme, host, path, _, query, _ = urlparse(url.geturl())
-        data_dirname = join(dirname(__file__), '..', 'tests', 'data')
+        data_dirname = join(dirname(__file__), 'tests', 'data')
         local_path = False
         
         if host == 'www.carsonproperty.info':
