@@ -35,7 +35,7 @@ from requests import get
 from httmock import response, HTTMock
         
 from .. import paths, cache, conform, S3, process_all, process_one
-from ..sample import TestSample
+from .sample import TestSample
 from .cache import TestCacheExtensionGuessing, TestCacheEsriDownload
 from .conform import TestConformCli, TestConformTransforms, TestConformMisc, TestConformCsv
 from .expand import TestExpand
