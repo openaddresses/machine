@@ -10,6 +10,7 @@
         "openaddr",
         "database",
         "account",
-        "webhooks"
+        "webhooks",
+        "apache"
     ]
 }
