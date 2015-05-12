@@ -4,6 +4,8 @@ python:
   - "3.3"
 cache:
   apt: true
+addons:
+  postgresql: "9.3"
 before_install:
   # Although we include chef, we need to pre-install a number of dependencies
   # to adapt to Travis Ubuntu apt sources and virtualenv environment.
@@ -22,6 +24,7 @@ install:
   #   http://stackoverflow.com/questions/11491268/install-pycairo-in-virtualenv
   #   https://pythonhosted.org/cairocffi/
   - pip install cairocffi
-  - sudo chef/run.sh batchmode
+  - sudo chef/run.sh testing
   - pip install -U .
+env:  DATABASE_URL=postgres://openaddr:openaddr@localhost/openaddr
 script:  python setup.py test

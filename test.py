@@ -22,6 +22,7 @@ from openaddr.tests.conform import TestConformCli, TestConformTransforms, TestCo
 from openaddr.tests.expand import TestExpand
 from openaddr.tests.render import TestRender
 from openaddr.tests.util import TestEsri2GeoJSON
+from openaddr.tests.ci import TestHook
 
 if __name__ == '__main__':
     # Allow the user to turn on logging with -l or --logall

@@ -1,0 +1,14 @@
+{
+    "username": "openaddr",
+    "db_user": "openaddr",
+    "db_pass": "openaddr",
+    "db_host": "localhost",
+    "db_name": "openaddr",
+    "github_token": "{Github Token}",
+    "run_list":
+    [
+        "openaddr",
+        "account",
+        "worker"
+    ]
+}
