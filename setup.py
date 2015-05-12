@@ -56,7 +56,7 @@ setup(
         'uritemplate == 0.6',
         
         # https://github.com/malthe/pq/
-        'pq == 1.2',
+        'pq == 1.3',
         
         # http://initd.org/psycopg/
         'psycopg2 == 2.6',
