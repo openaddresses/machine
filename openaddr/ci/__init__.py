@@ -27,7 +27,7 @@ def index():
 @app.route('/hook', methods=['POST'])
 def hook():
     github_auth = current_app.config['GITHUB_AUTH']
-    webhook_payload = json.loads(request.data)
+    webhook_payload = json.loads(request.data.decode('utf8'))
     files = process_payload_files(webhook_payload, github_auth)
     status_url = get_status_url(webhook_payload)
     
@@ -158,7 +158,7 @@ def process_payload_files(payload, github_auth):
         current_app.logger.debug('Contents SHA {}'.format(contents['sha']))
         
         if encoding == 'base64':
-            files[filename] = b64decode(content)
+            files[filename] = b64decode(content).decode('utf8')
         else:
             raise ValueError('Unrecognized encoding "{}"'.format(encoding))
     
