@@ -183,8 +183,8 @@ class ExcerptDataTask(object):
         
         if not known_paths:
             # we know nothing.
-            return None
-        
+            return None, None
+
         data_path = known_paths[0]
         _, data_ext = os.path.splitext(data_path.lower())
 
