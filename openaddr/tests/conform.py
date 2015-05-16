@@ -39,7 +39,8 @@ class TestConformTransforms (unittest.TestCase):
     def test_row_convert_to_out(self):
         d = { "conform": { "street": "s", "number": "n" } }
         r = row_convert_to_out(d, {"s": "MAPLE LN", "n": "123", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3"})
-        self.assertEqual({"LON": "-119.2", "LAT": "39.3", "STREET": "MAPLE LN", "NUMBER": "123", "POSTCODE": None}, r)
+        self.assertEqual({"LON": "-119.2", "LAT": "39.3", "NUMBER": "123", "STREET": "MAPLE LN",
+                          "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None}, r)
 
     def test_row_merge_street(self):
         d = { "conform": { "merge": [ "n", "t" ] } }
@@ -71,11 +72,13 @@ class TestConformTransforms (unittest.TestCase):
     def test_transform_and_convert(self):
         d = { "conform": { "street": "auto_street", "number": "n", "merge": ["s1", "s2"], "lon": "y", "lat": "x" } }
         r = row_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
-        self.assertEqual({"STREET": "Maple Street", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3", 'POSTCODE': None}, r)
+        self.assertEqual({"STREET": "Maple Street", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3",
+                          "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None}, r)
 
         d = { "conform": { "street": "auto_street", "number": "auto_number", "split": "s", "lon": "y", "lat": "x" } }
         r = row_transform_and_convert(d, { "s": "123 MAPLE ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
-        self.assertEqual({"STREET": "Maple Street", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3", 'POSTCODE': None}, r)
+        self.assertEqual({"STREET": "Maple Street", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3",
+                          "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None}, r)
 
     def test_row_canonicalize_street_and_number(self):
         r = row_canonicalize_street_and_number({}, {"NUMBER": "324 ", "STREET": " OAK DR."})
@@ -178,7 +181,7 @@ class TestConformCli (unittest.TestCase):
 
         with csvopen(dest_path) as fp:
             reader = csvDictReader(fp)
-            self.assertEqual(['LON', 'LAT', 'NUMBER', 'STREET', 'POSTCODE'], reader.fieldnames)
+            self.assertEqual(["LON", "LAT", "NUMBER", "STREET", "CITY", "DISTRICT", "REGION", "POSTCODE"], reader.fieldnames)
 
             rows = list(reader)
 
