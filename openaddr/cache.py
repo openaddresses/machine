@@ -42,6 +42,12 @@ def mkdirsp(path):
         else:
             raise
 
+def request(method, url, **kwargs):
+    try:
+        return requests.request(method, url, timeout=_http_timeout, **kwargs)
+    except requests.exceptions.SSLError as e:
+        _L.warning("Retrying %s without SSL verification", url)
+        return requests.request(method, url, timeout=_http_timeout, verify=False, **kwargs)
 
 class CacheResult:
     cache = None
@@ -136,7 +142,7 @@ def guess_url_file_extension(url):
         # Get a dictionary of headers and a few bytes of content from the URL.
         #
         if scheme in ('http', 'https'):
-            response = requests.get(url, stream=True, timeout=_http_timeout)
+            response = request('GET', url, stream=True)
             content_chunk = next(response.iter_content(99))
             headers = response.headers
             response.close()
@@ -244,7 +250,7 @@ class URLDownloadTask(DownloadTask):
             headers = {'User-Agent': self.USER_AGENT}
 
             try:
-                resp = requests.get(source_url, headers=headers, stream=True, timeout=_http_timeout)
+                resp = request('GET', source_url, headers=headers, stream=True)
             except Exception as e:
                 raise DownloadError("Could not connect to URL", e)
 
@@ -332,7 +338,7 @@ class EsriRestDownloadTask(DownloadTask):
             query_args = {
                 'f': 'json'
             }
-            response = requests.get(source_url, params=query_args, headers=headers, timeout=_http_timeout)
+            response = request('GET', source_url, params=query_args, headers=headers)
 
             if response.status_code != 200:
                 raise DownloadError('Could not retrieve field names from ESRI source: HTTP {} {}'.format(
@@ -363,7 +369,7 @@ class EsriRestDownloadTask(DownloadTask):
                 'returnIdsOnly': 'true',
                 'f': 'json',
             }
-            response = requests.get(query_url, params=query_args, headers=headers, timeout=_http_timeout)
+            response = request('GET', query_url, params=query_args, headers=headers)
 
             if response.status_code != 200:
                 raise DownloadError('Could not retrieve object IDs from ESRI source: HTTP {} {}'.format(
@@ -398,7 +404,7 @@ class EsriRestDownloadTask(DownloadTask):
                     }
 
                     try:
-                        response = requests.post(query_url, headers=headers, data=query_args, timeout=_http_timeout)
+                        response = request('POST', query_url, headers=headers, data=query_args)
                         _L.debug("Requesting %s", response.url)
 
                         if response.status_code != 200:
