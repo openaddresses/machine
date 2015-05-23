@@ -66,17 +66,17 @@ parser = ArgumentParser(description='Run some source files.')
 parser.add_argument('bucketname',
                     help='Required S3 bucket name.')
 
+parser.add_argument('-r', '--repository', default='https://github.com/openaddresses/machine',
+                    help='Optional git repository to clone. Defaults to "https://github.com/openaddresses/machine".')
+
+parser.add_argument('-b', '--branch', default=__version__,
+                    help='Optional git branch to clone. Defaults to OpenAddresses-Machine version, "{}".'.format(__version__))
+
 parser.add_argument('-a', '--access-key', default=environ.get('AWS_ACCESS_KEY_ID', None),
                     help='Optional AWS access key name for writing to S3. Defaults to value of AWS_ACCESS_KEY_ID environment variable.')
 
 parser.add_argument('-s', '--secret-key', default=environ.get('AWS_SECRET_ACCESS_KEY', None),
                     help='Optional AWS secret key name for writing to S3. Defaults to value of AWS_SECRET_ACCESS_KEY environment variable.')
-
-parser.add_argument('-b', '--branch', default=__version__,
-                    help='Optional git repository to clone. Defaults to OpenAddresses-Machine version, "{}".'.format(__version__))
-
-parser.add_argument('-r', '--repository', default='https://github.com/openaddresses/machine',
-                    help='Optional code branch to clone. Defaults to "https://github.com/openaddresses/machine".')
 
 parser.add_argument('--ec2-access-key',
                     help='Optional AWS access key name for setting up EC2; distinct from access key for populating S3 bucket. Defaults to value of EC2_ACCESS_KEY_ID environment variable or S3 access key.')
