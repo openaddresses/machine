@@ -90,7 +90,7 @@ def main():
     with open(join(dirname(__file__), 'templates', 'user-data.sh')) as file:
         user_data = file.read().format(version=version, **args.__dict__)
     
-    _L.info('Prepared {} bytes of instance user data'.format(len(user_data)))
+    _L.info('Prepared {} bytes of instance user data for tag {}'.format(len(user_data), version))
 
     #
     # Figure out how much we're willing to bid on a spot instance.

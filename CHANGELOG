@@ -1,3 +1,9 @@
+2015-05-23: 1.8.0
+- Added role name argument to chef/run.sh.
+- Added source dir argument to openaddr.process_all.
+- Started openaddr.ci module for future queue-driven processing.
+- Moved all tests into new openaddr.tests module.
+
 2015-04-16: 1.7.1
 - Fixed CSV decoding bugs.
 - Linked to logs for output with missing sample data.
