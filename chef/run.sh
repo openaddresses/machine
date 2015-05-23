@@ -19,10 +19,13 @@ fi
 #
 # Use role JSON file from first argument name, but check if it exists.
 #
-if [ $# != 1 ]; then echo "Usage: $0 <role name>"; exit 1; fi
+if [ $# == 1 ]; then ROLE=$1;
+elif [ $# == 0 ]; then ROLE='batchmode';
+else echo "Usage: $0 <role name>"; exit 1;
+fi
 
 cd `dirname $0`
-ROLEFILE="${PWD}/role-${1}.json"
+ROLEFILE="${PWD}/role-${ROLE}.json"
 
 if [ ! -f $ROLEFILE ]; then echo "$ROLEFILE does not exist"; exit 1; fi
 
