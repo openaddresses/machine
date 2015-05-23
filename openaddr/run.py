@@ -7,7 +7,7 @@ from operator import attrgetter
 from itertools import groupby
 from time import time, sleep
 
-from . import jobs
+from . import jobs, __version__
 from boto.ec2 import EC2Connection
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 
@@ -56,6 +56,12 @@ parser.add_argument('-a', '--access-key', default=environ.get('AWS_ACCESS_KEY_ID
 parser.add_argument('-s', '--secret-key', default=environ.get('AWS_SECRET_ACCESS_KEY', None),
                     help='Optional AWS secret key name for writing to S3. Defaults to value of AWS_SECRET_ACCESS_KEY environment variable.')
 
+parser.add_argument('-b', '--branch', default=__version__,
+                    help='Optional git repository to clone. Defaults to OpenAddresses-Machine version, "{}".'.format(__version__))
+
+parser.add_argument('-r', '--repository', default='https://github.com/openaddresses/machine',
+                    help='Optional code branch to clone. Defaults to "https://github.com/openaddresses/machine".')
+
 parser.add_argument('--ec2-access-key',
                     help='Optional AWS access key name for setting up EC2; distinct from access key for populating S3 bucket. Defaults to value of EC2_ACCESS_KEY_ID environment variable or S3 access key.')
 
@@ -89,13 +95,10 @@ def main():
     #
     # Prepare init script for new EC2 instance to run.
     #
-    with open(join(dirname(__file__), 'VERSION')) as file:
-        version = file.read().strip()
-    
     with open(join(dirname(__file__), 'templates', 'user-data.sh')) as file:
-        user_data = file.read().format(version=version, **args.__dict__)
+        user_data = file.read().format(**args.__dict__)
     
-    _L.info('Prepared {} bytes of instance user data for tag {}'.format(len(user_data), version))
+    _L.info('Prepared {} bytes of instance user data for tag {}'.format(len(user_data), args.branch))
 
     #
     # Figure out how much we're willing to bid on a spot instance.

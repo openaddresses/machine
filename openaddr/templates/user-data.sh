@@ -3,7 +3,7 @@ apt-get update -y
 apt-get install -y git
 
 echo 'cloning' > /var/www/html/state.txt
-git clone -b {version} https://github.com/openaddresses/machine /tmp/machine
+git clone -b {branch} {repository} /tmp/machine
 
 echo 'installing' > /var/www/html/state.txt
 /tmp/machine/ec2/swap.sh
