@@ -1,6 +1,6 @@
 #!/bin/sh -ex
 apt-get update -y
-apt-get install -y git apache2
+apt-get install -y git
 
 echo 'cloning' > /var/www/html/state.txt
 git clone -b {version} https://github.com/openaddresses/machine /tmp/machine
