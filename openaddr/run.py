@@ -84,8 +84,11 @@ def main():
     #
     # Prepare init script for new EC2 instance to run.
     #
+    with open(join(dirname(__file__), 'VERSION')) as file:
+        version = file.read().strip()
+    
     with open(join(dirname(__file__), 'templates', 'user-data.sh')) as file:
-        user_data = file.read().format(**args.__dict__)
+        user_data = file.read().format(version=version, **args.__dict__)
     
     _L.info('Prepared {} bytes of instance user data'.format(len(user_data)))
 
