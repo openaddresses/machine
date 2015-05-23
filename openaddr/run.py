@@ -11,6 +11,11 @@ from . import jobs
 from boto.ec2 import EC2Connection
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 
+OVERDUE_SPOT_REQUEST = 'Out of time opening a spot instance request'
+OVERDUE_SPOT_INSTANCE = 'Out of time receiving a spot instance'
+OVERDUE_INSTANCE_DNS = 'Out of time getting an instance DNS name'
+OVERDUE_PROCESS_ALL = 'Out of time processing all sources'
+
 CHEAPSKATE='bid cheaply'
 BIGSPENDER='bid dearly'
 
@@ -121,6 +126,13 @@ def main():
     #
     try:
         wait_it_out(spot_req, time() + 12 * 60 * 60)
+    
+    except RuntimeError as e:
+        _L.warning(e.message)
+
+        if e.message is OVERDUE_PROCESS_ALL:
+            # Instance was set up, but ran out of time. Get its log.
+            pass
 
     finally:
         spot_req = ec2.get_all_spot_instance_requests(spot_req.id)[0]
@@ -142,7 +154,7 @@ def wait_it_out(spot_req, due):
         sleep(15)
         spot_req = ec2.get_all_spot_instance_requests(spot_req.id)[0]
         if time() > due:
-            raise RuntimeError('Out of time')
+            raise RuntimeError(OVERDUE_SPOT_REQUEST)
         elif spot_req.state == 'open':
             _L.debug('Spot request {} is open'.format(spot_req.id))
         else:
@@ -155,7 +167,7 @@ def wait_it_out(spot_req, due):
         sleep(5)
         spot_req = ec2.get_all_spot_instance_requests(spot_req.id)[0]
         if time() > due:
-            raise RuntimeError('Out of time')
+            raise RuntimeError(OVERDUE_SPOT_INSTANCE)
         elif spot_req.instance_id:
             break
         else:
@@ -165,7 +177,7 @@ def wait_it_out(spot_req, due):
         sleep(5)
         instance = ec2.get_only_instances(spot_req.instance_id)[0]
         if time() > due:
-            raise RuntimeError('Out of time')
+            raise RuntimeError(OVERDUE_INSTANCE_DNS)
         elif instance.public_dns_name:
             break
         else:
@@ -177,7 +189,7 @@ def wait_it_out(spot_req, due):
         sleep(60)
         instance = ec2.get_only_instances(instance.id)[0]
         if time() > due:
-            raise RuntimeError('Out of time')
+            raise RuntimeError(OVERDUE_PROCESS_ALL)
         elif instance.state == 'terminated':
             _L.debug('Instance {} has been terminated'.format(instance.id))
             break
