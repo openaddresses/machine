@@ -6,6 +6,9 @@ from argparse import ArgumentParser
 from operator import attrgetter
 from itertools import groupby
 from time import time, sleep
+from subprocess import check_call
+from tempfile import mkdtemp
+from shutil import rmtree
 
 from . import jobs, __version__
 from boto.ec2 import EC2Connection
@@ -44,6 +47,19 @@ def get_bid_amount(ec2, instance_type, strategy=CHEAPSKATE):
             raise ValueError('Unknown bid strategy, "{}"'.format(strategy))
     
     return median + 0.01
+
+def prepare_tarball(tempdir, repository, branch):
+    ''' Return path to a new tarball from the repository at branch.
+    '''
+    clonedir = join(tempdir, 'repo')
+    tarpath = join(tempdir, 'archive.tar')
+    
+    check_call(('git', 'clone', '-q', '-b', branch, '--bare', repository, clonedir))
+    check_call(('git', '--git-dir', clonedir, 'archive', branch, '-o', tarpath))
+    check_call(('gzip', tarpath))
+
+    rmtree(clonedir)
+    return tarpath + '.gz'
 
 parser = ArgumentParser(description='Run some source files.')
 
@@ -91,6 +107,11 @@ parser.add_argument('--bigspender', dest='bid_strategy',
 def main():
     args = parser.parse_args()
     jobs.setup_logger(None)
+    
+    tempdir = mkdtemp(prefix='oa-')
+    tarball = prepare_tarball(tempdir, args.repository, args.branch)
+    
+    _L.info('Created repository archive at {}'.format(tarball))
     
     #
     # Prepare init script for new EC2 instance to run.
@@ -145,6 +166,8 @@ def main():
             ec2.terminate_instances(spot_req.instance_id)
         
         spot_req.cancel()
+
+    rmtree(tempdir)
 
 def wait_it_out(spot_req, due):
     ''' Wait for EC2 to finish its work.
