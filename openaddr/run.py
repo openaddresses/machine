@@ -13,6 +13,7 @@ from shutil import rmtree
 from . import jobs, __version__
 from boto.ec2 import EC2Connection
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
+from paramiko.client import SSHClient, AutoAddPolicy
 
 OVERDUE_SPOT_REQUEST = 'Out of time opening a spot instance request'
 OVERDUE_SPOT_INSTANCE = 'Out of time receiving a spot instance'
@@ -78,6 +79,9 @@ parser.add_argument('-a', '--access-key', default=environ.get('AWS_ACCESS_KEY_ID
 parser.add_argument('-s', '--secret-key', default=environ.get('AWS_SECRET_ACCESS_KEY', None),
                     help='Optional AWS secret key name for writing to S3. Defaults to value of AWS_SECRET_ACCESS_KEY environment variable.')
 
+parser.add_argument('-i', '--identity-file',
+                    help='Optional SSH identity file for connecting to running EC2 instance. Should match EC2_SSH_KEYPAIR.')
+
 parser.add_argument('--ec2-access-key',
                     help='Optional AWS access key name for setting up EC2; distinct from access key for populating S3 bucket. Defaults to value of EC2_ACCESS_KEY_ID environment variable or S3 access key.')
 
@@ -88,7 +92,7 @@ parser.add_argument('--instance-type', default='m3.xlarge',
                     help='EC2 instance type, defaults to m3.xlarge.')
 
 parser.add_argument('--ssh-keypair', default='oa-keypair',
-                    help='SSH key pair name, defaults to "oa-keypair".')
+                    help='EC2 SSH key pair name, defaults to "oa-keypair".')
 
 parser.add_argument('--security-group', default='default',
                     help='EC2 security group name, defaults to "default".')
@@ -149,7 +153,19 @@ def main():
     # Wait while EC2 does its thing, unless the user interrupts.
     #
     try:
-        wait_it_out(spot_req, time() + 12 * 60 * 60)
+        instance = wait_it_out1(spot_req, time() + 15 * 60)
+        
+        _L.info('Connecting to instance {} with {}'.format(instance.public_dns_name, args.identity_file))
+        client = SSHClient()
+        client.set_missing_host_key_policy(AutoAddPolicy())
+        client.connect(instance.public_dns_name, username='ubuntu', key_filename=args.identity_file)
+
+        _L.info('Uploading {} to instance'.format(tarball))
+        sftp = client.open_sftp()
+        sftp.put(tarball, '/tmp/uploading.tar.gz')
+        client.exec_command('mv /tmp/uploading.tar.gz /tmp/machine.tar.gz')
+
+        wait_it_out2(instance, time() + 12 * 60 * 60)
     
     except RuntimeError as e:
         _L.warning(e.message)
@@ -169,12 +185,12 @@ def main():
 
     rmtree(tempdir)
 
-def wait_it_out(spot_req, due):
+def wait_it_out1(spot_req, due):
     ''' Wait for EC2 to finish its work.
     '''
     ec2 = spot_req.connection
 
-    _L.info('Settling in for the long wait, up to {:.0f} hours.'.format((due - time()) / 3600))
+    _L.info('Settling in for a short wait, up to {:.0f} minutes.'.format((due - time()) / 60))
     
     while True:
         sleep(15)
@@ -209,8 +225,21 @@ def wait_it_out(spot_req, due):
         else:
             _L.debug('Waiting for instance DNS name')
 
+    # Give it a little time to get ready.
+    _L.debug('sleeping...')
+    sleep(60)
+    
     _L.info('Found instance {} at {}'.format(instance.id, instance.public_dns_name))
+    
+    return instance
 
+def wait_it_out2(instance, due):
+    ''' Wait for EC2 to finish its work.
+    '''
+    ec2 = instance.connection
+
+    _L.info('Settling in for the long wait, up to {:.0f} hours.'.format((due - time()) / 3600))
+    
     while True:
         sleep(60)
         instance = ec2.get_only_instances(instance.id)[0]

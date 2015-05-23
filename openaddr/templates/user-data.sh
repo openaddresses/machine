@@ -1,16 +1,17 @@
 #!/bin/sh -ex
 apt-get update -y
-apt-get install -y git
+while [ ! -f /tmp/machine.tar.gz ]; do sleep 10; done
 
-echo 'cloning' > /var/www/html/state.txt
-git clone -b {branch} {repository} /tmp/machine
+echo 'extracting' > /var/run/machine-state.txt
+mkdir /tmp/machine
+tar -C /tmp/machine -xzf /tmp/machine.tar.gz
 
-echo 'installing' > /var/www/html/state.txt
+echo 'installing' > /var/run/machine-state.txt
 /tmp/machine/ec2/swap.sh
 /tmp/machine/chef/run.sh batchmode
 
-echo 'processing' > /var/www/html/state.txt
+echo 'processing' > /var/run/machine-state.txt
 openaddr-process -a {access_key} -s {secret_key} -l log.txt /var/opt/openaddresses/sources {bucketname}
 
-echo 'terminating' > /var/www/html/state.txt
+echo 'terminating' > /var/run/machine-state.txt
 shutdown -h now
