@@ -64,6 +64,15 @@ def prepare_tarball(tempdir, repository, branch):
     rmtree(clonedir)
     return tarpath + '.gz'
 
+def connect_ssh(dns_name, identity_file):
+    '''
+    '''
+    client = SSHClient()
+    client.set_missing_host_key_policy(AutoAddPolicy())
+    client.connect(dns_name, username='ubuntu', key_filename=identity_file)
+    
+    return client
+
 parser = ArgumentParser(description='Run some source files.')
 
 parser.add_argument('bucketname',
@@ -164,7 +173,12 @@ def main():
 
         if e.message is OVERDUE_PROCESS_ALL:
             # Instance was set up, but ran out of time. Get its log.
-            pass
+            logfile = join(tempdir, 'cloud-init-output.log')
+            client = connect_ssh(instance.public_dns_name, args.identity_file)
+            client.open_sftp().get('/var/log/cloud-init-output.log', logfile)
+            
+            with open(logfile) as file:
+                print file.read()
 
     finally:
         spot_req = ec2.get_all_spot_instance_requests(spot_req.id)[0]
@@ -229,9 +243,7 @@ def upload_tarball(tarball, dns_name, identity_file, due):
     while True:
         sleep(10)
         try:
-            client = SSHClient()
-            client.set_missing_host_key_policy(AutoAddPolicy())
-            client.connect(dns_name, username='ubuntu', key_filename=identity_file)
+            client = connect_ssh(dns_name, identity_file)
         except socket.error:
             if time() > due:
                 raise RuntimeError(OVERDUE_UPLOAD_TARBALL)
@@ -246,8 +258,7 @@ def upload_tarball(tarball, dns_name, identity_file, due):
         return
         _L.debug('Sent {} of {} bytes'.format(sent, total))
 
-    sftp = client.open_sftp()
-    sftp.put(tarball, '/tmp/uploading.tar.gz', progress)
+    client.open_sftp().put(tarball, '/tmp/uploading.tar.gz', progress)
     client.exec_command('mv /tmp/uploading.tar.gz /tmp/machine.tar.gz')
 
 def wait_for_process(instance, due):
