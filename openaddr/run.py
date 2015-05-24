@@ -9,6 +9,7 @@ from time import time, sleep
 from subprocess import check_call
 from tempfile import mkdtemp
 from shutil import rmtree
+import socket
 
 from . import jobs, __version__
 from boto.ec2 import EC2Connection
@@ -18,6 +19,7 @@ from paramiko.client import SSHClient, AutoAddPolicy
 OVERDUE_SPOT_REQUEST = 'Out of time opening a spot instance request'
 OVERDUE_SPOT_INSTANCE = 'Out of time receiving a spot instance'
 OVERDUE_INSTANCE_DNS = 'Out of time getting an instance DNS name'
+OVERDUE_UPLOAD_TARBALL = 'Out of time connecting to instance with SSH'
 OVERDUE_PROCESS_ALL = 'Out of time processing all sources'
 
 CHEAPSKATE='bid cheaply'
@@ -153,19 +155,9 @@ def main():
     # Wait while EC2 does its thing, unless the user interrupts.
     #
     try:
-        instance = wait_it_out1(spot_req, time() + 15 * 60)
-        
-        _L.info('Connecting to instance {} with {}'.format(instance.public_dns_name, args.identity_file))
-        client = SSHClient()
-        client.set_missing_host_key_policy(AutoAddPolicy())
-        client.connect(instance.public_dns_name, username='ubuntu', key_filename=args.identity_file)
-
-        _L.info('Uploading {} to instance'.format(tarball))
-        sftp = client.open_sftp()
-        sftp.put(tarball, '/tmp/uploading.tar.gz')
-        client.exec_command('mv /tmp/uploading.tar.gz /tmp/machine.tar.gz')
-
-        wait_it_out2(instance, time() + 12 * 60 * 60)
+        instance = wait_for_setup(spot_req, time() + 15 * 60)
+        upload_tarball(tarball, instance.public_dns_name, args.identity_file, time() + 3 * 60)
+        wait_for_process(instance, time() + 12 * 60 * 60)
     
     except RuntimeError as e:
         _L.warning(e.message)
@@ -185,7 +177,7 @@ def main():
 
     rmtree(tempdir)
 
-def wait_it_out1(spot_req, due):
+def wait_for_setup(spot_req, due):
     ''' Wait for EC2 to finish its work.
     '''
     ec2 = spot_req.connection
@@ -225,15 +217,40 @@ def wait_it_out1(spot_req, due):
         else:
             _L.debug('Waiting for instance DNS name')
 
-    # Give it a little time to get ready.
-    _L.debug('sleeping...')
-    sleep(60)
-    
     _L.info('Found instance {} at {}'.format(instance.id, instance.public_dns_name))
     
     return instance
 
-def wait_it_out2(instance, due):
+def upload_tarball(tarball, dns_name, identity_file, due):
+    '''
+    ''' 
+    _L.info('Connecting to instance {} with {}'.format(dns_name, identity_file))
+
+    while True:
+        sleep(10)
+        try:
+            client = SSHClient()
+            client.set_missing_host_key_policy(AutoAddPolicy())
+            client.connect(dns_name, username='ubuntu', key_filename=identity_file)
+        except socket.error:
+            if time() > due:
+                raise RuntimeError(OVERDUE_UPLOAD_TARBALL)
+            else:
+                _L.debug('Waiting to connect to {}'.format(dns_name))
+        else:
+            break
+    
+    _L.info('Uploading {} to instance'.format(tarball))
+    
+    def progress(sent, total):
+        return
+        _L.debug('Sent {} of {} bytes'.format(sent, total))
+
+    sftp = client.open_sftp()
+    sftp.put(tarball, '/tmp/uploading.tar.gz', progress)
+    client.exec_command('mv /tmp/uploading.tar.gz /tmp/machine.tar.gz')
+
+def wait_for_process(instance, due):
     ''' Wait for EC2 to finish its work.
     '''
     ec2 = instance.connection
