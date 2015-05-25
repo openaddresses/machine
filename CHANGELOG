@@ -1,3 +1,8 @@
+2015-05-25: 1.9.0
+- Added --repository, --branch, and --identity-file arguments to openaddr-ec2-run.
+- Added "ec2-" prefixes to many openaddr-ec2-run arguments.
+- Changed EC2 user script to accept code via scp instead of git download.
+
 2015-05-23: 1.8.0
 - Added role name argument to chef/run.sh.
 - Added source dir argument to openaddr.process_all.

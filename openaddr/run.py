@@ -39,7 +39,7 @@ def get_bid_amount(ec2, instance_type, strategy=CHEAPSKATE):
     
     for (zone, zone_history) in groupby(sorted(history, key=get_az), get_az):
         zone_prices = [h.price for h in zone_history]
-        zone_median = sorted(zone_prices)[len(zone_prices)/2]
+        zone_median = sorted(zone_prices)[len(zone_prices)//2]
 
         _L.debug('Median ${:.4f}/hour in {} zone'.format(zone_median, zone))
         
@@ -191,8 +191,7 @@ def run_ec2(args):
             ec2.terminate_instances(spot_req.instance_id)
         
         spot_req.cancel()
-
-    rmtree(tempdir)
+        rmtree(tempdir)
 
 def wait_for_setup(spot_req, due):
     ''' Wait for EC2 to finish its work.
