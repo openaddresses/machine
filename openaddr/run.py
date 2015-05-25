@@ -100,16 +100,16 @@ parser.add_argument('--ec2-access-key',
 parser.add_argument('--ec2-secret-key',
                     help='Optional AWS secret key name for setting up EC2; distinct from secret key for populating S3 bucket. Defaults to value of EC2_SECRET_ACCESS_KEY environment variable or S3 secret key.')
 
-parser.add_argument('--instance-type', default='m3.xlarge',
+parser.add_argument('--ec2-instance-type', '--instance-type', default='m3.xlarge',
                     help='EC2 instance type, defaults to m3.xlarge.')
 
-parser.add_argument('--ssh-keypair', default='oa-keypair',
+parser.add_argument('--ec2-ssh-keypair', '--ssh-keypair', default='oa-keypair',
                     help='EC2 SSH key pair name, defaults to "oa-keypair".')
 
-parser.add_argument('--security-group', default='default',
+parser.add_argument('--ec2-security-group', '--security-group', default='default',
                     help='EC2 security group name, defaults to "default".')
 
-parser.add_argument('--machine-image', default='ami-4ae27e22',
+parser.add_argument('--ec2-machine-image', '--machine-image', default='ami-4ae27e22',
                     help='AMI identifier, defaults to Alestic Ubuntu 14.04 (ami-4ae27e22).')
 
 parser.add_argument('--cheapskate', dest='bid_strategy',
@@ -146,8 +146,8 @@ def run_ec2(args):
     ec2_secret_key = args.ec2_secret_key or environ.get('EC2_SECRET_ACCESS_KEY', args.secret_key)
     ec2 = EC2Connection(ec2_access_key, ec2_secret_key)
     
-    bid = get_bid_amount(ec2, args.instance_type, args.bid_strategy)
-    _L.info('Bidding ${:.4f}/hour for {} instance'.format(bid, args.instance_type))
+    bid = get_bid_amount(ec2, args.ec2_instance_type, args.bid_strategy)
+    _L.info('Bidding ${:.4f}/hour for {} instance'.format(bid, args.ec2_instance_type))
     
     #
     # Request a spot instance with 200GB storage.
@@ -155,11 +155,11 @@ def run_ec2(args):
     device_sda1 = BlockDeviceType(size=200, delete_on_termination=True)
     device_map = BlockDeviceMapping(); device_map['/dev/sda1'] = device_sda1
     
-    spot_args = dict(instance_type=args.instance_type, user_data=user_data,
-                     key_name=args.ssh_keypair, block_device_map=device_map,
-                     security_groups=[args.security_group])
+    spot_args = dict(instance_type=args.ec2_instance_type, user_data=user_data,
+                     key_name=args.ec2_ssh_keypair, block_device_map=device_map,
+                     security_groups=[args.ec2_security_group])
 
-    spot_req = ec2.request_spot_instances(bid, args.machine_image, **spot_args)[0]
+    spot_req = ec2.request_spot_instances(bid, args.ec2_machine_image, **spot_args)[0]
 
     _L.info('https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#SpotInstances:search={}'.format(spot_req.id))
     
