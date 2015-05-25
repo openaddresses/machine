@@ -122,7 +122,9 @@ parser.add_argument('--bigspender', dest='bid_strategy',
 def main():
     args = parser.parse_args()
     jobs.setup_logger(None)
-    
+    run_ec2(args)
+
+def run_ec2(args):
     tempdir = mkdtemp(prefix='oa-')
     tarball = prepare_tarball(tempdir, args.repository, args.branch)
     
