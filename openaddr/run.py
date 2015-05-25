@@ -1,3 +1,4 @@
+from __future__ import absolute_import, division, print_function
 import logging; _L = logging.getLogger('openaddr.run')
 
 from os import environ
@@ -180,13 +181,13 @@ def run_ec2(args):
             client.open_sftp().get('/var/log/cloud-init-output.log', logfile)
             
             with open(logfile) as file:
-                print file.read()
+                _L.info('/var/log/cloud-init-output.log contents:\n\n{}\n'.format(file.read()))
 
     finally:
         spot_req = ec2.get_all_spot_instance_requests(spot_req.id)[0]
         
         if spot_req.instance_id:
-            print 'Shutting down instance {} early'.format(spot_req.instance_id)
+            print('Shutting down instance {} early'.format(spot_req.instance_id))
             ec2.terminate_instances(spot_req.instance_id)
         
         spot_req.cancel()
