@@ -114,7 +114,7 @@ class ZipDecompressTask(DecompressionTask):
         for source_path in source_paths:
             with ZipFile(source_path, 'r') as z:
                 for name in z.namelist():
-                    if len(filenames) and name not in filenames:
+                    if len(filenames) and name.lower() not in filenames:
                         # Download only the named file, if any.
                         _L.debug("Skipped file {}".format(name))
                         continue

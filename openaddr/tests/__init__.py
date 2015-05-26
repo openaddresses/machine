@@ -82,6 +82,9 @@ class TestOA (unittest.TestCase):
         
         if (host, path) == ('data.sfgov.org', '/download/kvej-w5kb/ZIPPED%20SHAPEFILE'):
             local_path = join(data_dirname, 'us-ca-san_francisco-excerpt.zip')
+
+        if (host, path) == ('ftp.agrc.utah.gov', '/UtahSGID_Vector/UTM12_NAD83/LOCATION/UnpackagedData/AddressPoints/_Statewide/AddressPoints_shp.zip'):
+            local_path = join(data_dirname, 'us-ut-excerpt.zip')
         
         if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1/query'):
             qs = parse_qs(query)
@@ -134,7 +137,7 @@ class TestOA (unittest.TestCase):
             
                 self.assertTrue(bool(state['sample']), 'Checking for sample in {}'.format(source))
 
-            if 'san_francisco' in source or 'alameda_county' in source or 'carson' in source or 'pl-' in source:
+            if 'san_francisco' in source or 'alameda_county' in source or 'carson' in source or 'pl-' in source or 'us-ut' in source:
                 self.assertTrue(bool(state['processed']), "Checking for processed in {}".format(source))
                 
                 with HTTMock(self.response_content):
@@ -430,6 +433,24 @@ class TestOA (unittest.TestCase):
         self.assertTrue(u'田沢字姥懐' in sample_data[1])
         self.assertTrue('37.706391' in sample_data[1])
         self.assertTrue('140.480007' in sample_data[1])
+
+    def test_single_utah(self):
+        ''' Test complete process_one.process on data that uses file selection with mixed case (issue #104)
+        '''
+        source = join(self.src_dir, 'us-ut.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+
+        self.assertTrue(state['sample'] is not None)
+
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+
+        self.assertEqual(len(sample_data), 6)
 
 @contextmanager
 def locked_open(filename):
