@@ -255,7 +255,8 @@ def elaborate_filenames(filename):
     if filename is None:
         return []
     
-    base, original_ext = splitext(filename.lower())
+    filename = filename.lower()
+    base, original_ext = splitext(filename)
     
     if original_ext == '.shp':
         return [base + ext for ext in (original_ext, '.shx', '.dbf', '.prj')]
