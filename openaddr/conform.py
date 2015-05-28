@@ -647,9 +647,9 @@ def conform_smash_case(source_definition):
     "Convert all named fields in source_definition object to lowercase. Returns new object."
     new_sd = copy.deepcopy(source_definition)
     conform = new_sd["conform"]
-    for k in ("split", "lat", "lon", "street", "number"):
-        if k in conform:
-            conform[k] = conform[k].lower()
+    for k, v in conform.items():
+        if v not in (X_FIELDNAME, Y_FIELDNAME) and getattr(v, 'lower', None):
+            conform[k] = v.lower()
     if "merge" in conform:
         conform["merge"] = [s.lower() for s in conform["merge"]]
     if "advanced_merge" in conform:
@@ -659,8 +659,7 @@ def conform_smash_case(source_definition):
 
 def row_smash_case(sd, input):
     "Convert all field names to lowercase. Slow, but necessary for imprecise conform specs."
-    output = { k.lower(): v for (k, v) in input.items() if k not in (X_FIELDNAME, Y_FIELDNAME) }
-    output.update({ k: v for (k, v) in input.items() if k in (X_FIELDNAME, Y_FIELDNAME) })
+    output = { k if k in (X_FIELDNAME, Y_FIELDNAME) else k.lower() : v for (k, v) in input.items() }
     return output
 
 def row_merge_street(sd, row):
