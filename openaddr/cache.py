@@ -4,6 +4,7 @@ import logging; _L = logging.getLogger('openaddr.cache')
 from .compat import standard_library
 
 import ogr
+import osr
 import sys
 import os
 import errno
@@ -12,6 +13,7 @@ import mimetypes
 import shutil
 import itertools
 import re
+import time
 
 from os import mkdir
 from hashlib import md5
@@ -21,7 +23,6 @@ from subprocess import check_output
 from tempfile import mkstemp
 from hashlib import sha1
 from shutil import move
-from time import time
 
 import requests
 import requests_ftp
@@ -289,7 +290,7 @@ class EsriRestDownloadTask(DownloadTask):
                 geom.AddGeometry(ring)
         elif geom_type == 'esriGeometryPolyline':
             geom = ogr.Geometry(ogr.wkbMultiLineString)
-            for esri_ring in esri_feature['geometry']['rings']:
+            for esri_ring in esri_feature['geometry']['paths']:
                 line = ogr.Geometry(ogr.wkbLineString)
                 for esri_pt in esri_ring:
                     line.AddPoint(esri_pt[0], esri_pt[1])
@@ -356,96 +357,194 @@ class EsriRestDownloadTask(DownloadTask):
             if GEOM_FIELDNAME not in field_names:
                 field_names.append(GEOM_FIELDNAME)
 
-            # Get all the OIDs
-            query_url = source_url + '/query'
-            query_args = {
-                'where': '1=1', # So we get everything
-                'returnIdsOnly': 'true',
-                'f': 'json',
+            objectid_fieldname = None
+            for field in metadata['fields']:
+                if field['type'] == 'esriFieldTypeOID':
+                    objectid_fieldname = field['name']
+                    break
+
+            if not objectid_fieldname:
+                raise DownloadError("Could not find objectid field name")
+
+            geometry_type = metadata.get('geometryType')
+            if not geometry_type:
+                raise DownloadError("Could not determine geometry type")
+
+            max_record_count = metadata.get('maxRecordCount', 500)
+
+            extent = metadata.get('extent')
+            # Reproject the extent to EPSG:4326 cuz ESRI won't do it for us
+            ogr_extent = ogr.Geometry(ogr.wkbPolygon)
+            ring = ogr.Geometry(ogr.wkbLinearRing)
+            ring.AddPoint(extent['xmin'], extent['ymin'])
+            ring.AddPoint(extent['xmin'], extent['ymax'])
+            ring.AddPoint(extent['xmax'], extent['ymax'])
+            ring.AddPoint(extent['xmax'], extent['ymin'])
+            ring.AddPoint(extent['xmin'], extent['ymin'])
+            ogr_extent.AddGeometry(ring)
+            source = osr.SpatialReference()
+            source.ImportFromEPSG(extent['spatialReference']['wkid'])
+            target = osr.SpatialReference()
+            target.ImportFromEPSG(4326)
+            transform = osr.CoordinateTransformation(source, target)
+            ogr_extent.Transform(transform)
+            (xmin, xmax, ymin, ymax) = ogr_extent.GetEnvelope()
+            extent = {
+                'xmin': xmin,
+                'ymin': ymin,
+                'xmax': xmax,
+                'ymax': ymax,
             }
-            response = requests.get(query_url, params=query_args, headers=headers, timeout=_http_timeout)
 
-            if response.status_code != 200:
-                raise DownloadError('Could not retrieve object IDs from ESRI source: HTTP {} {}'.format(
-                    response.status_code,
-                    response.text
-                ))
+            import json
 
-            oids = response.json().get('objectIds', [])
+            # Use spatial queries to fetch the data
+            def get_bbox(fetched_ids, bbox):
+                query_args = {
+                    'f': 'json',
+                    'geometryType': 'esriGeometryEnvelope',
+                    'geometry': ','.join([
+                        str(bbox['xmin']),
+                        str(bbox['ymin']),
+                        str(bbox['xmax']),
+                        str(bbox['ymax']),
+                    ]),
+                    'geometryPrecision': 7,
+                    'returnGeometry': 'true',
+                    'outSR': 4326,
+                    'inSR': 4326,
+                    'outFields': '*',
+                }
+
+                tries = 3
+                while tries >= 0:
+                    try:
+                        response = requests.get(source_url + '/query', params=query_args, headers=headers, timeout=_http_timeout)
+                        tries = tries - 1
+
+                        # print(response.url)
+
+                        if response.status_code != 200:
+                            raise DownloadError('Could not retrieve data envelope: HTTP {} {}'.format(
+                                response.status_code,
+                                response.text
+                            ))
+
+                        try:
+                            error = response.json().get('error')
+                            if error:
+                                raise DownloadError("Problem querying ESRI dataset: {}" .format(error['message']))
+                        except Exception as e:
+                            raise DownloadError("Problem parsing ESRI response", e)
+
+                        break
+                    except DownloadError as e:
+                        _L.info("Retrying after download error", exc_info=True)
+                        time.sleep(1.0)
+
+                geometry_type = response.json().get('geometryType')
+                features = response.json().get('features')
+
+                print(json.dumps({
+                    'type': 'Feature',
+                    'properties': {
+                        'count': len(features),
+                    },
+                    'geometry': {
+                        'type': 'Polygon',
+                        'coordinates': [[
+                            [bbox['xmin'], bbox['ymin']],
+                            [bbox['xmin'], bbox['ymax']],
+                            [bbox['xmax'], bbox['ymax']],
+                            [bbox['xmax'], bbox['ymin']],
+                            [bbox['xmin'], bbox['ymin']],
+                        ]]
+                    }
+                }) + ',')
+
+                returned_data = []
+                for feature in features:
+                    row = feature.get('attributes', {})
+
+                    if row[objectid_fieldname] in fetched_ids:
+                        continue
+
+                    ogr_geom = self.build_ogr_geometry(geometry_type, feature)
+                    try:
+                        centroid = ogr_geom.Centroid()
+                    except RuntimeError as e:
+                        if 'Invalid number of points in LinearRing found' not in str(e):
+                            raise
+                        xmin, xmax, ymin, ymax = ogr_geom.GetEnvelope()
+                        row[X_FIELDNAME] = round(xmin/2 + xmax/2, 7)
+                        row[Y_FIELDNAME] = round(ymin/2 + ymax/2, 7)
+                    else:
+                        row[X_FIELDNAME] = round(centroid.GetX(), 7)
+                        row[Y_FIELDNAME] = round(centroid.GetY(), 7)
+
+                    fetched_ids.add(row[objectid_fieldname])
+                    returned_data.append(row)
+
+                if len(features) >= max_record_count:
+                    # Use the mean x/y of the data we *did* get as the pivot point to split into 4 boxes
+                    mean_x = float(sum(f[X_FIELDNAME] for f in returned_data)) / len(returned_data)
+                    mean_y = float(sum(f[Y_FIELDNAME] for f in returned_data)) / len(returned_data)
+
+                    returned_data.extend(
+                        get_bbox(fetched_ids, {
+                            'xmin': bbox['xmin'], 'ymin': bbox['ymin'],
+                            'xmax': mean_x,       'ymax': mean_y,
+                        })
+                    )
+                    returned_data.extend(
+                        get_bbox(fetched_ids, {
+                            'xmin': mean_x,       'ymin': bbox['ymin'],
+                            'xmax': bbox['xmax'], 'ymax': mean_y,
+                        })
+                    )
+                    returned_data.extend(
+                        get_bbox(fetched_ids, {
+                            'xmin': bbox['xmin'], 'ymin': mean_y,
+                            'xmax': mean_x,       'ymax': bbox['ymax'],
+                        })
+                    )
+                    returned_data.extend(
+                        get_bbox(fetched_ids, {
+                            'xmin': mean_x,       'ymin': mean_y,
+                            'xmax': bbox['xmax'], 'ymax': bbox['ymax'],
+                        })
+                    )
+
+                return returned_data
 
             with csvopen(file_path, 'w', encoding='utf-8') as f:
                 writer = csvDictWriter(f, fieldnames=field_names, encoding='utf-8')
                 writer.writeheader()
 
-                oid_iter = iter(oids)
-                due = time() + 7200
-                while True:
-                    oid_chunk = tuple(itertools.islice(oid_iter, 100))
+                fetched_ids = set()
+                fetched_data = get_bbox(fetched_ids, extent)
 
-                    if not oid_chunk:
-                        break
-                    
-                    if time() > due:
-                        raise RuntimeError('Ran out of time caching Esri features')
-
-                    query_args = {
-                        'objectIds': ','.join(map(str, oid_chunk)),
-                        'geometryPrecision': 7,
-                        'returnGeometry': 'true',
-                        'outSR': 4326,
-                        'outFields': '*',
-                        'f': 'json',
-                    }
-
+                for feature in fetched_data:
                     try:
-                        response = requests.post(query_url, headers=headers, data=query_args, timeout=_http_timeout)
-                        _L.debug("Requesting %s", response.url)
-
-                        if response.status_code != 200:
-                            raise DownloadError('Could not retrieve this chunk of objects from ESRI source: HTTP {} {}'.format(
-                                response.status_code,
-                                response.text
-                            ))
-
-                        data = response.json()
-                    except socket.timeout as e:
-                        raise DownloadError("Timeout when connecting to URL", e)
-                    except ValueError as e:
-                        raise DownloadError("Could not parse JSON", e)
-                    except Exception as e:
-                        raise DownloadError("Could not connect to URL", e)
-                    finally:
-                        # Wipe out whatever we had written out so far
-                        f.truncate()
-
-                    error = data.get('error')
-                    if error:
-                        raise DownloadError("Problem querying ESRI dataset: {}" .format(error['message']))
-
-                    geometry_type = data.get('geometryType')
-                    features = data.get('features')
-
-                    for feature in features:
+                        ogr_geom = self.build_ogr_geometry(geometry_type, feature)
+                        row = feature.get('attributes', {})
+                        row[GEOM_FIELDNAME] = ogr_geom.ExportToWkt()
                         try:
-                            ogr_geom = self.build_ogr_geometry(geometry_type, feature)
-                            row = feature.get('attributes', {})
-                            row[GEOM_FIELDNAME] = ogr_geom.ExportToWkt()
-                            try:
-                                centroid = ogr_geom.Centroid()
-                            except RuntimeError as e:
-                                if 'Invalid number of points in LinearRing found' not in str(e):
-                                    raise
-                                xmin, xmax, ymin, ymax = ogr_geom.GetEnvelope()
-                                row[X_FIELDNAME] = round(xmin/2 + xmax/2, 7)
-                                row[Y_FIELDNAME] = round(ymin/2 + ymax/2, 7)
-                            else:
-                                row[X_FIELDNAME] = round(centroid.GetX(), 7)
-                                row[Y_FIELDNAME] = round(centroid.GetY(), 7)
+                            centroid = ogr_geom.Centroid()
+                        except RuntimeError as e:
+                            if 'Invalid number of points in LinearRing found' not in str(e):
+                                raise
+                            xmin, xmax, ymin, ymax = ogr_geom.GetEnvelope()
+                            row[X_FIELDNAME] = round(xmin/2 + xmax/2, 7)
+                            row[Y_FIELDNAME] = round(ymin/2 + ymax/2, 7)
+                        else:
+                            row[X_FIELDNAME] = round(centroid.GetX(), 7)
+                            row[Y_FIELDNAME] = round(centroid.GetY(), 7)
 
-                            writer.writerow(row)
-                            size += 1
-                        except TypeError:
-                            _L.debug("Skipping a geometry", exc_info=True)
+                        writer.writerow(row)
+                        size += 1
+                    except TypeError:
+                        _L.debug("Skipping a geometry", exc_info=True)
 
             _L.info("Downloaded %s ESRI features for file %s", size, file_path)
             output_files.append(file_path)
