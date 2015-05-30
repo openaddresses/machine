@@ -12,7 +12,7 @@ os.environ['GITHUB_TOKEN'] = ''
 os.environ['DATABASE_URL'] = environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
 
 from ..ci import (
-    app, db_connect, db_cursor, db_queue, pop_finished_task_from_queue,
+    app, db_connect, db_cursor, db_queue, pop_task_from_donequeue,
     TASK_QUEUE, DONE_QUEUE, MAGIC_OK_MESSAGE
     )
 
@@ -40,7 +40,7 @@ class TestHook (unittest.TestCase):
         '''
         return
         
-        with db_connect(app) as conn:
+        with db_connect(self.database_url) as conn:
             with db_cursor(conn) as db:
                 db.execute('TRUNCATE jobs')
                 db.execute('TRUNCATE queue')
@@ -132,7 +132,7 @@ class TestHook (unittest.TestCase):
         
             # Handle completion task and check with Github.
             with HTTMock(self.response_content):
-                pop_finished_task_from_queue(db_queue(conn, DONE_QUEUE), self.github_auth)
+                pop_task_from_donequeue(db_queue(conn, DONE_QUEUE), self.github_auth)
         
             # Check that Github knows the job to have been completed successfully.
             self.assertEqual(self.last_status_state, 'success')
@@ -170,7 +170,7 @@ class TestHook (unittest.TestCase):
         
                 # Handle completion tasks and check with Github.
                 with HTTMock(self.response_content):
-                    pop_finished_task_from_queue(db_queue(conn, DONE_QUEUE), self.github_auth)
+                    pop_task_from_donequeue(db_queue(conn, DONE_QUEUE), self.github_auth)
                 
                 # Check that Github already knows the job to have been completed unsuccessfully.
                 self.assertEqual(self.last_status_state, 'failure')
@@ -209,7 +209,7 @@ class TestHook (unittest.TestCase):
         
                 # Handle completion tasks and check with Github.
                 with HTTMock(self.response_content):
-                    pop_finished_task_from_queue(db_queue(conn, DONE_QUEUE), self.github_auth)
+                    pop_task_from_donequeue(db_queue(conn, DONE_QUEUE), self.github_auth)
                 
                 if index == 0:
                     # Check that Github still thinks it's pending.

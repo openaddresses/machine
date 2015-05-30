@@ -45,7 +45,7 @@ def hook():
     job_url = urljoin(request.url, '/jobs/{id}'.format(id=job_id))
     job_status = None
 
-    with db_connect(current_app) as conn:
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
         queue = db_queue(conn)
         with queue as db:
             try:
@@ -66,7 +66,7 @@ def hook():
 def get_job(job_id):
     '''
     '''
-    with db_connect(current_app) as conn:
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
             try:
                 status, task_files, file_states, file_results, github_status_url = read_job(db, job_id)
@@ -297,8 +297,8 @@ def read_job(db, job_id):
     else:
         return status, task_files, states, file_results, github_status_url
 
-def pop_finished_task_from_queue(queue, github_auth):
-    '''
+def pop_task_from_donequeue(queue, github_auth):
+    ''' Look for a completed job in the "done" task queue, update Github status.
     '''
     with queue as db:
         task = queue.get()
@@ -344,10 +344,9 @@ def pop_finished_task_from_queue(queue, github_auth):
         elif job_status is True:
             update_success_status(status_url, job_url, filenames, github_auth)
 
-def db_connect(app_or_dsn):
-    ''' Connect to database using Flask app instance or DSN string.
+def db_connect(dsn):
+    ''' Connect to database using DSN string.
     '''
-    dsn = app.config['DATABASE_URL'] if hasattr(app, 'config') else app_or_dsn
     return connect(dsn)
 
 def db_queue(conn, name=None):
