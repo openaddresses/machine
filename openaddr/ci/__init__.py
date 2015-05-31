@@ -124,7 +124,7 @@ def get_touched_branch_files(payload, github_auth):
     return touched
 
 def process_payload_files(payload, github_auth):
-    ''' Return a dictionary of file paths and raw JSON contents.
+    ''' Return a dictionary of file paths to raw JSON contents and file IDs.
     '''
     files = dict()
 
@@ -160,7 +160,7 @@ def process_payload_files(payload, github_auth):
         current_app.logger.debug('Contents SHA {}'.format(contents['sha']))
         
         if encoding == 'base64':
-            files[filename] = b64decode(content).decode('utf8')
+            files[filename] = b64decode(content).decode('utf8'), contents['sha']
         else:
             raise ValueError('Unrecognized encoding "{}"'.format(encoding))
     
@@ -254,8 +254,9 @@ def add_files_to_queue(queue, job_id, job_url, files):
     '''
     tasks = {}
     
-    for (name, content) in files.items():
-        task = queue.put(dict(id=job_id, url=job_url, name=name, content=content))
+    for (name, (content, file_id)) in files.items():
+        task = queue.put(dict(id=job_id, url=job_url, name=name,
+                              content=content, file_id=file_id))
         
         tasks[str(task)] = name
     
