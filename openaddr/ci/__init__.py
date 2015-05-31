@@ -321,6 +321,7 @@ def pop_task_from_donequeue(queue, github_auth):
         message = results['message']
         job_url = task.data['url']
         filename = task.data['name']
+        file_id = task.data['file_id']
         job_id = task.data['id']
 
         try:

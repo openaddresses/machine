@@ -268,6 +268,24 @@ class TestHook (unittest.TestCase):
         self.assertFalse(b'us-ca-san_francisco' in posted.data, 'San Francisco source should be absent from master commit')
         self.assertFalse(b'us-ca-berkeley' in posted.data, 'Berkeley source should be absent from master commit')
     
+class TestRuns (unittest.TestCase):
+
+    def setUp(self):
+        '''
+        '''
+        recreate_db.recreate(os.environ['DATABASE_URL'])
+        self.database_url = os.environ['DATABASE_URL']
+    
+    def tearDown(self):
+        '''
+        '''
+        return
+        
+        with db_connect(self.database_url) as conn:
+            with db_cursor(conn) as db:
+                db.execute('TRUNCATE jobs')
+                db.execute('TRUNCATE queue')
+    
     def test_unhooked(self):
         '''
         '''
