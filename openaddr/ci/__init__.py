@@ -38,29 +38,22 @@ def hook():
         return jsonify({'url': None, 'files': []})
 
     filenames = list(files.keys())
-    file_states = {name: None for name in filenames}
-    file_results = {name: None for name in filenames}
-
-    job_id = calculate_job_id(files)
-    job_url = urljoin(request.url, '/jobs/{id}'.format(id=job_id))
-    job_status = None
+    job_url_template = urljoin(request.url, '/jobs/{id}')
 
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         queue = db_queue(conn)
-        with queue as db:
-            try:
-                # Add the touched files to a task queue.
-                task_files = add_files_to_queue(queue, job_id, job_url, files)
-            except Exception as e:
-                # Oops, tell Github something went wrong.
-                update_error_status(status_url, str(e), filenames, github_auth)
-                return Response(json.dumps({'error': str(e), 'files': files}),
-                                500, content_type='application/json')
-            else:
-                # That worked, remember them in the database.
-                add_job(db, job_id, job_status, task_files, file_states, file_results, status_url)
-                update_pending_status(status_url, job_url, filenames, github_auth)
-                return jsonify({'id': job_id, 'url': job_url, 'files': files})
+        try:
+            job_id = create_queued_job(queue, files, job_url_template, status_url)
+            job_url = expand(job_url_template, dict(id=job_id))
+        except Exception as e:
+            # Oops, tell Github something went wrong.
+            update_error_status(status_url, str(e), filenames, github_auth)
+            return Response(json.dumps({'error': str(e), 'files': files}),
+                            500, content_type='application/json')
+        else:
+            # That worked, tell Github we're working on it.
+            update_pending_status(status_url, job_url, filenames, github_auth)
+            return jsonify({'id': job_id, 'url': job_url, 'files': files})
 
 @app.route('/jobs/<job_id>', methods=['GET'])
 def get_job(job_id):
@@ -246,6 +239,23 @@ def calculate_job_id(files):
     #
     blob = json.dumps(files, ensure_ascii=True, sort_keys=True)
     job_id = sha1(blob).hexdigest()
+    
+    return job_id
+
+def create_queued_job(queue, files, job_url_template, status_url):
+    ''' Create a new job, and add its files to the queue.
+    '''
+    filenames = list(files.keys())
+    file_states = {name: None for name in filenames}
+    file_results = {name: None for name in filenames}
+
+    job_id = calculate_job_id(files)
+    job_url = expand(job_url_template, dict(id=job_id))
+    job_status = None
+
+    with queue as db:
+        task_files = add_files_to_queue(queue, job_id, job_url, files)
+        add_job(db, job_id, None, task_files, file_states, file_results, status_url)
     
     return job_id
 
