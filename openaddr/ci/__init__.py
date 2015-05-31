@@ -250,7 +250,7 @@ def create_queued_job(queue, files, job_url_template, status_url):
     file_results = {name: None for name in filenames}
 
     job_id = calculate_job_id(files)
-    job_url = expand(job_url_template, dict(id=job_id))
+    job_url = job_url_template and expand(job_url_template, dict(id=job_id))
     job_status = None
 
     with queue as db:
@@ -344,6 +344,9 @@ def pop_task_from_donequeue(queue, github_auth):
             job_status = True
         
         write_job(db, job_id, job_status, task_files, file_states, file_results, status_url)
+        
+        if not status_url:
+            return
         
         if job_status is False:
             bad_files = [name for (name, state) in file_states.items() if state is False]

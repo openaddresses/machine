@@ -13,7 +13,7 @@ os.environ['DATABASE_URL'] = environ.get('DATABASE_URL', 'postgres:///hooked_on_
 
 from ..ci import (
     app, db_connect, db_cursor, db_queue, pop_task_from_donequeue,
-    TASK_QUEUE, DONE_QUEUE, MAGIC_OK_MESSAGE
+    create_queued_job, TASK_QUEUE, DONE_QUEUE, MAGIC_OK_MESSAGE
     )
 
 from ..ci import recreate_db
@@ -265,6 +265,35 @@ class TestHook (unittest.TestCase):
         self.assertFalse(b'us-ca-contra_costa_county' in posted.data, 'Contra Costa County should be absent from master commit')
         self.assertFalse(b'us-ca-san_francisco' in posted.data, 'San Francisco source should be absent from master commit')
         self.assertFalse(b'us-ca-berkeley' in posted.data, 'Berkeley source should be absent from master commit')
+    
+    def test_unhooked(self):
+        '''
+        '''
+        source = '''{
+            "coverage": { "US Census": {"geoid": "0653000", "place": "Oakland city", "state": "California"} },
+            "data": "http://data.openoakland.org/sites/default/files/OakParcelsGeo2013_0.zip"
+            }'''
+        
+        files = {'sources/us-ca-oakland.json': (source, '0xDEADBEEF')}
+        
+        with db_connect(self.database_url) as conn:
+            queue = db_queue(conn, TASK_QUEUE)
+            job_id = create_queued_job(queue, files, None, None)
+        
+            # Look for the task in the task queue.
+            task = queue.get()
+            
+        self.assertTrue('us-ca-oakland' in task.data['name'])
+        
+        # This is the JSON source payload, just make sure it parses.
+        content = json.loads(task.data.pop('content'))
+        task.data['result'] = dict(message=MAGIC_OK_MESSAGE)
+        
+        # Put back a completion task to the done queue.
+        with db_connect(self.database_url) as conn:
+            db_queue(conn, DONE_QUEUE).put(task.data)
+        
+            pop_task_from_donequeue(db_queue(conn, DONE_QUEUE), None)
 
 if __name__ == '__main__':
     unittest.main()
