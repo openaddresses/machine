@@ -12,6 +12,7 @@ import socket
 import mimetypes
 import shutil
 import itertools
+import json
 import re
 import time
 
@@ -300,6 +301,32 @@ class EsriRestDownloadTask(DownloadTask):
 
         return geom
 
+    def split_extent(self, extent, side_length):
+        ''' A generator that yields parts of the `extent` envelope
+            split into squares with `side_length`-long sides.
+        '''
+        width = extent['xmax'] - extent['xmin']
+        height = extent['ymax'] - extent['ymin']
+        n_complete_cells_wide = width / side_length
+        n_complete_cells_high = height / side_length
+
+        if int(n_complete_cells_wide) < n_complete_cells_wide:
+            n_complete_cells_wide += 1
+        n_complete_cells_wide = int(n_complete_cells_wide)
+
+        if int(n_complete_cells_high) < n_complete_cells_high:
+            n_complete_cells_high += 1
+        n_complete_cells_high = int(n_complete_cells_high)
+
+        for x in (extent['xmin'] + (x0 * side_length) for x0 in range(n_complete_cells_wide)):
+            for y in (extent['ymin'] + (y0 * side_length) for y0 in range(n_complete_cells_high)):
+                yield {
+                    'xmin': x,
+                    'xmax': x + side_length,
+                    'ymin': y,
+                    'ymax': y + side_length,
+                }
+
     def get_file_path(self, url, dir_path):
         ''' Return a local file path in a directory for a URL.
         '''
@@ -374,29 +401,26 @@ class EsriRestDownloadTask(DownloadTask):
 
             extent = metadata.get('extent')
             # Reproject the extent to EPSG:4326 cuz ESRI won't do it for us
-            ogr_extent = ogr.Geometry(ogr.wkbPolygon)
-            ring = ogr.Geometry(ogr.wkbLinearRing)
-            ring.AddPoint(extent['xmin'], extent['ymin'])
-            ring.AddPoint(extent['xmin'], extent['ymax'])
-            ring.AddPoint(extent['xmax'], extent['ymax'])
-            ring.AddPoint(extent['xmax'], extent['ymin'])
-            ring.AddPoint(extent['xmin'], extent['ymin'])
-            ogr_extent.AddGeometry(ring)
-            source = osr.SpatialReference()
-            source.ImportFromEPSG(extent['spatialReference']['wkid'])
-            target = osr.SpatialReference()
-            target.ImportFromEPSG(4326)
-            transform = osr.CoordinateTransformation(source, target)
-            ogr_extent.Transform(transform)
-            (xmin, xmax, ymin, ymax) = ogr_extent.GetEnvelope()
-            extent = {
-                'xmin': xmin,
-                'ymin': ymin,
-                'xmax': xmax,
-                'ymax': ymax,
+            query_args = {
+                'f': 'json',
+                'inSR': extent['spatialReference']['wkid'],
+                'outSR': '4326',
+                'geometries': json.dumps({
+                    'geometryType': 'esriGeometryEnvelope',
+                    'geometries': [extent],
+                }),
             }
+            response = requests.get(
+                'https://tasks.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer/project',
+                params=query_args,
+                headers=headers,
+                timeout=_http_timeout
+            )
 
-            import json
+            if response.status_code != 200:
+                raise DownloadError("Could not reproject initial layer envelope: {}".format(response.text))
+
+            extent = response.json()['geometries'][0]
 
             # Use spatial queries to fetch the data
             def get_bbox(fetched_ids, bbox):
@@ -486,34 +510,9 @@ class EsriRestDownloadTask(DownloadTask):
                     returned_data.append(row)
 
                 if len(features) >= max_record_count:
-                    # Use the mean x/y of the data we *did* get as the pivot point to split into 4 boxes
-                    mean_x = float(sum(f[X_FIELDNAME] for f in returned_data)) / len(returned_data)
-                    mean_y = float(sum(f[Y_FIELDNAME] for f in returned_data)) / len(returned_data)
-
-                    returned_data.extend(
-                        get_bbox(fetched_ids, {
-                            'xmin': bbox['xmin'], 'ymin': bbox['ymin'],
-                            'xmax': mean_x,       'ymax': mean_y,
-                        })
-                    )
-                    returned_data.extend(
-                        get_bbox(fetched_ids, {
-                            'xmin': mean_x,       'ymin': bbox['ymin'],
-                            'xmax': bbox['xmax'], 'ymax': mean_y,
-                        })
-                    )
-                    returned_data.extend(
-                        get_bbox(fetched_ids, {
-                            'xmin': bbox['xmin'], 'ymin': mean_y,
-                            'xmax': mean_x,       'ymax': bbox['ymax'],
-                        })
-                    )
-                    returned_data.extend(
-                        get_bbox(fetched_ids, {
-                            'xmin': mean_x,       'ymin': mean_y,
-                            'xmax': bbox['xmax'], 'ymax': bbox['ymax'],
-                        })
-                    )
+                    child_side_length = (bbox['xmax'] - bbox['xmin']) / 2.0
+                    for child_extent in self.split_extent(bbox, side_length=child_side_length):
+                        returned_data.extend(get_bbox(fetched_ids, child_extent))
 
                 return returned_data
 
@@ -522,29 +521,13 @@ class EsriRestDownloadTask(DownloadTask):
                 writer.writeheader()
 
                 fetched_ids = set()
-                fetched_data = get_bbox(fetched_ids, extent)
+                fetched_data = []
+                for child_extent in self.split_extent(extent, side_length=1.0):
+                    fetched_data.extend(get_bbox(fetched_ids, child_extent))
 
-                for feature in fetched_data:
-                    try:
-                        ogr_geom = self.build_ogr_geometry(geometry_type, feature)
-                        row = feature.get('attributes', {})
-                        row[GEOM_FIELDNAME] = ogr_geom.ExportToWkt()
-                        try:
-                            centroid = ogr_geom.Centroid()
-                        except RuntimeError as e:
-                            if 'Invalid number of points in LinearRing found' not in str(e):
-                                raise
-                            xmin, xmax, ymin, ymax = ogr_geom.GetEnvelope()
-                            row[X_FIELDNAME] = round(xmin/2 + xmax/2, 7)
-                            row[Y_FIELDNAME] = round(ymin/2 + ymax/2, 7)
-                        else:
-                            row[X_FIELDNAME] = round(centroid.GetX(), 7)
-                            row[Y_FIELDNAME] = round(centroid.GetY(), 7)
-
-                        writer.writerow(row)
-                        size += 1
-                    except TypeError:
-                        _L.debug("Skipping a geometry", exc_info=True)
+                for row in fetched_data:
+                    writer.writerow(row)
+                    size += 1
 
             _L.info("Downloaded %s ESRI features for file %s", size, file_path)
             output_files.append(file_path)
