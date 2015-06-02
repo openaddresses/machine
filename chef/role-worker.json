@@ -9,6 +9,7 @@
     [
         "openaddr",
         "account",
-        "worker"
+        "worker",
+        "apache-worker"
     ]
 }
