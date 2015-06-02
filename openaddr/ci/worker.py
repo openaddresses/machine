@@ -32,15 +32,20 @@ def do_work(job_id, job_contents):
     os.mkdir(oa_dir)
 
     # Invoke the job to do
-    result_code = subprocess.call(('openaddr-process-one',
-                                   '-l', '%s/logfile.txt' % out_dir,
-                                   out_fn,
-                                   oa_dir))
+    cmd = 'openaddr-process-one', '-l', '%s/logfile.txt' % out_dir, out_fn, oa_dir
+    try:
+        result_stdout = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        message = 'Something went wrong in {0}'.format(*cmd)
+        result_code, result_stdout = e.returncode, None
+    else:
+        result_code, message = 0, MAGIC_OK_MESSAGE
 
     # Prepare return parameters
     r = { 'result_code': result_code,
+          'result_stdout': result_stdout,
           'output_url': urlparse.urljoin(_web_base_url, job_id),
-          'message': MAGIC_OK_MESSAGE }
+          'message': message }
 
     return r
 
