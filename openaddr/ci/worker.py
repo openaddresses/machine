@@ -6,7 +6,7 @@ Jobs get enqueued to a PQ task queue by some other system.
 This program pops jobs and runs them one at a time, then
 enqueues a new message on a separate PQ queue when the work is done."""
 
-import time, os, subprocess, psycopg2, urlparse, socket
+import time, os, subprocess, psycopg2, urlparse, socket, json
 
 from . import db_connect, db_queue, db_queue, MAGIC_OK_MESSAGE, DONE_QUEUE
 
@@ -23,7 +23,7 @@ def do_work(job_id, job_contents, output_dir):
 
     # Write the user input to a file
     out_fn = os.path.join(out_dir, 'user_input.txt')
-    with file(out_fn, 'wb') as out_fp:
+    with open(out_fn, 'wb') as out_fp:
         out_fp.write(job_contents)
 
     # Make a directory in which to run openaddr
@@ -34,23 +34,32 @@ def do_work(job_id, job_contents, output_dir):
     cmd = 'openaddr-process-one', '-l', os.path.join(out_dir, 'logfile.txt'), out_fn, oa_dir
     try:
         result_stdout = subprocess.check_output(cmd)
+
     except subprocess.CalledProcessError as e:
-        message = 'Something went wrong in {0}'.format(*cmd)
-        result_code, result_stdout, output_url = e.returncode, e.output, None
-    else:
-        result_code, message = 0, MAGIC_OK_MESSAGE
+        # Something went wrong; throw back an error result.
+        return dict(result_code=e.returncode, result_stdout=e.output,
+                    message='Something went wrong in {0}'.format(*cmd))
 
-        output_base = 'http://{host}/oa-runone/'.format(host=socket.getfqdn())
-        state_path = os.path.relpath(result_stdout.strip(), output_dir)
-        output_url = urlparse.urljoin(output_base, state_path)
+    result = dict(result_code=0, result_stdout=result_stdout,
+                  message=MAGIC_OK_MESSAGE)
 
-    # Prepare return parameters
-    r = { 'result_code': result_code,
-          'result_stdout': result_stdout,
-          'output_url': output_url,
-          'message': message }
+    # openaddr-process-one prints a path to index.json
+    state_fullpath = result_stdout.strip()
+    output_base = 'http://{host}/oa-runone/'.format(host=socket.getfqdn())
+    state_path = os.path.relpath(result_stdout.strip(), output_dir)
+    result['output_url'] = urlparse.urljoin(output_base, state_path)
 
-    return r
+    with open(state_fullpath) as file:
+        index = dict(zip(*json.load(file)))
+        
+        # Expand filename keys to complete URLs
+        keys = 'cache', 'sample', 'output', 'processed'
+        urls = [urlparse.urljoin(result['output_url'], index[k]) for k in keys]
+        
+        result['output'] = index
+        result['output'].update(dict(zip(keys, urls)))
+
+    return result
 
 def run(task_data, output_dir):
     "Run a task posted to the queue. Handles the JSON for task and result objects."

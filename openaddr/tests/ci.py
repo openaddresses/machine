@@ -321,9 +321,18 @@ class TestWorker (unittest.TestCase):
     def test_happy_worker(self, check_output):
         '''
         '''
+        def does_what_its_told(cmd):
+            index_path = '{id}/out/user_input/index.json'.format(**task_data)
+            index_filename = os.path.join(self.output_dir, index_path)
+            os.makedirs(os.path.dirname(index_filename))
+            
+            with open(index_filename, 'w') as file:
+                file.write('''[ ["source", "cache", "sample", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], ["user_input.txt", "cache.zip", "sample.json", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "output.txt"] ]''')
+            
+            return index_filename
+        
         task_data = dict(id='0xDEADBEEF', content='{ }', name='Dead Beef', url=None)
-        index_path = '{id}/out/user_input/index.json'.format(**task_data)
-        check_output.return_value = os.path.join(self.output_dir, index_path)
+        check_output.side_effect = does_what_its_told
         
         result = worker.run(task_data, self.output_dir)
         
@@ -338,17 +347,20 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(result['name'], task_data['name'])
         self.assertEqual(result['result']['message'], MAGIC_OK_MESSAGE)
         self.assertEqual(result['result']['result_code'], 0)
+
+        self.assertTrue(result['result']['output']['cache'].endswith('/cache.zip'))
+        self.assertTrue(result['result']['output']['sample'].endswith('/sample.json'))
+        self.assertTrue(result['result']['output']['output'].endswith('/output.txt'))
+        self.assertTrue(result['result']['output']['processed'].endswith('/out.csv'))
     
     @patch('subprocess.check_output')
     def test_angry_worker(self, check_output):
         '''
         '''
         def raises_called_process_error(cmd):
-            stdout = os.path.join(self.output_dir, index_path)
-            raise subprocess.CalledProcessError(1, cmd, stdout)
+            raise subprocess.CalledProcessError(1, cmd, 'Everything is ruined.\n')
         
         task_data = dict(id='0xDEADBEEF', content='{ }', name='Dead Beef', url=None)
-        index_path = '{id}/out/user_input/index.json'.format(**task_data)
         check_output.side_effect = raises_called_process_error
         
         result = worker.run(task_data, self.output_dir)
@@ -363,6 +375,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(result['id'], task_data['id'])
         self.assertEqual(result['name'], task_data['name'])
         self.assertEqual(result['result']['message'], 'Something went wrong in openaddr-process-one')
+        self.assertEqual(result['result']['result_stdout'], 'Everything is ruined.\n')
         self.assertEqual(result['result']['result_code'], 1)
 
 if __name__ == '__main__':
