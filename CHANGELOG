@@ -1,3 +1,6 @@
+2015-06-02: 1.9.2
+- Updated internal workings of openaddr.ci.worker for auto-scaled Amazon EC2.
+
 2015-05-26: 1.9.1
 - Fixed a few case-sensitive filename errors in openaddr.conform (Christopher Eby).
 
