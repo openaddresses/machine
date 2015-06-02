@@ -1,19 +1,21 @@
 from __future__ import print_function
 
 from os import environ
+from shutil import rmtree
+from tempfile import mkdtemp
 from httmock import HTTMock, response
 from logging import StreamHandler, DEBUG
 from urllib.parse import parse_qsl, urlparse
 from mock import patch
 
-import unittest, json, os, sys
+import unittest, json, os, sys, subprocess
 
 os.environ['GITHUB_TOKEN'] = ''
 os.environ['DATABASE_URL'] = environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
 
 from ..ci import (
     app, db_connect, db_cursor, db_queue, pop_task_from_donequeue,
-    create_queued_job, TASK_QUEUE, DONE_QUEUE, MAGIC_OK_MESSAGE
+    create_queued_job, TASK_QUEUE, DONE_QUEUE, MAGIC_OK_MESSAGE, worker
     )
 
 from ..ci import recreate_db
@@ -294,6 +296,74 @@ class TestHook (unittest.TestCase):
             db_queue(conn, DONE_QUEUE).put(task.data)
         
             pop_task_from_donequeue(db_queue(conn, DONE_QUEUE), None)
+     
+class TestWorker (unittest.TestCase):
+
+    def setUp(self):
+        '''
+        '''
+        recreate_db.recreate(os.environ['DATABASE_URL'])
+        self.database_url = os.environ['DATABASE_URL']
+        self.output_dir = mkdtemp(prefix='TestWorker-')
+    
+    def tearDown(self):
+        '''
+        '''
+        rmtree(self.output_dir)
+        return
+        
+        with db_connect(self.database_url) as conn:
+            with db_cursor(conn) as db:
+                db.execute('TRUNCATE jobs')
+                db.execute('TRUNCATE queue')
+    
+    @patch('subprocess.check_output')
+    def test_happy_worker(self, check_output):
+        '''
+        '''
+        task_data = dict(id='0xDEADBEEF', content='{ }', name='Dead Beef', url=None)
+        index_path = '{id}/out/user_input/index.json'.format(**task_data)
+        check_output.return_value = os.path.join(self.output_dir, index_path)
+        
+        result = worker.run(task_data, self.output_dir)
+        
+        check_output.assert_called_with((
+            'openaddr-process-one', '-l',
+            os.path.join(self.output_dir, '0xDEADBEEF/logfile.txt'),
+            os.path.join(self.output_dir, '0xDEADBEEF/user_input.txt'),
+            os.path.join(self.output_dir, '0xDEADBEEF/out')
+            ))
+        
+        self.assertEqual(result['id'], task_data['id'])
+        self.assertEqual(result['name'], task_data['name'])
+        self.assertEqual(result['result']['message'], MAGIC_OK_MESSAGE)
+        self.assertEqual(result['result']['result_code'], 0)
+    
+    @patch('subprocess.check_output')
+    def test_angry_worker(self, check_output):
+        '''
+        '''
+        def raises_called_process_error(cmd):
+            stdout = os.path.join(self.output_dir, index_path)
+            raise subprocess.CalledProcessError(1, cmd, stdout)
+        
+        task_data = dict(id='0xDEADBEEF', content='{ }', name='Dead Beef', url=None)
+        index_path = '{id}/out/user_input/index.json'.format(**task_data)
+        check_output.side_effect = raises_called_process_error
+        
+        result = worker.run(task_data, self.output_dir)
+        
+        check_output.assert_called_with((
+            'openaddr-process-one', '-l',
+            os.path.join(self.output_dir, '0xDEADBEEF/logfile.txt'),
+            os.path.join(self.output_dir, '0xDEADBEEF/user_input.txt'),
+            os.path.join(self.output_dir, '0xDEADBEEF/out')
+            ))
+        
+        self.assertEqual(result['id'], task_data['id'])
+        self.assertEqual(result['name'], task_data['name'])
+        self.assertEqual(result['result']['message'], 'Something went wrong in openaddr-process-one')
+        self.assertEqual(result['result']['result_code'], 1)
 
 if __name__ == '__main__':
     unittest.main()
