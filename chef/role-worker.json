@@ -9,8 +9,8 @@
     [
         "openaddr",
         "account",
-        "worker",
         "ec2-hostname",
-        "apache-worker"
+        "apache-worker",
+        "worker"
     ]
 }

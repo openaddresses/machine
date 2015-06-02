@@ -1,3 +1,5 @@
+package 'curl'
+
 bash 'hostname' do
   code <<-CODE
     # What is our public DNS name?
