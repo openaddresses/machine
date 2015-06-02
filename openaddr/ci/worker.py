@@ -6,13 +6,13 @@ Jobs get enqueued to a PQ task queue by some other system.
 This program pops jobs and runs them one at a time, then
 enqueues a new message on a separate PQ queue when the work is done."""
 
-import time, os, subprocess, psycopg2
+import time, os, subprocess, psycopg2, urlparse, socket
 
 from . import db_connect, db_queue, db_queue, MAGIC_OK_MESSAGE, DONE_QUEUE
 
 # File path and URL path for result directory. Should be S3.
 _web_output_dir = '/var/www/html/oa-runone'
-_web_base_url = 'http://minar.us.to/oa-runone'
+_web_base_url = 'http://{host}/oa-runone/'.format(host=socket.getfqdn())
 
 def do_work(job_id, job_contents):
     "Do the actual work of running a source file in job_contents"
@@ -39,7 +39,7 @@ def do_work(job_id, job_contents):
 
     # Prepare return parameters
     r = { 'result_code': result_code,
-          'output_url': '%s/%s' % (_web_base_url, job_id),
+          'output_url': urlparse.urljoin(_web_base_url, job_id),
           'message': MAGIC_OK_MESSAGE }
 
     return r
