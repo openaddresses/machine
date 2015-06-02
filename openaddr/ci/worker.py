@@ -1,12 +1,17 @@
 #!/usr/bin/env python2
-
-"""Simple worker process to process OpenAddress sources on the task queue
+'''
+Simple worker process to process OpenAddress sources on the task queue
 
 Jobs get enqueued to a PQ task queue by some other system.
 This program pops jobs and runs them one at a time, then
-enqueues a new message on a separate PQ queue when the work is done."""
+enqueues a new message on a separate PQ queue when the work is done.
+'''
+import logging; _L = logging.getLogger('openaddr.ci.worker')
 
-import time, os, subprocess, psycopg2, urlparse, socket, json
+from ..compat import standard_library
+
+import time, os, subprocess, psycopg2, socket, json
+from urllib.parse import urlparse, urljoin
 
 from . import db_connect, db_queue, db_queue, MAGIC_OK_MESSAGE, DONE_QUEUE
 
@@ -24,7 +29,7 @@ def do_work(job_id, job_contents, output_dir):
     # Write the user input to a file
     out_fn = os.path.join(out_dir, 'user_input.txt')
     with open(out_fn, 'wb') as out_fp:
-        out_fp.write(job_contents)
+        out_fp.write(job_contents.encode('utf8'))
 
     # Make a directory in which to run openaddr
     oa_dir = os.path.join(out_dir, 'out')
@@ -47,14 +52,14 @@ def do_work(job_id, job_contents, output_dir):
     state_fullpath = result_stdout.strip()
     output_base = 'http://{host}/oa-runone/'.format(host=socket.getfqdn())
     state_path = os.path.relpath(result_stdout.strip(), output_dir)
-    result['output_url'] = urlparse.urljoin(output_base, state_path)
+    result['output_url'] = urljoin(output_base, state_path)
 
     with open(state_fullpath) as file:
         index = dict(zip(*json.load(file)))
         
         # Expand filename keys to complete URLs
         keys = 'cache', 'sample', 'output', 'processed'
-        urls = [urlparse.urljoin(result['output_url'], index[k]) for k in keys]
+        urls = [urljoin(result['output_url'], index[k]) for k in keys]
         
         result['output'] = index
         result['output'].update(dict(zip(keys, urls)))
@@ -62,9 +67,9 @@ def do_work(job_id, job_contents, output_dir):
     return result
 
 def run(task_data, output_dir):
-    "Run a task posted to the queue. Handles the JSON for task and result objects."
-
-    print "Got job %s" % task_data
+    ''' Run a task posted to the queue. Handles the JSON for task and result objects.
+    '''
+    _L.info("Got job {}".format(task_data))
 
     # Unpack the task object
     content = task_data['content']
