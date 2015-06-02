@@ -38,35 +38,28 @@ def hook():
         return jsonify({'url': None, 'files': []})
 
     filenames = list(files.keys())
-    file_states = {name: None for name in filenames}
-    file_results = {name: None for name in filenames}
+    job_url_template = urljoin(request.url, '/jobs/{id}')
 
-    job_id = calculate_job_id(files)
-    job_url = urljoin(request.url, '/jobs/{id}'.format(id=job_id))
-    job_status = None
-
-    with db_connect(current_app) as conn:
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
         queue = db_queue(conn)
-        with queue as db:
-            try:
-                # Add the touched files to a task queue.
-                task_files = add_files_to_queue(queue, job_id, job_url, files)
-            except Exception as e:
-                # Oops, tell Github something went wrong.
-                update_error_status(status_url, str(e), filenames, github_auth)
-                return Response(json.dumps({'error': str(e), 'files': files}),
-                                500, content_type='application/json')
-            else:
-                # That worked, remember them in the database.
-                add_job(db, job_id, job_status, task_files, file_states, file_results, status_url)
-                update_pending_status(status_url, job_url, filenames, github_auth)
-                return jsonify({'id': job_id, 'url': job_url, 'files': files})
+        try:
+            job_id = create_queued_job(queue, files, job_url_template, status_url)
+            job_url = expand(job_url_template, dict(id=job_id))
+        except Exception as e:
+            # Oops, tell Github something went wrong.
+            update_error_status(status_url, str(e), filenames, github_auth)
+            return Response(json.dumps({'error': str(e), 'files': files}),
+                            500, content_type='application/json')
+        else:
+            # That worked, tell Github we're working on it.
+            update_pending_status(status_url, job_url, filenames, github_auth)
+            return jsonify({'id': job_id, 'url': job_url, 'files': files})
 
 @app.route('/jobs/<job_id>', methods=['GET'])
 def get_job(job_id):
     '''
     '''
-    with db_connect(current_app) as conn:
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
             try:
                 status, task_files, file_states, file_results, github_status_url = read_job(db, job_id)
@@ -124,7 +117,7 @@ def get_touched_branch_files(payload, github_auth):
     return touched
 
 def process_payload_files(payload, github_auth):
-    ''' Return a dictionary of file paths and raw JSON contents.
+    ''' Return a dictionary of file paths to raw JSON contents and file IDs.
     '''
     files = dict()
 
@@ -160,7 +153,7 @@ def process_payload_files(payload, github_auth):
         current_app.logger.debug('Contents SHA {}'.format(contents['sha']))
         
         if encoding == 'base64':
-            files[filename] = b64decode(content).decode('utf8')
+            files[filename] = b64decode(content).decode('utf8'), contents['sha']
         else:
             raise ValueError('Unrecognized encoding "{}"'.format(encoding))
     
@@ -249,13 +242,31 @@ def calculate_job_id(files):
     
     return job_id
 
+def create_queued_job(queue, files, job_url_template, status_url):
+    ''' Create a new job, and add its files to the queue.
+    '''
+    filenames = list(files.keys())
+    file_states = {name: None for name in filenames}
+    file_results = {name: None for name in filenames}
+
+    job_id = calculate_job_id(files)
+    job_url = job_url_template and expand(job_url_template, dict(id=job_id))
+    job_status = None
+
+    with queue as db:
+        task_files = add_files_to_queue(queue, job_id, job_url, files)
+        add_job(db, job_id, None, task_files, file_states, file_results, status_url)
+    
+    return job_id
+
 def add_files_to_queue(queue, job_id, job_url, files):
     ''' Make a new task for each file, return dict of taks IDs to file names.
     '''
     tasks = {}
     
-    for (name, content) in files.items():
-        task = queue.put(dict(id=job_id, url=job_url, name=name, content=content))
+    for (name, (content, file_id)) in files.items():
+        task = queue.put(dict(id=job_id, url=job_url, name=name,
+                              content=content, file_id=file_id))
         
         tasks[str(task)] = name
     
@@ -297,8 +308,8 @@ def read_job(db, job_id):
     else:
         return status, task_files, states, file_results, github_status_url
 
-def pop_finished_task_from_queue(queue, github_auth):
-    '''
+def pop_task_from_donequeue(queue, github_auth):
+    ''' Look for a completed job in the "done" task queue, update Github status.
     '''
     with queue as db:
         task = queue.get()
@@ -334,6 +345,9 @@ def pop_finished_task_from_queue(queue, github_auth):
         
         write_job(db, job_id, job_status, task_files, file_states, file_results, status_url)
         
+        if not status_url:
+            return
+        
         if job_status is False:
             bad_files = [name for (name, state) in file_states.items() if state is False]
             update_failing_status(status_url, job_url, bad_files, filenames, github_auth)
@@ -344,10 +358,9 @@ def pop_finished_task_from_queue(queue, github_auth):
         elif job_status is True:
             update_success_status(status_url, job_url, filenames, github_auth)
 
-def db_connect(app_or_dsn):
-    ''' Connect to database using Flask app instance or DSN string.
+def db_connect(dsn):
+    ''' Connect to database using DSN string.
     '''
-    dsn = app.config['DATABASE_URL'] if hasattr(app, 'config') else app_or_dsn
     return connect(dsn)
 
 def db_queue(conn, name=None):

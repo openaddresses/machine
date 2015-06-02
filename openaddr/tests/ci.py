@@ -1,19 +1,21 @@
 from __future__ import print_function
 
 from os import environ
+from shutil import rmtree
+from tempfile import mkdtemp
 from httmock import HTTMock, response
 from logging import StreamHandler, DEBUG
 from urllib.parse import parse_qsl, urlparse
 from mock import patch
 
-import unittest, json, os, sys
+import unittest, json, os, sys, subprocess
 
 os.environ['GITHUB_TOKEN'] = ''
 os.environ['DATABASE_URL'] = environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
 
 from ..ci import (
-    app, db_connect, db_cursor, db_queue, pop_finished_task_from_queue,
-    TASK_QUEUE, DONE_QUEUE, MAGIC_OK_MESSAGE
+    app, db_connect, db_cursor, db_queue, pop_task_from_donequeue,
+    create_queued_job, TASK_QUEUE, DONE_QUEUE, MAGIC_OK_MESSAGE, worker
     )
 
 from ..ci import recreate_db
@@ -40,7 +42,7 @@ class TestHook (unittest.TestCase):
         '''
         return
         
-        with db_connect(app) as conn:
+        with db_connect(self.database_url) as conn:
             with db_cursor(conn) as db:
                 db.execute('TRUNCATE jobs')
                 db.execute('TRUNCATE queue')
@@ -132,7 +134,7 @@ class TestHook (unittest.TestCase):
         
             # Handle completion task and check with Github.
             with HTTMock(self.response_content):
-                pop_finished_task_from_queue(db_queue(conn, DONE_QUEUE), self.github_auth)
+                pop_task_from_donequeue(db_queue(conn, DONE_QUEUE), self.github_auth)
         
             # Check that Github knows the job to have been completed successfully.
             self.assertEqual(self.last_status_state, 'success')
@@ -170,7 +172,7 @@ class TestHook (unittest.TestCase):
         
                 # Handle completion tasks and check with Github.
                 with HTTMock(self.response_content):
-                    pop_finished_task_from_queue(db_queue(conn, DONE_QUEUE), self.github_auth)
+                    pop_task_from_donequeue(db_queue(conn, DONE_QUEUE), self.github_auth)
                 
                 # Check that Github already knows the job to have been completed unsuccessfully.
                 self.assertEqual(self.last_status_state, 'failure')
@@ -209,7 +211,7 @@ class TestHook (unittest.TestCase):
         
                 # Handle completion tasks and check with Github.
                 with HTTMock(self.response_content):
-                    pop_finished_task_from_queue(db_queue(conn, DONE_QUEUE), self.github_auth)
+                    pop_task_from_donequeue(db_queue(conn, DONE_QUEUE), self.github_auth)
                 
                 if index == 0:
                     # Check that Github still thinks it's pending.
@@ -265,6 +267,116 @@ class TestHook (unittest.TestCase):
         self.assertFalse(b'us-ca-contra_costa_county' in posted.data, 'Contra Costa County should be absent from master commit')
         self.assertFalse(b'us-ca-san_francisco' in posted.data, 'San Francisco source should be absent from master commit')
         self.assertFalse(b'us-ca-berkeley' in posted.data, 'Berkeley source should be absent from master commit')
+    
+    def test_unhooked(self):
+        '''
+        '''
+        source = '''{
+            "coverage": { "US Census": {"geoid": "0653000", "place": "Oakland city", "state": "California"} },
+            "data": "http://data.openoakland.org/sites/default/files/OakParcelsGeo2013_0.zip"
+            }'''
+        
+        files = {'sources/us-ca-oakland.json': (source, '0xDEADBEEF')}
+        
+        with db_connect(self.database_url) as conn:
+            queue = db_queue(conn, TASK_QUEUE)
+            job_id = create_queued_job(queue, files, None, None)
+        
+            # Look for the task in the task queue.
+            task = queue.get()
+            
+        self.assertTrue('us-ca-oakland' in task.data['name'])
+        
+        # This is the JSON source payload, just make sure it parses.
+        content = json.loads(task.data.pop('content'))
+        task.data['result'] = dict(message=MAGIC_OK_MESSAGE)
+        
+        # Put back a completion task to the done queue.
+        with db_connect(self.database_url) as conn:
+            db_queue(conn, DONE_QUEUE).put(task.data)
+        
+            pop_task_from_donequeue(db_queue(conn, DONE_QUEUE), None)
+     
+class TestWorker (unittest.TestCase):
+
+    def setUp(self):
+        '''
+        '''
+        recreate_db.recreate(os.environ['DATABASE_URL'])
+        self.database_url = os.environ['DATABASE_URL']
+        self.output_dir = mkdtemp(prefix='TestWorker-')
+    
+    def tearDown(self):
+        '''
+        '''
+        rmtree(self.output_dir)
+        return
+        
+        with db_connect(self.database_url) as conn:
+            with db_cursor(conn) as db:
+                db.execute('TRUNCATE jobs')
+                db.execute('TRUNCATE queue')
+    
+    @patch('subprocess.check_output')
+    def test_happy_worker(self, check_output):
+        '''
+        '''
+        def does_what_its_told(cmd):
+            index_path = '{id}/out/user_input/index.json'.format(**task_data)
+            index_filename = os.path.join(self.output_dir, index_path)
+            os.makedirs(os.path.dirname(index_filename))
+            
+            with open(index_filename, 'w') as file:
+                file.write('''[ ["source", "cache", "sample", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], ["user_input.txt", "cache.zip", "sample.json", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "output.txt"] ]''')
+            
+            return index_filename
+        
+        task_data = dict(id='0xDEADBEEF', content='{ }', name='Dead Beef', url=None)
+        check_output.side_effect = does_what_its_told
+        
+        result = worker.run(task_data, self.output_dir)
+        
+        check_output.assert_called_with((
+            'openaddr-process-one', '-l',
+            os.path.join(self.output_dir, '0xDEADBEEF/logfile.txt'),
+            os.path.join(self.output_dir, '0xDEADBEEF/user_input.txt'),
+            os.path.join(self.output_dir, '0xDEADBEEF/out')
+            ))
+        
+        self.assertEqual(result['id'], task_data['id'])
+        self.assertEqual(result['name'], task_data['name'])
+        self.assertEqual(result['result']['message'], MAGIC_OK_MESSAGE)
+        self.assertEqual(result['result']['result_code'], 0)
+
+        self.assertTrue(result['result']['output']['cache'].endswith('/cache.zip'))
+        self.assertTrue(result['result']['output']['sample'].endswith('/sample.json'))
+        self.assertTrue(result['result']['output']['output'].endswith('/output.txt'))
+        self.assertTrue(result['result']['output']['processed'].endswith('/out.csv'))
+    
+    @patch('subprocess.check_output')
+    def test_angry_worker(self, check_output):
+        '''
+        '''
+        def raises_called_process_error(cmd):
+            raise subprocess.CalledProcessError(1, cmd, 'Everything is ruined.\n')
+        
+        task_data = dict(id='0xDEADBEEF', content='{ }', name='Dead Beef', url=None)
+        check_output.side_effect = raises_called_process_error
+        
+        result = worker.run(task_data, self.output_dir)
+        
+        check_output.assert_called_with((
+            'openaddr-process-one', '-l',
+            os.path.join(self.output_dir, '0xDEADBEEF/logfile.txt'),
+            os.path.join(self.output_dir, '0xDEADBEEF/user_input.txt'),
+            os.path.join(self.output_dir, '0xDEADBEEF/out')
+            ))
+        
+        self.assertEqual(result['id'], task_data['id'])
+        self.assertEqual(result['name'], task_data['name'])
+        self.assertEqual(result['result']['message'], 'Something went wrong in openaddr-process-one')
+        self.assertEqual(result['result']['result_stdout'], 'Everything is ruined.\n')
+        self.assertEqual(result['result']['result_code'], 1)
 
 if __name__ == '__main__':
     unittest.main()
