@@ -14,7 +14,8 @@ import time, os, subprocess, psycopg2, socket, json
 from urllib.parse import urlparse, urljoin
 
 from . import (
-    db_connect, db_queue, db_queue, MAGIC_OK_MESSAGE, DONE_QUEUE, TASK_QUEUE
+    db_connect, db_queue, db_queue, MAGIC_OK_MESSAGE,
+    DONE_QUEUE, TASK_QUEUE, DUE_QUEUE
     )
 
 # File path and URL path for result directory. Should be S3.
@@ -89,17 +90,19 @@ def run(task_data, output_dir):
           'result' : result }
     return r
 
-def pop_task_from_taskqueue(input_queue, output_queue, output_dir):
+def pop_task_from_taskqueue(task_queue, done_queue, due_queue, output_dir):
     '''
     '''
-    task = input_queue.get()
+    with task_queue as db:
+        task = task_queue.get()
 
-    # PQ will return NULL after 1 second timeout if not ask
-    if task is None:
-        return
+        # PQ will return NULL after 1 second timeout if not ask
+        if task is None:
+            return
     
+    due_queue.put({'original': task.data}, '3h')
     task_output_data = run(task.data, output_dir)
-    output_queue.put(task_output_data)
+    done_queue.put(task_output_data)
 
 def main():
     ''' Single threaded worker to serve the job queue.
@@ -108,9 +111,10 @@ def main():
     while True:
         try:
             with db_connect(os.environ['DATABASE_URL']) as conn:
-                input_queue = db_queue(conn, TASK_QUEUE)
-                output_queue = db_queue(conn, DONE_QUEUE)
-                pop_task_from_taskqueue(input_queue, output_queue, _web_output_dir)
+                task_Q = db_queue(conn, TASK_QUEUE)
+                done_Q = db_queue(conn, DONE_QUEUE)
+                due_Q = db_queue(conn, DUE_QUEUE)
+                pop_task_from_taskqueue(task_Q, done_Q, due_Q, _web_output_dir)
         except:
             _L.error('Error in worker main()', exc_info=True)
             time.sleep(5)

@@ -20,7 +20,7 @@ app = Flask(__name__)
 app.config.update(load_config())
 
 MAGIC_OK_MESSAGE = 'Everything is fine'
-TASK_QUEUE, DONE_QUEUE = 'tasks', 'finished'
+TASK_QUEUE, DONE_QUEUE, DUE_QUEUE = 'tasks', 'finished', 'due'
 
 @app.route('/')
 def index():

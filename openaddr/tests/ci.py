@@ -14,8 +14,8 @@ os.environ['GITHUB_TOKEN'] = ''
 os.environ['DATABASE_URL'] = environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
 
 from ..ci import (
-    app, db_connect, db_cursor, db_queue, pop_task_from_donequeue,
-    create_queued_job, TASK_QUEUE, DONE_QUEUE, MAGIC_OK_MESSAGE, worker
+    app, db_connect, db_cursor, db_queue, pop_task_from_donequeue, worker,
+    create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE
     )
 
 from ..ci import recreate_db
@@ -340,13 +340,14 @@ class TestRuns (unittest.TestCase):
         files = {'sources/us-ca-oakland.json': (source, '0xDEADBEEF')}
         
         with db_connect(self.database_url) as conn:
-            input_queue = db_queue(conn, TASK_QUEUE)
-            job_id = create_queued_job(input_queue, files, None, None)
+            task_Q = db_queue(conn, TASK_QUEUE)
+            job_id = create_queued_job(task_Q, files, None, None)
         
             # Process it like in worker.
             with self.assertRaises(NotImplementedError) as e:
-                output_queue = db_queue(conn, DONE_QUEUE)
-                worker.pop_task_from_taskqueue(input_queue, output_queue, self.output_dir)
+                done_Q = db_queue(conn, DONE_QUEUE)
+                due_Q = db_queue(conn, DUE_QUEUE)
+                worker.pop_task_from_taskqueue(task_Q, done_Q, due_Q, self.output_dir)
      
 class TestWorker (unittest.TestCase):
 
