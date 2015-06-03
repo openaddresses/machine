@@ -87,6 +87,18 @@ def run(task_data, output_dir):
           'result' : result }
     return r
 
+def pop_task_from_taskqueue(input_queue, output_queue, output_dir):
+    '''
+    '''
+    task = input_queue.get()
+
+    # PQ will return NULL after 1 second timeout if not ask
+    if task is None:
+        return
+    
+    task_output_data = run(task.data, output_dir)
+    output_queue.put(task_output_data)
+
 def main():
     ''' Single threaded worker to serve the job queue.
     '''
@@ -96,12 +108,7 @@ def main():
             with db_connect(os.environ['DATABASE_URL']) as conn:
                 input_queue = db_queue(conn)
                 output_queue = db_queue(conn, DONE_QUEUE)
-
-                task = input_queue.get()
-                # PQ will return NULL after 1 second timeout if not ask
-                if task:
-                    task_output_data = run(task.data, _web_output_dir)
-                    output_queue.put(task_output_data)
+                pop_task_from_taskqueue(input_queue, output_queue, _web_output_dir)
         except:
             _L.error('Error in worker main()', exc_info=True)
             time.sleep(5)

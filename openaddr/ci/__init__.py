@@ -319,10 +319,19 @@ def pop_task_from_donequeue(queue, github_auth):
     
         results = task.data['result']
         message = results['message']
+        run_state = results.get('output', None)
         job_url = task.data['url']
         filename = task.data['name']
         file_id = task.data['file_id']
         job_id = task.data['id']
+        
+        #
+        # Add to the runs table.
+        #
+        db.execute('''INSERT INTO runs
+                      (source_path, source_id, state, datetime)
+                      VALUES (%s, %s, %s::json, NOW())''',
+                   (filename, file_id, json.dumps(run_state)))
 
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)

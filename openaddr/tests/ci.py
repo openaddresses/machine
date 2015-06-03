@@ -309,13 +309,19 @@ class TestRuns (unittest.TestCase):
         
         # This is the JSON source payload, just make sure it parses.
         content = json.loads(task.data.pop('content'))
-        task.data['result'] = dict(message=MAGIC_OK_MESSAGE)
+        task.data['result'] = dict(message=MAGIC_OK_MESSAGE,
+                                   output={"source": "user_input.txt"})
         
         # Put back a completion task to the done queue.
         with db_connect(self.database_url) as conn:
-            db_queue(conn, DONE_QUEUE).put(task.data)
-        
-            pop_task_from_donequeue(db_queue(conn, DONE_QUEUE), None)
+            queue = db_queue(conn, DONE_QUEUE)
+            queue.put(task.data)
+            pop_task_from_donequeue(queue, None)
+            
+            with queue as db:
+                db.execute('SELECT source_path FROM runs')
+                ((source_path, ), ) = db.fetchall()
+                self.assertEqual(source_path, 'sources/us-ca-oakland.json')
      
     @patch('subprocess.check_output')
     def test_failing_run(self, check_output):
@@ -334,16 +340,13 @@ class TestRuns (unittest.TestCase):
         files = {'sources/us-ca-oakland.json': (source, '0xDEADBEEF')}
         
         with db_connect(self.database_url) as conn:
-            queue = db_queue(conn, TASK_QUEUE)
-            job_id = create_queued_job(queue, files, None, None)
+            input_queue = db_queue(conn, TASK_QUEUE)
+            job_id = create_queued_job(input_queue, files, None, None)
         
-            # Look for the task in the task queue.
-            task = queue.get()
-            self.assertTrue(task is not None)
-            
             # Process it like in worker.
             with self.assertRaises(NotImplementedError) as e:
-                task_output_data = worker.run(task.data, self.output_dir)
+                output_queue = db_queue(conn, DONE_QUEUE)
+                worker.pop_task_from_taskqueue(input_queue, output_queue, self.output_dir)
      
 class TestWorker (unittest.TestCase):
 
