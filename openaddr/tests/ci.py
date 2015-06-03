@@ -275,10 +275,12 @@ class TestRuns (unittest.TestCase):
         '''
         recreate_db.recreate(os.environ['DATABASE_URL'])
         self.database_url = os.environ['DATABASE_URL']
+        self.output_dir = mkdtemp(prefix='TestRuns-')
     
     def tearDown(self):
         '''
         '''
+        rmtree(self.output_dir)
         return
         
         with db_connect(self.database_url) as conn:
@@ -286,7 +288,7 @@ class TestRuns (unittest.TestCase):
                 db.execute('TRUNCATE jobs')
                 db.execute('TRUNCATE queue')
     
-    def test_unhooked(self):
+    def test_working_run(self):
         '''
         '''
         source = '''{
@@ -314,6 +316,34 @@ class TestRuns (unittest.TestCase):
             db_queue(conn, DONE_QUEUE).put(task.data)
         
             pop_task_from_donequeue(db_queue(conn, DONE_QUEUE), None)
+     
+    @patch('subprocess.check_output')
+    def test_failing_run(self, check_output):
+        '''
+        '''
+        def raises_unexpected_error(cmd):
+            raise NotImplementedError('Everything is ruined.')
+
+        check_output.side_effect = raises_unexpected_error
+
+        source = '''{
+            "coverage": { "US Census": {"geoid": "0653000", "place": "Oakland city", "state": "California"} },
+            "data": "http://data.openoakland.org/sites/default/files/OakParcelsGeo2013_0.zip"
+            }'''
+        
+        files = {'sources/us-ca-oakland.json': (source, '0xDEADBEEF')}
+        
+        with db_connect(self.database_url) as conn:
+            queue = db_queue(conn, TASK_QUEUE)
+            job_id = create_queued_job(queue, files, None, None)
+        
+            # Look for the task in the task queue.
+            task = queue.get()
+            self.assertTrue(task is not None)
+            
+            # Process it like in worker.
+            with self.assertRaises(NotImplementedError) as e:
+                task_output_data = worker.run(task.data, self.output_dir)
      
 class TestWorker (unittest.TestCase):
 

@@ -88,21 +88,23 @@ def run(task_data, output_dir):
     return r
 
 def main():
-    "Single threaded worker to serve the job queue"
-
-    # Connect to the queue
-    conn = db_connect(os.environ['DATABASE_URL'])
-    input_queue = db_queue(conn)
-    output_queue = db_queue(conn, DONE_QUEUE)
-
+    ''' Single threaded worker to serve the job queue.
+    '''
     # Fetch and run jobs in a loop    
     while True:
-        task = input_queue.get()
-        # PQ will return NULL after 1 second timeout if not ask
-        if task:
-            task_output_data = run(task.data, _web_output_dir)
-            output_queue.put(task_output_data)
+        try:
+            with db_connect(os.environ['DATABASE_URL']) as conn:
+                input_queue = db_queue(conn)
+                output_queue = db_queue(conn, DONE_QUEUE)
 
+                task = input_queue.get()
+                # PQ will return NULL after 1 second timeout if not ask
+                if task:
+                    task_output_data = run(task.data, _web_output_dir)
+                    output_queue.put(task_output_data)
+        except:
+            _L.error('Error in worker main()', exc_info=True)
+            time.sleep(5)
 
 if __name__ == '__main__':
     exit(main())
