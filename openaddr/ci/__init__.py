@@ -41,7 +41,7 @@ def hook():
     job_url_template = urljoin(request.url, '/jobs/{id}')
 
     with db_connect(current_app.config['DATABASE_URL']) as conn:
-        queue = db_queue(conn)
+        queue = db_queue(conn, TASK_QUEUE)
         try:
             job_id = create_queued_job(queue, files, job_url_template, status_url)
             job_url = expand(job_url_template, dict(id=job_id))
@@ -373,8 +373,8 @@ def db_connect(dsn):
     '''
     return connect(dsn)
 
-def db_queue(conn, name=None):
-    return PQ(conn, table='queue')[name or TASK_QUEUE]
+def db_queue(conn, name):
+    return PQ(conn, table='queue')[name]
 
 def db_cursor(conn):
     return conn.cursor()

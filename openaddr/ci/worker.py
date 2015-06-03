@@ -13,7 +13,9 @@ from ..compat import standard_library
 import time, os, subprocess, psycopg2, socket, json
 from urllib.parse import urlparse, urljoin
 
-from . import db_connect, db_queue, db_queue, MAGIC_OK_MESSAGE, DONE_QUEUE
+from . import (
+    db_connect, db_queue, db_queue, MAGIC_OK_MESSAGE, DONE_QUEUE, TASK_QUEUE
+    )
 
 # File path and URL path for result directory. Should be S3.
 _web_output_dir = '/var/www/html/oa-runone'
@@ -106,7 +108,7 @@ def main():
     while True:
         try:
             with db_connect(os.environ['DATABASE_URL']) as conn:
-                input_queue = db_queue(conn)
+                input_queue = db_queue(conn, TASK_QUEUE)
                 output_queue = db_queue(conn, DONE_QUEUE)
                 pop_task_from_taskqueue(input_queue, output_queue, _web_output_dir)
         except:
