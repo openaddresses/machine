@@ -1,4 +1,7 @@
+import logging; _L = logging.getLogger('openaddr.ci')
+
 from ..compat import standard_library
+from ..jobs import JOB_TIMEOUT
 
 from os.path import relpath, splitext
 from urllib.parse import urljoin
@@ -307,6 +310,31 @@ def read_job(db, job_id):
         return None
     else:
         return status, task_files, states, file_results, github_status_url
+
+def pop_task_from_taskqueue(task_queue, done_queue, due_queue, output_dir):
+    '''
+    '''
+    with task_queue as db:
+        task = task_queue.get()
+
+        # PQ will return NULL after 1 second timeout if not ask
+        if task is None:
+            return
+    
+    _L.info("Got job {}".format(task.data))
+
+    # Send a Due task, possibly for later.
+    due_task_data = dict(task_data=task.data, file_id=task.data['file_id'])
+    due_queue.put(due_task_data, JOB_TIMEOUT)
+
+    # Run the task.
+    from .worker import do_work # <-- TODO: un-suck this.
+    result = do_work(task.data['id'], task.data['content'], output_dir)
+
+    # Send a Done task
+    done_task_data = {k: task.data[k] for k in ('id', 'url', 'name')}
+    done_task_data['result'] = result
+    done_queue.put(done_task_data)
 
 def pop_task_from_donequeue(queue, github_auth):
     ''' Look for a completed job in the "done" task queue, update Github status.

@@ -15,8 +15,9 @@ os.environ['GITHUB_TOKEN'] = ''
 os.environ['DATABASE_URL'] = environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
 
 from ..ci import (
-    app, db_connect, db_cursor, db_queue, recreate_db, pop_task_from_donequeue,
-    worker, create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE
+    app, db_connect, db_cursor, db_queue, recreate_db, worker,
+    pop_task_from_donequeue, pop_task_from_taskqueue, create_queued_job,
+    TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -348,7 +349,7 @@ class TestRuns (unittest.TestCase):
             with self.assertRaises(NotImplementedError) as e:
                 done_Q = db_queue(conn, DONE_QUEUE)
                 due_Q = db_queue(conn, DUE_QUEUE)
-                worker.pop_task_from_taskqueue(task_Q, done_Q, due_Q, self.output_dir)
+                pop_task_from_taskqueue(task_Q, done_Q, due_Q, self.output_dir)
 
             # Look for the future due task.
             with db_cursor(conn) as db:
@@ -409,7 +410,8 @@ class TestWorker (unittest.TestCase):
         task_data = dict(id='0xDEADBEEF', content='{ }', name='Dead Beef', url=None)
         check_output.side_effect = does_what_its_told
         
-        result = worker.run(task_data, self.output_dir)
+        job_id, content = task_data['id'], task_data['content']
+        result = worker.do_work(job_id, content, self.output_dir)
         
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
@@ -418,15 +420,13 @@ class TestWorker (unittest.TestCase):
             os.path.join(self.output_dir, '0xDEADBEEF/out')
             ))
         
-        self.assertEqual(result['id'], task_data['id'])
-        self.assertEqual(result['name'], task_data['name'])
-        self.assertEqual(result['result']['message'], MAGIC_OK_MESSAGE)
-        self.assertEqual(result['result']['result_code'], 0)
+        self.assertEqual(result['message'], MAGIC_OK_MESSAGE)
+        self.assertEqual(result['result_code'], 0)
 
-        self.assertTrue(result['result']['output']['cache'].endswith('/cache.zip'))
-        self.assertTrue(result['result']['output']['sample'].endswith('/sample.json'))
-        self.assertTrue(result['result']['output']['output'].endswith('/output.txt'))
-        self.assertTrue(result['result']['output']['processed'].endswith('/out.csv'))
+        self.assertTrue(result['output']['cache'].endswith('/cache.zip'))
+        self.assertTrue(result['output']['sample'].endswith('/sample.json'))
+        self.assertTrue(result['output']['output'].endswith('/output.txt'))
+        self.assertTrue(result['output']['processed'].endswith('/out.csv'))
     
     @patch('subprocess.check_output')
     def test_angry_worker(self, check_output):
@@ -438,7 +438,8 @@ class TestWorker (unittest.TestCase):
         task_data = dict(id='0xDEADBEEF', content='{ }', name='Dead Beef', url=None)
         check_output.side_effect = raises_called_process_error
         
-        result = worker.run(task_data, self.output_dir)
+        job_id, content = task_data['id'], task_data['content']
+        result = worker.do_work(job_id, content, self.output_dir)
         
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
@@ -447,11 +448,9 @@ class TestWorker (unittest.TestCase):
             os.path.join(self.output_dir, '0xDEADBEEF/out')
             ))
         
-        self.assertEqual(result['id'], task_data['id'])
-        self.assertEqual(result['name'], task_data['name'])
-        self.assertEqual(result['result']['message'], 'Something went wrong in openaddr-process-one')
-        self.assertEqual(result['result']['result_stdout'], 'Everything is ruined.\n')
-        self.assertEqual(result['result']['result_code'], 1)
+        self.assertEqual(result['message'], 'Something went wrong in openaddr-process-one')
+        self.assertEqual(result['result_stdout'], 'Everything is ruined.\n')
+        self.assertEqual(result['result_code'], 1)
 
 if __name__ == '__main__':
     unittest.main()

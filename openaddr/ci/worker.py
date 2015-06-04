@@ -9,14 +9,13 @@ enqueues a new message on a separate PQ queue when the work is done.
 import logging; _L = logging.getLogger('openaddr.ci.worker')
 
 from ..compat import standard_library
-from ..jobs import JOB_TIMEOUT
 
 import time, os, subprocess, psycopg2, socket, json
 from urllib.parse import urlparse, urljoin
 
 from . import (
-    db_connect, db_queue, db_queue, MAGIC_OK_MESSAGE,
-    DONE_QUEUE, TASK_QUEUE, DUE_QUEUE
+    db_connect, db_queue, db_queue, pop_task_from_taskqueue,
+    MAGIC_OK_MESSAGE, DONE_QUEUE, TASK_QUEUE, DUE_QUEUE
     )
 
 # File path and URL path for result directory. Should be S3.
@@ -69,43 +68,6 @@ def do_work(job_id, job_contents, output_dir):
         result['output'].update(dict(zip(keys, urls)))
 
     return result
-
-def run(task_data, output_dir):
-    ''' Run a task posted to the queue. Handles the JSON for task and result objects.
-    '''
-    _L.info("Got job {}".format(task_data))
-
-    # Unpack the task object
-    content = task_data['content']
-    url = task_data['url']
-    job_id = task_data['id']
-    name = task_data['name']
-
-    # Run the task
-    result = do_work(job_id, content, output_dir)
-
-    # Prepare a result object
-    r = { 'id' : job_id,
-          'url': url,
-          'name': name,
-          'result' : result }
-    return r
-
-def pop_task_from_taskqueue(task_queue, done_queue, due_queue, output_dir):
-    '''
-    '''
-    with task_queue as db:
-        task = task_queue.get()
-
-        # PQ will return NULL after 1 second timeout if not ask
-        if task is None:
-            return
-    
-    due_task = dict(task_data=task.data, file_id=task.data['file_id'])
-    due_queue.put(due_task, JOB_TIMEOUT)
-
-    task_output_data = run(task.data, output_dir)
-    done_queue.put(task_output_data)
 
 def main():
     ''' Single threaded worker to serve the job queue.
