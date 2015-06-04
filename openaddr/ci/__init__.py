@@ -75,6 +75,13 @@ def get_job(job_id):
     
     return jsonify(job)
 
+def td2str(td):
+    ''' Convert a timedelta to a string formatted like '3h'.
+    
+        Will not be necessary when https://github.com/malthe/pq/pull/5 is released.
+    '''
+    return '{}s'.format(td.seconds + td.days * 86400)
+
 def get_touched_payload_files(payload):
     ''' Return a set of files modified in payload commits.
     '''
@@ -272,7 +279,7 @@ def add_files_to_queue(queue, job_id, job_url, files):
         task_data = dict(id=job_id, url=job_url, name=file_name,
                          content=content, file_id=file_id)
     
-        queue.put(task_data, expected_at=timedelta(0))
+        queue.put(task_data, expected_at=td2str(timedelta(0)))
         tasks[file_id] = file_name
     
     return tasks
@@ -327,7 +334,7 @@ def pop_task_from_taskqueue(task_queue, done_queue, due_queue, output_dir):
 
     # Send a Due task, possibly for later.
     due_task_data = dict(task_data=task.data, file_id=task.data['file_id'])
-    due_queue.put(due_task_data, schedule_at=JOB_TIMEOUT)
+    due_queue.put(due_task_data, schedule_at=td2str(JOB_TIMEOUT))
 
     # Run the task.
     from .worker import do_work # <-- TODO: un-suck this.
@@ -336,7 +343,7 @@ def pop_task_from_taskqueue(task_queue, done_queue, due_queue, output_dir):
     # Send a Done task
     done_task_data = {k: task.data[k] for k in ('id', 'url', 'name')}
     done_task_data['result'] = result
-    done_queue.put(done_task_data, expected_at=timedelta(0))
+    done_queue.put(done_task_data, expected_at=td2str(timedelta(0)))
 
 def pop_task_from_donequeue(queue, github_auth):
     ''' Look for a completed job in the "done" task queue, update Github status.
