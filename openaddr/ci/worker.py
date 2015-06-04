@@ -100,7 +100,8 @@ def pop_task_from_taskqueue(task_queue, done_queue, due_queue, output_dir):
         if task is None:
             return
     
-    due_queue.put({'original': task.data}, '3h')
+    due = '3h'
+    due_queue.put(dict(task_data=task.data, file_id=task.data['file_id']), due)
     task_output_data = run(task.data, output_dir)
     done_queue.put(task_output_data)
 

@@ -260,15 +260,15 @@ def create_queued_job(queue, files, job_url_template, status_url):
     return job_id
 
 def add_files_to_queue(queue, job_id, job_url, files):
-    ''' Make a new task for each file, return dict of taks IDs to file names.
+    ''' Make a new task for each file, return dict of file IDs to file names.
     '''
     tasks = {}
     
-    for (name, (content, file_id)) in files.items():
-        task = queue.put(dict(id=job_id, url=job_url, name=name,
-                              content=content, file_id=file_id))
+    for (file_name, (content, file_id)) in files.items():
+        queue.put(dict(id=job_id, url=job_url, name=file_name,
+                       content=content, file_id=file_id))
         
-        tasks[str(task)] = name
+        tasks[file_id] = file_name
     
     return tasks
 

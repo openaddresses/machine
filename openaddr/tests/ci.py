@@ -6,6 +6,7 @@ from tempfile import mkdtemp
 from httmock import HTTMock, response
 from logging import StreamHandler, DEBUG
 from urllib.parse import parse_qsl, urlparse
+from datetime import timedelta
 from mock import patch
 
 import unittest, json, os, sys, subprocess
@@ -348,6 +349,28 @@ class TestRuns (unittest.TestCase):
                 done_Q = db_queue(conn, DONE_QUEUE)
                 due_Q = db_queue(conn, DUE_QUEUE)
                 worker.pop_task_from_taskqueue(task_Q, done_Q, due_Q, self.output_dir)
+
+            # Look for the future due task.
+            with db_cursor(conn) as db:
+                db.execute('''SELECT enqueued_at, dequeued_at,
+                                     schedule_at, q_name, data
+                              FROM queue
+                              ORDER BY enqueued_at ASC''')
+
+                (enq1, deq1, sched1, q1, d1), (_, deq2, sched2, q2, d2) = db.fetchall()
+            
+            self.assertEqual(q1, TASK_QUEUE, 'First queue should be tasks')
+            self.assertEqual(q2, DUE_QUEUE, 'Second queue should be done')
+            
+            self.assertTrue(deq1 is not None, 'Task in first queue should have been dequeued')
+            self.assertTrue(sched1 is None, 'Task in first queue should not be scheduled')
+            self.assertTrue(deq2 is None, 'Task in second queue should still be there')
+            
+            self.assertEqual(d2['file_id'], d1['file_id'], 'Both tasks should have matching file IDs')
+            
+            elapsed = sched2 - enq1
+            self.assertTrue(timedelta(hours=3) < elapsed < timedelta(hours=3, minutes=1),
+                            'Second task should be scheduled around 3 hours after first')
      
 class TestWorker (unittest.TestCase):
 
