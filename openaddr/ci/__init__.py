@@ -405,6 +405,17 @@ def pop_task_from_donequeue(queue, github_auth):
         elif job_status is True:
             update_success_status(status_url, job_url, filenames, github_auth)
 
+def pop_task_from_duequeue(queue):
+    '''
+    '''
+    with queue as db:
+        task = queue.get()
+    
+        if task is None:
+            return
+    
+        raise NotImplementedError('Need to write this.')
+
 def db_connect(dsn):
     ''' Connect to database using DSN string.
     '''

@@ -1,9 +1,10 @@
-from sys import stderr
+import logging; _L = logging.getLogger('openaddr.ci.run_dequeue')
+
 from time import sleep
-from traceback import print_exc
 
 from . import (
-    db_connect, db_queue, pop_task_from_donequeue, DONE_QUEUE, load_config
+    db_connect, db_queue, DONE_QUEUE, DUE_QUEUE, load_config,
+    pop_task_from_donequeue, pop_task_from_duequeue
     )
 
 def main():
@@ -14,12 +15,15 @@ def main():
     while True:
         try:
             with db_connect(config['DATABASE_URL']) as conn:
-                queue = db_queue(conn, DONE_QUEUE)
-                pop_task_from_donequeue(queue, config['GITHUB_AUTH'])
+                done_queue = db_queue(conn, DONE_QUEUE)
+                pop_task_from_donequeue(done_queue, config['GITHUB_AUTH'])
+
+                due_queue = db_queue(conn, DUE_QUEUE)
+                pop_task_from_duequeue(due_queue)
+        except KeyboardInterrupt:
+            raise
         except:
-            print >> stderr, '-' * 40
-            print_exc(file=stderr)
-            print >> stderr, '-' * 40
+            _L.error('Error in dequeue main()', exc_info=True)
             sleep(5)
 
 if __name__ == '__main__':
