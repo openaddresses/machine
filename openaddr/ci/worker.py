@@ -8,9 +8,9 @@ enqueues a new message on a separate PQ queue when the work is done.
 '''
 import logging; _L = logging.getLogger('openaddr.ci.worker')
 
-from ..compat import standard_library
+from .. import compat
 
-import time, os, subprocess, psycopg2, socket, json
+import time, os, psycopg2, socket, json
 from urllib.parse import urlparse, urljoin
 
 from . import (
@@ -41,9 +41,9 @@ def do_work(job_id, job_contents, output_dir):
     # Invoke the job to do
     cmd = 'openaddr-process-one', '-l', os.path.join(out_dir, 'logfile.txt'), out_fn, oa_dir
     try:
-        result_stdout = subprocess.check_output(cmd)
+        result_stdout = compat.check_output(cmd)
 
-    except subprocess.CalledProcessError as e:
+    except compat.CalledProcessError as e:
         # Something went wrong; throw back an error result.
         return dict(result_code=e.returncode, result_stdout=e.output,
                     message='Something went wrong in {0}'.format(*cmd))

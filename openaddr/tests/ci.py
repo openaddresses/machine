@@ -9,7 +9,7 @@ from urllib.parse import parse_qsl, urlparse
 from datetime import timedelta
 from mock import patch
 
-import unittest, json, os, sys, subprocess
+import unittest, json, os, sys
 
 os.environ['GITHUB_TOKEN'] = ''
 os.environ['DATABASE_URL'] = environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
@@ -21,6 +21,7 @@ from ..ci import (
     )
 
 from ..jobs import JOB_TIMEOUT
+from .. import compat
 
 class TestHook (unittest.TestCase):
 
@@ -325,7 +326,7 @@ class TestRuns (unittest.TestCase):
                 ((source_path, ), ) = db.fetchall()
                 self.assertEqual(source_path, 'sources/us-ca-oakland.json')
      
-    @patch('subprocess.check_output')
+    @patch('openaddr.compat.check_output')
     def test_failing_run(self, check_output):
         '''
         '''
@@ -393,7 +394,7 @@ class TestWorker (unittest.TestCase):
                 db.execute('TRUNCATE jobs')
                 db.execute('TRUNCATE queue')
     
-    @patch('subprocess.check_output')
+    @patch('openaddr.compat.check_output')
     def test_happy_worker(self, check_output):
         '''
         '''
@@ -428,12 +429,12 @@ class TestWorker (unittest.TestCase):
         self.assertTrue(result['output']['output'].endswith('/output.txt'))
         self.assertTrue(result['output']['processed'].endswith('/out.csv'))
     
-    @patch('subprocess.check_output')
+    @patch('openaddr.compat.check_output')
     def test_angry_worker(self, check_output):
         '''
         '''
         def raises_called_process_error(cmd):
-            raise subprocess.CalledProcessError(1, cmd, 'Everything is ruined.\n')
+            raise compat.CalledProcessError(1, cmd, 'Everything is ruined.\n')
         
         task_data = dict(id='0xDEADBEEF', content='{ }', name='Dead Beef', url=None)
         check_output.side_effect = raises_called_process_error

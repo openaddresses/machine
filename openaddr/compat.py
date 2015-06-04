@@ -4,8 +4,11 @@ import io
 PY2 = (sys.version_info[0] == 2)
 
 if PY2:
-    import unicodecsv
+    import unicodecsv, subprocess32
     unicodecsv.field_size_limit(sys.maxsize)
+    
+    check_output = subprocess32.check_output
+    CalledProcessError = subprocess32.CalledProcessError
     
     def csvreader(file, encoding=None, **kwargs):
         ''' Pass encoding to unicodecsv
@@ -56,8 +59,11 @@ if PY2:
     standard_library.install_aliases()
 
 else:
-    import csv
+    import csv, subprocess
     standard_library = None
+    
+    check_output = subprocess.check_output
+    CalledProcessError = subprocess.CalledProcessError
     
     def csvreader(file, encoding=None, **kwargs):
         ''' Discard encoding
