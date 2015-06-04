@@ -9,6 +9,7 @@ enqueues a new message on a separate PQ queue when the work is done.
 import logging; _L = logging.getLogger('openaddr.ci.worker')
 
 from ..compat import standard_library
+from ..jobs import JOB_TIMEOUT
 
 import time, os, subprocess, psycopg2, socket, json
 from urllib.parse import urlparse, urljoin
@@ -100,8 +101,9 @@ def pop_task_from_taskqueue(task_queue, done_queue, due_queue, output_dir):
         if task is None:
             return
     
-    due = '3h'
-    due_queue.put(dict(task_data=task.data, file_id=task.data['file_id']), due)
+    due_task = dict(task_data=task.data, file_id=task.data['file_id'])
+    due_queue.put(due_task, JOB_TIMEOUT)
+
     task_output_data = run(task.data, output_dir)
     done_queue.put(task_output_data)
 

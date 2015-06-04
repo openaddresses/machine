@@ -15,11 +15,11 @@ os.environ['GITHUB_TOKEN'] = ''
 os.environ['DATABASE_URL'] = environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
 
 from ..ci import (
-    app, db_connect, db_cursor, db_queue, pop_task_from_donequeue, worker,
-    create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE
+    app, db_connect, db_cursor, db_queue, recreate_db, pop_task_from_donequeue,
+    worker, create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE
     )
 
-from ..ci import recreate_db
+from ..jobs import JOB_TIMEOUT
 
 class TestHook (unittest.TestCase):
 
@@ -369,7 +369,7 @@ class TestRuns (unittest.TestCase):
             self.assertEqual(d2['file_id'], d1['file_id'], 'Both tasks should have matching file IDs')
             
             elapsed = sched2 - enq1
-            self.assertTrue(timedelta(hours=3) < elapsed < timedelta(hours=3, minutes=1),
+            self.assertTrue(JOB_TIMEOUT <= elapsed < JOB_TIMEOUT + timedelta(60),
                             'Second task should be scheduled around 3 hours after first')
      
 class TestWorker (unittest.TestCase):
