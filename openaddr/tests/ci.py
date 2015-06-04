@@ -330,7 +330,7 @@ class TestRuns (unittest.TestCase):
     def test_failing_run(self, check_output):
         '''
         '''
-        def raises_unexpected_error(cmd):
+        def raises_unexpected_error(cmd, timeout=None):
             raise NotImplementedError('Everything is ruined.')
 
         check_output.side_effect = raises_unexpected_error
@@ -398,7 +398,7 @@ class TestWorker (unittest.TestCase):
     def test_happy_worker(self, check_output):
         '''
         '''
-        def does_what_its_told(cmd):
+        def does_what_its_told(cmd, timeout=None):
             index_path = '{id}/out/user_input/index.json'.format(**task_data)
             index_filename = os.path.join(self.output_dir, index_path)
             os.makedirs(os.path.dirname(index_filename))
@@ -419,7 +419,8 @@ class TestWorker (unittest.TestCase):
             os.path.join(self.output_dir, '0xDEADBEEF/logfile.txt'),
             os.path.join(self.output_dir, '0xDEADBEEF/user_input.txt'),
             os.path.join(self.output_dir, '0xDEADBEEF/out')
-            ))
+            ),
+            timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
         
         self.assertEqual(result['message'], MAGIC_OK_MESSAGE)
         self.assertEqual(result['result_code'], 0)
@@ -433,7 +434,7 @@ class TestWorker (unittest.TestCase):
     def test_angry_worker(self, check_output):
         '''
         '''
-        def raises_called_process_error(cmd):
+        def raises_called_process_error(cmd, timeout=None):
             raise compat.CalledProcessError(1, cmd, 'Everything is ruined.\n')
         
         task_data = dict(id='0xDEADBEEF', content='{ }', name='Dead Beef', url=None)
@@ -447,7 +448,8 @@ class TestWorker (unittest.TestCase):
             os.path.join(self.output_dir, '0xDEADBEEF/logfile.txt'),
             os.path.join(self.output_dir, '0xDEADBEEF/user_input.txt'),
             os.path.join(self.output_dir, '0xDEADBEEF/out')
-            ))
+            ),
+            timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
         
         self.assertEqual(result['message'], 'Something went wrong in openaddr-process-one')
         self.assertEqual(result['result_stdout'], 'Everything is ruined.\n')

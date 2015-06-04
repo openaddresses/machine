@@ -9,6 +9,7 @@ enqueues a new message on a separate PQ queue when the work is done.
 import logging; _L = logging.getLogger('openaddr.ci.worker')
 
 from .. import compat
+from ..jobs import JOB_TIMEOUT
 
 import time, os, psycopg2, socket, json
 from urllib.parse import urlparse, urljoin
@@ -41,7 +42,8 @@ def do_work(job_id, job_contents, output_dir):
     # Invoke the job to do
     cmd = 'openaddr-process-one', '-l', os.path.join(out_dir, 'logfile.txt'), out_fn, oa_dir
     try:
-        result_stdout = compat.check_output(cmd)
+        timeout_seconds = JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400
+        result_stdout = compat.check_output(cmd, timeout=timeout_seconds)
 
     except compat.CalledProcessError as e:
         # Something went wrong; throw back an error result.
