@@ -318,11 +318,14 @@ class TestRuns (unittest.TestCase):
             files = {source_path: (source, source_id)}
             job_id = create_queued_job(task_Q, files, None, None)
             pop_task_from_taskqueue(task_Q, done_Q, due_Q, self.output_dir)
-
+            
             # Work done! 
             pop_task_from_donequeue(done_Q, None)
 
-            sleep(2)
+            # Should do nothing, because no Due task is yet scheduled.
+            pop_task_from_duequeue(due_Q)
+
+            sleep(1.1)
             
             # Should do nothing, because Due task data will be found in runs table.
             pop_task_from_duequeue(due_Q)
@@ -334,7 +337,7 @@ class TestRuns (unittest.TestCase):
                 self.assertEqual(db_source_path, source_path)
                 self.assertEqual(db_source_id, source_id)
      
-    @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
+    @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=2))
     @patch('openaddr.compat.check_output')
     def test_failing_run(self, check_output):
         '''
@@ -362,11 +365,54 @@ class TestRuns (unittest.TestCase):
             with self.assertRaises(NotImplementedError) as e:
                 pop_task_from_taskqueue(task_Q, done_Q, due_Q, self.output_dir)
 
-            sleep(2)
+            # Should do nothing, because a Done task was never sent.
+            pop_task_from_donequeue(done_Q, None)
+
+            # Should do nothing, because no Due task is yet scheduled.
+            pop_task_from_duequeue(due_Q)
+
+            sleep(2.1)
             
             # This will raise, because the complete Due task is not yet handled.
             with self.assertRaises(NotImplementedError) as e:
                 pop_task_from_duequeue(due_Q)
+     
+    @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
+    @patch('openaddr.ci.worker.do_work')
+    def test_overdue_run(self, do_work):
+        '''
+        '''
+        def returns_plausible_result(job_id, content, output_dir):
+            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
+
+        do_work.side_effect = returns_plausible_result
+
+        source = '''{
+            "coverage": { "US Census": {"geoid": "0653000", "place": "Oakland city", "state": "California"} },
+            "data": "http://data.openoakland.org/sites/default/files/OakParcelsGeo2013_0.zip"
+            }'''
+        
+        files = {'sources/us-ca-oakland.json': (source, '0xDEADBEEF')}
+        
+        with db_connect(self.database_url) as conn:
+            task_Q = db_queue(conn, TASK_QUEUE)
+            done_Q = db_queue(conn, DONE_QUEUE)
+            due_Q = db_queue(conn, DUE_QUEUE)
+
+            job_id = create_queued_job(task_Q, files, None, None)
+            pop_task_from_taskqueue(task_Q, done_Q, due_Q, self.output_dir)
+
+            # Should do nothing, because no Due task is yet scheduled.
+            pop_task_from_duequeue(due_Q)
+
+            sleep(1.1)
+            
+            # This will raise, because the complete Due task is not yet handled.
+            with self.assertRaises(NotImplementedError) as e:
+                pop_task_from_duequeue(due_Q)
+
+            # What will this do?
+            pop_task_from_donequeue(done_Q, None)
      
 class TestWorker (unittest.TestCase):
 
