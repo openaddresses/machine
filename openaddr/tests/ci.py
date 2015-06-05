@@ -8,6 +8,7 @@ from logging import StreamHandler, DEBUG
 from urllib.parse import parse_qsl, urlparse
 from datetime import timedelta
 from mock import patch
+from time import sleep
 
 import unittest, json, os, sys
 
@@ -16,8 +17,8 @@ os.environ['DATABASE_URL'] = environ.get('DATABASE_URL', 'postgres:///hooked_on_
 
 from ..ci import (
     app, db_connect, db_cursor, db_queue, recreate_db, worker,
-    pop_task_from_donequeue, pop_task_from_taskqueue, create_queued_job,
-    TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE
+    pop_task_from_donequeue, pop_task_from_taskqueue, pop_task_from_duequeue,
+    create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -291,7 +292,9 @@ class TestRuns (unittest.TestCase):
                 db.execute('TRUNCATE jobs')
                 db.execute('TRUNCATE queue')
     
-    def test_working_run(self):
+    @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
+    @patch('openaddr.ci.worker.do_work')
+    def test_working_run(self, do_work):
         '''
         '''
         source = '''{
@@ -299,33 +302,39 @@ class TestRuns (unittest.TestCase):
             "data": "http://data.openoakland.org/sites/default/files/OakParcelsGeo2013_0.zip"
             }'''
         
-        files = {'sources/us-ca-oakland.json': (source, '0xDEADBEEF')}
+        source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
         
+        def returns_plausible_result(job_id, content, output_dir):
+            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
+        
+        do_work.side_effect = returns_plausible_result
+
+        # Do the work.
         with db_connect(self.database_url) as conn:
-            queue = db_queue(conn, TASK_QUEUE)
-            job_id = create_queued_job(queue, files, None, None)
-        
-            # Look for the task in the task queue.
-            task = queue.get()
+            task_Q = db_queue(conn, TASK_QUEUE)
+            done_Q = db_queue(conn, DONE_QUEUE)
+            due_Q = db_queue(conn, DUE_QUEUE)
+
+            files = {source_path: (source, source_id)}
+            job_id = create_queued_job(task_Q, files, None, None)
+            pop_task_from_taskqueue(task_Q, done_Q, due_Q, self.output_dir)
+
+            # Work done! 
+            pop_task_from_donequeue(done_Q, None)
+
+            sleep(2)
             
-        self.assertTrue('us-ca-oakland' in task.data['name'])
-        
-        # This is the JSON source payload, just make sure it parses.
-        content = json.loads(task.data.pop('content'))
-        task.data['result'] = dict(message=MAGIC_OK_MESSAGE,
-                                   output={"source": "user_input.txt"})
-        
-        # Put back a completion task to the done queue.
-        with db_connect(self.database_url) as conn:
-            queue = db_queue(conn, DONE_QUEUE)
-            queue.put(task.data)
-            pop_task_from_donequeue(queue, None)
+            # Should do nothing, because Due task data will be found in runs table.
+            pop_task_from_duequeue(due_Q)
             
-            with queue as db:
-                db.execute('SELECT source_path FROM runs')
-                ((source_path, ), ) = db.fetchall()
-                self.assertEqual(source_path, 'sources/us-ca-oakland.json')
+            # Find a record of this run.
+            with done_Q as db:
+                db.execute('SELECT source_path, source_id FROM runs')
+                ((db_source_path, db_source_id), ) = db.fetchall()
+                self.assertEqual(db_source_path, source_path)
+                self.assertEqual(db_source_id, source_id)
      
+    @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.compat.check_output')
     def test_failing_run(self, check_output):
         '''
@@ -344,35 +353,20 @@ class TestRuns (unittest.TestCase):
         
         with db_connect(self.database_url) as conn:
             task_Q = db_queue(conn, TASK_QUEUE)
+            done_Q = db_queue(conn, DONE_QUEUE)
+            due_Q = db_queue(conn, DUE_QUEUE)
+
             job_id = create_queued_job(task_Q, files, None, None)
         
-            # Process it like in worker.
+            # Bad things will happen and the job will fail.
             with self.assertRaises(NotImplementedError) as e:
-                done_Q = db_queue(conn, DONE_QUEUE)
-                due_Q = db_queue(conn, DUE_QUEUE)
                 pop_task_from_taskqueue(task_Q, done_Q, due_Q, self.output_dir)
 
-            # Look for the future due task.
-            with db_cursor(conn) as db:
-                db.execute('''SELECT enqueued_at, dequeued_at,
-                                     schedule_at, q_name, data
-                              FROM queue
-                              ORDER BY enqueued_at ASC''')
-
-                (enq1, deq1, sched1, q1, d1), (_, deq2, sched2, q2, d2) = db.fetchall()
+            sleep(2)
             
-            self.assertEqual(q1, TASK_QUEUE, 'First queue should be tasks')
-            self.assertEqual(q2, DUE_QUEUE, 'Second queue should be done')
-            
-            self.assertTrue(deq1 is not None, 'Task in first queue should have been dequeued')
-            self.assertTrue(sched1 is None, 'Task in first queue should not be scheduled')
-            self.assertTrue(deq2 is None, 'Task in second queue should still be there')
-            
-            self.assertEqual(d2['file_id'], d1['file_id'], 'Both tasks should have matching file IDs')
-            
-            elapsed = sched2 - enq1
-            self.assertTrue(JOB_TIMEOUT <= elapsed < JOB_TIMEOUT + timedelta(60),
-                            'Second task should be scheduled around 3 hours after first')
+            # This will raise, because the complete Due task is not yet handled.
+            with self.assertRaises(NotImplementedError) as e:
+                pop_task_from_duequeue(due_Q)
      
 class TestWorker (unittest.TestCase):
 

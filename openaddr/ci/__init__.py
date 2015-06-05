@@ -1,7 +1,7 @@
 import logging; _L = logging.getLogger('openaddr.ci')
 
 from ..compat import standard_library
-from ..jobs import JOB_TIMEOUT
+from .. import jobs
 
 from os.path import relpath, splitext
 from urllib.parse import urljoin
@@ -333,15 +333,16 @@ def pop_task_from_taskqueue(task_queue, done_queue, due_queue, output_dir):
     _L.info("Got job {}".format(task.data))
 
     # Send a Due task, possibly for later.
-    due_task_data = dict(task_data=task.data, file_id=task.data['file_id'])
-    due_queue.put(due_task_data, schedule_at=td2str(JOB_TIMEOUT))
+    job_id, file_id = task.data['id'], task.data['file_id']
+    due_task_data = dict(task_data=task.data, id=job_id, file_id=file_id)
+    due_queue.put(due_task_data, schedule_at=td2str(jobs.JOB_TIMEOUT))
 
     # Run the task.
-    from .worker import do_work # <-- TODO: un-suck this.
-    result = do_work(task.data['id'], task.data['content'], output_dir)
+    from . import worker # <-- TODO: un-suck this.
+    result = worker.do_work(task.data['id'], task.data['content'], output_dir)
 
     # Send a Done task
-    done_task_data = {k: task.data[k] for k in ('id', 'url', 'name')}
+    done_task_data = {k: task.data[k] for k in ('id', 'url', 'name', 'file_id')}
     done_task_data['result'] = result
     done_queue.put(done_task_data, expected_at=td2str(timedelta(0)))
 
@@ -367,7 +368,7 @@ def pop_task_from_donequeue(queue, github_auth):
         #
         db.execute('''INSERT INTO runs
                       (source_path, source_id, state, datetime)
-                      VALUES (%s, %s, %s::json, NOW())''',
+                      VALUES (%s, %s, %s::json, NOW() AT TIME ZONE 'UTC')''',
                    (filename, file_id, json.dumps(run_state)))
 
         try:
@@ -414,6 +415,18 @@ def pop_task_from_duequeue(queue):
         if task is None:
             return
     
+        db.execute('''SELECT id FROM runs
+                      WHERE source_id = %s
+                        AND datetime >= %s''',
+                   (task.data['file_id'], task.enqueued_at))
+        
+        completed_run = db.fetchone()
+        
+        if completed_run is not None:
+            # Everything's fine, this got handled.
+            return
+        
+        # No run was completed, so this due task represents a failure.
         raise NotImplementedError('Need to write this.')
 
 def db_connect(dsn):
