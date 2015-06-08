@@ -1,3 +1,6 @@
+2015-06-08: 1.9.3
+- Added "runs" table in openaddr.ci.worker for auto-scaled Amazon EC2.
+
 2015-06-02: 1.9.2
 - Updated internal workings of openaddr.ci.worker for auto-scaled Amazon EC2.
 
