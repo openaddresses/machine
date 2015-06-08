@@ -62,6 +62,10 @@ def do_work(job_id, job_contents, output_dir):
     with open(state_fullpath) as file:
         index = dict(zip(*json.load(file)))
         
+        for key in ('processed', 'sample', 'cache'):
+            if not index[key]:
+                result.update(result_code=-1, message='Failed to produce {} data'.format(key))
+        
         # Expand filename keys to complete URLs
         keys = 'cache', 'sample', 'output', 'processed'
         urls = [urljoin(result['output_url'], index[k]) for k in keys]

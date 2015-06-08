@@ -377,10 +377,11 @@ def pop_task_from_taskqueue(task_queue, done_queue, due_queue, output_dir):
             return
     
     _L.info("Got job {}".format(task.data))
+    passed_on_task_keys = 'id', 'file_id', 'name', 'url', 'content'
+    passed_on_task_kwargs = {k: task.data[k] for k in passed_on_task_keys}
 
     # Send a Due task, possibly for later.
-    due_task_kwargs = {k: task.data[k] for k in ('id', 'file_id', 'name', 'url')}
-    due_task_data = dict(task_data=task.data, **due_task_kwargs)
+    due_task_data = dict(task_data=task.data, **passed_on_task_kwargs)
     due_queue.put(due_task_data, schedule_at=td2str(jobs.JOB_TIMEOUT))
 
     # Run the task.
@@ -388,8 +389,7 @@ def pop_task_from_taskqueue(task_queue, done_queue, due_queue, output_dir):
     result = worker.do_work(task.data['id'], task.data['content'], output_dir)
 
     # Send a Done task
-    done_task_data = {k: task.data[k] for k in ('id', 'url', 'name', 'file_id')}
-    done_task_data['result'] = result
+    done_task_data = dict(result=result, **passed_on_task_kwargs)
     done_queue.put(done_task_data, expected_at=td2str(timedelta(0)))
 
 def pop_task_from_donequeue(queue, github_auth):
@@ -404,6 +404,7 @@ def pop_task_from_donequeue(queue, github_auth):
         results = task.data['result']
         message = results['message']
         run_state = results.get('output', None)
+        content = task.data['content']
         job_url = task.data['url']
         filename = task.data['name']
         file_id = task.data['file_id']
@@ -440,6 +441,7 @@ def pop_task_from_duequeue(queue, github_auth):
             return
         
         original_task = task.data['task_data']
+        content = task.data['content']
         job_url = task.data['url']
         filename = task.data['name']
         file_id = task.data['file_id']
