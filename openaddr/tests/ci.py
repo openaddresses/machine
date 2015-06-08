@@ -280,6 +280,11 @@ class TestRuns (unittest.TestCase):
         recreate_db.recreate(os.environ['DATABASE_URL'])
         self.database_url = os.environ['DATABASE_URL']
         self.output_dir = mkdtemp(prefix='TestRuns-')
+        
+        self.github_auth = 'Fake', 'Auth'
+        self.fake_job_template_url = 'http://example.com/{id}'
+        self.fake_status_url = 'http://api.github.com/repos/openaddresses/fake-sources/statuses/ff9900'
+        self.last_status_state = None
     
     def tearDown(self):
         '''
@@ -292,6 +297,25 @@ class TestRuns (unittest.TestCase):
                 db.execute('TRUNCATE jobs')
                 db.execute('TRUNCATE queue')
     
+    def response_content(self, url, request):
+        '''
+        '''
+        query = dict(parse_qsl(url.query))
+        MHP = request.method, url.hostname, url.path
+        GH, response_headers = 'api.github.com', {'Content-Type': 'application/json; charset=utf-8'}
+        
+        if MHP == ('POST', GH, '/repos/openaddresses/fake-sources/statuses/ff9900'):
+            input = json.loads(request.body)
+            self.last_status_state = input['state']
+            self.last_status_message = input['description']
+            self.assertEqual(input['context'], 'openaddresses/hooked')
+            
+            data = '''{{\r              "context": "openaddresses/hooked", \r              "created_at": "2015-04-26T23:45:39Z", \r              "creator": {{\r                "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3", \r                "events_url": "https://api.github.com/users/migurski/events{{/privacy}}", \r                "followers_url": "https://api.github.com/users/migurski/followers", \r                "following_url": "https://api.github.com/users/migurski/following{{/other_user}}", \r                "gists_url": "https://api.github.com/users/migurski/gists{{/gist_id}}", \r                "gravatar_id": "", \r                "html_url": "https://github.com/migurski", \r                "id": 58730, \r                "login": "migurski", \r                "organizations_url": "https://api.github.com/users/migurski/orgs", \r                "received_events_url": "https://api.github.com/users/migurski/received_events", \r                "repos_url": "https://api.github.com/users/migurski/repos", \r                "site_admin": false, \r                "starred_url": "https://api.github.com/users/migurski/starred{{/owner}}{{/repo}}", \r                "subscriptions_url": "https://api.github.com/users/migurski/subscriptions", \r                "type": "User", \r                "url": "https://api.github.com/users/migurski"\r              }}, \r              "description": "Checking ", \r              "id": 999999999, \r              "state": "{state}", \r              "target_url": null, \r              "updated_at": "2015-04-26T23:45:39Z", \r              "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/statuses/xxxxxxxxx"\r            }}'''
+            return response(201, data.format(**input).encode('utf8'), headers=response_headers)
+        
+        print('Unknowable Request {} "{}"'.format(request.method, url.geturl()), file=sys.stderr)
+        raise ValueError('Unknowable Request {} "{}"'.format(request.method, url.geturl()))
+
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.worker.do_work')
     def test_working_run(self, do_work):
@@ -310,25 +334,29 @@ class TestRuns (unittest.TestCase):
         do_work.side_effect = returns_plausible_result
 
         # Do the work.
-        with db_connect(self.database_url) as conn:
+        with db_connect(self.database_url) as conn, HTTMock(self.response_content):
             task_Q = db_queue(conn, TASK_QUEUE)
             done_Q = db_queue(conn, DONE_QUEUE)
             due_Q = db_queue(conn, DUE_QUEUE)
 
             files = {source_path: (source, source_id)}
-            job_id = create_queued_job(task_Q, files, None, None)
+            job_id = create_queued_job(task_Q, files, self.fake_job_template_url, self.fake_status_url)
             pop_task_from_taskqueue(task_Q, done_Q, due_Q, self.output_dir)
+            self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
             
             # Work done! 
-            pop_task_from_donequeue(done_Q, None)
+            pop_task_from_donequeue(done_Q, self.github_auth)
+            self.assertEqual(self.last_status_state, 'success', 'Should be "success" now')
 
             # Should do nothing, because no Due task is yet scheduled.
-            pop_task_from_duequeue(due_Q, None)
+            pop_task_from_duequeue(due_Q, self.github_auth)
+            self.assertEqual(self.last_status_state, 'success', 'Should be unchanged')
 
             sleep(1.1)
             
             # Should do nothing, because Due task data will be found in runs table.
-            pop_task_from_duequeue(due_Q, None)
+            pop_task_from_duequeue(due_Q, self.github_auth)
+            self.assertEqual(self.last_status_state, 'success', 'Should be unchanged')
             
             # Find a record of this run.
             with done_Q as db:
@@ -354,12 +382,12 @@ class TestRuns (unittest.TestCase):
         
         files = {'sources/us-ca-oakland.json': (source, '0xDEADBEEF')}
         
-        with db_connect(self.database_url) as conn:
+        with db_connect(self.database_url) as conn, HTTMock(self.response_content):
             task_Q = db_queue(conn, TASK_QUEUE)
             done_Q = db_queue(conn, DONE_QUEUE)
             due_Q = db_queue(conn, DUE_QUEUE)
 
-            job_id = create_queued_job(task_Q, files, None, None)
+            job_id = create_queued_job(task_Q, files, self.fake_job_template_url, self.fake_status_url)
         
             # Bad things will happen and the job will fail.
             with self.assertRaises(NotImplementedError) as e:
@@ -367,9 +395,11 @@ class TestRuns (unittest.TestCase):
 
             # Should do nothing, because a Done task was never sent.
             pop_task_from_donequeue(done_Q, None)
+            self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
 
             # Should do nothing, because no Due task is yet scheduled.
             pop_task_from_duequeue(due_Q, None)
+            self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
             
             # Check for result
             with db_cursor(conn) as db:
@@ -378,8 +408,9 @@ class TestRuns (unittest.TestCase):
 
             sleep(2.1)
             
-            # ...
+            # Now handle the later due task
             pop_task_from_duequeue(due_Q, None)
+            self.assertEqual(self.last_status_state, 'failure', 'Should be "failure" now')
             
             # Check for result
             with db_cursor(conn) as db:
@@ -403,29 +434,32 @@ class TestRuns (unittest.TestCase):
         
         files = {'sources/us-ca-oakland.json': (source, '0xDEADBEEF')}
         
-        with db_connect(self.database_url) as conn:
+        with db_connect(self.database_url) as conn, HTTMock(self.response_content):
             task_Q = db_queue(conn, TASK_QUEUE)
             done_Q = db_queue(conn, DONE_QUEUE)
             due_Q = db_queue(conn, DUE_QUEUE)
 
-            job_id = create_queued_job(task_Q, files, None, None)
+            job_id = create_queued_job(task_Q, files, self.fake_job_template_url, self.fake_status_url)
             pop_task_from_taskqueue(task_Q, done_Q, due_Q, self.output_dir)
 
             # Should do nothing, because no Due task is yet scheduled.
             pop_task_from_duequeue(due_Q, None)
+            self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
 
             sleep(1.1)
             
-            # ...
+            # Handle the due task
             pop_task_from_duequeue(due_Q, None)
+            self.assertEqual(self.last_status_state, 'failure', 'Should be "failure" now')
             
             # Check for result
             with db_cursor(conn) as db:
                 job_status, _, _, _, _ = read_job(db, job_id)
                 self.assertEquals(job_status, False, 'Status should be false since it took so long')
 
-            # What will this do?
+            # The job eventually completes, but it's too late
             pop_task_from_donequeue(done_Q, None)
+            self.assertEqual(self.last_status_state, 'failure', 'Should be unchanged')
             
             # Check for result
             with db_cursor(conn) as db:

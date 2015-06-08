@@ -459,13 +459,9 @@ def pop_task_from_duequeue(queue, github_auth):
         if filename not in file_states:
             raise Exception('Unknown file from job {}: "{}"'.format(job_id, filename))
         
-        print job_id, '-', task_files, file_states, file_results, status_url
-        
         filenames = list(task_files.values())
         file_states[filename] = False
         file_results[filename] = False
-        
-        print job_id, '-', task_files, file_states, file_results, status_url
         
         update_job_status(db, job_id, job_url, filenames, task_files,
                           file_states, file_results, status_url, github_auth)
