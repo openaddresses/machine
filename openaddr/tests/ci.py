@@ -323,12 +323,12 @@ class TestRuns (unittest.TestCase):
             pop_task_from_donequeue(done_Q, None)
 
             # Should do nothing, because no Due task is yet scheduled.
-            pop_task_from_duequeue(due_Q)
+            pop_task_from_duequeue(due_Q, None)
 
             sleep(1.1)
             
             # Should do nothing, because Due task data will be found in runs table.
-            pop_task_from_duequeue(due_Q)
+            pop_task_from_duequeue(due_Q, None)
             
             # Find a record of this run.
             with done_Q as db:
@@ -369,7 +369,7 @@ class TestRuns (unittest.TestCase):
             pop_task_from_donequeue(done_Q, None)
 
             # Should do nothing, because no Due task is yet scheduled.
-            pop_task_from_duequeue(due_Q)
+            pop_task_from_duequeue(due_Q, None)
             
             # Check for result
             with db_cursor(conn) as db:
@@ -379,7 +379,7 @@ class TestRuns (unittest.TestCase):
             sleep(2.1)
             
             # ...
-            pop_task_from_duequeue(due_Q)
+            pop_task_from_duequeue(due_Q, None)
             
             # Check for result
             with db_cursor(conn) as db:
@@ -412,12 +412,12 @@ class TestRuns (unittest.TestCase):
             pop_task_from_taskqueue(task_Q, done_Q, due_Q, self.output_dir)
 
             # Should do nothing, because no Due task is yet scheduled.
-            pop_task_from_duequeue(due_Q)
+            pop_task_from_duequeue(due_Q, None)
 
             sleep(1.1)
             
             # ...
-            pop_task_from_duequeue(due_Q)
+            pop_task_from_duequeue(due_Q, None)
             
             # Check for result
             with db_cursor(conn) as db:
