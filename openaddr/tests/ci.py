@@ -16,7 +16,7 @@ os.environ['GITHUB_TOKEN'] = ''
 os.environ['DATABASE_URL'] = environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
 
 from ..ci import (
-    app, db_connect, db_cursor, db_queue, recreate_db, worker,
+    app, db_connect, db_cursor, db_queue, recreate_db, read_job, worker,
     pop_task_from_donequeue, pop_task_from_taskqueue, pop_task_from_duequeue,
     create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE
     )
@@ -370,12 +370,21 @@ class TestRuns (unittest.TestCase):
 
             # Should do nothing, because no Due task is yet scheduled.
             pop_task_from_duequeue(due_Q)
+            
+            # Check for result
+            with db_cursor(conn) as db:
+                job_status, _, _, _, _ = read_job(db, job_id)
+                self.assertEquals(job_status, None, 'Status should be null at this early stage')
 
             sleep(2.1)
             
-            # This will raise, because the complete Due task is not yet handled.
-            with self.assertRaises(NotImplementedError) as e:
-                pop_task_from_duequeue(due_Q)
+            # ...
+            pop_task_from_duequeue(due_Q)
+            
+            # Check for result
+            with db_cursor(conn) as db:
+                job_status, _, _, _, _ = read_job(db, job_id)
+                self.assertEquals(job_status, False, 'Status should be false after unexpected error')
      
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.worker.do_work')
@@ -407,12 +416,21 @@ class TestRuns (unittest.TestCase):
 
             sleep(1.1)
             
-            # This will raise, because the complete Due task is not yet handled.
-            with self.assertRaises(NotImplementedError) as e:
-                pop_task_from_duequeue(due_Q)
+            # ...
+            pop_task_from_duequeue(due_Q)
+            
+            # Check for result
+            with db_cursor(conn) as db:
+                job_status, _, _, _, _ = read_job(db, job_id)
+                self.assertEquals(job_status, False, 'Status should be false since it took so long')
 
             # What will this do?
             pop_task_from_donequeue(done_Q, None)
+            
+            # Check for result
+            with db_cursor(conn) as db:
+                job_status, _, _, _, _ = read_job(db, job_id)
+                self.assertEquals(job_status, False, 'Status should still be false no matter what')
      
 class TestWorker (unittest.TestCase):
 
