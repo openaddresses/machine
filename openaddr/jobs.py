@@ -11,6 +11,7 @@
 import logging; _L = logging.getLogger('openaddr.jobs')
 
 from collections import OrderedDict
+from datetime import timedelta
 import multiprocessing
 import signal
 import traceback
@@ -26,8 +27,8 @@ from . import process_one, compat
 # Configuration variables
 #
 
-# After this many seconds, a job will be killed with SIGALRM
-global_job_timeout = 3 * 60 * 60
+# After this long, a job will be killed with SIGALRM
+JOB_TIMEOUT = timedelta(hours=3)
 
 # Seconds between job queue status updates
 report_interval = 60
@@ -174,7 +175,7 @@ class Task(object):
         self.destination = destination
         self.extras = extras
 
-    @timeout(global_job_timeout)
+    @timeout(JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
     def run(self):
         start = time.time()
         _L.info("Starting task for %s with PID %d", self.source_path, os.getpid())

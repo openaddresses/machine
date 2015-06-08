@@ -8,12 +8,16 @@ enqueues a new message on a separate PQ queue when the work is done.
 '''
 import logging; _L = logging.getLogger('openaddr.ci.worker')
 
-from ..compat import standard_library
+from .. import compat
+from ..jobs import JOB_TIMEOUT
 
-import time, os, subprocess, psycopg2, socket, json
+import time, os, psycopg2, socket, json
 from urllib.parse import urlparse, urljoin
 
-from . import db_connect, db_queue, db_queue, MAGIC_OK_MESSAGE, DONE_QUEUE
+from . import (
+    db_connect, db_queue, db_queue, pop_task_from_taskqueue,
+    MAGIC_OK_MESSAGE, DONE_QUEUE, TASK_QUEUE, DUE_QUEUE
+    )
 
 # File path and URL path for result directory. Should be S3.
 _web_output_dir = '/var/www/html/oa-runone'
@@ -38,9 +42,14 @@ def do_work(job_id, job_contents, output_dir):
     # Invoke the job to do
     cmd = 'openaddr-process-one', '-l', os.path.join(out_dir, 'logfile.txt'), out_fn, oa_dir
     try:
-        result_stdout = subprocess.check_output(cmd)
+        timeout_seconds = JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400
+        result_stdout = compat.check_output(cmd, timeout=timeout_seconds)
+        if hasattr(result_stdout, 'decode'):
+            # "The actual encoding of the output data may depend on the command
+            # being invoked" - https://docs.python.org/3/library/subprocess.html
+            result_stdout = result_stdout.decode('utf8', 'replace')
 
-    except subprocess.CalledProcessError as e:
+    except compat.CalledProcessError as e:
         # Something went wrong; throw back an error result.
         return dict(result_code=e.returncode, result_stdout=e.output,
                     message='Something went wrong in {0}'.format(*cmd))
@@ -57,6 +66,10 @@ def do_work(job_id, job_contents, output_dir):
     with open(state_fullpath) as file:
         index = dict(zip(*json.load(file)))
         
+        for key in ('processed', 'sample', 'cache'):
+            if not index[key]:
+                result.update(result_code=-1, message='Failed to produce {} data'.format(key))
+        
         # Expand filename keys to complete URLs
         keys = 'cache', 'sample', 'output', 'processed'
         urls = [urljoin(result['output_url'], index[k]) for k in keys]
@@ -66,43 +79,20 @@ def do_work(job_id, job_contents, output_dir):
 
     return result
 
-def run(task_data, output_dir):
-    ''' Run a task posted to the queue. Handles the JSON for task and result objects.
-    '''
-    _L.info("Got job {}".format(task_data))
-
-    # Unpack the task object
-    content = task_data['content']
-    url = task_data['url']
-    job_id = task_data['id']
-    name = task_data['name']
-
-    # Run the task
-    result = do_work(job_id, content, output_dir)
-
-    # Prepare a result object
-    r = { 'id' : job_id,
-          'url': url,
-          'name': name,
-          'result' : result }
-    return r
-
 def main():
-    "Single threaded worker to serve the job queue"
-
-    # Connect to the queue
-    conn = db_connect(os.environ['DATABASE_URL'])
-    input_queue = db_queue(conn)
-    output_queue = db_queue(conn, DONE_QUEUE)
-
+    ''' Single threaded worker to serve the job queue.
+    '''
     # Fetch and run jobs in a loop    
     while True:
-        task = input_queue.get()
-        # PQ will return NULL after 1 second timeout if not ask
-        if task:
-            task_output_data = run(task.data, _web_output_dir)
-            output_queue.put(task_output_data)
-
+        try:
+            with db_connect(os.environ['DATABASE_URL']) as conn:
+                task_Q = db_queue(conn, TASK_QUEUE)
+                done_Q = db_queue(conn, DONE_QUEUE)
+                due_Q = db_queue(conn, DUE_QUEUE)
+                pop_task_from_taskqueue(task_Q, done_Q, due_Q, _web_output_dir)
+        except:
+            _L.error('Error in worker main()', exc_info=True)
+            time.sleep(5)
 
 if __name__ == '__main__':
     exit(main())

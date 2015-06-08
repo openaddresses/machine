@@ -1,7 +1,11 @@
+import logging; _L = logging.getLogger('openaddr.ci')
+
 from ..compat import standard_library
+from .. import jobs
 
 from os.path import relpath, splitext
 from urllib.parse import urljoin
+from datetime import timedelta
 from base64 import b64decode
 from uuid import uuid4
 import json, os
@@ -20,7 +24,7 @@ app = Flask(__name__)
 app.config.update(load_config())
 
 MAGIC_OK_MESSAGE = 'Everything is fine'
-TASK_QUEUE, DONE_QUEUE = 'tasks', 'finished'
+TASK_QUEUE, DONE_QUEUE, DUE_QUEUE = 'tasks', 'finished', 'due'
 
 @app.route('/')
 def index():
@@ -30,8 +34,14 @@ def index():
 def hook():
     github_auth = current_app.config['GITHUB_AUTH']
     webhook_payload = json.loads(request.data.decode('utf8'))
-    files = process_payload_files(webhook_payload, github_auth)
     status_url = get_status_url(webhook_payload)
+    
+    try:
+        files = process_payload_files(webhook_payload, github_auth)
+    except Exception as e:
+        message = 'Could not read source files: {}'.format(e)
+        update_error_status(status_url, message, [], github_auth)
+        return jsonify({'url': None, 'files': []})
     
     if not files:
         update_empty_status(status_url, github_auth)
@@ -41,7 +51,7 @@ def hook():
     job_url_template = urljoin(request.url, '/jobs/{id}')
 
     with db_connect(current_app.config['DATABASE_URL']) as conn:
-        queue = db_queue(conn)
+        queue = db_queue(conn, TASK_QUEUE)
         try:
             job_id = create_queued_job(queue, files, job_url_template, status_url)
             job_url = expand(job_url_template, dict(id=job_id))
@@ -70,6 +80,13 @@ def get_job(job_id):
                file_results=file_results, github_status_url=github_status_url)
     
     return jsonify(job)
+
+def td2str(td):
+    ''' Convert a timedelta to a string formatted like '3h'.
+    
+        Will not be necessary when https://github.com/malthe/pq/pull/5 is released.
+    '''
+    return '{}s'.format(td.seconds + td.days * 86400)
 
 def get_touched_payload_files(payload):
     ''' Return a set of files modified in payload commits.
@@ -260,15 +277,16 @@ def create_queued_job(queue, files, job_url_template, status_url):
     return job_id
 
 def add_files_to_queue(queue, job_id, job_url, files):
-    ''' Make a new task for each file, return dict of taks IDs to file names.
+    ''' Make a new task for each file, return dict of file IDs to file names.
     '''
     tasks = {}
     
-    for (name, (content, file_id)) in files.items():
-        task = queue.put(dict(id=job_id, url=job_url, name=name,
-                              content=content, file_id=file_id))
-        
-        tasks[str(task)] = name
+    for (file_name, (content, file_id)) in files.items():
+        task_data = dict(id=job_id, url=job_url, name=file_name,
+                         content=content, file_id=file_id)
+    
+        queue.put(task_data, expected_at=td2str(timedelta(0)))
+        tasks[file_id] = file_name
     
     return tasks
 
@@ -308,6 +326,78 @@ def read_job(db, job_id):
     else:
         return status, task_files, states, file_results, github_status_url
 
+def is_completed_run(db, file_id, min_datetime):
+    '''
+    '''
+    db.execute('''SELECT id FROM runs
+                  WHERE source_id = %s
+                    AND datetime >= %s''',
+               (file_id, min_datetime))
+    
+    completed_run = db.fetchone()
+    
+    return bool(completed_run is not None)
+
+def add_run(db, filename, file_id, content, run_state):
+    '''
+    '''
+    db.execute('''INSERT INTO runs
+                  (source_path, source_data, source_id, state, datetime)
+                  VALUES (%s, %s, %s, %s::json, NOW() AT TIME ZONE 'UTC')''',
+               (filename, content, file_id, json.dumps(run_state)))
+
+def update_job_status(db, job_id, job_url, filenames, task_files, file_states, file_results, status_url, github_auth):
+    '''
+    '''
+    if False in file_states.values():
+        # Any task failure means the whole job has failed.
+        job_status = False
+    elif None in file_states.values():
+        job_status = None
+    else:
+        job_status = True
+    
+    write_job(db, job_id, job_status, task_files, file_states, file_results, status_url)
+    
+    if not status_url:
+        return
+    
+    if job_status is False:
+        bad_files = [name for (name, state) in file_states.items() if state is False]
+        update_failing_status(status_url, job_url, bad_files, filenames, github_auth)
+    
+    elif job_status is None:
+        update_pending_status(status_url, job_url, filenames, github_auth)
+    
+    elif job_status is True:
+        update_success_status(status_url, job_url, filenames, github_auth)
+
+def pop_task_from_taskqueue(task_queue, done_queue, due_queue, output_dir):
+    '''
+    '''
+    with task_queue as db:
+        task = task_queue.get()
+
+        # PQ will return NULL after 1 second timeout if not ask
+        if task is None:
+            return
+    
+    _L.info("Got job {}".format(task.data))
+    passed_on_task_keys = 'id', 'file_id', 'name', 'url', 'content'
+    passed_on_task_kwargs = {k: task.data.get(k) for k in passed_on_task_keys}
+
+    # Send a Due task, possibly for later.
+    due_task_data = dict(task_data=task.data, **passed_on_task_kwargs)
+    due_queue.put(due_task_data, schedule_at=td2str(jobs.JOB_TIMEOUT))
+
+    # Run the task.
+    from . import worker # <-- TODO: un-suck this.
+    result = worker.do_work(task.data['id'], task.data['content'], output_dir)
+
+    # Send a Done task
+    done_task_data = dict(result=result, **passed_on_task_kwargs)
+    done_queue.put(done_task_data, expected_at=td2str(timedelta(0)))
+
 def pop_task_from_donequeue(queue, github_auth):
     ''' Look for a completed job in the "done" task queue, update Github status.
     '''
@@ -319,9 +409,18 @@ def pop_task_from_donequeue(queue, github_auth):
     
         results = task.data['result']
         message = results['message']
+        run_state = results.get('output', None)
+        content = task.data['content']
         job_url = task.data['url']
         filename = task.data['name']
+        file_id = task.data['file_id']
         job_id = task.data['id']
+        
+        if is_completed_run(db, file_id, task.enqueued_at):
+            # We are too late, this got handled.
+            return
+        
+        add_run(db, filename, file_id, content, run_state)
 
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)
@@ -335,36 +434,53 @@ def pop_task_from_donequeue(queue, github_auth):
         file_states[filename] = bool(message == MAGIC_OK_MESSAGE)
         file_results[filename] = results
         
-        if False in file_states.values():
-            # Any task failure means the whole job has failed.
-            job_status = False
-        elif None in file_states.values():
-            job_status = None
-        else:
-            job_status = True
-        
-        write_job(db, job_id, job_status, task_files, file_states, file_results, status_url)
-        
-        if not status_url:
+        update_job_status(db, job_id, job_url, filenames, task_files,
+                          file_states, file_results, status_url, github_auth)
+
+def pop_task_from_duequeue(queue, github_auth):
+    '''
+    '''
+    with queue as db:
+        task = queue.get()
+    
+        if task is None:
             return
         
-        if job_status is False:
-            bad_files = [name for (name, state) in file_states.items() if state is False]
-            update_failing_status(status_url, job_url, bad_files, filenames, github_auth)
+        original_task = task.data['task_data']
+        content = task.data['content']
+        job_url = task.data['url']
+        filename = task.data['name']
+        file_id = task.data['file_id']
+        job_id = task.data['id']
+    
+        if is_completed_run(db, file_id, task.enqueued_at):
+            # Everything's fine, this got handled.
+            return
+
+        add_run(db, filename, file_id, content, None)
+
+        try:
+            _, task_files, file_states, file_results, status_url = read_job(db, job_id)
+        except TypeError:
+            raise Exception('Job {} not found'.format(job_id))
+    
+        if filename not in file_states:
+            raise Exception('Unknown file from job {}: "{}"'.format(job_id, filename))
         
-        elif job_status is None:
-            update_pending_status(status_url, job_url, filenames, github_auth)
+        filenames = list(task_files.values())
+        file_states[filename] = False
+        file_results[filename] = False
         
-        elif job_status is True:
-            update_success_status(status_url, job_url, filenames, github_auth)
+        update_job_status(db, job_id, job_url, filenames, task_files,
+                          file_states, file_results, status_url, github_auth)
 
 def db_connect(dsn):
     ''' Connect to database using DSN string.
     '''
     return connect(dsn)
 
-def db_queue(conn, name=None):
-    return PQ(conn, table='queue')[name or TASK_QUEUE]
+def db_queue(conn, name):
+    return PQ(conn, table='queue')[name]
 
 def db_cursor(conn):
     return conn.cursor()
