@@ -338,13 +338,13 @@ def is_completed_run(db, file_id, min_datetime):
     
     return bool(completed_run is not None)
 
-def add_run(db, filename, file_id, run_state):
+def add_run(db, filename, file_id, content, run_state):
     '''
     '''
     db.execute('''INSERT INTO runs
-                  (source_path, source_id, state, datetime)
-                  VALUES (%s, %s, %s::json, NOW() AT TIME ZONE 'UTC')''',
-               (filename, file_id, json.dumps(run_state)))
+                  (source_path, source_data, source_id, state, datetime)
+                  VALUES (%s, %s, %s, %s::json, NOW() AT TIME ZONE 'UTC')''',
+               (filename, content, file_id, json.dumps(run_state)))
 
 def update_job_status(db, job_id, job_url, filenames, task_files, file_states, file_results, status_url, github_auth):
     '''
@@ -420,7 +420,7 @@ def pop_task_from_donequeue(queue, github_auth):
             # We are too late, this got handled.
             return
         
-        add_run(db, filename, file_id, run_state)
+        add_run(db, filename, file_id, content, run_state)
 
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)
@@ -457,7 +457,7 @@ def pop_task_from_duequeue(queue, github_auth):
             # Everything's fine, this got handled.
             return
 
-        add_run(db, filename, file_id, None)
+        add_run(db, filename, file_id, content, None)
 
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)

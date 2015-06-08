@@ -5,6 +5,7 @@ CREATE TABLE runs
     id                  SERIAL PRIMARY KEY,
     source_path         TEXT,
     source_id           VARCHAR(40),
+    source_data         BYTEA,
     datetime            TIMESTAMP,
     -- commit_id?
     state               JSON

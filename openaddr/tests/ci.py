@@ -413,10 +413,11 @@ class TestRuns (unittest.TestCase):
             
             # Find a record of this run.
             with done_Q as db:
-                db.execute('SELECT source_path, source_id FROM runs')
-                ((db_source_path, db_source_id), ) = db.fetchall()
+                db.execute('SELECT source_path, source_id, source_data FROM runs')
+                ((db_source_path, db_source_id, db_source_data), ) = db.fetchall()
                 self.assertEqual(db_source_path, source_path)
                 self.assertEqual(db_source_id, source_id)
+                self.assertTrue(bytes(db_source_data).decode('utf8').startswith('{'))
      
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=2))
     @patch('openaddr.compat.check_output')
@@ -433,13 +434,14 @@ class TestRuns (unittest.TestCase):
             "data": "http://data.openoakland.org/sites/default/files/OakParcelsGeo2013_0.zip"
             }'''
         
-        files = {'sources/us-ca-oakland.json': (source, '0xDEADBEEF')}
+        source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
         
         with db_connect(self.database_url) as conn, HTTMock(self.response_content):
             task_Q = db_queue(conn, TASK_QUEUE)
             done_Q = db_queue(conn, DONE_QUEUE)
             due_Q = db_queue(conn, DUE_QUEUE)
 
+            files = {source_path: (source, source_id)}
             job_id = create_queued_job(task_Q, files, self.fake_job_template_url, self.fake_status_url)
         
             # Bad things will happen and the job will fail.
@@ -469,6 +471,14 @@ class TestRuns (unittest.TestCase):
             with db_cursor(conn) as db:
                 job_status, _, _, _, _ = read_job(db, job_id)
                 self.assertEquals(job_status, False, 'Status should be false after unexpected error')
+            
+            # Find a record of this run.
+            with done_Q as db:
+                db.execute('SELECT source_path, source_id, source_data FROM runs')
+                ((db_source_path, db_source_id, db_source_data), ) = db.fetchall()
+                self.assertEqual(db_source_path, source_path)
+                self.assertEqual(db_source_id, source_id)
+                self.assertTrue(bytes(db_source_data).decode('utf8').startswith('{'))
      
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.worker.do_work')
@@ -485,13 +495,14 @@ class TestRuns (unittest.TestCase):
             "data": "http://data.openoakland.org/sites/default/files/OakParcelsGeo2013_0.zip"
             }'''
         
-        files = {'sources/us-ca-oakland.json': (source, '0xDEADBEEF')}
+        source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
         
         with db_connect(self.database_url) as conn, HTTMock(self.response_content):
             task_Q = db_queue(conn, TASK_QUEUE)
             done_Q = db_queue(conn, DONE_QUEUE)
             due_Q = db_queue(conn, DUE_QUEUE)
 
+            files = {source_path: (source, source_id)}
             job_id = create_queued_job(task_Q, files, self.fake_job_template_url, self.fake_status_url)
             pop_task_from_taskqueue(task_Q, done_Q, due_Q, self.output_dir)
 
@@ -518,6 +529,14 @@ class TestRuns (unittest.TestCase):
             with db_cursor(conn) as db:
                 job_status, _, _, _, _ = read_job(db, job_id)
                 self.assertEquals(job_status, False, 'Status should still be false no matter what')
+            
+            # Find a record of this run.
+            with done_Q as db:
+                db.execute('SELECT source_path, source_id, source_data FROM runs')
+                ((db_source_path, db_source_id, db_source_data), ) = db.fetchall()
+                self.assertEqual(db_source_path, source_path)
+                self.assertEqual(db_source_id, source_id)
+                self.assertTrue(bytes(db_source_data).decode('utf8').startswith('{'))
      
 class TestWorker (unittest.TestCase):
 
