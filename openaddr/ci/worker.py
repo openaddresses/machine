@@ -44,6 +44,10 @@ def do_work(job_id, job_contents, output_dir):
     try:
         timeout_seconds = JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400
         result_stdout = compat.check_output(cmd, timeout=timeout_seconds)
+        if hasattr(result_stdout, 'decode'):
+            # "The actual encoding of the output data may depend on the command
+            # being invoked" - https://docs.python.org/3/library/subprocess.html
+            result_stdout = result_stdout.decode('utf8', 'replace')
 
     except compat.CalledProcessError as e:
         # Something went wrong; throw back an error result.
