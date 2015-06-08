@@ -34,8 +34,14 @@ def index():
 def hook():
     github_auth = current_app.config['GITHUB_AUTH']
     webhook_payload = json.loads(request.data.decode('utf8'))
-    files = process_payload_files(webhook_payload, github_auth)
     status_url = get_status_url(webhook_payload)
+    
+    try:
+        files = process_payload_files(webhook_payload, github_auth)
+    except Exception as e:
+        message = 'Could not read source files: {}'.format(e)
+        update_error_status(status_url, message, [], github_auth)
+        return jsonify({'url': None, 'files': []})
     
     if not files:
         update_empty_status(status_url, github_auth)
