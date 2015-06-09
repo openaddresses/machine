@@ -494,6 +494,7 @@ class EsriRestDownloadTask(DownloadTask):
                         continue
 
                     ogr_geom = self.build_ogr_geometry(geometry_type, feature)
+                    row[GEOM_FIELDNAME] = ogr_geom.ExportToWkt()
                     try:
                         centroid = ogr_geom.Centroid()
                     except RuntimeError as e:
