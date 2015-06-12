@@ -4,7 +4,6 @@ from os import environ
 from shutil import rmtree
 from tempfile import mkdtemp
 from httmock import HTTMock, response
-from logging import StreamHandler, DEBUG
 from urllib.parse import parse_qsl, urlparse
 from datetime import timedelta
 from mock import patch
@@ -37,10 +36,6 @@ class TestHook (unittest.TestCase):
         self.client = app.test_client()
         self.last_status_state = None
         self.last_status_message = None
-        
-        handler = StreamHandler(stream=sys.stderr)
-        handler.setLevel(DEBUG)
-        app.logger.addHandler(handler)
     
     def tearDown(self):
         '''
@@ -370,6 +365,7 @@ class TestRuns (unittest.TestCase):
         raise ValueError('Unknowable Request {} "{}"'.format(request.method, url.geturl()))
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
+    @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.worker.do_work')
     def test_working_run(self, do_work):
         '''
@@ -405,7 +401,7 @@ class TestRuns (unittest.TestCase):
             pop_task_from_duequeue(due_Q, self.github_auth)
             self.assertEqual(self.last_status_state, 'success', 'Should be unchanged')
 
-            sleep(1.1)
+            sleep(2.1)
             
             # Should do nothing, because Due task data will be found in runs table.
             pop_task_from_duequeue(due_Q, self.github_auth)
@@ -420,6 +416,7 @@ class TestRuns (unittest.TestCase):
                 self.assertTrue(bytes(db_source_data).decode('utf8').startswith('{'))
      
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=2))
+    @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.compat.check_output')
     def test_failing_run(self, check_output):
         '''
@@ -464,6 +461,8 @@ class TestRuns (unittest.TestCase):
             sleep(2.1)
             
             # Now handle the later due task
+            # Unclear why it's necessary to hit the due queue twice here?
+            pop_task_from_duequeue(due_Q, None)
             pop_task_from_duequeue(due_Q, None)
             self.assertEqual(self.last_status_state, 'failure', 'Should be "failure" now')
             
@@ -481,6 +480,7 @@ class TestRuns (unittest.TestCase):
                 self.assertTrue(bytes(db_source_data).decode('utf8').startswith('{'))
      
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
+    @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.worker.do_work')
     def test_overdue_run(self, do_work):
         '''
@@ -510,7 +510,7 @@ class TestRuns (unittest.TestCase):
             pop_task_from_duequeue(due_Q, None)
             self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
 
-            sleep(1.1)
+            sleep(2.1)
             
             # Handle the due task
             pop_task_from_duequeue(due_Q, None)

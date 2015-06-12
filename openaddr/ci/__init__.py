@@ -26,6 +26,9 @@ app.config.update(load_config())
 MAGIC_OK_MESSAGE = 'Everything is fine'
 TASK_QUEUE, DONE_QUEUE, DUE_QUEUE = 'tasks', 'finished', 'due'
 
+# Additional delay after JOB_TIMEOUT for due tasks.
+DUETASK_DELAY = timedelta(minutes=5)
+
 @app.route('/')
 def index():
     return 'Yo.'
@@ -382,13 +385,13 @@ def pop_task_from_taskqueue(task_queue, done_queue, due_queue, output_dir):
         if task is None:
             return
     
-    _L.info("Got job {}".format(task.data))
+    _L.info('Got job {} from task queue'.format(task.data['id']))
     passed_on_task_keys = 'id', 'file_id', 'name', 'url', 'content'
     passed_on_task_kwargs = {k: task.data.get(k) for k in passed_on_task_keys}
 
     # Send a Due task, possibly for later.
     due_task_data = dict(task_data=task.data, **passed_on_task_kwargs)
-    due_queue.put(due_task_data, schedule_at=td2str(jobs.JOB_TIMEOUT))
+    due_queue.put(due_task_data, schedule_at=td2str(jobs.JOB_TIMEOUT + DUETASK_DELAY))
 
     # Run the task.
     from . import worker # <-- TODO: un-suck this.
@@ -407,6 +410,7 @@ def pop_task_from_donequeue(queue, github_auth):
         if task is None:
             return
     
+        _L.info('Got job {} from done queue'.format(task.data['id']))
         results = task.data['result']
         message = results['message']
         run_state = results.get('output', None)
@@ -446,6 +450,7 @@ def pop_task_from_duequeue(queue, github_auth):
         if task is None:
             return
         
+        _L.info('Got job {} from due queue'.format(task.data['id']))
         original_task = task.data['task_data']
         content = task.data['content']
         job_url = task.data['url']
