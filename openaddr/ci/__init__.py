@@ -490,5 +490,23 @@ def db_queue(conn, name):
 def db_cursor(conn):
     return conn.cursor()
 
+def setup_logger(log_level=logging.DEBUG):
+    ''' Set up logging for openaddr code.
+    '''
+    # Get a handle for the openaddr logger and its children
+    openaddr_logger = logging.getLogger('openaddr')
+
+    # Default logging format.
+    log_format = '%(asctime)s %(levelname)07s: %(message)s'
+
+    # Set the logger level to show everything, and filter down in the handlers.
+    openaddr_logger.setLevel(log_level)
+
+    # Set up a logger to stderr
+    handler = logging.StreamHandler()
+    handler.setLevel(log_level)
+    handler.setFormatter(logging.Formatter(log_format))
+    openaddr_logger.addHandler(handler)
+
 if __name__ == '__main__':
     app.run(debug=True)

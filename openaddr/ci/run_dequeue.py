@@ -4,12 +4,13 @@ from time import sleep
 
 from . import (
     db_connect, db_queue, DONE_QUEUE, DUE_QUEUE, load_config,
-    pop_task_from_donequeue, pop_task_from_duequeue
+    pop_task_from_donequeue, pop_task_from_duequeue, setup_logger
     )
 
 def main():
     '''
     '''
+    setup_logger()
     config = load_config()
     
     while True:
@@ -19,7 +20,7 @@ def main():
                 pop_task_from_donequeue(done_queue, config['GITHUB_AUTH'])
 
                 due_queue = db_queue(conn, DUE_QUEUE)
-                pop_task_from_duequeue(due_queue)
+                pop_task_from_duequeue(due_queue, config['GITHUB_AUTH'])
         except KeyboardInterrupt:
             raise
         except:
