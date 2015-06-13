@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 from os.path import join, basename, dirname, exists, splitext, relpath
 from shutil import copy, move, rmtree
 from argparse import ArgumentParser
-from os import mkdir, rmdir, close
+from os import mkdir, rmdir, close, chmod
 from _thread import get_ident
 import tempfile, json, csv
 
@@ -78,6 +78,7 @@ def get_log_handler(directory):
     '''
     handle, filename = tempfile.mkstemp(dir=directory, suffix='.log')
     close(handle)
+    chmod(filename, 0644)
     
     handler = logging.FileHandler(filename)
     handler.setFormatter(logging.Formatter(u'%(asctime)s %(levelname)08s: %(message)s'))
