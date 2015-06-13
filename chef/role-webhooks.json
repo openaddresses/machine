@@ -1,4 +1,5 @@
 {
+    "cname": "ci.openaddresses.io",
     "username": "openaddr",
     "db_user": "openaddr",
     "db_pass": "openaddr",

@@ -16,7 +16,7 @@ from urllib.parse import urlparse, urljoin
 
 from . import (
     db_connect, db_queue, db_queue, pop_task_from_taskqueue,
-    MAGIC_OK_MESSAGE, DONE_QUEUE, TASK_QUEUE, DUE_QUEUE
+    MAGIC_OK_MESSAGE, DONE_QUEUE, TASK_QUEUE, DUE_QUEUE, setup_logger
     )
 
 # File path and URL path for result directory. Should be S3.
@@ -82,6 +82,8 @@ def do_work(job_id, job_contents, output_dir):
 def main():
     ''' Single threaded worker to serve the job queue.
     '''
+    setup_logger()
+
     # Fetch and run jobs in a loop    
     while True:
         try:
