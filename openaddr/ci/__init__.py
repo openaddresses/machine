@@ -29,6 +29,9 @@ TASK_QUEUE, DONE_QUEUE, DUE_QUEUE = 'tasks', 'finished', 'due'
 # Additional delay after JOB_TIMEOUT for due tasks.
 DUETASK_DELAY = timedelta(minutes=5)
 
+# Token value to prevent Github authentication.
+GITHUB_UNTOKEN = 'noop'
+
 @app.route('/')
 def index():
     return 'Yo.'
@@ -193,6 +196,12 @@ def get_status_url(payload):
 def post_github_status(status_url, status_json, github_auth):
     ''' POST status JSON to Github status API.
     '''
+    if github_auth == (GITHUB_UNTOKEN, 'x-oauth-basic'):
+        # In case of un-token, do not attempt to update Github.
+        _L.info(('Github untoken prevented sending {state} status to {url} with '
+                 + 'description: {description}').format(url=status_url, **status_json))
+        return
+    
     # Github only wants 140 chars of description.
     status_json['description'] = status_json['description'][:140]
     
