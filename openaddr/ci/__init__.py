@@ -51,7 +51,7 @@ DUETASK_DELAY = timedelta(minutes=5)
 
 @app.before_first_request
 def app_prepare():
-    setup_logger()
+    setup_logger(logging.WARNING)
 
 @app.route('/')
 @log_application_errors
@@ -396,7 +396,7 @@ def update_job_status(db, job_id, job_url, filenames, task_files, file_states, f
     write_job(db, job_id, job_status, task_files, file_states, file_results, status_url)
     
     if not status_url:
-        _L.info('No status_url to tell about {} status of job {}'.format(job_status, job_id))
+        _L.warning('No status_url to tell about {} status of job {}'.format(job_status, job_id))
         return
     
     if job_status is False:

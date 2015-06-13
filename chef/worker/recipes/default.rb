@@ -10,7 +10,7 @@ gag_github_status = node['gag_github_status']
 database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=require"
 github_token = node['github_token']
 
-env_file = "/etc/#{app_name}.conf"
+env_file = "/tmp/#{app_name}.conf"
 procfile = File.join(File.dirname(__FILE__), '..', '..', 'Procfile-worker')
 
 execute 'pip install honcho[export]'
