@@ -11,6 +11,9 @@ file '/etc/apache2/sites-available/worker.conf' do
   content <<-CONF
 <VirtualHost *:80>
     ServerName #{hostname}
+    DocumentRoot /var/www/html
+    ErrorLog ${APACHE_LOG_DIR}/worker-error.log
+    CustomLog ${APACHE_LOG_DIR}/worker-access.log combined
 </VirtualHost>
 CONF
 end

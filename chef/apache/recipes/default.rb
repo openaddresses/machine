@@ -6,6 +6,9 @@ file '/etc/apache2/sites-available/webhook.conf' do
   content <<-CONF
 <VirtualHost *:80>
     ServerName #{hostname}
+    ErrorLog ${APACHE_LOG_DIR}/webhooks-error.log
+    CustomLog ${APACHE_LOG_DIR}/webhooks-access.log combined
+
     <Location />
         ProxyPass http://127.0.0.1:5000/
         ProxyPassReverse http://127.0.0.1:5000/
