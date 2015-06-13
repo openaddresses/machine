@@ -7,6 +7,7 @@ from os.path import relpath, splitext
 from urllib.parse import urljoin
 from datetime import timedelta
 from base64 import b64decode
+from functools import wraps
 from uuid import uuid4
 import json, os
 
@@ -24,6 +25,21 @@ def load_config():
                 GITHUB_AUTH=(os.environ['GITHUB_TOKEN'], 'x-oauth-basic'),
                 DATABASE_URL=os.environ['DATABASE_URL'])
 
+def log_application_errors(route_function):
+    ''' Error-logging decorator for route functions.
+    
+        Don't do much, but get an error out to the logger.
+    '''
+    @wraps(route_function)
+    def decorated_function(*args, **kwargs):
+        try:
+            return route_function(*args, **kwargs)
+        except Exception as e:
+            _L.error(e, exc_info=True)
+            raise
+
+    return decorated_function
+
 app = Flask(__name__)
 app.config.update(load_config())
 
@@ -34,10 +50,12 @@ TASK_QUEUE, DONE_QUEUE, DUE_QUEUE = 'tasks', 'finished', 'due'
 DUETASK_DELAY = timedelta(minutes=5)
 
 @app.route('/')
+@log_application_errors
 def index():
     return 'Yo.'
 
 @app.route('/hook', methods=['POST'])
+@log_application_errors
 def hook():
     github_auth = current_app.config['GITHUB_AUTH']
     webhook_payload = json.loads(request.data.decode('utf8'))
@@ -76,6 +94,7 @@ def hook():
             return jsonify({'id': job_id, 'url': job_url, 'files': files})
 
 @app.route('/jobs/<job_id>', methods=['GET'])
+@log_application_errors
 def get_job(job_id):
     '''
     '''
