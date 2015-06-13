@@ -5,6 +5,7 @@
     "db_host": "localhost",
     "db_name": "openaddr",
     "github_token": "{Github Token}",
+    "gag_github_status": "No",
     "run_list":
     [
         "openaddr",

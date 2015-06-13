@@ -17,7 +17,11 @@ from psycopg2 import connect
 from pq import PQ
 
 def load_config():
-    return dict(GITHUB_AUTH=(os.environ['GITHUB_TOKEN'], 'x-oauth-basic'),
+    def truthy(value):
+        return bool(value.lower() in ('yes', 'true'))
+
+    return dict(GAG_GITHUB_STATUS=truthy(os.environ.get('GAG_GITHUB_STATUS', '')),
+                GITHUB_AUTH=(os.environ['GITHUB_TOKEN'], 'x-oauth-basic'),
                 DATABASE_URL=os.environ['DATABASE_URL'])
 
 app = Flask(__name__)
@@ -29,9 +33,6 @@ TASK_QUEUE, DONE_QUEUE, DUE_QUEUE = 'tasks', 'finished', 'due'
 # Additional delay after JOB_TIMEOUT for due tasks.
 DUETASK_DELAY = timedelta(minutes=5)
 
-# Token value to prevent Github authentication.
-GITHUB_UNTOKEN = 'noop'
-
 @app.route('/')
 def index():
     return 'Yo.'
@@ -41,6 +42,9 @@ def hook():
     github_auth = current_app.config['GITHUB_AUTH']
     webhook_payload = json.loads(request.data.decode('utf8'))
     status_url = get_status_url(webhook_payload)
+
+    if current_app.config['GAG_GITHUB_STATUS']:
+        status_url = None
     
     try:
         files = process_payload_files(webhook_payload, github_auth)
@@ -196,12 +200,6 @@ def get_status_url(payload):
 def post_github_status(status_url, status_json, github_auth):
     ''' POST status JSON to Github status API.
     '''
-    if github_auth == (GITHUB_UNTOKEN, 'x-oauth-basic'):
-        # In case of un-token, do not attempt to update Github.
-        _L.info(('Github untoken prevented sending {state} status to {url} with '
-                 + 'description: {description}').format(url=status_url, **status_json))
-        return
-    
     # Github only wants 140 chars of description.
     status_json['description'] = status_json['description'][:140]
     
@@ -372,6 +370,7 @@ def update_job_status(db, job_id, job_url, filenames, task_files, file_states, f
     write_job(db, job_id, job_status, task_files, file_states, file_results, status_url)
     
     if not status_url:
+        _L.info('No status_url to tell about {} status of job {}'.format(job_status, job_id))
         return
     
     if job_status is False:

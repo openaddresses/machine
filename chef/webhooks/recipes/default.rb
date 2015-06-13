@@ -6,6 +6,7 @@ db_pass = node[:db_pass]
 db_host = node[:db_host]
 db_name = node[:db_name]
 
+gag_github_status = node['gag_github_status']
 database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=require"
 github_token = node['github_token']
 
@@ -21,6 +22,7 @@ file env_file do
   content <<-CONF
 DATABASE_URL=#{database_url}
 GITHUB_TOKEN=#{github_token}
+GAG_GITHUB_STATUS=#{gag_github_status}
 CONF
 end
 
