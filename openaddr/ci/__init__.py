@@ -49,14 +49,18 @@ TASK_QUEUE, DONE_QUEUE, DUE_QUEUE = 'tasks', 'finished', 'due'
 # Additional delay after JOB_TIMEOUT for due tasks.
 DUETASK_DELAY = timedelta(minutes=5)
 
+@app.before_first_request
+def app_prepare():
+    setup_logger()
+
 @app.route('/')
 @log_application_errors
-def index():
+def app_index():
     return 'Yo.'
 
 @app.route('/hook', methods=['POST'])
 @log_application_errors
-def hook():
+def app_hook():
     github_auth = current_app.config['GITHUB_AUTH']
     webhook_payload = json.loads(request.data.decode('utf8'))
     status_url = get_status_url(webhook_payload)
@@ -95,7 +99,7 @@ def hook():
 
 @app.route('/jobs/<job_id>', methods=['GET'])
 @log_application_errors
-def get_job(job_id):
+def app_get_job(job_id):
     '''
     '''
     with db_connect(current_app.config['DATABASE_URL']) as conn:
