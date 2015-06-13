@@ -78,7 +78,7 @@ def get_log_handler(directory):
     '''
     handle, filename = tempfile.mkstemp(dir=directory, suffix='.log')
     close(handle)
-    chmod(filename, 0644)
+    chmod(filename, 0o644)
     
     handler = logging.FileHandler(filename)
     handler.setFormatter(logging.Formatter(u'%(asctime)s %(levelname)08s: %(message)s'))
