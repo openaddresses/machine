@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 from os import environ
+from os.path import join
 from shutil import rmtree
 from tempfile import mkdtemp
 from httmock import HTTMock, response
@@ -377,7 +378,7 @@ class TestRuns (unittest.TestCase):
         
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
         
-        def returns_plausible_result(job_id, content, output_dir):
+        def returns_plausible_result(content, output_dir):
             return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
         
         do_work.side_effect = returns_plausible_result
@@ -485,7 +486,7 @@ class TestRuns (unittest.TestCase):
     def test_overdue_run(self, do_work):
         '''
         '''
-        def returns_plausible_result(job_id, content, output_dir):
+        def returns_plausible_result(content, output_dir):
             return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
 
         do_work.side_effect = returns_plausible_result
@@ -558,8 +559,9 @@ class TestWorker (unittest.TestCase):
                 db.execute('TRUNCATE jobs')
                 db.execute('TRUNCATE queue')
     
+    @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')
-    def test_happy_worker(self, check_output):
+    def test_happy_worker(self, check_output, mkdtemp):
         '''
         '''
         def does_what_its_told(cmd, timeout=None):
@@ -572,17 +574,22 @@ class TestWorker (unittest.TestCase):
             
             return index_filename
         
+        def same_tempdir_every_time(prefix, dir):
+            os.mkdir(join(dir, 'work'))
+            return join(dir, 'work')
+        
         task_data = dict(id='0xDEADBEEF', content='{ }', name='Dead Beef', url=None)
         check_output.side_effect = does_what_its_told
+        mkdtemp.side_effect = same_tempdir_every_time
         
         job_id, content = task_data['id'], task_data['content']
-        result = worker.do_work(job_id, content, self.output_dir)
+        result = worker.do_work(content, self.output_dir)
         
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
-            os.path.join(self.output_dir, '0xDEADBEEF/logfile.txt'),
-            os.path.join(self.output_dir, '0xDEADBEEF/user_input.txt'),
-            os.path.join(self.output_dir, '0xDEADBEEF/out')
+            os.path.join(self.output_dir, 'work/logfile.txt'),
+            os.path.join(self.output_dir, 'work/user_input.txt'),
+            os.path.join(self.output_dir, 'work/out')
             ),
             timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
         
@@ -594,24 +601,30 @@ class TestWorker (unittest.TestCase):
         self.assertTrue(result['output']['output'].endswith('/output.txt'))
         self.assertTrue(result['output']['processed'].endswith('/out.csv'))
     
+    @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')
-    def test_angry_worker(self, check_output):
+    def test_angry_worker(self, check_output, mkdtemp):
         '''
         '''
         def raises_called_process_error(cmd, timeout=None):
             raise compat.CalledProcessError(1, cmd, 'Everything is ruined.\n')
         
+        def same_tempdir_every_time(prefix, dir):
+            os.mkdir(join(dir, 'work'))
+            return join(dir, 'work')
+        
         task_data = dict(id='0xDEADBEEF', content='{ }', name='Dead Beef', url=None)
         check_output.side_effect = raises_called_process_error
+        mkdtemp.side_effect = same_tempdir_every_time
         
         job_id, content = task_data['id'], task_data['content']
-        result = worker.do_work(job_id, content, self.output_dir)
+        result = worker.do_work(content, self.output_dir)
         
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
-            os.path.join(self.output_dir, '0xDEADBEEF/logfile.txt'),
-            os.path.join(self.output_dir, '0xDEADBEEF/user_input.txt'),
-            os.path.join(self.output_dir, '0xDEADBEEF/out')
+            os.path.join(self.output_dir, 'work/logfile.txt'),
+            os.path.join(self.output_dir, 'work/user_input.txt'),
+            os.path.join(self.output_dir, 'work/out')
             ),
             timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
         

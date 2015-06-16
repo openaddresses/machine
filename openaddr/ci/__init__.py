@@ -429,7 +429,7 @@ def pop_task_from_taskqueue(task_queue, done_queue, due_queue, output_dir):
 
     # Run the task.
     from . import worker # <-- TODO: un-suck this.
-    result = worker.do_work(task.data['id'], task.data['content'], output_dir)
+    result = worker.do_work(task.data['content'], output_dir)
 
     # Send a Done task
     done_task_data = dict(result=result, **passed_on_task_kwargs)

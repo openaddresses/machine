@@ -11,7 +11,7 @@ import logging; _L = logging.getLogger('openaddr.ci.worker')
 from .. import compat
 from ..jobs import JOB_TIMEOUT
 
-import time, os, psycopg2, socket, json
+import time, os, psycopg2, socket, json, tempfile
 from urllib.parse import urlparse, urljoin
 
 from . import (
@@ -22,13 +22,11 @@ from . import (
 # File path and URL path for result directory. Should be S3.
 _web_output_dir = '/var/www/html/oa-runone'
 
-def do_work(job_id, job_contents, output_dir):
+def do_work(job_contents, output_dir):
     "Do the actual work of running a source file in job_contents"
 
     # Make a directory to run the whole job
-    assert '/' not in job_id
-    out_dir = '%s/%s' % (output_dir, job_id)
-    os.mkdir(out_dir)
+    out_dir = tempfile.mkdtemp(prefix='work-', dir=output_dir)
 
     # Write the user input to a file
     out_fn = os.path.join(out_dir, 'user_input.txt')
