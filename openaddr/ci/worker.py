@@ -19,9 +19,6 @@ from . import (
     MAGIC_OK_MESSAGE, DONE_QUEUE, TASK_QUEUE, DUE_QUEUE, setup_logger
     )
 
-# File path and URL path for result directory. Should be S3.
-_web_output_dir = '/var/www/html/oa-runone'
-
 def do_work(job_contents, output_dir):
     "Do the actual work of running a source file in job_contents"
 
@@ -83,6 +80,10 @@ def main():
     '''
     setup_logger()
 
+    # File path and URL path for result directory. Should be S3.
+    web_docroot = os.environ.get('WEB_DOCROOT', '/var/www/html')
+    web_output_dir = os.path.join(web_docroot, 'oa-runone')
+
     # Fetch and run jobs in a loop    
     while True:
         try:
@@ -90,7 +91,7 @@ def main():
                 task_Q = db_queue(conn, TASK_QUEUE)
                 done_Q = db_queue(conn, DONE_QUEUE)
                 due_Q = db_queue(conn, DUE_QUEUE)
-                pop_task_from_taskqueue(task_Q, done_Q, due_Q, _web_output_dir)
+                pop_task_from_taskqueue(task_Q, done_Q, due_Q, web_output_dir)
         except:
             _L.error('Error in worker main()', exc_info=True)
             time.sleep(5)

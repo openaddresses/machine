@@ -1,6 +1,7 @@
 package 'apache2'
+web_docroot = node[:web_docroot]
 
-directory '/var/www/html/oa-runone' do
+directory File.join(web_docroot, 'oa-runone') do
   owner node[:username]
   mode '0755'
 end
@@ -11,7 +12,7 @@ file '/etc/apache2/sites-available/worker.conf' do
   content <<-CONF
 <VirtualHost *:80>
     ServerName #{hostname}
-    DocumentRoot /var/www/html
+    DocumentRoot #{web_docroot}
     ErrorLog ${APACHE_LOG_DIR}/worker-error.log
     CustomLog ${APACHE_LOG_DIR}/worker-access.log combined
 </VirtualHost>
