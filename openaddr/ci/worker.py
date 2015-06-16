@@ -78,7 +78,7 @@ def do_work(job_contents, output_dir):
 def main():
     ''' Single threaded worker to serve the job queue.
     '''
-    setup_logger()
+    setup_logger(os.environ.get('AWS_SNS_ARN'))
 
     # File path and URL path for result directory. Should be S3.
     web_docroot = os.environ.get('WEB_DOCROOT', '/var/www/html')

@@ -15,6 +15,7 @@ from flask import Flask, request, Response, current_app, jsonify
 from uritemplate import expand
 from requests import get, post
 from psycopg2 import connect
+from boto import connect_sns
 from pq import PQ
 
 def load_config():
@@ -51,7 +52,7 @@ DUETASK_DELAY = timedelta(minutes=5)
 
 @app.before_first_request
 def app_prepare():
-    setup_logger(logging.WARNING)
+    setup_logger(os.environ.get('AWS_SNS_ARN'), logging.WARNING)
 
 @app.route('/')
 @log_application_errors
@@ -524,7 +525,20 @@ def db_queue(conn, name):
 def db_cursor(conn):
     return conn.cursor()
 
-def setup_logger(log_level=logging.DEBUG):
+class SnsHandler(logging.Handler):
+    ''' Logs to the given Amazon SNS topic; meant for errors.
+    '''
+    def __init__(self, arn, *args, **kwargs):
+        super(SnsHandler, self).__init__(*args, **kwargs)
+        
+        # Rely on boto AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY variables.
+        self.arn, self.sns = arn, connect_sns()
+
+    def emit(self, record):
+        subject = u'OpenAddr: {}: {}'.format(record.levelname, record.name)
+        self.sns.publish(self.arn, self.format(record), subject[:79])
+
+def setup_logger(sns_arn, log_level=logging.DEBUG):
     ''' Set up logging for openaddr code.
     '''
     # Get a handle for the openaddr logger and its children
@@ -537,10 +551,20 @@ def setup_logger(log_level=logging.DEBUG):
     openaddr_logger.setLevel(log_level)
 
     # Set up a logger to stderr
-    handler = logging.StreamHandler()
-    handler.setLevel(log_level)
-    handler.setFormatter(logging.Formatter(log_format))
-    openaddr_logger.addHandler(handler)
+    handler1 = logging.StreamHandler()
+    handler1.setLevel(log_level)
+    handler1.setFormatter(logging.Formatter(log_format))
+    openaddr_logger.addHandler(handler1)
+    
+    # Set up a second logger to SNS
+    try:
+        handler2 = SnsHandler(sns_arn)
+    except:
+        openaddr_logger.warning('Failed to authenticate SNS handler')
+    else:
+        handler2.setLevel(logging.ERROR)
+        handler2.setFormatter(logging.Formatter(log_format))
+        openaddr_logger.addHandler(handler2)
 
 if __name__ == '__main__':
     app.run(debug=True)
