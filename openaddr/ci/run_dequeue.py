@@ -1,5 +1,6 @@
 import logging; _L = logging.getLogger('openaddr.ci.run_dequeue')
 
+from os import environ
 from time import sleep, time
 from boto import connect_cloudwatch
 
@@ -11,7 +12,7 @@ from . import (
 def main():
     '''
     '''
-    setup_logger()
+    setup_logger(environ.get('AWS_SNS_ARN'))
     config = load_config()
     checkin_time = time()
     try:
