@@ -27,6 +27,7 @@ def do_work(job_contents, output_dir):
 
     # Make a directory to run the whole job
     out_dir = tempfile.mkdtemp(prefix='work-', dir=output_dir)
+    os.chmod(out_dir, 0o755)
 
     # Write the user input to a file
     out_fn = os.path.join(out_dir, 'user_input.txt')
