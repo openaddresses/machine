@@ -64,8 +64,12 @@ def app_index():
 def app_hook():
     github_auth = current_app.config['GITHUB_AUTH']
     webhook_payload = json.loads(request.data.decode('utf8'))
+    
+    if webhook_payload['deleted'] is True:
+        # Deleted refs will not have a status URL.
+        return jsonify({'url': None, 'files': []})
+    
     status_url = get_status_url(webhook_payload)
-
     if current_app.config['GAG_GITHUB_STATUS']:
         status_url = None
     
