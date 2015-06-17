@@ -420,13 +420,13 @@ def pop_task_from_taskqueue(task_queue, done_queue, due_queue, output_dir):
         if task is None:
             return
     
-    _L.info('Got job {} from task queue'.format(task.data['id']))
-    passed_on_task_keys = 'id', 'file_id', 'name', 'url', 'content'
-    passed_on_task_kwargs = {k: task.data.get(k) for k in passed_on_task_keys}
+        _L.info('Got job {} from task queue'.format(task.data['id']))
+        passed_on_task_keys = 'id', 'file_id', 'name', 'url', 'content'
+        passed_on_task_kwargs = {k: task.data.get(k) for k in passed_on_task_keys}
 
-    # Send a Due task, possibly for later.
-    due_task_data = dict(task_data=task.data, **passed_on_task_kwargs)
-    due_queue.put(due_task_data, schedule_at=td2str(jobs.JOB_TIMEOUT + DUETASK_DELAY))
+        # Send a Due task, possibly for later.
+        due_task_data = dict(task_data=task.data, **passed_on_task_kwargs)
+        due_queue.put(due_task_data, schedule_at=td2str(jobs.JOB_TIMEOUT + DUETASK_DELAY))
 
     # Run the task.
     from . import worker # <-- TODO: un-suck this.
