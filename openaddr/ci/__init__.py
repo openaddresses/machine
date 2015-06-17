@@ -292,13 +292,12 @@ def process_pullrequest_payload_files(payload, github_auth):
             # Skip non-JSON files.
             continue
 
-        contents_url = payload['pull_request']['head']['repo']['contents_url']
+        contents_url = payload['pull_request']['head']['repo']['contents_url'] + '{?ref}'
         try:
-            contents_url = expand(contents_url, dict(path=filename))
+            contents_url = expand(contents_url, dict(path=filename, ref=commit_sha))
         except UnicodeEncodeError:
             # Python 2 behavior
-            contents_url = expand(contents_url, dict(path=filename.encode('utf8')))
-        contents_url = '{contents_url}?ref={commit_sha}'.format(**locals())
+            contents_url = expand(contents_url, dict(path=filename.encode('utf8'), ref=commit_sha))
         
         current_app.logger.debug('Contents URL {}'.format(contents_url))
         
@@ -337,13 +336,12 @@ def process_pushevent_payload_files(payload, github_auth):
             # Skip non-JSON files.
             continue
         
-        contents_url = payload['repository']['contents_url']
+        contents_url = payload['repository']['contents_url'] + '{?ref}'
         try:
-            contents_url = expand(contents_url, dict(path=filename))
+            contents_url = expand(contents_url, dict(path=filename, ref=commit_sha))
         except UnicodeEncodeError:
             # Python 2 behavior
-            contents_url = expand(contents_url, dict(path=filename.encode('utf8')))
-        contents_url = '{contents_url}?ref={commit_sha}'.format(**locals())
+            contents_url = expand(contents_url, dict(path=filename.encode('utf8'), ref=commit_sha))
         
         current_app.logger.debug('Contents URL {}'.format(contents_url))
         
