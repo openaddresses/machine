@@ -22,6 +22,7 @@ import re
 import pickle
 from os import close, environ, mkdir, remove
 from io import BytesIO
+from csv import DictReader
 from zipfile import ZipFile
 from mimetypes import guess_type
 from urllib.parse import urlparse, parse_qs
@@ -239,9 +240,14 @@ class TestOA (unittest.TestCase):
         self.assertTrue('SITEFRAC' in sample_data[0])
         
         with open(join(dirname(state_path), state['processed'])) as file:
-            data = file.read().strip()
-            self.assertEqual(6, len(data.split('\n')))
-            self.assertTrue('555,Carson Street' in data)
+            rows = list(DictReader(file, dialect='excel'))
+            self.assertEqual(5, len(rows))
+            self.assertEqual(rows[0]['NUMBER'], '555')
+            self.assertEqual(rows[0]['STREET'], 'Carson Street')
+            self.assertEqual(rows[0]['CITY'], 'CARSON, CA')
+            self.assertEqual(rows[0]['POSTCODE'], '90745')
+            self.assertEqual(rows[0]['DISTRICT'], '')
+            self.assertEqual(rows[0]['REGION'], '')
 
     def test_single_car_cached(self):
         ''' Test complete process_one.process on Carson sample data.
