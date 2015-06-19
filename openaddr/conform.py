@@ -129,7 +129,7 @@ class ExcerptDataTask(object):
     '''
     known_types = ('.shp', '.json', '.csv', '.kml', '.gml')
 
-    def excerpt(self, source_paths, workdir, encoding):
+    def excerpt(self, source_paths, workdir, conform):
         '''
         
             Tested version from openaddr.excerpt() on master branch:
@@ -178,6 +178,9 @@ class ExcerptDataTask(object):
             else:
                 ds = None
         '''
+        encoding = conform.get('encoding', False)
+        csvsplit = conform.get('csvsplit', ',')
+        
         known_paths = [source_path for source_path in source_paths
                        if os.path.splitext(source_path)[1].lower() in self.known_types]
         
@@ -207,7 +210,7 @@ class ExcerptDataTask(object):
         # GDAL has issues with non-UTF8 input CSV data, so use Python instead.
         if data_ext == '.csv' and encoding not in ('utf8', 'utf-8'):
             with csvopen(data_path, 'r', encoding=encoding) as file:
-                input = csvreader(file, encoding=encoding)
+                input = csvreader(file, encoding=encoding, delimiter=csvsplit)
                 data_sample = [row for (row, _) in zip(input, range(6))]
 
                 if len(data_sample) < 2:

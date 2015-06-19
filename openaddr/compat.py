@@ -15,6 +15,9 @@ if PY2:
         '''
         if encoding is not None:
             kwargs['encoding'] = encoding
+        
+        if 'delimiter' in kwargs:
+            kwargs['delimiter'] = str(kwargs['delimiter'])
 
         return unicodecsv.reader(file, **kwargs)
     
@@ -68,6 +71,9 @@ else:
     def csvreader(file, encoding=None, **kwargs):
         ''' Discard encoding
         '''
+        if 'delimiter' in kwargs:
+            kwargs['delimiter'] = str(kwargs['delimiter'])
+
         return csv.reader(file, **kwargs)
     
     def csvwriter(file, encoding=None, **kwargs):

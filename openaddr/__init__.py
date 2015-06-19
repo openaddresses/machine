@@ -149,8 +149,8 @@ def conform(srcjson, destdir, extras):
 
     task3 = ExcerptDataTask()
     try:
-        encoding = data.get('conform', {}).get('encoding', False)
-        data_sample, geometry_type = task3.excerpt(decompressed_paths, workdir, encoding)
+        conform = data.get('conform', {})
+        data_sample, geometry_type = task3.excerpt(decompressed_paths, workdir, conform)
         _L.info("Sampled %d records", len(data_sample))
     except Exception as e:
         _L.warning("Error doing excerpt; skipping", exc_info=True)
