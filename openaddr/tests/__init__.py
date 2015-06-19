@@ -105,6 +105,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('data.openaddresses.io', '/20000101/us-ca-carson-cached.json'):
             local_path = join(data_dirname, 'us-ca-carson-cache.geojson')
         
+        if (host, path) == ('data.openaddresses.io', '/cache/fr/BAN_licence_gratuite_repartage_75.zip'):
+            local_path = join(data_dirname, 'BAN_licence_gratuite_repartage_75.zip')
+        
         if scheme == 'file':
             local_path = path
 
@@ -138,7 +141,8 @@ class TestOA (unittest.TestCase):
             
                 self.assertTrue(bool(state['sample']), 'Checking for sample in {}'.format(source))
 
-            if 'san_francisco' in source or 'alameda_county' in source or 'carson' in source or 'pl-' in source or 'us-ut' in source:
+            if 'san_francisco' in source or 'alameda_county' in source or 'carson' in source \
+            or 'pl-' in source or 'us-ut' in source or 'fr-paris' in source:
                 self.assertTrue(bool(state['processed']), "Checking for processed in {}".format(source))
                 
                 with HTTMock(self.response_content):
@@ -457,6 +461,28 @@ class TestOA (unittest.TestCase):
             sample_data = json.load(file)
 
         self.assertEqual(len(sample_data), 6)
+
+    def test_single_fr_paris(self):
+        ''' Test complete process_one.process on data that uses conform csvsplit (issue #124)
+        '''
+        source = join(self.src_dir, 'fr-paris.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+
+        self.assertTrue(state['sample'] is not None)
+
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('libelle_acheminement' in sample_data[0])
+        self.assertTrue('Paris 15e Arrondissement' in sample_data[1])
+        self.assertTrue('2.29603434925049' in sample_data[1])
+        self.assertTrue('48.845110357374' in sample_data[1])
 
 @contextmanager
 def locked_open(filename):
