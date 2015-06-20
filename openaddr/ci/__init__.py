@@ -194,7 +194,11 @@ def process_payload_files(payload, github_auth):
             continue
         
         contents_url = payload['repository']['contents_url']
-        contents_url = expand(contents_url, dict(path=filename.encode('utf8')))
+        try:
+            contents_url = expand(contents_url, dict(path=filename))
+        except UnicodeEncodeError:
+            # Python 2 behavior
+            contents_url = expand(contents_url, dict(path=filename.encode('utf8')))
         contents_url = '{contents_url}?ref={commit_sha}'.format(**locals())
         
         current_app.logger.debug('Contents URL {}'.format(contents_url))
