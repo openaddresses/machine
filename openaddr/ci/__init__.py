@@ -78,7 +78,7 @@ def app_hook():
     except Exception as e:
         message = 'Could not read source files: {}'.format(e)
         update_error_status(status_url, message, [], github_auth)
-        _L.error(message)
+        _L.error(message, exc_info=True)
         return jsonify({'url': None, 'files': []})
     
     if not files:
