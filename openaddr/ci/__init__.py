@@ -170,7 +170,7 @@ def get_touched_branch_files(payload, github_auth):
     
     compare2 = get(compare2_url, auth=github_auth).json()
     touched = set([file['filename'] for file in compare2['files']])
-    current_app.logger.debug('Touched files {}'.format(', '.join(touched)))
+    current_app.logger.debug(u'Touched files {}'.format(', '.join(touched)))
     
     return touched
 
