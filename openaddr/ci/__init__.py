@@ -144,7 +144,7 @@ def get_touched_payload_files(payload):
             # Skip files that no longer exist.
             touched.remove(filename)
         
-    current_app.logger.debug('Touched files {}'.format(', '.join(touched)))
+    current_app.logger.debug(u'Touched files {}'.format(', '.join(touched)))
     
     return touched
 
