@@ -254,7 +254,7 @@ def update_pending_status(status_url, job_url, filenames, github_auth):
     ''' Push pending status for head commit to Github status API.
     '''
     status = dict(context='openaddresses/hooked', state='pending',
-                  description='Checking {}'.format(', '.join(filenames)),
+                  description=u'Checking {}'.format(', '.join(filenames)),
                   target_url=job_url)
     
     return post_github_status(status_url, status, github_auth)
@@ -263,7 +263,7 @@ def update_error_status(status_url, message, filenames, github_auth):
     ''' Push error status for head commit to Github status API.
     '''
     status = dict(context='openaddresses/hooked', state='error',
-                  description='Errored on {}: {}'.format(', '.join(filenames), message))
+                  description=u'Errored on {}: {}'.format(', '.join(filenames), message))
     
     return post_github_status(status_url, status, github_auth)
 
@@ -271,7 +271,7 @@ def update_failing_status(status_url, job_url, bad_files, filenames, github_auth
     ''' Push failing status for head commit to Github status API.
     '''
     status = dict(context='openaddresses/hooked', state='failure',
-                  description='Failed on {} from {}'.format(', '.join(bad_files), ', '.join(filenames)),
+                  description=u'Failed on {} from {}'.format(', '.join(bad_files), ', '.join(filenames)),
                   target_url=job_url)
     
     return post_github_status(status_url, status, github_auth)
@@ -288,7 +288,7 @@ def update_success_status(status_url, job_url, filenames, github_auth):
     ''' Push success status for head commit to Github status API.
     '''
     status = dict(context='openaddresses/hooked', state='success',
-                  description='Succeeded on {}'.format(', '.join(filenames)),
+                  description=u'Succeeded on {}'.format(', '.join(filenames)),
                   target_url=job_url)
     
     return post_github_status(status_url, status, github_auth)
