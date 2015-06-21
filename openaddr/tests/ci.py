@@ -585,10 +585,27 @@ class TestWorker (unittest.TestCase):
         def does_what_its_told(cmd, timeout=None):
             index_path = '{id}/out/user_input/index.json'.format(**task_data)
             index_filename = os.path.join(self.output_dir, index_path)
-            os.makedirs(os.path.dirname(index_filename))
+            index_dirname = os.path.dirname(index_filename)
+            os.makedirs(index_dirname)
             
             with open(index_filename, 'w') as file:
                 file.write('''[ ["source", "cache", "sample", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], ["user_input.txt", "cache.zip", "sample.json", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "output.txt"] ]''')
+            
+            with open(os.path.join(index_dirname, 'cache.zip'), 'w') as file:
+                print('file.write', file.name)
+                file.write('Yo')
+            
+            with open(os.path.join(index_dirname, 'sample.json'), 'w') as file:
+                print('file.write', file.name)
+                file.write('Yo')
+            
+            with open(os.path.join(index_dirname, 'out.csv'), 'w') as file:
+                print('file.write', file.name)
+                file.write('Yo')
+            
+            with open(os.path.join(index_dirname, 'output.txt'), 'w') as file:
+                print('file.write', file.name)
+                file.write('Yo')
             
             return index_filename
         

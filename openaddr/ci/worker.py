@@ -19,6 +19,17 @@ from . import (
     MAGIC_OK_MESSAGE, DONE_QUEUE, TASK_QUEUE, DUE_QUEUE, setup_logger
     )
 
+def upload_file(s3, keyname, filename):
+    ''' Create a new S3 key with filename contents, return its URL and MD5 hash.
+    '''
+    key = s3.new_key(keyname)
+
+    kwargs = dict(policy='public-read', reduced_redundancy=True)
+    key.set_contents_from_filename(filename, **kwargs)
+    url = key.generate_url(expires_in=0, query_auth=False, force_http=True)
+    
+    return url, key.md5
+
 def do_work(s3, job_contents, output_dir):
     "Do the actual work of running a source file in job_contents"
 
@@ -62,16 +73,49 @@ def do_work(s3, job_contents, output_dir):
     with open(state_fullpath) as file:
         index = dict(zip(*json.load(file)))
         
+        print(index)
+        
         for key in ('processed', 'sample', 'cache'):
             if not index[key]:
                 result.update(result_code=-1, message='Failed to produce {} data'.format(key))
         
-        # Expand filename keys to complete URLs
-        keys = 'cache', 'sample', 'output', 'processed'
-        urls = [urljoin(result['output_url'], index[k]) for k in keys]
+        index_dirname = os.path.dirname(state_fullpath)
+        
+        if index['cache']:
+            # e.g. /yo/cache.zip
+            cache_path = os.path.join(index_dirname, index['cache'])
+            _, cache_ext = os.path.splitext(cache_path)
+            key_name = '/yo/{cache}'.format(**index)
+            url, _ = upload_file(s3, key_name, cache_path)
+            index['cache'] = url
+        
+        if index['sample']:
+            # e.g. /yo/sample.json
+            sample_path = os.path.join(index_dirname, index['sample'])
+            _, sample_ext = os.path.splitext(sample_path)
+            key_name = '/yo/{sample}'.format(**index)
+            url, _ = upload_file(s3, key_name, sample_path)
+            index['sample'] = url
+        
+        if index['processed']:
+            # e.g. /yo/out.csv
+            processed_path = os.path.join(index_dirname, index['processed'])
+            _, processed_ext = os.path.splitext(processed_path)
+            key_name = '/yo/{processed}'.format(**index)
+            url, _ = upload_file(s3, key_name, processed_path)
+            index['processed'] = url
+        
+        if index['output']:
+            # e.g. /yo/output.json
+            output_path = os.path.join(index_dirname, index['output'])
+            _, output_ext = os.path.splitext(output_path)
+            key_name = '/yo/{output}'.format(**index)
+            url, _ = upload_file(s3, key_name, output_path)
+            index['output'] = url
         
         result['output'] = index
-        result['output'].update(dict(zip(keys, urls)))
+        
+        print(result)
 
     return result
 
