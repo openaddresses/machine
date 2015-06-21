@@ -421,7 +421,7 @@ def update_job_status(db, job_id, job_url, filenames, task_files, file_states, f
     elif job_status is True:
         update_success_status(status_url, job_url, filenames, github_auth)
 
-def pop_task_from_taskqueue(task_queue, done_queue, due_queue, output_dir):
+def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
     '''
     '''
     with task_queue as db:
@@ -441,7 +441,7 @@ def pop_task_from_taskqueue(task_queue, done_queue, due_queue, output_dir):
 
     # Run the task.
     from . import worker # <-- TODO: un-suck this.
-    result = worker.do_work(task.data['content'], output_dir)
+    result = worker.do_work(s3, task.data['content'], output_dir)
 
     # Send a Done task
     done_task_data = dict(result=result, **passed_on_task_kwargs)

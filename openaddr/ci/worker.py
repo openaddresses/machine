@@ -8,7 +8,7 @@ enqueues a new message on a separate PQ queue when the work is done.
 '''
 import logging; _L = logging.getLogger('openaddr.ci.worker')
 
-from .. import compat
+from .. import compat, S3
 from ..jobs import JOB_TIMEOUT
 
 import time, os, psycopg2, socket, json, tempfile
@@ -19,7 +19,7 @@ from . import (
     MAGIC_OK_MESSAGE, DONE_QUEUE, TASK_QUEUE, DUE_QUEUE, setup_logger
     )
 
-def do_work(job_contents, output_dir):
+def do_work(s3, job_contents, output_dir):
     "Do the actual work of running a source file in job_contents"
 
     # Make a directory to run the whole job
@@ -84,6 +84,9 @@ def main():
     web_docroot = os.environ.get('WEB_DOCROOT', '/var/www/html')
     web_output_dir = os.path.join(web_docroot, 'oa-runone')
 
+    # Rely on boto AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY variables.
+    s3 = S3(None, None, 'data-test.openaddresses.io')
+
     # Fetch and run jobs in a loop    
     while True:
         try:
@@ -91,7 +94,7 @@ def main():
                 task_Q = db_queue(conn, TASK_QUEUE)
                 done_Q = db_queue(conn, DONE_QUEUE)
                 due_Q = db_queue(conn, DUE_QUEUE)
-                pop_task_from_taskqueue(task_Q, done_Q, due_Q, web_output_dir)
+                pop_task_from_taskqueue(s3, task_Q, done_Q, due_Q, web_output_dir)
         except:
             _L.error('Error in worker main()', exc_info=True)
             time.sleep(5)
