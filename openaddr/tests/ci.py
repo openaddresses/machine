@@ -594,21 +594,9 @@ class TestWorker (unittest.TestCase):
             with open(index_filename, 'w') as file:
                 file.write('''[ ["source", "cache", "sample", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], ["user_input.txt", "cache.zip", "sample.json", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "output.txt"] ]''')
             
-            with open(os.path.join(index_dirname, 'cache.zip'), 'w') as file:
-                print('file.write', file.name)
-                file.write('Yo')
-            
-            with open(os.path.join(index_dirname, 'sample.json'), 'w') as file:
-                print('file.write', file.name)
-                file.write('Yo')
-            
-            with open(os.path.join(index_dirname, 'out.csv'), 'w') as file:
-                print('file.write', file.name)
-                file.write('Yo')
-            
-            with open(os.path.join(index_dirname, 'output.txt'), 'w') as file:
-                print('file.write', file.name)
-                file.write('Yo')
+            for name in ('cache.zip', 'sample.json', 'out.csv', 'output.txt'):
+                with open(os.path.join(index_dirname, name), 'w') as file:
+                    file.write('Yo')
             
             return index_filename
         

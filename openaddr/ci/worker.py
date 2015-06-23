@@ -73,8 +73,6 @@ def do_work(s3, run_id, source_name, job_contents, output_dir):
     with open(state_fullpath) as file:
         index = dict(zip(*json.load(file)))
         
-        print(index)
-        
         for key in ('processed', 'sample', 'cache'):
             if not index[key]:
                 result.update(result_code=-1, message='Failed to produce {} data'.format(key))
@@ -112,8 +110,6 @@ def do_work(s3, run_id, source_name, job_contents, output_dir):
             index['output'] = url
         
         result['output'] = index
-        
-        print(result)
 
     return result
 
