@@ -177,8 +177,28 @@ def get_touched_branch_files(payload, github_auth):
 def process_payload_files(payload, github_auth):
     ''' Return a dictionary of file paths to raw JSON contents and file IDs.
     '''
-    files = dict()
+    if 'action' in payload and 'pull_request' in payload:
+        return process_pullrequest_payload_files(payload, github_auth)
+    
+    if 'commits' in payload and 'head_commit' in payload:
+        return process_pushevent_payload_files(payload, github_auth)
+    
+    raise ValueError('Unintelligible webhook payload')
 
+def process_pullrequest_payload_files(payload, github_auth):
+    ''' Return a dictionary of files paths from a pull request event payload.
+    
+        https://developer.github.com/v3/activity/events/types/#pullrequestevent
+    '''
+    raise NotImplementedError
+
+def process_pushevent_payload_files(payload, github_auth):
+    ''' Return a dictionary of files paths from a push event payload.
+    
+        https://developer.github.com/v3/activity/events/types/#pushevent
+    '''
+    files = dict()
+    
     touched = get_touched_payload_files(payload)
     touched |= get_touched_branch_files(payload, github_auth)
     
