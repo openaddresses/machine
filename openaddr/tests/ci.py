@@ -183,6 +183,7 @@ class TestHook (unittest.TestCase):
         # This is the JSON source payload, just make sure it parses.
         content = json.loads(task.data['content'])
         task.data['result'] = dict(message=MAGIC_OK_MESSAGE)
+        task.data['run_id'] = -1
         
         # Put back a completion task to the done queue.
         with db_connect(self.database_url) as conn:
@@ -221,6 +222,7 @@ class TestHook (unittest.TestCase):
             # This is the JSON source payload, just make sure it parses.
             content = json.loads(task.data['content'])
             task.data['result'] = dict(message=message)
+            task.data['run_id'] = -1
         
             # Put back a completion task to the done queue.
             with db_connect(self.database_url) as conn:
@@ -260,6 +262,7 @@ class TestHook (unittest.TestCase):
             # This is the JSON source payload, just make sure it parses.
             content = json.loads(task.data['content'])
             task.data['result'] = dict(message=message)
+            task.data['run_id'] = -1
         
             # Put back a completion task to the done queue.
             with db_connect(self.database_url) as conn:
@@ -394,7 +397,7 @@ class TestRuns (unittest.TestCase):
         
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
         
-        def returns_plausible_result(s3, content, output_dir):
+        def returns_plausible_result(s3, run_id, content, output_dir):
             return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
         
         do_work.side_effect = returns_plausible_result
@@ -502,7 +505,7 @@ class TestRuns (unittest.TestCase):
     def test_overdue_run(self, do_work):
         '''
         '''
-        def returns_plausible_result(s3, content, output_dir):
+        def returns_plausible_result(s3, run_id, content, output_dir):
             return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
 
         do_work.side_effect = returns_plausible_result
@@ -618,7 +621,7 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
         
         job_id, content = task_data['id'], task_data['content']
-        result = worker.do_work(self.s3, content, self.output_dir)
+        result = worker.do_work(self.s3, -1, content, self.output_dir)
         
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
@@ -653,7 +656,7 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
         
         job_id, content = task_data['id'], task_data['content']
-        result = worker.do_work(self.s3, content, self.output_dir)
+        result = worker.do_work(self.s3, -1, content, self.output_dir)
         
         check_output.assert_called_with((
             'openaddr-process-one', '-l',

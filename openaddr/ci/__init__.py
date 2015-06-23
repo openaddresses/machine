@@ -386,13 +386,24 @@ def is_completed_run(db, file_id, min_datetime):
     
     return bool(completed_run is not None)
 
-def add_run(db, filename, file_id, content, run_state):
+def add_run(db):
+    ''' Reserve a row in the runs table and return its new ID.
     '''
+    db.execute("INSERT INTO runs (datetime) VALUES (NOW() AT TIME ZONE 'UTC')")
+    db.execute("SELECT currval('runs_id_seq')")
+    
+    (run_id, ) = db.fetchone()
+    
+    return run_id
+
+def set_run(db, run_id, filename, file_id, content, run_state):
+    ''' Populate an identitified row in the runs table.
     '''
-    db.execute('''INSERT INTO runs
-                  (source_path, source_data, source_id, state, datetime)
-                  VALUES (%s, %s, %s, %s::json, NOW() AT TIME ZONE 'UTC')''',
-               (filename, content, file_id, json.dumps(run_state)))
+    db.execute('''UPDATE runs SET
+                  source_path = %s, source_data = %s, source_id = %s,
+                  state = %s::json, datetime = NOW() AT TIME ZONE 'UTC'
+                  WHERE id = %s''',
+               (filename, content, file_id, json.dumps(run_state), run_id))
 
 def update_job_status(db, job_id, job_url, filenames, task_files, file_states, file_results, status_url, github_auth):
     '''
@@ -431,8 +442,10 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
         if task is None:
             return
     
+        task.data['run_id'] = add_run(db)
+
         _L.info('Got job {} from task queue'.format(task.data['id']))
-        passed_on_task_keys = 'id', 'file_id', 'name', 'url', 'content'
+        passed_on_task_keys = 'id', 'file_id', 'name', 'url', 'content', 'run_id'
         passed_on_task_kwargs = {k: task.data.get(k) for k in passed_on_task_keys}
 
         # Send a Due task, possibly for later.
@@ -441,7 +454,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
 
     # Run the task.
     from . import worker # <-- TODO: un-suck this.
-    result = worker.do_work(s3, task.data['content'], output_dir)
+    result = worker.do_work(s3, task.data['run_id'], task.data['content'], output_dir)
 
     # Send a Done task
     done_task_data = dict(result=result, **passed_on_task_kwargs)
@@ -464,13 +477,14 @@ def pop_task_from_donequeue(queue, github_auth):
         job_url = task.data['url']
         filename = task.data['name']
         file_id = task.data['file_id']
+        run_id = task.data['run_id']
         job_id = task.data['id']
         
         if is_completed_run(db, file_id, task.enqueued_at):
             # We are too late, this got handled.
             return
         
-        add_run(db, filename, file_id, content, run_state)
+        set_run(db, run_id, filename, file_id, content, run_state)
 
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)
@@ -502,13 +516,14 @@ def pop_task_from_duequeue(queue, github_auth):
         job_url = task.data['url']
         filename = task.data['name']
         file_id = task.data['file_id']
+        run_id = task.data['run_id']
         job_id = task.data['id']
     
         if is_completed_run(db, file_id, task.enqueued_at):
             # Everything's fine, this got handled.
             return
 
-        add_run(db, filename, file_id, content, None)
+        set_run(db, run_id, filename, file_id, content, None)
 
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)
