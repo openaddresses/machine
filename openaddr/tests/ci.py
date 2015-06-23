@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from os import environ
+from os import environ, remove
 from os.path import join
 from shutil import rmtree
 from tempfile import mkdtemp
@@ -23,6 +23,7 @@ from ..ci import (
 
 from ..jobs import JOB_TIMEOUT
 from .. import compat
+from . import FakeS3
 
 class TestHook (unittest.TestCase):
 
@@ -37,11 +38,13 @@ class TestHook (unittest.TestCase):
         self.client = app.test_client()
         self.last_status_state = None
         self.last_status_message = None
+        self.s3 = FakeS3()
     
     def tearDown(self):
         '''
         '''
         rmtree(self.output_dir)
+        remove(self.s3._fake_keys)
         return
         
         with db_connect(self.database_url) as conn:
@@ -142,7 +145,7 @@ class TestHook (unittest.TestCase):
             task_q = db_queue(conn, TASK_QUEUE)
             done_q = db_queue(conn, DONE_QUEUE)
             due_q = db_queue(conn, DUE_QUEUE)
-            pop_task_from_taskqueue(task_q, done_q, due_q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_q, done_q, due_q, self.output_dir)
             pop_task_from_donequeue(done_q, self.github_auth)
             
         self.assertEquals(self.last_status_state, 'failure', 'Bad JSON should lead to failure')
@@ -180,6 +183,7 @@ class TestHook (unittest.TestCase):
         # This is the JSON source payload, just make sure it parses.
         content = json.loads(task.data['content'])
         task.data['result'] = dict(message=MAGIC_OK_MESSAGE)
+        task.data['run_id'] = -1
         
         # Put back a completion task to the done queue.
         with db_connect(self.database_url) as conn:
@@ -218,6 +222,7 @@ class TestHook (unittest.TestCase):
             # This is the JSON source payload, just make sure it parses.
             content = json.loads(task.data['content'])
             task.data['result'] = dict(message=message)
+            task.data['run_id'] = -1
         
             # Put back a completion task to the done queue.
             with db_connect(self.database_url) as conn:
@@ -257,6 +262,7 @@ class TestHook (unittest.TestCase):
             # This is the JSON source payload, just make sure it parses.
             content = json.loads(task.data['content'])
             task.data['result'] = dict(message=message)
+            task.data['run_id'] = -1
         
             # Put back a completion task to the done queue.
             with db_connect(self.database_url) as conn:
@@ -340,6 +346,7 @@ class TestRuns (unittest.TestCase):
         recreate_db.recreate(os.environ['DATABASE_URL'])
         self.database_url = os.environ['DATABASE_URL']
         self.output_dir = mkdtemp(prefix='TestRuns-')
+        self.s3 = FakeS3()
         
         self.github_auth = 'Fake', 'Auth'
         self.fake_job_template_url = 'http://example.com/{id}'
@@ -350,6 +357,7 @@ class TestRuns (unittest.TestCase):
         '''
         '''
         rmtree(self.output_dir)
+        remove(self.s3._fake_keys)
         return
         
         with db_connect(self.database_url) as conn:
@@ -389,7 +397,7 @@ class TestRuns (unittest.TestCase):
         
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
         
-        def returns_plausible_result(content, output_dir):
+        def returns_plausible_result(s3, run_id, source_name, content, output_dir):
             return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
         
         do_work.side_effect = returns_plausible_result
@@ -402,7 +410,7 @@ class TestRuns (unittest.TestCase):
 
             files = {source_path: (source, source_id)}
             job_id = create_queued_job(task_Q, files, self.fake_job_template_url, self.fake_status_url)
-            pop_task_from_taskqueue(task_Q, done_Q, due_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
             self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
             
             # Work done! 
@@ -455,7 +463,7 @@ class TestRuns (unittest.TestCase):
         
             # Bad things will happen and the job will fail.
             with self.assertRaises(NotImplementedError) as e:
-                pop_task_from_taskqueue(task_Q, done_Q, due_Q, self.output_dir)
+                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
 
             # Should do nothing, because a Done task was never sent.
             pop_task_from_donequeue(done_Q, None)
@@ -497,7 +505,7 @@ class TestRuns (unittest.TestCase):
     def test_overdue_run(self, do_work):
         '''
         '''
-        def returns_plausible_result(content, output_dir):
+        def returns_plausible_result(s3, run_id, source_name, content, output_dir):
             return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
 
         do_work.side_effect = returns_plausible_result
@@ -516,7 +524,7 @@ class TestRuns (unittest.TestCase):
 
             files = {source_path: (source, source_id)}
             job_id = create_queued_job(task_Q, files, self.fake_job_template_url, self.fake_status_url)
-            pop_task_from_taskqueue(task_Q, done_Q, due_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
 
             # Should do nothing, because no Due task is yet scheduled.
             pop_task_from_duequeue(due_Q, None)
@@ -558,11 +566,13 @@ class TestWorker (unittest.TestCase):
         recreate_db.recreate(os.environ['DATABASE_URL'])
         self.database_url = os.environ['DATABASE_URL']
         self.output_dir = mkdtemp(prefix='TestWorker-')
+        self.s3 = FakeS3()
     
     def tearDown(self):
         '''
         '''
         rmtree(self.output_dir)
+        remove(self.s3._fake_keys)
         return
         
         with db_connect(self.database_url) as conn:
@@ -578,10 +588,15 @@ class TestWorker (unittest.TestCase):
         def does_what_its_told(cmd, timeout=None):
             index_path = '{id}/out/user_input/index.json'.format(**task_data)
             index_filename = os.path.join(self.output_dir, index_path)
-            os.makedirs(os.path.dirname(index_filename))
+            index_dirname = os.path.dirname(index_filename)
+            os.makedirs(index_dirname)
             
             with open(index_filename, 'w') as file:
                 file.write('''[ ["source", "cache", "sample", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], ["user_input.txt", "cache.zip", "sample.json", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "output.txt"] ]''')
+            
+            for name in ('cache.zip', 'sample.json', 'out.csv', 'output.txt'):
+                with open(os.path.join(index_dirname, name), 'w') as file:
+                    file.write('Yo')
             
             return index_filename
         
@@ -594,7 +609,7 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
         
         job_id, content = task_data['id'], task_data['content']
-        result = worker.do_work(content, self.output_dir)
+        result = worker.do_work(self.s3, -1, 'so/happy', content, self.output_dir)
         
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
@@ -610,7 +625,7 @@ class TestWorker (unittest.TestCase):
         self.assertTrue(result['output']['cache'].endswith('/cache.zip'))
         self.assertTrue(result['output']['sample'].endswith('/sample.json'))
         self.assertTrue(result['output']['output'].endswith('/output.txt'))
-        self.assertTrue(result['output']['processed'].endswith('/out.csv'))
+        self.assertTrue(result['output']['processed'].endswith('/so/happy.zip'))
     
     @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')
@@ -629,7 +644,7 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
         
         job_id, content = task_data['id'], task_data['content']
-        result = worker.do_work(content, self.output_dir)
+        result = worker.do_work(self.s3, -1, 'angry', content, self.output_dir)
         
         check_output.assert_called_with((
             'openaddr-process-one', '-l',

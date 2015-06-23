@@ -8,7 +8,7 @@ enqueues a new message on a separate PQ queue when the work is done.
 '''
 import logging; _L = logging.getLogger('openaddr.ci.worker')
 
-from .. import compat
+from .. import compat, S3, package_output
 from ..jobs import JOB_TIMEOUT
 
 import time, os, psycopg2, socket, json, tempfile
@@ -19,7 +19,18 @@ from . import (
     MAGIC_OK_MESSAGE, DONE_QUEUE, TASK_QUEUE, DUE_QUEUE, setup_logger
     )
 
-def do_work(job_contents, output_dir):
+def upload_file(s3, keyname, filename):
+    ''' Create a new S3 key with filename contents, return its URL and MD5 hash.
+    '''
+    key = s3.new_key(keyname)
+
+    kwargs = dict(policy='public-read', reduced_redundancy=True)
+    key.set_contents_from_filename(filename, **kwargs)
+    url = key.generate_url(expires_in=0, query_auth=False, force_http=True)
+    
+    return url, key.md5
+
+def do_work(s3, run_id, source_name, job_contents, output_dir):
     "Do the actual work of running a source file in job_contents"
 
     # Make a directory to run the whole job
@@ -66,12 +77,39 @@ def do_work(job_contents, output_dir):
             if not index[key]:
                 result.update(result_code=-1, message='Failed to produce {} data'.format(key))
         
-        # Expand filename keys to complete URLs
-        keys = 'cache', 'sample', 'output', 'processed'
-        urls = [urljoin(result['output_url'], index[k]) for k in keys]
+        index_dirname = os.path.dirname(state_fullpath)
+        
+        if index['cache']:
+            # e.g. /runs/0/cache.zip
+            cache_path = os.path.join(index_dirname, index['cache'])
+            key_name = '/runs/{run}/{cache}'.format(run=run_id, **index)
+            url, fingerprint = upload_file(s3, key_name, cache_path)
+            index['cache'], index['fingerprint'] = url, fingerprint
+        
+        if index['sample']:
+            # e.g. /runs/0/sample.json
+            sample_path = os.path.join(index_dirname, index['sample'])
+            key_name = '/runs/{run}/{sample}'.format(run=run_id, **index)
+            url, _ = upload_file(s3, key_name, sample_path)
+            index['sample'] = url
+        
+        if index['processed']:
+            # e.g. /runs/0/fr/paris.zip
+            processed_path = os.path.join(index_dirname, index['processed'])
+            archive_path = package_output('out', processed_path)
+            key_name = '/runs/{run}/{name}.zip'.format(run=run_id, name=source_name)
+            url, _ = upload_file(s3, key_name, processed_path)
+            index['processed'] = url
+            os.remove(archive_path)
+        
+        if index['output']:
+            # e.g. /runs/0/output.txt
+            output_path = os.path.join(index_dirname, index['output'])
+            key_name = '/runs/{run}/{output}'.format(run=run_id, **index)
+            url, _ = upload_file(s3, key_name, output_path)
+            index['output'] = url
         
         result['output'] = index
-        result['output'].update(dict(zip(keys, urls)))
 
     return result
 
@@ -84,6 +122,9 @@ def main():
     web_docroot = os.environ.get('WEB_DOCROOT', '/var/www/html')
     web_output_dir = os.path.join(web_docroot, 'oa-runone')
 
+    # Rely on boto AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY variables.
+    s3 = S3(None, None, 'data-test.openaddresses.io')
+
     # Fetch and run jobs in a loop    
     while True:
         try:
@@ -91,7 +132,7 @@ def main():
                 task_Q = db_queue(conn, TASK_QUEUE)
                 done_Q = db_queue(conn, DONE_QUEUE)
                 due_Q = db_queue(conn, DUE_QUEUE)
-                pop_task_from_taskqueue(task_Q, done_Q, due_Q, web_output_dir)
+                pop_task_from_taskqueue(s3, task_Q, done_Q, due_Q, web_output_dir)
         except:
             _L.error('Error in worker main()', exc_info=True)
             time.sleep(5)
