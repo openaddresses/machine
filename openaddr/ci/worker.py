@@ -98,7 +98,7 @@ def do_work(s3, run_id, source_name, job_contents, output_dir):
             processed_path = os.path.join(index_dirname, index['processed'])
             archive_path = package_output('out', processed_path)
             key_name = '/runs/{run}/{name}.zip'.format(run=run_id, name=source_name)
-            url, _ = upload_file(s3, key_name, processed_path)
+            url, _ = upload_file(s3, key_name, archive_path)
             index['processed'] = url
             os.remove(archive_path)
         
