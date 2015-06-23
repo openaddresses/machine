@@ -184,7 +184,7 @@ def package_output(source, processed_path):
     ''' Write a zip archive to temp dir with processed data and optional .vrt.
     '''
     _, ext = splitext(processed_path)
-    handle, zip_path = mkstemp(prefix=source, suffix='.zip')
+    handle, zip_path = mkstemp(suffix='.zip')
     close(handle)
     
     zip_file = ZipFile(zip_path, mode='w', compression=ZIP_DEFLATED)

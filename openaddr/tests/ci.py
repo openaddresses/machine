@@ -7,6 +7,8 @@ from tempfile import mkdtemp
 from httmock import HTTMock, response
 from urllib.parse import parse_qsl, urlparse
 from datetime import timedelta
+from zipfile import ZipFile
+from io import BytesIO
 from mock import patch
 from time import sleep
 
@@ -626,6 +628,13 @@ class TestWorker (unittest.TestCase):
         self.assertTrue(result['output']['sample'].endswith('/sample.json'))
         self.assertTrue(result['output']['output'].endswith('/output.txt'))
         self.assertTrue(result['output']['processed'].endswith('/so/happy.zip'))
+        
+        zip_path = urlparse(result['output']['processed']).path
+        zip_bytes = self.s3._read_fake_key(zip_path)
+        zip_file = ZipFile(BytesIO(zip_bytes), mode='r')
+        
+        self.assertTrue('so/happy.csv' in zip_file.namelist())
+        self.assertTrue('so/happy.vrt' in zip_file.namelist())
     
     @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')

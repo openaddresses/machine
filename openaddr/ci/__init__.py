@@ -443,7 +443,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
             return
     
         task.data['run_id'] = add_run(db)
-        source_name = relpath(task.data['name'], 'sources')
+        source_name, _ = splitext(relpath(task.data['name'], 'sources'))
 
         _L.info('Got job {} from task queue'.format(task.data['id']))
         passed_on_task_keys = 'id', 'file_id', 'name', 'url', 'content', 'run_id'
