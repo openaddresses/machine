@@ -65,7 +65,7 @@ def app_hook():
     github_auth = current_app.config['GITHUB_AUTH']
     webhook_payload = json.loads(request.data.decode('utf8'))
     
-    if webhook_payload['deleted'] is True:
+    if 'deleted' in webhook_payload and webhook_payload['deleted'] is True:
         # Deleted refs will not have a status URL.
         return jsonify({'url': None, 'files': []})
     
@@ -174,11 +174,86 @@ def get_touched_branch_files(payload, github_auth):
     
     return touched
 
+def get_touched_pullrequest_files(payload, github_auth):
+    ''' Return a set of files modified between master and payload head.
+    '''
+    base_sha = payload['pull_request']['base']['sha']
+    head_sha = payload['pull_request']['head']['sha']
+
+    compare_url = payload['pull_request']['head']['repo']['compare_url']
+    compare_url = expand(compare_url, dict(head=head_sha, base=base_sha))
+    current_app.logger.debug('Compare URL {}'.format(compare_url))
+    
+    compare = get(compare_url, auth=github_auth).json()
+    touched = set([file['filename'] for file in compare['files']])
+    current_app.logger.debug(u'Touched files {}'.format(', '.join(touched)))
+    
+    return touched
+
 def process_payload_files(payload, github_auth):
     ''' Return a dictionary of file paths to raw JSON contents and file IDs.
     '''
-    files = dict()
+    if 'action' in payload and 'pull_request' in payload:
+        return process_pullrequest_payload_files(payload, github_auth)
+    
+    if 'commits' in payload and 'head_commit' in payload:
+        return process_pushevent_payload_files(payload, github_auth)
+    
+    raise ValueError('Unintelligible webhook payload')
 
+def process_pullrequest_payload_files(payload, github_auth):
+    ''' Return a dictionary of files paths from a pull request event payload.
+    
+        https://developer.github.com/v3/activity/events/types/#pullrequestevent
+    '''
+    files = dict()
+    touched = get_touched_pullrequest_files(payload, github_auth)
+    
+    commit_sha = payload['pull_request']['head']['sha']
+    
+    for filename in touched:
+        if relpath(filename, 'sources').startswith('..'):
+            # Skip things outside of sources directory.
+            continue
+        
+        if splitext(filename)[1] != '.json':
+            # Skip non-JSON files.
+            continue
+
+        contents_url = payload['pull_request']['head']['repo']['contents_url']
+        try:
+            contents_url = expand(contents_url, dict(path=filename))
+        except UnicodeEncodeError:
+            # Python 2 behavior
+            contents_url = expand(contents_url, dict(path=filename.encode('utf8')))
+        contents_url = '{contents_url}?ref={commit_sha}'.format(**locals())
+        
+        current_app.logger.debug('Contents URL {}'.format(contents_url))
+        
+        got = get(contents_url, auth=github_auth)
+        contents = got.json()
+        
+        if got.status_code not in range(200, 299):
+            current_app.logger.warning('Skipping {} - {}'.format(filename, got.status_code))
+            continue
+        
+        content, encoding = contents['content'], contents['encoding']
+        
+        current_app.logger.debug('Contents SHA {}'.format(contents['sha']))
+        
+        if encoding == 'base64':
+            files[filename] = b64decode(content).decode('utf8'), contents['sha']
+        else:
+            raise ValueError('Unrecognized encoding "{}"'.format(encoding))
+    
+    return files
+
+def process_pushevent_payload_files(payload, github_auth):
+    ''' Return a dictionary of files paths from a push event payload.
+    
+        https://developer.github.com/v3/activity/events/types/#pushevent
+    '''
+    files = dict()
     touched = get_touched_payload_files(payload)
     touched |= get_touched_branch_files(payload, github_auth)
     
@@ -224,9 +299,16 @@ def process_payload_files(payload, github_auth):
 def get_status_url(payload):
     ''' Get Github status API URL from webhook payload.
     '''
-    commit_sha = payload['head_commit']['id']
-    status_url = payload['repository']['statuses_url']
-    status_url = expand(status_url, dict(sha=commit_sha))
+    if 'pull_request' in payload:
+        status_url = payload['pull_request']['statuses_url']
+    
+    elif 'head_commit' in payload:
+        commit_sha = payload['head_commit']['id']
+        status_url = payload['repository']['statuses_url']
+        status_url = expand(status_url, dict(sha=commit_sha))
+    
+    else:
+        raise ValueError('Unintelligible payload')
     
     current_app.logger.debug('Status URL {}'.format(status_url))
     
