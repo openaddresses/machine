@@ -443,6 +443,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
             return
     
         task.data['run_id'] = add_run(db)
+        source_name = relpath(task.data['name'], 'sources')
 
         _L.info('Got job {} from task queue'.format(task.data['id']))
         passed_on_task_keys = 'id', 'file_id', 'name', 'url', 'content', 'run_id'
@@ -454,7 +455,8 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
 
     # Run the task.
     from . import worker # <-- TODO: un-suck this.
-    result = worker.do_work(s3, task.data['run_id'], task.data['content'], output_dir)
+    result = worker.do_work(s3, task.data['run_id'], source_name,
+                            task.data['content'], output_dir)
 
     # Send a Done task
     done_task_data = dict(result=result, **passed_on_task_kwargs)

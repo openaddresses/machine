@@ -397,7 +397,7 @@ class TestRuns (unittest.TestCase):
         
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
         
-        def returns_plausible_result(s3, run_id, content, output_dir):
+        def returns_plausible_result(s3, run_id, source_name, content, output_dir):
             return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
         
         do_work.side_effect = returns_plausible_result
@@ -505,7 +505,7 @@ class TestRuns (unittest.TestCase):
     def test_overdue_run(self, do_work):
         '''
         '''
-        def returns_plausible_result(s3, run_id, content, output_dir):
+        def returns_plausible_result(s3, run_id, source_name, content, output_dir):
             return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
 
         do_work.side_effect = returns_plausible_result
@@ -621,7 +621,7 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
         
         job_id, content = task_data['id'], task_data['content']
-        result = worker.do_work(self.s3, -1, content, self.output_dir)
+        result = worker.do_work(self.s3, -1, 'so/happy', content, self.output_dir)
         
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
@@ -637,7 +637,7 @@ class TestWorker (unittest.TestCase):
         self.assertTrue(result['output']['cache'].endswith('/cache.zip'))
         self.assertTrue(result['output']['sample'].endswith('/sample.json'))
         self.assertTrue(result['output']['output'].endswith('/output.txt'))
-        self.assertTrue(result['output']['processed'].endswith('/out.csv'))
+        self.assertTrue(result['output']['processed'].endswith('/so/happy.zip'))
     
     @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')
@@ -656,7 +656,7 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
         
         job_id, content = task_data['id'], task_data['content']
-        result = worker.do_work(self.s3, -1, content, self.output_dir)
+        result = worker.do_work(self.s3, -1, 'angry', content, self.output_dir)
         
         check_output.assert_called_with((
             'openaddr-process-one', '-l',

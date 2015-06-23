@@ -8,7 +8,7 @@ enqueues a new message on a separate PQ queue when the work is done.
 '''
 import logging; _L = logging.getLogger('openaddr.ci.worker')
 
-from .. import compat, S3
+from .. import compat, S3, package_output
 from ..jobs import JOB_TIMEOUT
 
 import time, os, psycopg2, socket, json, tempfile
@@ -30,7 +30,7 @@ def upload_file(s3, keyname, filename):
     
     return url, key.md5
 
-def do_work(s3, run_id, job_contents, output_dir):
+def do_work(s3, run_id, source_name, job_contents, output_dir):
     "Do the actual work of running a source file in job_contents"
 
     # Make a directory to run the whole job
@@ -84,31 +84,29 @@ def do_work(s3, run_id, job_contents, output_dir):
         if index['cache']:
             # e.g. /runs/0/cache.zip
             cache_path = os.path.join(index_dirname, index['cache'])
-            _, cache_ext = os.path.splitext(cache_path)
             key_name = '/runs/{run}/{cache}'.format(run=run_id, **index)
-            url, _ = upload_file(s3, key_name, cache_path)
-            index['cache'] = url
+            url, fingerprint = upload_file(s3, key_name, cache_path)
+            index['cache'], index['fingerprint'] = url, fingerprint
         
         if index['sample']:
             # e.g. /runs/0/sample.json
             sample_path = os.path.join(index_dirname, index['sample'])
-            _, sample_ext = os.path.splitext(sample_path)
             key_name = '/runs/{run}/{sample}'.format(run=run_id, **index)
             url, _ = upload_file(s3, key_name, sample_path)
             index['sample'] = url
         
         if index['processed']:
-            # e.g. /runs/0/out.csv
+            # e.g. /runs/0/fr/paris.zip
             processed_path = os.path.join(index_dirname, index['processed'])
-            _, processed_ext = os.path.splitext(processed_path)
-            key_name = '/runs/{run}/{processed}'.format(run=run_id, **index)
+            archive_path = package_output('out', processed_path)
+            key_name = '/runs/{run}/{name}.zip'.format(run=run_id, name=source_name)
             url, _ = upload_file(s3, key_name, processed_path)
             index['processed'] = url
+            os.remove(archive_path)
         
         if index['output']:
-            # e.g. /runs/0/output.json
+            # e.g. /runs/0/output.txt
             output_path = os.path.join(index_dirname, index['output'])
-            _, output_ext = os.path.splitext(output_path)
             key_name = '/runs/{run}/{output}'.format(run=run_id, **index)
             url, _ = upload_file(s3, key_name, output_path)
             index['output'] = url
