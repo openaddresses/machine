@@ -142,7 +142,8 @@ def get_touched_payload_files(payload):
         
         for filename in commit['removed']:
             # Skip files that no longer exist.
-            touched.remove(filename)
+            if filename in touched:
+                touched.remove(filename)
         
     current_app.logger.debug(u'Touched files {}'.format(', '.join(touched)))
     
