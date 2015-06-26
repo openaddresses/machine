@@ -123,7 +123,7 @@ def main():
     web_output_dir = os.path.join(web_docroot, 'oa-runone')
 
     # Rely on boto AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY variables.
-    s3 = S3(None, None, 'data-test.openaddresses.io')
+    s3 = S3(None, None, os.environ.get('AWS_S3_BUCKET', 'data.openaddresses.io'))
 
     # Fetch and run jobs in a loop    
     while True:

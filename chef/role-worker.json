@@ -8,6 +8,7 @@
     "aws_access_id": "{Amazon Access Key ID}",
     "aws_secret_key": "{Amazon Secret Access Key}",
     "aws_sns_arn": "{Amazon SNS Subscription ID}",
+    "aws_s3_bucket": "{Amazon S3 Bucket Name}",
     "github_token": "{Github Token}",
     "gag_github_status": "No",
     "run_list":
