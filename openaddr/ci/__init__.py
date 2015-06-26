@@ -406,7 +406,7 @@ def add_files_to_queue(queue, job_id, job_url, files):
     tasks = {}
     
     for (file_name, (content_b64, file_id)) in files.items():
-        task_data = dict(id=job_id, url=job_url, name=file_name,
+        task_data = dict(job_id=job_id, url=job_url, name=file_name,
                          content_b64=content_b64, file_id=file_id)
     
         queue.put(task_data, expected_at=td2str(timedelta(0)))
@@ -521,8 +521,8 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
         task.data['run_id'] = add_run(db)
         source_name, _ = splitext(relpath(task.data['name'], 'sources'))
 
-        _L.info('Got job {} from task queue'.format(task.data['id']))
-        passed_on_task_keys = 'id', 'file_id', 'name', 'url', 'content_b64', 'run_id'
+        _L.info('Got job {job_id} from task queue'.format(**task.data))
+        passed_on_task_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'run_id'
         passed_on_task_kwargs = {k: task.data.get(k) for k in passed_on_task_keys}
 
         # Send a Due task, possibly for later.
@@ -547,7 +547,7 @@ def pop_task_from_donequeue(queue, github_auth):
         if task is None:
             return
     
-        _L.info('Got job {} from done queue'.format(task.data['id']))
+        _L.info('Got job {job_id} from done queue'.format(**task.data))
         results = task.data['result']
         message = results['message']
         run_state = results.get('output', None)
@@ -556,7 +556,7 @@ def pop_task_from_donequeue(queue, github_auth):
         filename = task.data['name']
         file_id = task.data['file_id']
         run_id = task.data['run_id']
-        job_id = task.data['id']
+        job_id = task.data['job_id']
         
         if is_completed_run(db, file_id, task.enqueued_at):
             # We are too late, this got handled.
@@ -588,14 +588,14 @@ def pop_task_from_duequeue(queue, github_auth):
         if task is None:
             return
         
-        _L.info('Got job {} from due queue'.format(task.data['id']))
+        _L.info('Got job {job_id} from due queue'.format(**task.data))
         original_task = task.data['task_data']
         content_b64 = task.data['content_b64']
         job_url = task.data['url']
         filename = task.data['name']
         file_id = task.data['file_id']
         run_id = task.data['run_id']
-        job_id = task.data['id']
+        job_id = task.data['job_id']
     
         if is_completed_run(db, file_id, task.enqueued_at):
             # Everything's fine, this got handled.
