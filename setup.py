@@ -48,7 +48,7 @@ setup(
             'templates/*.vrt'
         ],
         'openaddr.ci': [
-            'schema.pgsql'
+            'schema.pgsql', 'templates/*.html'
         ],
         'openaddr.tests': [
             'data/*.*', 'sources/*.*', 'conforms/*.*'

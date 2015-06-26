@@ -11,7 +11,7 @@ from functools import wraps
 from uuid import uuid4
 import json, os
 
-from flask import Flask, request, Response, current_app, jsonify
+from flask import Flask, request, Response, current_app, jsonify, render_template
 from uritemplate import expand
 from requests import get, post
 from psycopg2 import connect
@@ -120,7 +120,7 @@ def app_get_job(job_id):
     job = dict(status=status, task_files=task_files, file_states=file_states,
                file_results=file_results, github_status_url=github_status_url)
     
-    return jsonify(job)
+    return render_template('job.html', job=job)
 
 def td2str(td):
     ''' Convert a timedelta to a string formatted like '3h'.

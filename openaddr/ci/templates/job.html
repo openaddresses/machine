@@ -1,0 +1,53 @@
+<p>
+    I am an experimental OpenAddresses test service, currently under development (June 2015).
+    <a href="https://github.com/openaddresses/machine">Find me on Github</a> to learn more.
+</p>
+
+<p>
+    {% if job.status is sameas True %}
+        {% set status_phrase = 'has succeeded' %}
+    {% elif job.status is sameas False %}
+        {% set status_phrase = 'has failed' %}
+    {% else %}
+        {% set status_phrase = 'is in progress' %}
+    {% endif %}
+    
+    This job {{ status_phrase }}:
+</p>
+
+<table>
+{% for (sha, path) in job.task_files.items() %}
+
+    {% set file_result = job.file_results[path] %}
+    {% set file_state = job.file_states[path] %}
+
+    <tr>
+        <td>
+        {% if file_state is sameas True %}
+            <span style="color: #0c3">&#x2714;</span>
+        {% elif file_state is sameas False %}
+            <span style="color: #f00">&#x274C;</span>
+        {% endif %}
+        </td>
+        <td>
+        {{ path }}
+        </td>
+        <td>
+        {% if file_result.output and file_result.output['output'] %}
+            <a href="{{ file_result.output['output'] }}">log</a>
+        {% endif %}
+        </td>
+        <td>
+        {% if file_result.output and file_result.output['sample'] %}
+            <a href="{{ file_result.output['sample'] }}">sample</a>
+        {% endif %}
+        </td>
+        <td>
+        {% if file_result.output and file_result.output['processed'] %}
+            <a href="{{ file_result.output['processed'] }}">data</a>
+        {% endif %}
+        </td>
+    </tr>
+
+{% endfor %}
+</table>
