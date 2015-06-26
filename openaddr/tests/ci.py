@@ -518,7 +518,7 @@ class TestRuns (unittest.TestCase):
                 ((db_source_path, db_source_id, db_source_data), ) = db.fetchall()
                 self.assertEqual(db_source_path, source_path)
                 self.assertEqual(db_source_id, source_id)
-                self.assertTrue(de64(db_source_data).startswith('{'))
+                self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
      
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=2))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
@@ -582,7 +582,7 @@ class TestRuns (unittest.TestCase):
                 ((db_source_path, db_source_id, db_source_data), ) = db.fetchall()
                 self.assertEqual(db_source_path, source_path)
                 self.assertEqual(db_source_id, source_id)
-                self.assertTrue(de64(db_source_data).startswith('{'))
+                self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
      
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
@@ -641,7 +641,7 @@ class TestRuns (unittest.TestCase):
                 ((db_source_path, db_source_id, db_source_data), ) = db.fetchall()
                 self.assertEqual(db_source_path, source_path)
                 self.assertEqual(db_source_id, source_id)
-                self.assertTrue(de64(db_source_data).startswith('{'))
+                self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
      
 class TestWorker (unittest.TestCase):
 
