@@ -11,7 +11,7 @@ import logging; _L = logging.getLogger('openaddr.ci.worker')
 from .. import compat, S3, package_output
 from ..jobs import JOB_TIMEOUT
 
-import time, os, psycopg2, json, tempfile, shutil
+import time, os, psycopg2, json, tempfile, shutil, base64
 from urllib.parse import urlparse, urljoin
 
 from . import (
@@ -30,7 +30,7 @@ def upload_file(s3, keyname, filename):
     
     return url, key.md5
 
-def do_work(s3, run_id, source_name, job_contents, output_dir):
+def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
     "Do the actual work of running a source file in job_contents"
 
     # Make a directory to run the whole job
@@ -39,7 +39,7 @@ def do_work(s3, run_id, source_name, job_contents, output_dir):
     # Write the user input to a file
     out_fn = os.path.join(workdir, 'user_input.txt')
     with open(out_fn, 'wb') as out_fp:
-        out_fp.write(job_contents.encode('utf8'))
+        out_fp.write(base64.b64decode(job_contents_b64))
 
     # Make a directory in which to run openaddr
     oa_dir = os.path.join(workdir, 'out')

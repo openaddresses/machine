@@ -6,6 +6,7 @@ from shutil import rmtree
 from tempfile import mkdtemp
 from httmock import HTTMock, response
 from urllib.parse import parse_qsl, urlparse
+from base64 import b64decode, b64encode
 from datetime import timedelta
 from zipfile import ZipFile
 from io import BytesIO
@@ -26,6 +27,16 @@ from ..ci import (
 from ..jobs import JOB_TIMEOUT
 from .. import compat
 from . import FakeS3
+
+def en64(bytes):
+    ''' Convert bytes to base64 unicode string.
+    '''
+    return b64encode(bytes).decode('utf8')
+
+def de64(string):
+    ''' Convert base64 to unicode string.
+    '''
+    return b64decode(string).decode('utf8')
 
 class TestHook (unittest.TestCase):
 
@@ -179,7 +190,7 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data)
         
         self.assertEqual(posted.status_code, 200)
-        self.assertEqual(self.last_status_state, 'error')
+        self.assertEqual(self.last_status_state, 'pending', 'Should be pending even though content is invalid UTF8')
 
     def test_webhook_one_master_commit(self):
         ''' Push a single commit with Alameda County source directly to master.
@@ -191,8 +202,11 @@ class TestHook (unittest.TestCase):
         
         self.assertEqual(posted.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending')
-        self.assertTrue(b'us-ca-alameda_county' in posted.data, 'Alameda County source should be present in master commit')
-        self.assertTrue(b'data.acgov.org' in posted.data, 'Alameda County domain name should be present in master commit')
+
+        files = json.loads(posted.data.decode('utf8'))['files'].items()
+        smashed_contents = '\n'.join([name + '\n' + de64(b64) for (name, (b64, sha)) in files])
+        self.assertTrue('us-ca-alameda_county' in smashed_contents, 'Alameda County source should be present in master commit')
+        self.assertTrue('data.acgov.org' in smashed_contents, 'Alameda County domain name should be present in master commit')
         
         # Look for the task in the task queue.
         with db_connect(self.database_url) as conn:
@@ -201,7 +215,7 @@ class TestHook (unittest.TestCase):
         self.assertTrue('us-ca-alameda_county' in task.data['name'])
         
         # This is the JSON source payload, just make sure it parses.
-        content = json.loads(task.data['content'])
+        content = json.loads(de64(task.data['content_b64']))
         task.data['result'] = dict(message=MAGIC_OK_MESSAGE)
         task.data['run_id'] = -1
         
@@ -226,11 +240,14 @@ class TestHook (unittest.TestCase):
         
         self.assertEqual(posted.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending')
-        self.assertTrue(b'us-ca-san_francisco' in posted.data, 'San Francisco source should be present in master commit')
-        self.assertTrue(b'data.sfgov.org' in posted.data, 'San Francisco URL should be present in master commit')
-        self.assertTrue(b'us-ca-berkeley' in posted.data, 'Berkeley source should be present in master commit')
-        self.assertTrue(b'www.ci.berkeley.ca.us' in posted.data, 'Berkeley URL should be present in master commit')
-        self.assertFalse(b'us-ca-alameda_county' in posted.data, 'Alameda County source should be absent from master commit')
+
+        files = json.loads(posted.data.decode('utf8'))['files'].items()
+        smashed_contents = '\n'.join([name + '\n' + de64(b64) for (name, (b64, sha)) in files])
+        self.assertTrue('us-ca-san_francisco' in smashed_contents, 'San Francisco source should be present in master commit')
+        self.assertTrue('data.sfgov.org' in smashed_contents, 'San Francisco URL should be present in master commit')
+        self.assertTrue('us-ca-berkeley' in smashed_contents, 'Berkeley source should be present in master commit')
+        self.assertTrue('www.ci.berkeley.ca.us' in smashed_contents, 'Berkeley URL should be present in master commit')
+        self.assertFalse('us-ca-alameda_county' in smashed_contents, 'Alameda County source should be absent from master commit')
         
         for message in ('Something went wrong', MAGIC_OK_MESSAGE):
             # Look for the task in the task queue.
@@ -240,7 +257,7 @@ class TestHook (unittest.TestCase):
             self.assertTrue('us-ca-san_francisco' in task.data['name'] or 'us-ca-berkeley' in task.data['name'])
         
             # This is the JSON source payload, just make sure it parses.
-            content = json.loads(task.data['content'])
+            content = json.loads(de64(task.data['content_b64']))
             task.data['result'] = dict(message=message)
             task.data['run_id'] = -1
         
@@ -266,11 +283,14 @@ class TestHook (unittest.TestCase):
         
         self.assertEqual(posted.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending')
-        self.assertTrue(b'us-ca-san_francisco' in posted.data, 'San Francisco source should be present in master commit')
-        self.assertTrue(b'data.sfgov.org' in posted.data, 'San Francisco URL should be present in master commit')
-        self.assertTrue(b'us-ca-berkeley' in posted.data, 'Berkeley source should be present in master commit')
-        self.assertTrue(b'www.ci.berkeley.ca.us' in posted.data, 'Berkeley URL should be present in master commit')
-        self.assertFalse(b'us-ca-alameda_county' in posted.data, 'Alameda County source should be absent from master commit')
+
+        files = json.loads(posted.data.decode('utf8'))['files'].items()
+        smashed_contents = '\n'.join([name + '\n' + de64(b64) for (name, (b64, sha)) in files])
+        self.assertTrue('us-ca-san_francisco' in smashed_contents, 'San Francisco source should be present in master commit')
+        self.assertTrue('data.sfgov.org' in smashed_contents, 'San Francisco URL should be present in master commit')
+        self.assertTrue('us-ca-berkeley' in smashed_contents, 'Berkeley source should be present in master commit')
+        self.assertTrue('www.ci.berkeley.ca.us' in smashed_contents, 'Berkeley URL should be present in master commit')
+        self.assertFalse('us-ca-alameda_county' in smashed_contents, 'Alameda County source should be absent from master commit')
         
         for (index, message) in enumerate((MAGIC_OK_MESSAGE, 'Something went wrong')):
             # Look for the task in the task queue.
@@ -280,7 +300,7 @@ class TestHook (unittest.TestCase):
             self.assertTrue('us-ca-san_francisco' in task.data['name'] or 'us-ca-berkeley' in task.data['name'])
         
             # This is the JSON source payload, just make sure it parses.
-            content = json.loads(task.data['content'])
+            content = json.loads(de64(task.data['content_b64']))
             task.data['result'] = dict(message=message)
             task.data['run_id'] = -1
         
@@ -320,12 +340,15 @@ class TestHook (unittest.TestCase):
         self.assertEqual(posted.status_code, 500)
         self.assertEqual(self.last_status_state, 'error')
         self.assertTrue('us-ca-santa_clara_county' in self.last_status_message, 'Santa Clara County source should be present in error message')
-        self.assertTrue(b'us-ca-santa_clara_county' in posted.data, 'Santa Clara County source should be present in branch commit')
-        self.assertTrue(b'sftp.sccgov.org' in posted.data, 'Santa Clara County URL should be present in branch commit')
-        self.assertFalse(b'us-ca-contra_costa_county' in posted.data, 'Contra Costa County should be absent from branch commit')
-        self.assertFalse(b'pl-dolnoslaskie' in posted.data, 'Polish source should be absent from branch commit')
-        self.assertFalse(b'us-ca-san_francisco' in posted.data, 'San Francisco source should be absent from branch commit')
-        self.assertFalse(b'us-ca-berkeley' in posted.data, 'Berkeley source should be absent from branch commit')
+
+        files = json.loads(posted.data.decode('utf8'))['files'].items()
+        smashed_contents = '\n'.join([name + '\n' + de64(b64) for (name, (b64, sha)) in files])
+        self.assertTrue('us-ca-santa_clara_county' in smashed_contents, 'Santa Clara County source should be present in branch commit')
+        self.assertTrue('sftp.sccgov.org' in smashed_contents, 'Santa Clara County URL should be present in branch commit')
+        self.assertFalse('us-ca-contra_costa_county' in smashed_contents, 'Contra Costa County should be absent from branch commit')
+        self.assertFalse('pl-dolnoslaskie' in smashed_contents, 'Polish source should be absent from branch commit')
+        self.assertFalse('us-ca-san_francisco' in smashed_contents, 'San Francisco source should be absent from branch commit')
+        self.assertFalse('us-ca-berkeley' in smashed_contents, 'Berkeley source should be absent from branch commit')
         
         # Verify that queued job was never created.
         last_job_url = json.loads(posted.data.decode('utf8')).get('url')
@@ -452,7 +475,7 @@ class TestRuns (unittest.TestCase):
     def test_working_run(self, do_work):
         '''
         '''
-        source = '''{
+        source = b'''{
             "coverage": { "US Census": {"geoid": "0653000", "place": "Oakland city", "state": "California"} },
             "data": "http://data.openoakland.org/sites/default/files/OakParcelsGeo2013_0.zip"
             }'''
@@ -470,7 +493,7 @@ class TestRuns (unittest.TestCase):
             done_Q = db_queue(conn, DONE_QUEUE)
             due_Q = db_queue(conn, DUE_QUEUE)
 
-            files = {source_path: (source, source_id)}
+            files = {source_path: (en64(source), source_id)}
             job_id = create_queued_job(task_Q, files, self.fake_job_template_url, self.fake_status_url)
             pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
             self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
@@ -495,7 +518,7 @@ class TestRuns (unittest.TestCase):
                 ((db_source_path, db_source_id, db_source_data), ) = db.fetchall()
                 self.assertEqual(db_source_path, source_path)
                 self.assertEqual(db_source_id, source_id)
-                self.assertTrue(bytes(db_source_data).decode('utf8').startswith('{'))
+                self.assertTrue(de64(db_source_data).startswith('{'))
      
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=2))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
@@ -508,7 +531,7 @@ class TestRuns (unittest.TestCase):
 
         check_output.side_effect = raises_unexpected_error
 
-        source = '''{
+        source = b'''{
             "coverage": { "US Census": {"geoid": "0653000", "place": "Oakland city", "state": "California"} },
             "data": "http://data.openoakland.org/sites/default/files/OakParcelsGeo2013_0.zip"
             }'''
@@ -520,7 +543,7 @@ class TestRuns (unittest.TestCase):
             done_Q = db_queue(conn, DONE_QUEUE)
             due_Q = db_queue(conn, DUE_QUEUE)
 
-            files = {source_path: (source, source_id)}
+            files = {source_path: (en64(source), source_id)}
             job_id = create_queued_job(task_Q, files, self.fake_job_template_url, self.fake_status_url)
         
             # Bad things will happen and the job will fail.
@@ -559,7 +582,7 @@ class TestRuns (unittest.TestCase):
                 ((db_source_path, db_source_id, db_source_data), ) = db.fetchall()
                 self.assertEqual(db_source_path, source_path)
                 self.assertEqual(db_source_id, source_id)
-                self.assertTrue(bytes(db_source_data).decode('utf8').startswith('{'))
+                self.assertTrue(de64(db_source_data).startswith('{'))
      
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
@@ -572,7 +595,7 @@ class TestRuns (unittest.TestCase):
 
         do_work.side_effect = returns_plausible_result
 
-        source = '''{
+        source = b'''{
             "coverage": { "US Census": {"geoid": "0653000", "place": "Oakland city", "state": "California"} },
             "data": "http://data.openoakland.org/sites/default/files/OakParcelsGeo2013_0.zip"
             }'''
@@ -584,7 +607,7 @@ class TestRuns (unittest.TestCase):
             done_Q = db_queue(conn, DONE_QUEUE)
             due_Q = db_queue(conn, DUE_QUEUE)
 
-            files = {source_path: (source, source_id)}
+            files = {source_path: (en64(source), source_id)}
             job_id = create_queued_job(task_Q, files, self.fake_job_template_url, self.fake_status_url)
             pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
 
@@ -618,7 +641,7 @@ class TestRuns (unittest.TestCase):
                 ((db_source_path, db_source_id, db_source_data), ) = db.fetchall()
                 self.assertEqual(db_source_path, source_path)
                 self.assertEqual(db_source_id, source_id)
-                self.assertTrue(bytes(db_source_data).decode('utf8').startswith('{'))
+                self.assertTrue(de64(db_source_data).startswith('{'))
      
 class TestWorker (unittest.TestCase):
 
