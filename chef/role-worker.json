@@ -16,7 +16,6 @@
         "openaddr",
         "account",
         "ec2-hostname",
-        "apache-worker",
         "worker"
     ]
 }

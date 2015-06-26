@@ -65,9 +65,6 @@ def do_work(s3, run_id, source_name, job_contents, output_dir):
 
     # openaddr-process-one prints a path to index.json
     state_fullpath = result_stdout.strip()
-    key_name = '/runs/{run}/index.json'.format(run=run_id)
-    url, _ = upload_file(s3, key_name, state_fullpath)
-    result['output_url'] = url
 
     with open(state_fullpath) as file:
         index = dict(zip(*json.load(file)))
@@ -118,10 +115,6 @@ def main():
     '''
     setup_logger(os.environ.get('AWS_SNS_ARN'))
 
-    # File path and URL path for result directory. Should be S3.
-    web_docroot = os.environ.get('WEB_DOCROOT', '/var/www/html')
-    web_output_dir = os.path.join(web_docroot, 'oa-runone')
-
     # Rely on boto AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY variables.
     s3 = S3(None, None, os.environ.get('AWS_S3_BUCKET', 'data.openaddresses.io'))
 
@@ -132,7 +125,7 @@ def main():
                 task_Q = db_queue(conn, TASK_QUEUE)
                 done_Q = db_queue(conn, DONE_QUEUE)
                 due_Q = db_queue(conn, DUE_QUEUE)
-                pop_task_from_taskqueue(s3, task_Q, done_Q, due_Q, web_output_dir)
+                pop_task_from_taskqueue(s3, task_Q, done_Q, due_Q, tempfile.gettempdir())
         except:
             _L.error('Error in worker main()', exc_info=True)
             time.sleep(5)
