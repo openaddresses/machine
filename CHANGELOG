@@ -1,3 +1,9 @@
+2015-06-25: 1.10.1
+- Fixed csvsplit bug in ExcerptDataTask.
+- Started pushing openaddr.ci results to S3 with packaged zip archives.
+- Improved appearance of job pages for public consumption.
+- Fixed numerous small bugs in ongoing openaddr.ci work.
+
 2015-06-17: 1.10.0
 - Added City, District, and Region columns to output CSV.
 - Added Amazon SNS logging and Cloudwatch reporting to openaddr.ci.
