@@ -11,7 +11,7 @@ import logging; _L = logging.getLogger('openaddr.ci.worker')
 from .. import compat, S3, package_output
 from ..jobs import JOB_TIMEOUT
 
-import time, os, psycopg2, socket, json, tempfile
+import time, os, psycopg2, json, tempfile, shutil
 from urllib.parse import urlparse, urljoin
 
 from . import (
@@ -34,20 +34,19 @@ def do_work(s3, run_id, source_name, job_contents, output_dir):
     "Do the actual work of running a source file in job_contents"
 
     # Make a directory to run the whole job
-    out_dir = tempfile.mkdtemp(prefix='work-', dir=output_dir)
-    os.chmod(out_dir, 0o755)
+    workdir = tempfile.mkdtemp(prefix='work-', dir=output_dir)
 
     # Write the user input to a file
-    out_fn = os.path.join(out_dir, 'user_input.txt')
+    out_fn = os.path.join(workdir, 'user_input.txt')
     with open(out_fn, 'wb') as out_fp:
         out_fp.write(job_contents.encode('utf8'))
 
     # Make a directory in which to run openaddr
-    oa_dir = os.path.join(out_dir, 'out')
+    oa_dir = os.path.join(workdir, 'out')
     os.mkdir(oa_dir)
 
     # Invoke the job to do
-    cmd = 'openaddr-process-one', '-l', os.path.join(out_dir, 'logfile.txt'), out_fn, oa_dir
+    cmd = 'openaddr-process-one', '-l', os.path.join(workdir, 'logfile.txt'), out_fn, oa_dir
     try:
         timeout_seconds = JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400
         result_stdout = compat.check_output(cmd, timeout=timeout_seconds)
@@ -66,9 +65,9 @@ def do_work(s3, run_id, source_name, job_contents, output_dir):
 
     # openaddr-process-one prints a path to index.json
     state_fullpath = result_stdout.strip()
-    output_base = 'http://{host}/oa-runone/'.format(host=socket.getfqdn())
-    state_path = os.path.relpath(result_stdout.strip(), output_dir)
-    result['output_url'] = urljoin(output_base, state_path)
+    key_name = '/runs/{run}/index.json'.format(run=run_id)
+    url, _ = upload_file(s3, key_name, state_fullpath)
+    result['output_url'] = url
 
     with open(state_fullpath) as file:
         index = dict(zip(*json.load(file)))
@@ -110,7 +109,8 @@ def do_work(s3, run_id, source_name, job_contents, output_dir):
             index['output'] = url
         
         result['output'] = index
-
+    
+    shutil.rmtree(workdir)
     return result
 
 def main():
