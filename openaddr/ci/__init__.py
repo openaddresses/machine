@@ -6,7 +6,6 @@ from .. import jobs
 from os.path import relpath, splitext
 from urllib.parse import urljoin
 from datetime import timedelta
-from base64 import b64decode
 from functools import wraps
 from uuid import uuid4
 import json, os
@@ -238,14 +237,11 @@ def process_pullrequest_payload_files(payload, github_auth):
             current_app.logger.warning('Skipping {} - {}'.format(filename, got.status_code))
             continue
         
-        content, encoding = contents['content'], contents['encoding']
+        if contents['encoding'] != 'base64':
+            raise ValueError('Unrecognized encoding "{encoding}"'.format(**contents))
         
-        current_app.logger.debug('Contents SHA {}'.format(contents['sha']))
-        
-        if encoding == 'base64':
-            files[filename] = b64decode(content).decode('utf8'), contents['sha']
-        else:
-            raise ValueError('Unrecognized encoding "{}"'.format(encoding))
+        current_app.logger.debug('Contents SHA {sha}'.format(**contents))
+        files[filename] = contents['content'], contents['sha']
     
     return files
 
@@ -286,14 +282,11 @@ def process_pushevent_payload_files(payload, github_auth):
             current_app.logger.warning('Skipping {} - {}'.format(filename, got.status_code))
             continue
         
-        content, encoding = contents['content'], contents['encoding']
+        if contents['encoding'] != 'base64':
+            raise ValueError('Unrecognized encoding "{encoding}"'.format(**contents))
         
-        current_app.logger.debug('Contents SHA {}'.format(contents['sha']))
-        
-        if encoding == 'base64':
-            files[filename] = b64decode(content).decode('utf8'), contents['sha']
-        else:
-            raise ValueError('Unrecognized encoding "{}"'.format(encoding))
+        current_app.logger.debug('Contents SHA {sha}'.format(**contents))
+        files[filename] = contents['content'], contents['sha']
     
     return files
 
@@ -412,9 +405,9 @@ def add_files_to_queue(queue, job_id, job_url, files):
     '''
     tasks = {}
     
-    for (file_name, (content, file_id)) in files.items():
-        task_data = dict(id=job_id, url=job_url, name=file_name,
-                         content=content, file_id=file_id)
+    for (file_name, (content_b64, file_id)) in files.items():
+        task_data = dict(job_id=job_id, url=job_url, name=file_name,
+                         content_b64=content_b64, file_id=file_id)
     
         queue.put(task_data, expected_at=td2str(timedelta(0)))
         tasks[file_id] = file_name
@@ -479,14 +472,14 @@ def add_run(db):
     
     return run_id
 
-def set_run(db, run_id, filename, file_id, content, run_state):
+def set_run(db, run_id, filename, file_id, content_b64, run_state):
     ''' Populate an identitified row in the runs table.
     '''
     db.execute('''UPDATE runs SET
                   source_path = %s, source_data = %s, source_id = %s,
                   state = %s::json, datetime = NOW() AT TIME ZONE 'UTC'
                   WHERE id = %s''',
-               (filename, content, file_id, json.dumps(run_state), run_id))
+               (filename, content_b64, file_id, json.dumps(run_state), run_id))
 
 def update_job_status(db, job_id, job_url, filenames, task_files, file_states, file_results, status_url, github_auth):
     '''
@@ -528,8 +521,8 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
         task.data['run_id'] = add_run(db)
         source_name, _ = splitext(relpath(task.data['name'], 'sources'))
 
-        _L.info('Got job {} from task queue'.format(task.data['id']))
-        passed_on_task_keys = 'id', 'file_id', 'name', 'url', 'content', 'run_id'
+        _L.info('Got job {job_id} from task queue'.format(**task.data))
+        passed_on_task_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'run_id'
         passed_on_task_kwargs = {k: task.data.get(k) for k in passed_on_task_keys}
 
         # Send a Due task, possibly for later.
@@ -539,7 +532,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
     # Run the task.
     from . import worker # <-- TODO: un-suck this.
     result = worker.do_work(s3, task.data['run_id'], source_name,
-                            task.data['content'], output_dir)
+                            task.data['content_b64'], output_dir)
 
     # Send a Done task
     done_task_data = dict(result=result, **passed_on_task_kwargs)
@@ -554,22 +547,22 @@ def pop_task_from_donequeue(queue, github_auth):
         if task is None:
             return
     
-        _L.info('Got job {} from done queue'.format(task.data['id']))
+        _L.info('Got job {job_id} from done queue'.format(**task.data))
         results = task.data['result']
         message = results['message']
         run_state = results.get('output', None)
-        content = task.data['content']
+        content_b64 = task.data['content_b64']
         job_url = task.data['url']
         filename = task.data['name']
         file_id = task.data['file_id']
         run_id = task.data['run_id']
-        job_id = task.data['id']
+        job_id = task.data['job_id']
         
         if is_completed_run(db, file_id, task.enqueued_at):
             # We are too late, this got handled.
             return
         
-        set_run(db, run_id, filename, file_id, content, run_state)
+        set_run(db, run_id, filename, file_id, content_b64, run_state)
 
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)
@@ -595,20 +588,20 @@ def pop_task_from_duequeue(queue, github_auth):
         if task is None:
             return
         
-        _L.info('Got job {} from due queue'.format(task.data['id']))
+        _L.info('Got job {job_id} from due queue'.format(**task.data))
         original_task = task.data['task_data']
-        content = task.data['content']
+        content_b64 = task.data['content_b64']
         job_url = task.data['url']
         filename = task.data['name']
         file_id = task.data['file_id']
         run_id = task.data['run_id']
-        job_id = task.data['id']
+        job_id = task.data['job_id']
     
         if is_completed_run(db, file_id, task.enqueued_at):
             # Everything's fine, this got handled.
             return
 
-        set_run(db, run_id, filename, file_id, content, None)
+        set_run(db, run_id, filename, file_id, content_b64, None)
 
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)
