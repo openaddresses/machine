@@ -473,7 +473,7 @@ class TestRuns (unittest.TestCase):
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.worker.do_work')
     def test_working_run(self, do_work):
-        '''
+        ''' Test a boring successful run.
         '''
         source = b'''{
             "coverage": { "US Census": {"geoid": "0653000", "place": "Oakland city", "state": "California"} },
@@ -524,7 +524,7 @@ class TestRuns (unittest.TestCase):
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.compat.check_output')
     def test_failing_run(self, check_output):
-        '''
+        ''' Test a run that fails.
         '''
         def raises_unexpected_error(cmd, timeout=None):
             raise NotImplementedError('Everything is ruined.')
@@ -588,7 +588,7 @@ class TestRuns (unittest.TestCase):
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.worker.do_work')
     def test_overdue_run(self, do_work):
-        '''
+        ''' Test a run that succeeds past its due date.
         '''
         def returns_plausible_result(s3, run_id, source_name, content, output_dir):
             return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
@@ -647,7 +647,7 @@ class TestRuns (unittest.TestCase):
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.worker.do_work')
     def test_double_run(self, do_work):
-        '''
+        ''' Test repeated run that's fast enough to take advantage of reuse.
         '''
         source = b'''{
             "coverage": { "US Census": {"geoid": "0653000", "place": "Oakland city", "state": "California"} },
@@ -660,7 +660,7 @@ class TestRuns (unittest.TestCase):
             return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"}, result_code=0, result_stdout='...')
         
         def raises_an_error(s3, run_id, source_name, content, output_dir):
-            raise Exception('Nope')
+            raise Exception('Worker did not know to re-use previous run')
         
         # Do the work.
         with db_connect(self.database_url) as conn, HTTMock(self.response_content):
@@ -687,7 +687,7 @@ class TestRuns (unittest.TestCase):
                 self.assertEqual(db_source_id, source_id)
                 self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
      
-            do_work.side_effect = raises_an_error
+            do_work.side_effect = raises_an_error # won't be called anyway
             self.last_status_state = None
 
             create_queued_job(task_Q, files, self.fake_job_template_url, self.fake_status_url)
