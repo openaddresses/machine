@@ -108,6 +108,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('data.openaddresses.io', '/cache/fr/BAN_licence_gratuite_repartage_75.zip'):
             local_path = join(data_dirname, 'BAN_licence_gratuite_repartage_75.zip')
         
+        if (host, path) == ('data.openaddresses.io', '/cache/fr/BAN_licence_gratuite_repartage_974.zip'):
+            local_path = join(data_dirname, 'BAN_licence_gratuite_repartage_974.zip')
+        
         if scheme == 'file':
             local_path = path
 
@@ -483,6 +486,29 @@ class TestOA (unittest.TestCase):
         self.assertTrue('Paris 15e Arrondissement' in sample_data[1])
         self.assertTrue('2.29603434925049' in sample_data[1])
         self.assertTrue('48.845110357374' in sample_data[1])
+
+    def test_single_fr_lareunion(self):
+        ''' Test complete process_one.process on data that uses non-UTF8 encoding (issue #136)
+        '''
+        source = join(self.src_dir, 'fr/la-réunion.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+            print(state_path, state)
+
+        self.assertTrue(state['sample'] is not None)
+
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('libelle_acheminement' in sample_data[0])
+        self.assertTrue('Saint-Joseph' in sample_data[1])
+        self.assertTrue('55.6120442584072' in sample_data[1])
+        self.assertTrue('-21.385871079156' in sample_data[1])
 
 @contextmanager
 def locked_open(filename):
