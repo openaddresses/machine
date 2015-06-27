@@ -517,25 +517,41 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
         # PQ will return NULL after 1 second timeout if not ask
         if task is None:
             return
-    
-        task.data['run_id'] = add_run(db)
-        source_name, _ = splitext(relpath(task.data['name'], 'sources'))
 
         _L.info('Got job {job_id} from task queue'.format(**task.data))
-        passed_on_task_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'run_id'
-        passed_on_task_kwargs = {k: task.data.get(k) for k in passed_on_task_keys}
+        passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'run_id'
+        passed_on_kwargs = {k: task.data.get(k) for k in passed_on_keys}
+        
+        # Look for an existing run on this file ID.
+        db.execute('''SELECT id, state
+                      FROM runs WHERE source_id = %s
+                      ORDER BY datetime DESC LIMIT 1''',
+                   (passed_on_kwargs['file_id'], ))
+        
+        previous_run = db.fetchone()
+    
+        if previous_run is None:
+            # Reserve space for a new run.
+            passed_on_kwargs['run_id'] = add_run(db)
 
-        # Send a Due task, possibly for later.
-        due_task_data = dict(task_data=task.data, **passed_on_task_kwargs)
-        due_queue.put(due_task_data, schedule_at=td2str(jobs.JOB_TIMEOUT + DUETASK_DELAY))
+            # Send a Due task, possibly for later.
+            due_task_data = dict(task_data=task.data, **passed_on_kwargs)
+            due_queue.put(due_task_data, schedule_at=td2str(jobs.JOB_TIMEOUT + DUETASK_DELAY))
+    
+    if previous_run:
+        # Re-use result from the previous run.
+        run_id, state = previous_run
+        result = dict(message=MAGIC_OK_MESSAGE, reused_run=run_id, output=state)
 
-    # Run the task.
-    from . import worker # <-- TODO: un-suck this.
-    result = worker.do_work(s3, task.data['run_id'], source_name,
-                            task.data['content_b64'], output_dir)
+    else:
+        # Run the task.
+        from . import worker # <-- TODO: un-suck this.
+        source_name, _ = splitext(relpath(passed_on_kwargs['name'], 'sources'))
+        result = worker.do_work(s3, passed_on_kwargs['run_id'], source_name,
+                                passed_on_kwargs['content_b64'], output_dir)
 
     # Send a Done task
-    done_task_data = dict(result=result, **passed_on_task_kwargs)
+    done_task_data = dict(result=result, **passed_on_kwargs)
     done_queue.put(done_task_data, expected_at=td2str(timedelta(0)))
 
 def pop_task_from_donequeue(queue, github_auth):

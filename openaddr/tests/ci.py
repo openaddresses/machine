@@ -657,7 +657,7 @@ class TestRuns (unittest.TestCase):
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
         
         def returns_plausible_result(s3, run_id, source_name, content, output_dir):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
+            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"}, result_code=0, result_stdout='...')
         
         def raises_an_error(s3, run_id, source_name, content, output_dir):
             raise Exception('Nope')
@@ -697,6 +697,12 @@ class TestRuns (unittest.TestCase):
             # Work done again!
             pop_task_from_donequeue(done_Q, self.github_auth)
             self.assertEqual(self.last_status_state, 'success', 'Should be "success" again')
+            
+            # Ensure that no new run was created
+            with done_Q as db:
+                db.execute('SELECT count(id) FROM runs')
+                (count, ) = db.fetchone()
+                self.assertEqual(count, 1, 'There should still be just one run')
 
 class TestWorker (unittest.TestCase):
 
