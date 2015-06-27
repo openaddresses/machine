@@ -1,3 +1,6 @@
+2015-06-26: 1.10.3
+- Started reusing cached openaddr.ci run results within five days.
+
 2015-06-26: 1.10.2
 - Changed openaddr.ci queue task contents.
 
