@@ -704,6 +704,65 @@ class TestRuns (unittest.TestCase):
                 (count, ) = db.fetchone()
                 self.assertEqual(count, 1, 'There should still be just one run')
 
+    @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
+    @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
+    @patch('openaddr.ci.RUN_REUSE_TIMEOUT', new=timedelta(seconds=1))
+    @patch('openaddr.ci.worker.do_work')
+    def test_slow_double_run(self, do_work):
+        ''' Test repeated run that's too slow to take advantage of reuse.
+        '''
+        source = b'''{
+            "coverage": { "US Census": {"geoid": "0653000", "place": "Oakland city", "state": "California"} },
+            "data": "http://data.openoakland.org/sites/default/files/OakParcelsGeo2013_0.zip"
+            }'''
+        
+        source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
+        
+        def returns_plausible_result(s3, run_id, source_name, content, output_dir):
+            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"}, result_code=0, result_stdout='...')
+        
+        do_work.side_effect = returns_plausible_result
+
+        # Do the work.
+        with db_connect(self.database_url) as conn, HTTMock(self.response_content):
+            task_Q = db_queue(conn, TASK_QUEUE)
+            done_Q = db_queue(conn, DONE_QUEUE)
+            due_Q = db_queue(conn, DUE_QUEUE)
+
+            files = {source_path: (en64(source), source_id)}
+            create_queued_job(task_Q, files, self.fake_job_template_url, self.fake_status_url)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
+            self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
+            
+            # Work done!
+            pop_task_from_donequeue(done_Q, self.github_auth)
+            self.assertEqual(self.last_status_state, 'success', 'Should be "success" now')
+            
+            # Find a record of this run.
+            with done_Q as db:
+                db.execute('SELECT source_path, source_id, source_data FROM runs')
+                ((db_source_path, db_source_id, db_source_data), ) = db.fetchall()
+                self.assertEqual(db_source_path, source_path)
+                self.assertEqual(db_source_id, source_id)
+                self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
+     
+            self.last_status_state = None
+            sleep(1.5)
+
+            create_queued_job(task_Q, files, self.fake_job_template_url, self.fake_status_url)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
+            self.assertEqual(self.last_status_state, None, 'Should be nothing still')
+            
+            # Work done again!
+            pop_task_from_donequeue(done_Q, self.github_auth)
+            self.assertEqual(self.last_status_state, 'success', 'Should be "success" again')
+            
+            # Verify that two runs now exist.
+            with done_Q as db:
+                db.execute('SELECT count(id) FROM runs')
+                (count, ) = db.fetchone()
+                self.assertEqual(count, 2, 'There should have been two runs')
+
 class TestWorker (unittest.TestCase):
 
     def setUp(self):

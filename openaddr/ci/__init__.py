@@ -49,6 +49,9 @@ TASK_QUEUE, DONE_QUEUE, DUE_QUEUE = 'tasks', 'finished', 'due'
 # Additional delay after JOB_TIMEOUT for due tasks.
 DUETASK_DELAY = timedelta(minutes=5)
 
+# Amount of time to reuse run results.
+RUN_REUSE_TIMEOUT = timedelta(days=5)
+
 @app.before_first_request
 def app_prepare():
     setup_logger(os.environ.get('AWS_SNS_ARN'), logging.WARNING)
@@ -522,11 +525,14 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
         passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'run_id'
         passed_on_kwargs = {k: task.data.get(k) for k in passed_on_keys}
         
-        # Look for an existing run on this file ID.
-        db.execute('''SELECT id, state
-                      FROM runs WHERE source_id = %s
+        # Look for an existing run on this file ID within the reuse timeout limit.
+        interval = '{} seconds'.format(RUN_REUSE_TIMEOUT.seconds + RUN_REUSE_TIMEOUT.days * 86400)
+        
+        db.execute('''SELECT id, state FROM runs
+                      WHERE source_id = %s
+                        AND datetime > (NOW() AT TIME ZONE 'UTC') - INTERVAL %s
                       ORDER BY datetime DESC LIMIT 1''',
-                   (passed_on_kwargs['file_id'], ))
+                   (passed_on_kwargs['file_id'], interval))
         
         previous_run = db.fetchone()
     
