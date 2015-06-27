@@ -1,3 +1,4 @@
+# coding=utf8
 from __future__ import print_function
 
 from os import environ, remove
@@ -814,7 +815,7 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
         
         job_id, content = task_data['id'], task_data['content']
-        result = worker.do_work(self.s3, -1, 'so/happy', content, self.output_dir)
+        result = worker.do_work(self.s3, -1, u'so/exalté', content, self.output_dir)
         
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
@@ -830,14 +831,13 @@ class TestWorker (unittest.TestCase):
         self.assertTrue(result['output']['cache'].endswith('/cache.zip'))
         self.assertTrue(result['output']['sample'].endswith('/sample.json'))
         self.assertTrue(result['output']['output'].endswith('/output.txt'))
-        self.assertTrue(result['output']['processed'].endswith('/so/happy.zip'))
+        self.assertTrue(result['output']['processed'].endswith(u'/so/exalté.zip'))
         
         zip_path = urlparse(result['output']['processed']).path
         zip_bytes = self.s3._read_fake_key(zip_path)
         zip_file = ZipFile(BytesIO(zip_bytes), mode='r')
-        
-        self.assertTrue('so/happy.csv' in zip_file.namelist())
-        self.assertTrue('so/happy.vrt' in zip_file.namelist())
+        self.assertTrue(u'so/exalté.csv' in zip_file.namelist())
+        self.assertTrue(u'so/exalté.vrt' in zip_file.namelist())
     
     @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')
