@@ -1,3 +1,6 @@
+2015-06-26: 1.10.2
+- Changed openaddr.ci queue task contents.
+
 2015-06-25: 1.10.1
 - Fixed csvsplit bug in ExcerptDataTask.
 - Started pushing openaddr.ci results to S3 with packaged zip archives.
