@@ -10,7 +10,7 @@ from shutil import copy, move, rmtree
 from os import mkdir, environ, close
 from urllib.parse import urlparse
 from datetime import datetime
-import json
+import json, io
 
 from osgeo import ogr
 from boto import connect_s3
@@ -193,9 +193,9 @@ def package_output(source, processed_path):
         # Add virtual format to make CSV readable by QGIS, OGR, etc.
         # More information: http://www.gdal.org/drv_vrt.html
         template = join(dirname(__file__), 'templates', 'conform-result.vrt')
-        with open(template) as file:
-            content = file.read().format(source=basename(source).encode('utf8'))
-            zip_file.writestr(source + '.vrt', content)
+        with io.open(template, encoding='utf8') as file:
+            content = file.read().format(source=basename(source))
+            zip_file.writestr(source + '.vrt', content.encode('utf8'))
     
     zip_file.write(processed_path, source + ext)
     zip_file.close()
