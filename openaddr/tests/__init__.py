@@ -490,7 +490,7 @@ class TestOA (unittest.TestCase):
     def test_single_fr_lareunion(self):
         ''' Test complete process_one.process on data that uses non-UTF8 encoding (issue #136)
         '''
-        source = join(self.src_dir, 'fr/la-réunion.json')
+        source = join(self.src_dir, u'fr/la-réunion.json')
 
         with HTTMock(self.response_content):
             state_path = process_one.process(source, self.testdir)
