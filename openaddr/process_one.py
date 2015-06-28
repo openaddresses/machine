@@ -39,7 +39,7 @@ def process(source, destination, extras=dict()):
         if not cache_result.cache:
             _L.warning('Nothing cached')
         else:
-            _L.info('Cached data in {}'.format(cache_result.cache))
+            _L.info(u'Cached data in {}'.format(cache_result.cache))
 
             # Conform cached source data.
             conform_result = conform(temp_src, temp_dir, cache_result.todict())
