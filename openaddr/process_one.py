@@ -12,6 +12,7 @@ from _thread import get_ident
 import tempfile, json, csv
 
 from . import cache, conform, CacheResult, ConformResult
+from .compat import csvopen, csvwriter
 
 def process(source, destination, extras=dict()):
     ''' Process a single source and destination, return path to JSON state file.
@@ -38,7 +39,7 @@ def process(source, destination, extras=dict()):
         if not cache_result.cache:
             _L.warning('Nothing cached')
         else:
-            _L.info('Cached data in {}'.format(cache_result.cache))
+            _L.info(u'Cached data in {}'.format(cache_result.cache))
 
             # Conform cached source data.
             conform_result = conform(temp_src, temp_dir, cache_result.todict())
@@ -136,15 +137,15 @@ def write_state(source, destination, log_handler, cache_result, conform_result, 
         ('output', relpath(output_path, statedir))
         ]
                
-    with open(join(statedir, 'index.txt'), 'w') as file:
-        out = csv.writer(file, dialect='excel-tab')
+    with csvopen(join(statedir, 'index.txt'), 'w', encoding='utf8') as file:
+        out = csvwriter(file, dialect='excel-tab', encoding='utf8')
         for row in zip(*state):
             out.writerow(row)
     
     with open(join(statedir, 'index.json'), 'w') as file:
         json.dump(list(zip(*state)), file, indent=2)
                
-        _L.info('Wrote to state: {}'.format(file.name))
+        _L.info(u'Wrote to state: {}'.format(file.name))
         return file.name
 
 parser = ArgumentParser(description='Run one source file locally, prints output path.')

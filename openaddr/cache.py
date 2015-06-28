@@ -134,7 +134,7 @@ def guess_url_file_extension(url):
         #
         # Trust simple URLs without meaningless filename extensions.
         #
-        _L.debug('URL says "{}" for {}'.format(likely_ext, url))
+        _L.debug(u'URL says "{}" for {}'.format(likely_ext, url))
         path_ext = likely_ext
     
     else:
@@ -219,10 +219,10 @@ class URLDownloadTask(DownloadTask):
         else:
             # With a source prefix, create a safe and unique filename with a hash.
             hash = sha1((host + path_base).encode('utf-8'))
-            name_base = '{}-{}'.format(self.source_prefix, hash.hexdigest()[:8])
+            name_base = u'{}-{}'.format(self.source_prefix, hash.hexdigest()[:8])
         
         path_ext = guess_url_file_extension(url)
-        _L.debug('Guessed {}{} for {}'.format(name_base, path_ext, url))
+        _L.debug(u'Guessed {}{} for {}'.format(name_base, path_ext, url))
     
         return os.path.join(dir_path, name_base + path_ext)
 

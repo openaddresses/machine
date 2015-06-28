@@ -51,7 +51,7 @@ setup(
             'schema.pgsql', 'templates/*.html'
         ],
         'openaddr.tests': [
-            'data/*.*', 'sources/*.*', 'conforms/*.*'
+            'data/*.*', 'sources/*.*', 'sources/fr/*.*', 'conforms/*.*'
         ]
     },
     test_suite = 'openaddr.tests',
