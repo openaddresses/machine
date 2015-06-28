@@ -194,7 +194,7 @@ def package_output(source, processed_path):
         # More information: http://www.gdal.org/drv_vrt.html
         template = join(dirname(__file__), 'templates', 'conform-result.vrt')
         with open(template) as file:
-            content = file.read().format(source=source.encode('utf8'))
+            content = file.read().format(source=basename(source).encode('utf8'))
             zip_file.writestr(source + '.vrt', content)
     
     zip_file.write(processed_path, source + ext)
