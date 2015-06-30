@@ -682,8 +682,8 @@ class TestRuns (unittest.TestCase):
             
             # Find a record of this run.
             with done_Q as db:
-                db.execute('SELECT source_path, source_id, source_data FROM runs')
-                ((db_source_path, db_source_id, db_source_data), ) = db.fetchall()
+                db.execute('SELECT id, source_path, source_id, source_data FROM runs')
+                ((first_run_id, db_source_path, db_source_id, db_source_data), ) = db.fetchall()
                 self.assertEqual(db_source_path, source_path)
                 self.assertEqual(db_source_id, source_id)
                 self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
@@ -703,7 +703,16 @@ class TestRuns (unittest.TestCase):
             with done_Q as db:
                 db.execute('SELECT count(id) FROM runs')
                 (count, ) = db.fetchone()
-                self.assertEqual(count, 1, 'There should still be just one run')
+                self.assertEqual(count, 2, 'There should have been two runs')
+
+                db.execute('''SELECT id, source_path, source_id, source_data FROM runs
+                              ORDER BY datetime DESC LIMIT 1''')
+
+                ((second_run_id, db_source_path, db_source_id, db_source_data), ) = db.fetchall()
+                self.assertNotEqual(second_run_id, first_run_id)
+                self.assertEqual(db_source_path, source_path)
+                self.assertEqual(db_source_id, source_id)
+                self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
