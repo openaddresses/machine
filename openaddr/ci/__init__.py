@@ -475,14 +475,17 @@ def add_run(db):
     
     return run_id
 
-def set_run(db, run_id, filename, file_id, content_b64, run_state):
+def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status):
     ''' Populate an identitified row in the runs table.
     '''
     db.execute('''UPDATE runs SET
                   source_path = %s, source_data = %s, source_id = %s,
-                  state = %s::json, datetime = NOW() AT TIME ZONE 'UTC'
+                  state = %s::json, status = %s,
+                  datetime = NOW() AT TIME ZONE 'UTC'
                   WHERE id = %s''',
-               (filename, content_b64, file_id, json.dumps(run_state), run_id))
+               (filename, content_b64, file_id,
+               json.dumps(run_state), run_status,
+               run_id))
 
 def update_job_status(db, job_id, job_url, filenames, task_files, file_states, file_results, status_url, github_auth):
     '''
@@ -584,7 +587,8 @@ def pop_task_from_donequeue(queue, github_auth):
             # We are too late, this got handled.
             return
         
-        set_run(db, run_id, filename, file_id, content_b64, run_state)
+        run_status = bool(message == MAGIC_OK_MESSAGE)
+        set_run(db, run_id, filename, file_id, content_b64, run_state, run_status)
 
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)
@@ -595,7 +599,7 @@ def pop_task_from_donequeue(queue, github_auth):
             raise Exception('Unknown file from job {}: "{}"'.format(job_id, filename))
         
         filenames = list(task_files.values())
-        file_states[filename] = bool(message == MAGIC_OK_MESSAGE)
+        file_states[filename] = run_status
         file_results[filename] = results
         
         update_job_status(db, job_id, job_url, filenames, task_files,
@@ -623,7 +627,8 @@ def pop_task_from_duequeue(queue, github_auth):
             # Everything's fine, this got handled.
             return
 
-        set_run(db, run_id, filename, file_id, content_b64, None)
+        run_status = False
+        set_run(db, run_id, filename, file_id, content_b64, None, run_status)
 
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)
@@ -634,7 +639,7 @@ def pop_task_from_duequeue(queue, github_auth):
             raise Exception('Unknown file from job {}: "{}"'.format(job_id, filename))
         
         filenames = list(task_files.values())
-        file_states[filename] = False
+        file_states[filename] = run_status
         file_results[filename] = False
         
         update_job_status(db, job_id, job_url, filenames, task_files,
