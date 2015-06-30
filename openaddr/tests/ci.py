@@ -14,7 +14,7 @@ from io import BytesIO
 from mock import patch
 from time import sleep
 
-import unittest, json, os, sys
+import unittest, json, os, sys, itertools
 
 os.environ['GITHUB_TOKEN'] = ''
 os.environ['DATABASE_URL'] = environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
@@ -656,9 +656,10 @@ class TestRuns (unittest.TestCase):
             }'''
         
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
+        nonce = itertools.count(1)
         
         def returns_plausible_result(s3, run_id, source_name, content, output_dir):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"}, result_code=0, result_stdout='...')
+            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "nonce": next(nonce)}, result_code=0, result_stdout='...')
         
         def raises_an_error(s3, run_id, source_name, content, output_dir):
             raise Exception('Worker did not know to re-use previous run')
@@ -682,8 +683,8 @@ class TestRuns (unittest.TestCase):
             
             # Find a record of this run.
             with done_Q as db:
-                db.execute('SELECT id, source_path, source_id, source_data FROM runs')
-                ((first_run_id, db_source_path, db_source_id, db_source_data), ) = db.fetchall()
+                db.execute("SELECT id, state->>'nonce', source_path, source_id, source_data FROM runs")
+                ((first_run_id, first_nonce, db_source_path, db_source_id, db_source_data), ) = db.fetchall()
                 self.assertEqual(db_source_path, source_path)
                 self.assertEqual(db_source_id, source_id)
                 self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
@@ -705,11 +706,12 @@ class TestRuns (unittest.TestCase):
                 (count, ) = db.fetchone()
                 self.assertEqual(count, 2, 'There should have been two runs')
 
-                db.execute('''SELECT id, source_path, source_id, source_data FROM runs
+                db.execute('''SELECT id, state->>'nonce', source_path, source_id, source_data FROM runs
                               ORDER BY datetime DESC LIMIT 1''')
 
-                ((second_run_id, db_source_path, db_source_id, db_source_data), ) = db.fetchall()
-                self.assertNotEqual(second_run_id, first_run_id)
+                ((second_run_id, second_nonce, db_source_path, db_source_id, db_source_data), ) = db.fetchall()
+                self.assertNotEqual(second_run_id, first_run_id, 'The two runs should be distinct')
+                self.assertEqual(second_nonce, first_nonce, 'The two runs should share the same nonce')
                 self.assertEqual(db_source_path, source_path)
                 self.assertEqual(db_source_id, source_id)
                 self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
@@ -727,9 +729,10 @@ class TestRuns (unittest.TestCase):
             }'''
         
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
+        nonce = itertools.count(1)
         
         def returns_plausible_result(s3, run_id, source_name, content, output_dir):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"}, result_code=0, result_stdout='...')
+            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "nonce": next(nonce)}, result_code=0, result_stdout='...')
         
         do_work.side_effect = returns_plausible_result
 
@@ -769,9 +772,9 @@ class TestRuns (unittest.TestCase):
             
             # Verify that two runs now exist.
             with done_Q as db:
-                db.execute('SELECT count(id) FROM runs')
-                (count, ) = db.fetchone()
-                self.assertEqual(count, 2, 'There should have been two runs')
+                db.execute("SELECT state->>'nonce' FROM runs")
+                (nonce1, ), (nonce2, ) = db.fetchall()
+                self.assertNotEqual(nonce1, nonce2, 'There should have been two different runs')
 
 class TestWorker (unittest.TestCase):
 
