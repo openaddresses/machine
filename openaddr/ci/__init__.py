@@ -548,7 +548,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
         # Look for an existing run on this file ID within the reuse timeout limit.
         interval = '{} seconds'.format(RUN_REUSE_TIMEOUT.seconds + RUN_REUSE_TIMEOUT.days * 86400)
         
-        db.execute('''SELECT id, state FROM runs
+        db.execute('''SELECT id, state, status FROM runs
                       WHERE source_id = %s
                         AND datetime > (NOW() AT TIME ZONE 'UTC') - INTERVAL %s
                         AND status IS NOT NULL
@@ -559,7 +559,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
     
         if previous_run:
             # Make a copy of the previous run.
-            previous_run_id, _ = previous_run
+            previous_run_id, _, _ = previous_run
             passed_on_kwargs['run_id'] = copy_run(db, previous_run_id)
             
             # Don't send a due task, since we will not be doing any actual work.
@@ -574,8 +574,9 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
     
     if previous_run:
         # Re-use result from the previous run.
-        run_id, state = previous_run
-        result = dict(message=MAGIC_OK_MESSAGE, reused_run=run_id, output=state)
+        run_id, state, status = previous_run
+        message = MAGIC_OK_MESSAGE if status else 'Re-using failed previous run'
+        result = dict(message=message, reused_run=run_id, output=state)
 
     else:
         # Run the task.

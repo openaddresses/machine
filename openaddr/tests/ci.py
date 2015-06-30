@@ -647,8 +647,8 @@ class TestRuns (unittest.TestCase):
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.worker.do_work')
-    def test_double_run(self, do_work):
-        ''' Test repeated run that's fast enough to take advantage of reuse.
+    def test_failing_double_run(self, do_work):
+        ''' Test repeated failing run that's fast enough to take advantage of reuse.
         '''
         source = b'''{
             "coverage": { "US Census": {"geoid": "0653000", "place": "Oakland city", "state": "California"} },
@@ -659,7 +659,7 @@ class TestRuns (unittest.TestCase):
         nonce = itertools.count(1)
         
         def returns_plausible_result(s3, run_id, source_name, content, output_dir):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "nonce": next(nonce)}, result_code=0, result_stdout='...')
+            return dict(message='Something went wrong', output={"source": "user_input.txt", "nonce": next(nonce)}, result_code=0, result_stdout='...')
         
         def raises_an_error(s3, run_id, source_name, content, output_dir):
             raise Exception('Worker did not know to re-use previous run')
@@ -679,7 +679,7 @@ class TestRuns (unittest.TestCase):
             
             # Work done!
             pop_task_from_donequeue(done_Q, self.github_auth)
-            self.assertEqual(self.last_status_state, 'success', 'Should be "success" now')
+            self.assertEqual(self.last_status_state, 'failure', 'Should be "failure" now')
             
             # Find a record of this run.
             with done_Q as db:
@@ -698,7 +698,7 @@ class TestRuns (unittest.TestCase):
             
             # Work done again!
             pop_task_from_donequeue(done_Q, self.github_auth)
-            self.assertEqual(self.last_status_state, 'success', 'Should be "success" again')
+            self.assertEqual(self.last_status_state, 'failure', 'Should be "failure" again')
             
             # Ensure that no new run was created
             with done_Q as db:
