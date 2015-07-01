@@ -14,7 +14,7 @@ from io import BytesIO
 from mock import patch
 from time import sleep
 
-import unittest, json, os, sys
+import unittest, json, os, sys, itertools
 
 os.environ['GITHUB_TOKEN'] = ''
 os.environ['DATABASE_URL'] = environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
@@ -647,8 +647,8 @@ class TestRuns (unittest.TestCase):
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.worker.do_work')
-    def test_double_run(self, do_work):
-        ''' Test repeated run that's fast enough to take advantage of reuse.
+    def test_failing_double_run(self, do_work):
+        ''' Test repeated failing run that's fast enough to take advantage of reuse.
         '''
         source = b'''{
             "coverage": { "US Census": {"geoid": "0653000", "place": "Oakland city", "state": "California"} },
@@ -656,9 +656,10 @@ class TestRuns (unittest.TestCase):
             }'''
         
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
+        nonce = itertools.count(1)
         
         def returns_plausible_result(s3, run_id, source_name, content, output_dir):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"}, result_code=0, result_stdout='...')
+            return dict(message='Something went wrong', output={"source": "user_input.txt", "nonce": next(nonce)}, result_code=0, result_stdout='...')
         
         def raises_an_error(s3, run_id, source_name, content, output_dir):
             raise Exception('Worker did not know to re-use previous run')
@@ -678,12 +679,12 @@ class TestRuns (unittest.TestCase):
             
             # Work done!
             pop_task_from_donequeue(done_Q, self.github_auth)
-            self.assertEqual(self.last_status_state, 'success', 'Should be "success" now')
+            self.assertEqual(self.last_status_state, 'failure', 'Should be "failure" now')
             
             # Find a record of this run.
             with done_Q as db:
-                db.execute('SELECT source_path, source_id, source_data FROM runs')
-                ((db_source_path, db_source_id, db_source_data), ) = db.fetchall()
+                db.execute("SELECT id, state->>'nonce', source_path, source_id, source_data FROM runs")
+                ((first_run_id, first_nonce, db_source_path, db_source_id, db_source_data), ) = db.fetchall()
                 self.assertEqual(db_source_path, source_path)
                 self.assertEqual(db_source_id, source_id)
                 self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
@@ -697,13 +698,23 @@ class TestRuns (unittest.TestCase):
             
             # Work done again!
             pop_task_from_donequeue(done_Q, self.github_auth)
-            self.assertEqual(self.last_status_state, 'success', 'Should be "success" again')
+            self.assertEqual(self.last_status_state, 'failure', 'Should be "failure" again')
             
             # Ensure that no new run was created
             with done_Q as db:
                 db.execute('SELECT count(id) FROM runs')
                 (count, ) = db.fetchone()
-                self.assertEqual(count, 1, 'There should still be just one run')
+                self.assertEqual(count, 2, 'There should have been two runs')
+
+                db.execute('''SELECT id, state->>'nonce', source_path, source_id, source_data FROM runs
+                              ORDER BY datetime DESC LIMIT 1''')
+
+                ((second_run_id, second_nonce, db_source_path, db_source_id, db_source_data), ) = db.fetchall()
+                self.assertNotEqual(second_run_id, first_run_id, 'The two runs should be distinct')
+                self.assertEqual(second_nonce, first_nonce, 'The two runs should share the same nonce')
+                self.assertEqual(db_source_path, source_path)
+                self.assertEqual(db_source_id, source_id)
+                self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
@@ -718,9 +729,10 @@ class TestRuns (unittest.TestCase):
             }'''
         
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
+        nonce = itertools.count(1)
         
         def returns_plausible_result(s3, run_id, source_name, content, output_dir):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"}, result_code=0, result_stdout='...')
+            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "nonce": next(nonce)}, result_code=0, result_stdout='...')
         
         do_work.side_effect = returns_plausible_result
 
@@ -760,9 +772,9 @@ class TestRuns (unittest.TestCase):
             
             # Verify that two runs now exist.
             with done_Q as db:
-                db.execute('SELECT count(id) FROM runs')
-                (count, ) = db.fetchone()
-                self.assertEqual(count, 2, 'There should have been two runs')
+                db.execute("SELECT state->>'nonce' FROM runs")
+                (nonce1, ), (nonce2, ) = db.fetchall()
+                self.assertNotEqual(nonce1, nonce2, 'There should have been two different runs')
 
 class TestWorker (unittest.TestCase):
 

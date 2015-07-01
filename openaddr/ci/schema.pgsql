@@ -8,7 +8,8 @@ CREATE TABLE runs
     source_data         BYTEA,
     datetime            TIMESTAMP,
     -- commit_id?
-    state               JSON
+    state               JSON,
+    status              BOOLEAN
 );
 
 DROP TABLE IF EXISTS jobs;

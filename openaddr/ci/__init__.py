@@ -475,14 +475,34 @@ def add_run(db):
     
     return run_id
 
-def set_run(db, run_id, filename, file_id, content_b64, run_state):
+def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status):
     ''' Populate an identitified row in the runs table.
     '''
     db.execute('''UPDATE runs SET
                   source_path = %s, source_data = %s, source_id = %s,
-                  state = %s::json, datetime = NOW() AT TIME ZONE 'UTC'
+                  state = %s::json, status = %s,
+                  datetime = NOW() AT TIME ZONE 'UTC'
                   WHERE id = %s''',
-               (filename, content_b64, file_id, json.dumps(run_state), run_id))
+               (filename, content_b64, file_id,
+               json.dumps(run_state), run_status,
+               run_id))
+
+def copy_run(db, run_id):
+    ''' Duplicate a previous run and return its new ID.
+    '''
+    db.execute('''INSERT INTO runs
+                  (source_path, source_id, source_data, state, status, datetime)
+                  SELECT source_path, source_id, source_data, state, status,
+                         NOW() AT TIME ZONE 'UTC'
+                  FROM runs
+                  WHERE id = %s''',
+               (run_id, ))
+
+    db.execute("SELECT currval('runs_id_seq')")
+    
+    (run_id, ) = db.fetchone()
+    
+    return run_id
 
 def update_job_status(db, job_id, job_url, filenames, task_files, file_states, file_results, status_url, github_auth):
     '''
@@ -522,21 +542,29 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
             return
 
         _L.info('Got job {job_id} from task queue'.format(**task.data))
-        passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'run_id'
+        passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64'
         passed_on_kwargs = {k: task.data.get(k) for k in passed_on_keys}
         
         # Look for an existing run on this file ID within the reuse timeout limit.
         interval = '{} seconds'.format(RUN_REUSE_TIMEOUT.seconds + RUN_REUSE_TIMEOUT.days * 86400)
         
-        db.execute('''SELECT id, state FROM runs
+        db.execute('''SELECT id, state, status FROM runs
                       WHERE source_id = %s
                         AND datetime > (NOW() AT TIME ZONE 'UTC') - INTERVAL %s
+                        AND status IS NOT NULL
                       ORDER BY datetime DESC LIMIT 1''',
                    (passed_on_kwargs['file_id'], interval))
         
         previous_run = db.fetchone()
     
-        if previous_run is None:
+        if previous_run:
+            # Make a copy of the previous run.
+            previous_run_id, _, _ = previous_run
+            passed_on_kwargs['run_id'] = copy_run(db, previous_run_id)
+            
+            # Don't send a due task, since we will not be doing any actual work.
+        
+        else:
             # Reserve space for a new run.
             passed_on_kwargs['run_id'] = add_run(db)
 
@@ -546,8 +574,9 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
     
     if previous_run:
         # Re-use result from the previous run.
-        run_id, state = previous_run
-        result = dict(message=MAGIC_OK_MESSAGE, reused_run=run_id, output=state)
+        run_id, state, status = previous_run
+        message = MAGIC_OK_MESSAGE if status else 'Re-using failed previous run'
+        result = dict(message=message, reused_run=run_id, output=state)
 
     else:
         # Run the task.
@@ -584,7 +613,8 @@ def pop_task_from_donequeue(queue, github_auth):
             # We are too late, this got handled.
             return
         
-        set_run(db, run_id, filename, file_id, content_b64, run_state)
+        run_status = bool(message == MAGIC_OK_MESSAGE)
+        set_run(db, run_id, filename, file_id, content_b64, run_state, run_status)
 
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)
@@ -595,7 +625,7 @@ def pop_task_from_donequeue(queue, github_auth):
             raise Exception('Unknown file from job {}: "{}"'.format(job_id, filename))
         
         filenames = list(task_files.values())
-        file_states[filename] = bool(message == MAGIC_OK_MESSAGE)
+        file_states[filename] = run_status
         file_results[filename] = results
         
         update_job_status(db, job_id, job_url, filenames, task_files,
@@ -623,7 +653,8 @@ def pop_task_from_duequeue(queue, github_auth):
             # Everything's fine, this got handled.
             return
 
-        set_run(db, run_id, filename, file_id, content_b64, None)
+        run_status = False
+        set_run(db, run_id, filename, file_id, content_b64, None, run_status)
 
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)
@@ -634,7 +665,7 @@ def pop_task_from_duequeue(queue, github_auth):
             raise Exception('Unknown file from job {}: "{}"'.format(job_id, filename))
         
         filenames = list(task_files.values())
-        file_states[filename] = False
+        file_states[filename] = run_status
         file_results[filename] = False
         
         update_job_status(db, job_id, job_url, filenames, task_files,
