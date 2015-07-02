@@ -9,7 +9,8 @@ CREATE TABLE runs
     datetime            TIMESTAMP,
     -- commit_id?
     state               JSON,
-    status              BOOLEAN
+    status              BOOLEAN,
+    copy_of             INTEGER REFERENCES runs(id) NULL
 );
 
 DROP TABLE IF EXISTS jobs;

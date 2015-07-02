@@ -491,8 +491,8 @@ def copy_run(db, run_id):
     ''' Duplicate a previous run and return its new ID.
     '''
     db.execute('''INSERT INTO runs
-                  (source_path, source_id, source_data, state, status, datetime)
-                  SELECT source_path, source_id, source_data, state, status,
+                  (copy_of, source_path, source_id, source_data, state, status, datetime)
+                  SELECT id, source_path, source_id, source_data, state, status,
                          NOW() AT TIME ZONE 'UTC'
                   FROM runs
                   WHERE id = %s''',
