@@ -180,7 +180,7 @@ class TestHook (unittest.TestCase):
             pop_task_from_taskqueue(self.s3, task_q, done_q, due_q, self.output_dir)
             pop_task_from_donequeue(done_q, self.github_auth)
             
-        self.assertEquals(self.last_status_state, 'failure', 'Bad JSON should lead to failure')
+        self.assertEqual(self.last_status_state, 'failure', 'Bad JSON should lead to failure')
 
     def test_webhook_badutf8_content(self):
         ''' Push a single commit with bad UTF8 source directly to master.
@@ -562,7 +562,7 @@ class TestRuns (unittest.TestCase):
             # Check for result
             with db_cursor(conn) as db:
                 job_status, _, _, _, _ = read_job(db, job_id)
-                self.assertEquals(job_status, None, 'Status should be null at this early stage')
+                self.assertEqual(job_status, None, 'Status should be null at this early stage')
 
             sleep(2.1)
             
@@ -575,7 +575,7 @@ class TestRuns (unittest.TestCase):
             # Check for result
             with db_cursor(conn) as db:
                 job_status, _, _, _, _ = read_job(db, job_id)
-                self.assertEquals(job_status, False, 'Status should be false after unexpected error')
+                self.assertEqual(job_status, False, 'Status should be false after unexpected error')
             
             # Find a record of this run.
             with done_Q as db:
@@ -625,7 +625,7 @@ class TestRuns (unittest.TestCase):
             # Check for result
             with db_cursor(conn) as db:
                 job_status, _, _, _, _ = read_job(db, job_id)
-                self.assertEquals(job_status, False, 'Status should be false since it took so long')
+                self.assertEqual(job_status, False, 'Status should be false since it took so long')
 
             # The job eventually completes, but it's too late
             pop_task_from_donequeue(done_Q, None)
@@ -634,7 +634,7 @@ class TestRuns (unittest.TestCase):
             # Check for result
             with db_cursor(conn) as db:
                 job_status, _, _, _, _ = read_job(db, job_id)
-                self.assertEquals(job_status, False, 'Status should still be false no matter what')
+                self.assertEqual(job_status, False, 'Status should still be false no matter what')
             
             # Find a record of this run.
             with done_Q as db:
