@@ -4,6 +4,7 @@ from ..compat import standard_library
 from .. import jobs
 
 from os.path import relpath, splitext
+from collections import OrderedDict
 from urllib.parse import urljoin
 from datetime import timedelta
 from functools import wraps
@@ -119,7 +120,13 @@ def app_get_job(job_id):
             except TypeError:
                 return Response('Job {} not found'.format(job_id), 404)
     
-    job = dict(status=status, task_files=task_files, file_states=file_states,
+    statuses = False, None, True
+    key_func = lambda _path: (statuses.index(file_states[_path[1]]), _path[1])
+    file_tuples = [(sha, path) for (sha, path) in task_files.items()]
+
+    ordered_files = OrderedDict(sorted(file_tuples, key=key_func))
+    
+    job = dict(status=status, task_files=ordered_files, file_states=file_states,
                file_results=file_results, github_status_url=github_status_url)
     
     return render_template('job.html', job=job)
