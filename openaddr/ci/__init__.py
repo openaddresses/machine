@@ -422,7 +422,10 @@ def add_files_to_queue(queue, job_id, job_url, files):
         task_data = dict(job_id=job_id, url=job_url, name=file_name,
                          content_b64=content_b64, file_id=file_id)
     
-        queue.put(task_data, expected_at=td2str(timedelta(0)))
+        # Spread tasks out over time.
+        delay = timedelta(len(tasks))
+
+        queue.put(task_data, expected_at=td2str(delay))
         tasks[file_id] = file_name
     
     return tasks
