@@ -187,6 +187,9 @@ def get_touched_branch_files(payload, github_auth):
 def get_touched_pullrequest_files(payload, github_auth):
     ''' Return a set of files modified between master and payload head.
     '''
+    if payload['action'] == 'closed':
+        return set()
+    
     base_sha = payload['pull_request']['base']['sha']
     head_sha = payload['pull_request']['head']['sha']
 
