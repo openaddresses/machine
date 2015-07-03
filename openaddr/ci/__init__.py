@@ -498,8 +498,8 @@ def copy_run(db, run_id):
     ''' Duplicate a previous run and return its new ID.
     '''
     db.execute('''INSERT INTO runs
-                  (source_path, source_id, source_data, state, status, datetime)
-                  SELECT source_path, source_id, source_data, state, status,
+                  (copy_of, source_path, source_id, source_data, state, status, datetime)
+                  SELECT id, source_path, source_id, source_data, state, status,
                          NOW() AT TIME ZONE 'UTC'
                   FROM runs
                   WHERE id = %s''',
@@ -510,6 +510,21 @@ def copy_run(db, run_id):
     (run_id, ) = db.fetchone()
     
     return run_id
+
+def get_previously_completed_run(db, file_id):
+    ''' Look for an existing run on this file ID within the reuse timeout limit.
+    '''
+    interval = '{} seconds'.format(RUN_REUSE_TIMEOUT.seconds + RUN_REUSE_TIMEOUT.days * 86400)
+    
+    db.execute('''SELECT id, state, status FROM runs
+                  WHERE source_id = %s
+                    AND datetime > (NOW() AT TIME ZONE 'UTC') - INTERVAL %s
+                    AND status IS NOT NULL
+                    AND copy_of IS NULL
+                  ORDER BY id DESC LIMIT 1''',
+               (file_id, interval))
+    
+    return db.fetchone()
 
 def update_job_status(db, job_id, job_url, filenames, task_files, file_states, file_results, status_url, github_auth):
     '''
@@ -551,18 +566,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
         _L.info('Got job {job_id} from task queue'.format(**task.data))
         passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64'
         passed_on_kwargs = {k: task.data.get(k) for k in passed_on_keys}
-        
-        # Look for an existing run on this file ID within the reuse timeout limit.
-        interval = '{} seconds'.format(RUN_REUSE_TIMEOUT.seconds + RUN_REUSE_TIMEOUT.days * 86400)
-        
-        db.execute('''SELECT id, state, status FROM runs
-                      WHERE source_id = %s
-                        AND datetime > (NOW() AT TIME ZONE 'UTC') - INTERVAL %s
-                        AND status IS NOT NULL
-                      ORDER BY datetime DESC LIMIT 1''',
-                   (passed_on_kwargs['file_id'], interval))
-        
-        previous_run = db.fetchone()
+        previous_run = get_previously_completed_run(db, task.data.get('file_id'))
     
         if previous_run:
             # Make a copy of the previous run.

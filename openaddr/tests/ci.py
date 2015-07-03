@@ -180,7 +180,7 @@ class TestHook (unittest.TestCase):
             pop_task_from_taskqueue(self.s3, task_q, done_q, due_q, self.output_dir)
             pop_task_from_donequeue(done_q, self.github_auth)
             
-        self.assertEquals(self.last_status_state, 'failure', 'Bad JSON should lead to failure')
+        self.assertEqual(self.last_status_state, 'failure', 'Bad JSON should lead to failure')
 
     def test_webhook_badutf8_content(self):
         ''' Push a single commit with bad UTF8 source directly to master.
@@ -562,7 +562,7 @@ class TestRuns (unittest.TestCase):
             # Check for result
             with db_cursor(conn) as db:
                 job_status, _, _, _, _ = read_job(db, job_id)
-                self.assertEquals(job_status, None, 'Status should be null at this early stage')
+                self.assertEqual(job_status, None, 'Status should be null at this early stage')
 
             sleep(2.1)
             
@@ -575,7 +575,7 @@ class TestRuns (unittest.TestCase):
             # Check for result
             with db_cursor(conn) as db:
                 job_status, _, _, _, _ = read_job(db, job_id)
-                self.assertEquals(job_status, False, 'Status should be false after unexpected error')
+                self.assertEqual(job_status, False, 'Status should be false after unexpected error')
             
             # Find a record of this run.
             with done_Q as db:
@@ -625,7 +625,7 @@ class TestRuns (unittest.TestCase):
             # Check for result
             with db_cursor(conn) as db:
                 job_status, _, _, _, _ = read_job(db, job_id)
-                self.assertEquals(job_status, False, 'Status should be false since it took so long')
+                self.assertEqual(job_status, False, 'Status should be false since it took so long')
 
             # The job eventually completes, but it's too late
             pop_task_from_donequeue(done_Q, None)
@@ -634,7 +634,7 @@ class TestRuns (unittest.TestCase):
             # Check for result
             with db_cursor(conn) as db:
                 job_status, _, _, _, _ = read_job(db, job_id)
-                self.assertEquals(job_status, False, 'Status should still be false no matter what')
+                self.assertEqual(job_status, False, 'Status should still be false no matter what')
             
             # Find a record of this run.
             with done_Q as db:
@@ -683,11 +683,12 @@ class TestRuns (unittest.TestCase):
             
             # Find a record of this run.
             with done_Q as db:
-                db.execute("SELECT id, state->>'nonce', source_path, source_id, source_data FROM runs")
-                ((first_run_id, first_nonce, db_source_path, db_source_id, db_source_data), ) = db.fetchall()
+                db.execute("SELECT id, copy_of, state->>'nonce', source_path, source_id, source_data FROM runs")
+                ((first_run_id, first_copyof, first_nonce, db_source_path, db_source_id, db_source_data), ) = db.fetchall()
                 self.assertEqual(db_source_path, source_path)
                 self.assertEqual(db_source_id, source_id)
                 self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
+                self.assertTrue(first_copyof is None)
      
             do_work.side_effect = raises_an_error # won't be called anyway
             self.last_status_state = None
@@ -706,15 +707,37 @@ class TestRuns (unittest.TestCase):
                 (count, ) = db.fetchone()
                 self.assertEqual(count, 2, 'There should have been two runs')
 
-                db.execute('''SELECT id, state->>'nonce', source_path, source_id, source_data FROM runs
-                              ORDER BY datetime DESC LIMIT 1''')
+                db.execute('''SELECT id, copy_of, state->>'nonce' FROM runs
+                              ORDER BY id DESC LIMIT 1''')
 
-                ((second_run_id, second_nonce, db_source_path, db_source_id, db_source_data), ) = db.fetchall()
+                ((second_run_id, second_copyof, second_nonce), ) = db.fetchall()
                 self.assertNotEqual(second_run_id, first_run_id, 'The two runs should be distinct')
                 self.assertEqual(second_nonce, first_nonce, 'The two runs should share the same nonce')
-                self.assertEqual(db_source_path, source_path)
-                self.assertEqual(db_source_id, source_id)
-                self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
+                self.assertEqual(second_copyof, first_run_id, 'The second run should be a copy of the first')
+
+            self.last_status_state = None
+
+            create_queued_job(task_Q, files, self.fake_job_template_url, self.fake_status_url)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
+            self.assertEqual(self.last_status_state, None, 'Should be nothing still')
+            
+            # Work done a third time!
+            pop_task_from_donequeue(done_Q, self.github_auth)
+            self.assertEqual(self.last_status_state, 'failure', 'Should be "failure" again')
+            
+            # Ensure that no new run was created
+            with done_Q as db:
+                db.execute('SELECT count(id) FROM runs')
+                (count, ) = db.fetchone()
+                self.assertEqual(count, 3, 'There should have been three runs')
+
+                db.execute('''SELECT id, copy_of, state->>'nonce' FROM runs
+                              ORDER BY id DESC LIMIT 1''')
+
+                ((third_run_id, third_copyof, third_nonce), ) = db.fetchall()
+                self.assertNotEqual(third_run_id, first_run_id, 'The two runs should be distinct')
+                self.assertEqual(third_nonce, second_nonce, 'The two runs should share the same nonce')
+                self.assertEqual(third_copyof, first_run_id, 'The third run should be a copy of the first')
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
