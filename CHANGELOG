@@ -1,3 +1,6 @@
+2015-07-03: 1.10.5
+- Fixed ci.worker some logic bugs for repeated runs.
+
 2015-07-02: 1.10.4
 - Fixed ci.worker zip archive generation file names.
 - Fixed ci.worker re-use of previous run status and id.
