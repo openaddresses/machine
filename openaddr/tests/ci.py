@@ -519,6 +519,7 @@ class TestRuns (unittest.TestCase):
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
     @patch('openaddr.ci.worker.do_work')
     def test_working_run(self, do_work):
         ''' Test a boring successful run.
@@ -570,6 +571,7 @@ class TestRuns (unittest.TestCase):
      
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=2))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
     @patch('openaddr.compat.check_output')
     def test_failing_run(self, check_output):
         ''' Test a run that fails.
@@ -634,6 +636,7 @@ class TestRuns (unittest.TestCase):
      
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
     @patch('openaddr.ci.worker.do_work')
     def test_overdue_run(self, do_work):
         ''' Test a run that succeeds past its due date.
@@ -693,6 +696,7 @@ class TestRuns (unittest.TestCase):
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
     @patch('openaddr.ci.worker.do_work')
     def test_failing_double_run(self, do_work):
         ''' Test repeated failing run that's fast enough to take advantage of reuse.
@@ -789,6 +793,7 @@ class TestRuns (unittest.TestCase):
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.RUN_REUSE_TIMEOUT', new=timedelta(seconds=1))
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
     @patch('openaddr.ci.worker.do_work')
     def test_slow_double_run(self, do_work):
         ''' Test repeated run that's too slow to take advantage of reuse.

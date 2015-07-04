@@ -9,6 +9,7 @@ from urllib.parse import urljoin
 from datetime import timedelta
 from functools import wraps
 from uuid import uuid4
+from time import sleep
 import json, os
 
 from flask import Flask, request, Response, current_app, jsonify, render_template
@@ -52,6 +53,9 @@ DUETASK_DELAY = timedelta(minutes=5)
 
 # Amount of time to reuse run results.
 RUN_REUSE_TIMEOUT = timedelta(days=5)
+
+# Time to chill out in pop_task_from_taskqueue() after sending Done task.
+WORKER_COOLDOWN = timedelta(seconds=5)
 
 @app.before_first_request
 def app_prepare():
@@ -617,6 +621,11 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
     # Send a Done task
     done_task_data = dict(result=result, **passed_on_kwargs)
     done_queue.put(done_task_data, expected_at=td2str(timedelta(0)))
+    
+    # Sleep a short time to allow done task to show up in runs table.
+    # In a one-worker situation with repetitive pull request jobs,
+    # this helps the next job take advantage of previous run results.
+    sleep(WORKER_COOLDOWN.seconds + WORKER_COOLDOWN.days * 86400)
 
 def pop_task_from_donequeue(queue, github_auth):
     ''' Look for a completed job in the "done" task queue, update Github status.
