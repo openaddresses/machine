@@ -469,12 +469,17 @@ def read_job(db, job_id):
 def is_completed_run(db, run_id, min_datetime):
     '''
     '''
-    db.execute('''SELECT id FROM runs
+    db.execute('''SELECT id, status FROM runs
                   WHERE id = %s AND status IS NOT NULL
                     AND datetime >= %s''',
                (run_id, min_datetime))
     
     completed_run = db.fetchone()
+    
+    if completed_run:
+        _L.debug('Found completed run {0} ({1}) since {min_datetime}'.format(*completed_run, **locals()))
+    else:
+        _L.debug('No completed run {run_id} since {min_datetime}'.format(**locals()))
     
     return bool(completed_run is not None)
 
@@ -530,7 +535,14 @@ def get_previously_completed_run(db, file_id):
                   ORDER BY id DESC LIMIT 1''',
                (file_id, interval))
     
-    return db.fetchone()
+    previous_run = db.fetchone()
+    
+    if previous_run:
+        _L.debug('Found previous run {0} ({2}) for file {file_id}'.format(*previous_run, **locals()))
+    else:
+        _L.debug('No previous run for file {file_id}'.format(**locals()))
+
+    return previous_run
 
 def update_job_status(db, job_id, job_url, filenames, task_files, file_states, file_results, status_url, github_auth):
     '''
