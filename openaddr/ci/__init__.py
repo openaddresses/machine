@@ -466,13 +466,13 @@ def read_job(db, job_id):
     else:
         return status, task_files, states, file_results, github_status_url
 
-def is_completed_run(db, run_id, min_datetime):
+def is_completed_run(db, file_id, min_datetime):
     '''
     '''
     db.execute('''SELECT id FROM runs
-                  WHERE id = %s AND status IS NOT NULL
+                  WHERE source_id = %s
                     AND datetime >= %s''',
-               (run_id, min_datetime))
+               (file_id, min_datetime))
     
     completed_run = db.fetchone()
     
@@ -626,7 +626,7 @@ def pop_task_from_donequeue(queue, github_auth):
         run_id = task.data['run_id']
         job_id = task.data['job_id']
         
-        if is_completed_run(db, run_id, task.enqueued_at):
+        if is_completed_run(db, file_id, task.enqueued_at):
             # We are too late, this got handled.
             return
         
@@ -666,7 +666,7 @@ def pop_task_from_duequeue(queue, github_auth):
         run_id = task.data['run_id']
         job_id = task.data['job_id']
     
-        if is_completed_run(db, run_id, task.enqueued_at):
+        if is_completed_run(db, file_id, task.enqueued_at):
             # Everything's fine, this got handled.
             return
 

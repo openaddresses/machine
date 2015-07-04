@@ -1,3 +1,6 @@
+2015-07-03: 1.10.6
+- Reverted one 1.10.5 change that introduced a Python 2.7 bug.
+
 2015-07-03: 1.10.5
 - Fixed ci.worker some logic bugs for repeated runs.
 
