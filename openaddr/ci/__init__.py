@@ -10,6 +10,7 @@ from datetime import timedelta
 from functools import wraps
 from uuid import uuid4
 from time import sleep
+import hashlib, hmac
 import json, os
 
 from flask import Flask, request, Response, current_app, jsonify, render_template
@@ -71,6 +72,10 @@ def app_index():
 def app_hook():
     github_auth = current_app.config['GITHUB_AUTH']
     webhook_payload = json.loads(request.data.decode('utf8'))
+
+    expected_signature = hmac.new(b'vXdaZGaHC3cQpq7w', request.data, hashlib.sha1).hexdigest()
+    actual_signature = request.headers.get('X-Hub-Signature')
+    current_app.logger.warning('Expected signature {expected_signature} vs. actual {actual_signature}'.format(**locals()))
     
     if 'deleted' in webhook_payload and webhook_payload['deleted'] is True:
         # Deleted refs will not have a status URL.
