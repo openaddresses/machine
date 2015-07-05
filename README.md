@@ -13,6 +13,38 @@ basis, with output visible at [data.openaddresses.io](http://data.openaddresses.
 
 [![Build Status](https://travis-ci.org/openaddresses/machine.svg?branch=master)](https://travis-ci.org/openaddresses/machine)
 
+Usage
+-----
+
+Machine supports two modes. Continuous integration (CI) mode listens for tasks
+from the OpenAddresses Github repository, includes a persistent web server and
+database, and supports a flexible number of worker processes to deal with large
+changes quickly. Batch mode processes the entire OpenAddresses source
+collection at once, and is intended to be run periodically to reflect new
+submissions.
+
+### CI Mode
+
+Installation scripts for preparing a fresh install of Ubuntu 14.04 can be found
+in `chef`. You will need a pre-installed PostgreSQL database initialized with
+the schema `openaddr/ci/schema.pgsql` and Amazon S3 bucket with credentials.
+After editing `chef/role-webhooks.json` and `chef/role-worker.json`, run them
+from a Git checkout like this:
+
+    sudo apt-get update
+    sudo chef/run.sh webhooks
+    sudo chef/run.sh worker
+
+`webhooks` will install Apache, a web application to listen for new tasks, and
+a small queue observer to watch for completed tasks. `worker` will install the
+`openaddr-ci-worker` utility to watch for newly-scheduled tasks.
+
+Run a single source locally with `openaddr-process-one`:
+
+    openaddr-process-one -l <log> <path to source JSON> <output directory>
+
+### Batch Mode
+
 Installation scripts for preparing a fresh install of Ubuntu 14.04 can be found
 in `chef`. Run them from a Git checkout like this:
 
@@ -40,14 +72,22 @@ Run it on an Amazon EC2 spot instance with `openaddr-ec2-run`:
 Development
 -----------
 
-Modify the contents of [`openaddr/paths.py`](openaddr/paths.py) with locations
-of your local [openaddresses](https://github.com/openaddresses/openaddresses).
-
 Test the OpenAddresses machine with `test.py`:
 
     python test.py
 
-Run the complete process from the `openaddr` module:
+Run the webhook server, queue listener, and worker processes from the
+`openaddr` module:
+
+    gunicorn -w 4 --bind 0.0.0.0:$PORT openaddr.ci:app
+    python -m openaddr.ci.run_dequeue
+    
+    python -m openaddr.ci.worker
+
+Modify the contents of [`openaddr/paths.py`](openaddr/paths.py) with locations
+of your local [openaddresses](https://github.com/openaddresses/openaddresses).
+
+Run the complete batch process from the `openaddr` module:
 
     python -m openaddr.process_all -a <AWS key> -s <AWS secret> -l <log> data.openaddresses.io
 
