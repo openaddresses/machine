@@ -1,3 +1,6 @@
+2015-07-05: 1.11.0
+- Formally added openaddr.ci service and worker features with documentation.
+
 2015-07-04: 1.10.7
 - Fixed ci.worker some logic bugs for repeated runs.
 
