@@ -43,6 +43,27 @@ def log_application_errors(route_function):
 
     return decorated_function
 
+def observe_signature(route_function):
+    ''' Look for a signature and bark if it's wrong.
+    '''
+    @wraps(route_function)
+    def decorated_function(*args, **kwargs):
+        if 'X-Hub-Signature' in request.headers:
+            signature = hmac.new(b'vXdaZGaHC3cQpq7w', request.data, hashlib.sha1)
+            expected = 'sha1={}'.format(signature.hexdigest())
+            actual = request.headers.get('X-Hub-Signature')
+            
+            if expected != actual:
+                current_app.logger.warning('Mismatched /hook signatures: {expected} vs. {actual}'.format(**locals()))
+            else:
+                current_app.logger.warning('Matching /hook signature: {actual}'.format(**locals()))
+        else:
+            current_app.logger.warning('No /hook signature provided')
+            
+        return route_function(*args, **kwargs)
+
+    return decorated_function
+
 app = Flask(__name__)
 app.config.update(load_config())
 
@@ -69,13 +90,10 @@ def app_index():
 
 @app.route('/hook', methods=['POST'])
 @log_application_errors
+@observe_signature
 def app_hook():
     github_auth = current_app.config['GITHUB_AUTH']
     webhook_payload = json.loads(request.data.decode('utf8'))
-
-    expected_signature = hmac.new(b'vXdaZGaHC3cQpq7w', request.data, hashlib.sha1).hexdigest()
-    actual_signature = request.headers.get('X-Hub-Signature')
-    current_app.logger.warning('Expected signature {expected_signature} vs. actual {actual_signature}'.format(**locals()))
     
     if 'deleted' in webhook_payload and webhook_payload['deleted'] is True:
         # Deleted refs will not have a status URL.
