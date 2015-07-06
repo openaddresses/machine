@@ -41,10 +41,11 @@ def de64(string):
     '''
     return b64decode(string).decode('utf8')
 
-def signed(data):
+def signed(data, valid=True):
     ''' Get a signature header for a string of data.
     '''
-    hash = hmac.new(b'world', data.encode('utf8'), hashlib.sha1)
+    key = b'world' if valid else b'nothing'
+    hash = hmac.new(key, data.encode('utf8'), hashlib.sha1)
     signature = 'sha1={}'.format(hash.hexdigest())
     
     return {'X-Hub-Signature': signature}
@@ -233,6 +234,16 @@ class TestHook (unittest.TestCase):
         
         self.assertEqual(posted.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending', 'Should be pending even though content is invalid UTF8')
+
+    def test_webhook_bad_signature(self):
+        ''' Send a request to /hook with an invalid signature.
+        '''
+        data = '''{   }'''
+        
+        with HTTMock(self.response_content):
+            posted = self.client.post('/hook', data=data, headers=signed(data, valid=False))
+        
+        self.assertEqual(posted.status_code, 401)
 
     def test_webhook_one_master_commit(self):
         ''' Push a single commit with Alameda County source directly to master.
