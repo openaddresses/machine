@@ -47,29 +47,31 @@ def log_application_errors(route_function):
 
     return decorated_function
 
-def observe_signature(route_function):
+def enforce_signature(route_function):
     ''' Look for a signature and bark if it's wrong.
     '''
     @wraps(route_function)
     def decorated_function(*args, **kwargs):
-        if 'X-Hub-Signature' in request.headers:
-            def sig(key):
-                hash = hmac.new(key, request.data, hashlib.sha1)
-                return 'sha1={}'.format(hash.hexdigest())
-
-            actual = request.headers.get('X-Hub-Signature')
-            expecteds = [sig(k) for k in current_app.config['WEBHOOK_SECRETS']]
-            expected = ', '.join(expecteds)
-            
-            if actual not in expecteds:
-                current_app.logger.warning('Mismatched /hook signatures: {actual} vs. {expected}'.format(**locals()))
-                return Response(json.dumps({'error': 'Invalid signature'}),
-                                401, content_type='application/json')
-
-            else:
-                current_app.logger.warning('Matching /hook signature: {actual}'.format(**locals()))
-        else:
+        if 'X-Hub-Signature' not in request.headers:
             current_app.logger.warning('No /hook signature provided')
+            return Response(json.dumps({'error': 'Missing signature'}),
+                            401, content_type='application/json')
+
+        def _sign(key):
+            hash = hmac.new(key, request.data, hashlib.sha1)
+            return 'sha1={}'.format(hash.hexdigest())
+
+        actual = request.headers.get('X-Hub-Signature')
+        expecteds = [_sign(k) for k in current_app.config['WEBHOOK_SECRETS']]
+        expected = ', '.join(expecteds)
+        
+        if actual not in expecteds:
+            current_app.logger.warning('Mismatched /hook signatures: {actual} vs. {expected}'.format(**locals()))
+            return Response(json.dumps({'error': 'Invalid signature'}),
+                            401, content_type='application/json')
+
+        else:
+            current_app.logger.info('Matching /hook signature: {actual}'.format(**locals()))
             
         return route_function(*args, **kwargs)
 
@@ -101,7 +103,7 @@ def app_index():
 
 @app.route('/hook', methods=['POST'])
 @log_application_errors
-@observe_signature
+@enforce_signature
 def app_hook():
     github_auth = current_app.config['GITHUB_AUTH']
     webhook_payload = json.loads(request.data.decode('utf8'))

@@ -245,6 +245,16 @@ class TestHook (unittest.TestCase):
         
         self.assertEqual(posted.status_code, 401)
 
+    def test_webhook_missing_signature(self):
+        ''' Send a request to /hook with no signature.
+        '''
+        data = '''{   }'''
+        
+        with HTTMock(self.response_content):
+            posted = self.client.post('/hook', data=data)
+        
+        self.assertEqual(posted.status_code, 401)
+
     def test_webhook_one_master_commit(self):
         ''' Push a single commit with Alameda County source directly to master.
         '''
