@@ -10,6 +10,7 @@ from datetime import timedelta
 from functools import wraps
 from uuid import uuid4
 from time import sleep
+import hashlib, hmac
 import json, os
 
 from flask import Flask, request, Response, current_app, jsonify, render_template
@@ -22,10 +23,14 @@ from pq import PQ
 def load_config():
     def truthy(value):
         return bool(value.lower() in ('yes', 'true'))
+    
+    secrets_string = os.environ.get('WEBHOOK_SECRETS', u'').encode('utf8')
+    webhook_secrets = secrets_string.split(b',') if secrets_string else []
 
     return dict(GAG_GITHUB_STATUS=truthy(os.environ.get('GAG_GITHUB_STATUS', '')),
                 GITHUB_AUTH=(os.environ['GITHUB_TOKEN'], 'x-oauth-basic'),
-                DATABASE_URL=os.environ['DATABASE_URL'])
+                DATABASE_URL=os.environ['DATABASE_URL'],
+                WEBHOOK_SECRETS=webhook_secrets)
 
 def log_application_errors(route_function):
     ''' Error-logging decorator for route functions.
@@ -39,6 +44,41 @@ def log_application_errors(route_function):
         except Exception as e:
             _L.error(e, exc_info=True)
             raise
+
+    return decorated_function
+
+def enforce_signature(route_function):
+    ''' Look for a signature and bark if it's wrong.
+    '''
+    @wraps(route_function)
+    def decorated_function(*args, **kwargs):
+        if not current_app.config['WEBHOOK_SECRETS']:
+            # No configured secrets means no signature needed.
+            current_app.logger.info('No /hook signature required')
+            return route_function(*args, **kwargs)
+    
+        if 'X-Hub-Signature' not in request.headers:
+            # Missing required signature is an error.
+            current_app.logger.warning('No /hook signature provided')
+            return Response(json.dumps({'error': 'Missing signature'}),
+                            401, content_type='application/json')
+
+        def _sign(key):
+            hash = hmac.new(key, request.data, hashlib.sha1)
+            return 'sha1={}'.format(hash.hexdigest())
+
+        actual = request.headers.get('X-Hub-Signature')
+        expecteds = [_sign(k) for k in current_app.config['WEBHOOK_SECRETS']]
+        expected = ', '.join(expecteds)
+        
+        if actual not in expecteds:
+            # Signature mismatch is an error.
+            current_app.logger.warning('Mismatched /hook signatures: {actual} vs. {expected}'.format(**locals()))
+            return Response(json.dumps({'error': 'Invalid signature'}),
+                            401, content_type='application/json')
+
+        current_app.logger.info('Matching /hook signature: {actual}'.format(**locals()))
+        return route_function(*args, **kwargs)
 
     return decorated_function
 
@@ -68,6 +108,7 @@ def app_index():
 
 @app.route('/hook', methods=['POST'])
 @log_application_errors
+@enforce_signature
 def app_hook():
     github_auth = current_app.config['GITHUB_AUTH']
     webhook_payload = json.loads(request.data.decode('utf8'))

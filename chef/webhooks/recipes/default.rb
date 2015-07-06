@@ -8,6 +8,7 @@ db_name = node[:db_name]
 aws_access_id = node[:aws_access_id]
 aws_secret_key = node[:aws_secret_key]
 aws_sns_arn = node[:aws_sns_arn]
+webhook_secrets = node[:webhook_secrets]
 
 gag_github_status = node['gag_github_status']
 database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=require"
@@ -29,6 +30,7 @@ GAG_GITHUB_STATUS=#{gag_github_status}
 AWS_ACCESS_KEY_ID=#{aws_access_id}
 AWS_SECRET_ACCESS_KEY=#{aws_secret_key}
 AWS_SNS_ARN=#{aws_sns_arn}
+WEBHOOK_SECRETS=#{webhook_secrets}
 CONF
 end
 
