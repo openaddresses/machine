@@ -63,6 +63,9 @@ def observe_signature(route_function):
             
             if actual not in expecteds:
                 current_app.logger.warning('Mismatched /hook signatures: {actual} vs. {expected}'.format(**locals()))
+                return Response(json.dumps({'error': 'Invalid signature'}),
+                                401, content_type='application/json')
+
             else:
                 current_app.logger.warning('Matching /hook signature: {actual}'.format(**locals()))
         else:
