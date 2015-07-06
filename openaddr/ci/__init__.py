@@ -52,7 +52,13 @@ def enforce_signature(route_function):
     '''
     @wraps(route_function)
     def decorated_function(*args, **kwargs):
+        if not current_app.config['WEBHOOK_SECRETS']:
+            # No configured secrets means no signature needed.
+            current_app.logger.info('No /hook signature required')
+            return route_function(*args, **kwargs)
+    
         if 'X-Hub-Signature' not in request.headers:
+            # Missing required signature is an error.
             current_app.logger.warning('No /hook signature provided')
             return Response(json.dumps({'error': 'Missing signature'}),
                             401, content_type='application/json')
@@ -66,13 +72,12 @@ def enforce_signature(route_function):
         expected = ', '.join(expecteds)
         
         if actual not in expecteds:
+            # Signature mismatch is an error.
             current_app.logger.warning('Mismatched /hook signatures: {actual} vs. {expected}'.format(**locals()))
             return Response(json.dumps({'error': 'Invalid signature'}),
                             401, content_type='application/json')
 
-        else:
-            current_app.logger.info('Matching /hook signature: {actual}'.format(**locals()))
-            
+        current_app.logger.info('Matching /hook signature: {actual}'.format(**locals()))
         return route_function(*args, **kwargs)
 
     return decorated_function
