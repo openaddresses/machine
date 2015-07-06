@@ -23,10 +23,14 @@ from pq import PQ
 def load_config():
     def truthy(value):
         return bool(value.lower() in ('yes', 'true'))
+    
+    secrets_string = os.environ.get('WEBHOOK_SECRETS', u'').encode('utf8')
+    webhook_secrets = secrets_string.split(b',') if secrets_string else []
 
     return dict(GAG_GITHUB_STATUS=truthy(os.environ.get('GAG_GITHUB_STATUS', '')),
                 GITHUB_AUTH=(os.environ['GITHUB_TOKEN'], 'x-oauth-basic'),
-                DATABASE_URL=os.environ['DATABASE_URL'])
+                DATABASE_URL=os.environ['DATABASE_URL'],
+                WEBHOOK_SECRETS=webhook_secrets)
 
 def log_application_errors(route_function):
     ''' Error-logging decorator for route functions.
@@ -49,12 +53,16 @@ def observe_signature(route_function):
     @wraps(route_function)
     def decorated_function(*args, **kwargs):
         if 'X-Hub-Signature' in request.headers:
-            signature = hmac.new(b'vXdaZGaHC3cQpq7w', request.data, hashlib.sha1)
-            expected = 'sha1={}'.format(signature.hexdigest())
+            def sig(key):
+                hash = hmac.new(key, request.data, hashlib.sha1)
+                return 'sha1={}'.format(hash.hexdigest())
+
             actual = request.headers.get('X-Hub-Signature')
+            expecteds = [sig(k) for k in current_app.config['WEBHOOK_SECRETS']]
+            expected = ', '.join(expecteds)
             
-            if expected != actual:
-                current_app.logger.warning('Mismatched /hook signatures: {expected} vs. {actual}'.format(**locals()))
+            if actual not in expecteds:
+                current_app.logger.warning('Mismatched /hook signatures: {actual} vs. {expected}'.format(**locals()))
             else:
                 current_app.logger.warning('Matching /hook signature: {actual}'.format(**locals()))
         else:
