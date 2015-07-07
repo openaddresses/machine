@@ -113,9 +113,8 @@ def app_hook():
     github_auth = current_app.config['GITHUB_AUTH']
     webhook_payload = json.loads(request.data.decode('utf8'))
     
-    if 'deleted' in webhook_payload and webhook_payload['deleted'] is True:
-        # Deleted refs will not have a status URL.
-        return jsonify({'url': None, 'files': []})
+    if skip_payload(webhook_payload):
+        return jsonify({'url': None, 'files': [], 'skip': True})
     
     status_url = get_status_url(webhook_payload)
     if current_app.config['GAG_GITHUB_STATUS']:
@@ -127,12 +126,12 @@ def app_hook():
         message = 'Could not read source files: {}'.format(e)
         update_error_status(status_url, message, [], github_auth)
         _L.error(message, exc_info=True)
-        return jsonify({'url': None, 'files': []})
+        return jsonify({'url': None, 'files': [], 'status_url': status_url})
     
     if not files:
         update_empty_status(status_url, github_auth)
         _L.warning('No files')
-        return jsonify({'url': None, 'files': []})
+        return jsonify({'url': None, 'files': [], 'status_url': status_url})
 
     filenames = list(files.keys())
     job_url_template = urljoin(request.url, '/jobs/{id}')
@@ -146,12 +145,14 @@ def app_hook():
             # Oops, tell Github something went wrong.
             update_error_status(status_url, str(e), filenames, github_auth)
             _L.error('Oops', exc_info=True)
-            return Response(json.dumps({'error': str(e), 'files': files}),
+            return Response(json.dumps({'error': str(e), 'files': files,
+                                        'status_url': status_url}),
                             500, content_type='application/json')
         else:
             # That worked, tell Github we're working on it.
             update_pending_status(status_url, job_url, filenames, github_auth)
-            return jsonify({'id': job_id, 'url': job_url, 'files': files})
+            return jsonify({'id': job_id, 'url': job_url, 'files': files,
+                            'status_url': status_url})
 
 @app.route('/jobs/<job_id>', methods=['GET'])
 @log_application_errors
@@ -247,6 +248,18 @@ def get_touched_pullrequest_files(payload, github_auth):
     current_app.logger.debug(u'Touched files {}'.format(', '.join(touched)))
     
     return touched
+
+def skip_payload(payload):
+    ''' Return True if this payload should not be processed.
+    '''
+    if 'action' in payload and 'pull_request' in payload:
+        return bool(payload['action'] == 'closed')
+    
+    if 'commits' in payload and 'head_commit' in payload:
+        # Deleted refs will not have a status URL.
+        return bool(payload.get('deleted') == True)
+    
+    return True
 
 def process_payload_files(payload, github_auth):
     ''' Return a dictionary of file paths to raw JSON contents and file IDs.
