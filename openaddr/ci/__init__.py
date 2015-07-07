@@ -1,14 +1,14 @@
 import logging; _L = logging.getLogger('openaddr.ci')
 
 from ..compat import standard_library
-from .. import jobs
+from .. import jobs, __version__
 
 from os.path import relpath, splitext
 from collections import OrderedDict
 from urllib.parse import urljoin
 from datetime import timedelta
 from functools import wraps
-from uuid import uuid4
+from uuid import uuid4, getnode
 from time import sleep
 import hashlib, hmac
 import json, os
@@ -554,22 +554,27 @@ def add_run(db):
 def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status):
     ''' Populate an identitified row in the runs table.
     '''
+    worker_id, code_version = hex(getnode()), __version__
+    
     db.execute('''UPDATE runs SET
                   source_path = %s, source_data = %s, source_id = %s,
-                  state = %s::json, status = %s,
+                  state = %s::json, status = %s, worker_id = %s,
+                  code_version = %s,
                   datetime = NOW() AT TIME ZONE 'UTC'
                   WHERE id = %s''',
                (filename, content_b64, file_id,
-               json.dumps(run_state), run_status,
+               json.dumps(run_state), run_status, worker_id,
+               code_version,
                run_id))
 
 def copy_run(db, run_id):
     ''' Duplicate a previous run and return its new ID.
     '''
     db.execute('''INSERT INTO runs
-                  (copy_of, source_path, source_id, source_data, state, status, datetime)
+                  (copy_of, source_path, source_id, source_data, state, status,
+                   worker_id, code_version, datetime)
                   SELECT id, source_path, source_id, source_data, state, status,
-                         NOW() AT TIME ZONE 'UTC'
+                         worker_id, code_version, NOW() AT TIME ZONE 'UTC'
                   FROM runs
                   WHERE id = %s''',
                (run_id, ))
