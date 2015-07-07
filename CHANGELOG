@@ -1,3 +1,7 @@
+2015-07-07: 1.13.0
+- Added new information to CI runs table about worker boxes and data sources.
+- Fixed a bug with improperly-run payloads in openaddr.ci.
+
 2015-07-05: 1.12.0
 - Added support for signed calls to /hook with WEBHOOK_SECRETS.
 
