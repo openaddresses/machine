@@ -116,7 +116,7 @@ def app_hook():
     if skip_payload(webhook_payload):
         return jsonify({'url': None, 'files': [], 'skip': True})
     
-    status_url = get_status_url(webhook_payload)
+    commit_sha, status_url = get_commit_info(webhook_payload)
     if current_app.config['GAG_GITHUB_STATUS']:
         status_url = None
     
@@ -139,7 +139,7 @@ def app_hook():
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         queue = db_queue(conn, TASK_QUEUE)
         try:
-            job_id = create_queued_job(queue, files, job_url_template, status_url)
+            job_id = create_queued_job(queue, files, job_url_template, commit_sha, status_url)
             job_url = expand(job_url_template, dict(id=job_id))
         except Exception as e:
             # Oops, tell Github something went wrong.
@@ -361,10 +361,11 @@ def process_pushevent_payload_files(payload, github_auth):
     
     return files
 
-def get_status_url(payload):
-    ''' Get Github status API URL from webhook payload.
+def get_commit_info(payload):
+    ''' Get commit SHA and Github status API URL from webhook payload.
     '''
     if 'pull_request' in payload:
+        commit_sha = payload['pull_request']['head']['sha']
         status_url = payload['pull_request']['statuses_url']
     
     elif 'head_commit' in payload:
@@ -377,7 +378,7 @@ def get_status_url(payload):
     
     current_app.logger.debug('Status URL {}'.format(status_url))
     
-    return status_url
+    return commit_sha, status_url
 
 def post_github_status(status_url, status_json, github_auth):
     ''' POST status JSON to Github status API.
@@ -454,7 +455,7 @@ def calculate_job_id(files):
     
     return job_id
 
-def create_queued_job(queue, files, job_url_template, status_url):
+def create_queued_job(queue, files, job_url_template, commit_sha, status_url):
     ''' Create a new job, and add its files to the queue.
     '''
     filenames = list(files.keys())
@@ -466,19 +467,20 @@ def create_queued_job(queue, files, job_url_template, status_url):
     job_status = None
 
     with queue as db:
-        task_files = add_files_to_queue(queue, job_id, job_url, files)
+        task_files = add_files_to_queue(queue, job_id, job_url, files, commit_sha)
         add_job(db, job_id, None, task_files, file_states, file_results, status_url)
     
     return job_id
 
-def add_files_to_queue(queue, job_id, job_url, files):
+def add_files_to_queue(queue, job_id, job_url, files, commit_sha):
     ''' Make a new task for each file, return dict of file IDs to file names.
     '''
     tasks = {}
     
     for (file_name, (content_b64, file_id)) in files.items():
         task_data = dict(job_id=job_id, url=job_url, name=file_name,
-                         content_b64=content_b64, file_id=file_id)
+                         content_b64=content_b64, file_id=file_id,
+                         commit_sha=commit_sha)
     
         # Spread tasks out over time.
         delay = timedelta(len(tasks))
@@ -551,7 +553,8 @@ def add_run(db):
     
     return run_id
 
-def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status, job_id):
+def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
+            job_id, commit_sha):
     ''' Populate an identitified row in the runs table.
     '''
     worker_id, code_version = hex(getnode()), __version__
@@ -559,12 +562,12 @@ def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status, j
     db.execute('''UPDATE runs SET
                   source_path = %s, source_data = %s, source_id = %s,
                   state = %s::json, status = %s, worker_id = %s,
-                  code_version = %s, job_id = %s,
+                  code_version = %s, job_id = %s, commit_sha = %s,
                   datetime = NOW() AT TIME ZONE 'UTC'
                   WHERE id = %s''',
                (filename, content_b64, file_id,
                json.dumps(run_state), run_status, worker_id,
-               code_version, job_id,
+               code_version, job_id, commit_sha,
                run_id))
 
 def copy_run(db, run_id):
@@ -645,7 +648,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
             return
 
         _L.info('Got job {job_id} from task queue'.format(**task.data))
-        passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64'
+        passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'commit_sha'
         passed_on_kwargs = {k: task.data.get(k) for k in passed_on_keys}
         previous_run = get_previously_completed_run(db, task.data.get('file_id'))
     
@@ -700,6 +703,7 @@ def pop_task_from_donequeue(queue, github_auth):
         message = results['message']
         run_state = results.get('output', None)
         content_b64 = task.data['content_b64']
+        commit_sha = task.data['commit_sha']
         job_url = task.data['url']
         filename = task.data['name']
         file_id = task.data['file_id']
@@ -711,7 +715,8 @@ def pop_task_from_donequeue(queue, github_auth):
             return
         
         run_status = bool(message == MAGIC_OK_MESSAGE)
-        set_run(db, run_id, filename, file_id, content_b64, run_state, run_status, job_id)
+        set_run(db, run_id, filename, file_id, content_b64, run_state,
+                run_status, job_id, commit_sha)
 
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)
@@ -740,6 +745,7 @@ def pop_task_from_duequeue(queue, github_auth):
         _L.info('Got job {job_id} from due queue'.format(**task.data))
         original_task = task.data['task_data']
         content_b64 = task.data['content_b64']
+        commit_sha = task.data['commit_sha']
         job_url = task.data['url']
         filename = task.data['name']
         file_id = task.data['file_id']
@@ -751,7 +757,8 @@ def pop_task_from_duequeue(queue, github_auth):
             return
 
         run_status = False
-        set_run(db, run_id, filename, file_id, content_b64, None, run_status, job_id)
+        set_run(db, run_id, filename, file_id, content_b64, None, run_status,
+                job_id, commit_sha)
 
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)
