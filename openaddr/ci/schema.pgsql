@@ -1,4 +1,15 @@
 DROP TABLE IF EXISTS runs;
+DROP TABLE IF EXISTS jobs;
+
+CREATE TABLE jobs
+(
+    id                  VARCHAR(40) PRIMARY KEY,
+    status              BOOLEAN,
+    task_files          JSON,
+    file_states         JSON,
+    file_results        JSON,
+    github_status_url   TEXT
+);
 
 CREATE TABLE runs
 (
@@ -10,17 +21,10 @@ CREATE TABLE runs
     -- commit_id?
     state               JSON,
     status              BOOLEAN,
-    copy_of             INTEGER REFERENCES runs(id) NULL
-);
+    copy_of             INTEGER REFERENCES runs(id) NULL,
 
-DROP TABLE IF EXISTS jobs;
-
-CREATE TABLE jobs
-(
-    id                  VARCHAR(40) PRIMARY KEY,
-    status              BOOLEAN,
-    task_files          JSON,
-    file_states         JSON,
-    file_results        JSON,
-    github_status_url   TEXT
+    code_version        VARCHAR(8) NULL,
+    worker_id           VARCHAR(16) NULL,
+    job_id              VARCHAR(40) REFERENCES jobs(id) NULL,
+    commit_sha          VARCHAR(40) NULL
 );
