@@ -551,7 +551,7 @@ def add_run(db):
     
     return run_id
 
-def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status):
+def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status, job_id):
     ''' Populate an identitified row in the runs table.
     '''
     worker_id, code_version = hex(getnode()), __version__
@@ -559,12 +559,12 @@ def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status):
     db.execute('''UPDATE runs SET
                   source_path = %s, source_data = %s, source_id = %s,
                   state = %s::json, status = %s, worker_id = %s,
-                  code_version = %s,
+                  code_version = %s, job_id = %s,
                   datetime = NOW() AT TIME ZONE 'UTC'
                   WHERE id = %s''',
                (filename, content_b64, file_id,
                json.dumps(run_state), run_status, worker_id,
-               code_version,
+               code_version, job_id,
                run_id))
 
 def copy_run(db, run_id):
@@ -572,9 +572,9 @@ def copy_run(db, run_id):
     '''
     db.execute('''INSERT INTO runs
                   (copy_of, source_path, source_id, source_data, state, status,
-                   worker_id, code_version, datetime)
+                   worker_id, code_version, job_id, datetime)
                   SELECT id, source_path, source_id, source_data, state, status,
-                         worker_id, code_version, NOW() AT TIME ZONE 'UTC'
+                         worker_id, code_version, job_id, NOW() AT TIME ZONE 'UTC'
                   FROM runs
                   WHERE id = %s''',
                (run_id, ))
@@ -711,7 +711,7 @@ def pop_task_from_donequeue(queue, github_auth):
             return
         
         run_status = bool(message == MAGIC_OK_MESSAGE)
-        set_run(db, run_id, filename, file_id, content_b64, run_state, run_status)
+        set_run(db, run_id, filename, file_id, content_b64, run_state, run_status, job_id)
 
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)
@@ -751,7 +751,7 @@ def pop_task_from_duequeue(queue, github_auth):
             return
 
         run_status = False
-        set_run(db, run_id, filename, file_id, content_b64, None, run_status)
+        set_run(db, run_id, filename, file_id, content_b64, None, run_status, job_id)
 
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)
