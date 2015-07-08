@@ -1,3 +1,6 @@
+2015-07-07: 1.15.0
+- Removed old timestamp with no timezone column from CI runs table.
+
 2015-07-07: 1.14.0
 - Added new timestamp with timezone column to CI runs table.
 
