@@ -1,3 +1,6 @@
+2015-07-08: 1.15.1
+- Fixed calculation of worker ID to the worker machine itself.
+
 2015-07-07: 1.15.0
 - Removed old timestamp with no timezone column from CI runs table.
 

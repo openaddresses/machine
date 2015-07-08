@@ -562,11 +562,9 @@ def add_run(db):
     return run_id
 
 def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
-            job_id, commit_sha):
+            job_id, worker_id, commit_sha):
     ''' Populate an identitified row in the runs table.
     '''
-    worker_id, code_version = hex(getnode()), __version__
-    
     db.execute('''UPDATE runs SET
                   source_path = %s, source_data = %s, source_id = %s,
                   state = %s::json, status = %s, worker_id = %s,
@@ -575,7 +573,7 @@ def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
                   WHERE id = %s''',
                (filename, content_b64, file_id,
                json.dumps(run_state), run_status, worker_id,
-               code_version, job_id, commit_sha,
+               __version__, job_id, commit_sha,
                run_id))
 
 def copy_run(db, run_id):
@@ -658,6 +656,8 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
         _L.info('Got job {job_id} from task queue'.format(**task.data))
         passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'commit_sha'
         passed_on_kwargs = {k: task.data.get(k) for k in passed_on_keys}
+        passed_on_kwargs['worker_id'] = hex(getnode()).rstrip('L')
+
         previous_run = get_previously_completed_run(db, task.data.get('file_id'))
     
         if previous_run:
@@ -712,6 +712,7 @@ def pop_task_from_donequeue(queue, github_auth):
         run_state = results.get('output', None)
         content_b64 = task.data['content_b64']
         commit_sha = task.data['commit_sha']
+        worker_id = task.data.get('worker_id')
         job_url = task.data['url']
         filename = task.data['name']
         file_id = task.data['file_id']
@@ -724,7 +725,7 @@ def pop_task_from_donequeue(queue, github_auth):
         
         run_status = bool(message == MAGIC_OK_MESSAGE)
         set_run(db, run_id, filename, file_id, content_b64, run_state,
-                run_status, job_id, commit_sha)
+                run_status, job_id, worker_id, commit_sha)
 
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)
@@ -754,6 +755,7 @@ def pop_task_from_duequeue(queue, github_auth):
         original_task = task.data['task_data']
         content_b64 = task.data['content_b64']
         commit_sha = task.data['commit_sha']
+        worker_id = task.data.get('worker_id')
         job_url = task.data['url']
         filename = task.data['name']
         file_id = task.data['file_id']
@@ -766,7 +768,7 @@ def pop_task_from_duequeue(queue, github_auth):
 
         run_status = False
         set_run(db, run_id, filename, file_id, content_b64, None, run_status,
-                job_id, commit_sha)
+                job_id, worker_id, commit_sha)
 
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)
