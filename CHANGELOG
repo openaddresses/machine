@@ -1,3 +1,6 @@
+2015-07-07: 1.14.0
+- Added new timestamp with timezone column to CI runs table.
+
 2015-07-07: 1.13.0
 - Added new information to CI runs table about worker boxes and data sources.
 - Fixed a bug with improperly-run payloads in openaddr.ci.
