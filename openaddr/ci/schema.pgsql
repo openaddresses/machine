@@ -18,6 +18,7 @@ CREATE TABLE runs
     source_id           VARCHAR(40),
     source_data         BYTEA,
     datetime            TIMESTAMP,
+    datetime_tz         TIMESTAMP WITH TIME ZONE,
     -- commit_id?
     state               JSON,
     status              BOOLEAN,
