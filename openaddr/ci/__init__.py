@@ -546,7 +546,7 @@ def is_completed_run(db, run_id, min_datetime):
 def add_run(db):
     ''' Reserve a row in the runs table and return its new ID.
     '''
-    db.execute("INSERT INTO runs (datetime, datetime_tz) VALUES (NOW() AT TIME ZONE 'UTC', NOW())")
+    db.execute("INSERT INTO runs (datetime_tz) VALUES (NOW())")
     db.execute("SELECT currval('runs_id_seq')")
     
     (run_id, ) = db.fetchone()
@@ -563,7 +563,6 @@ def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
                   source_path = %s, source_data = %s, source_id = %s,
                   state = %s::json, status = %s, worker_id = %s,
                   code_version = %s, job_id = %s, commit_sha = %s,
-                  datetime = NOW() AT TIME ZONE 'UTC',
                   datetime_tz = NOW()
                   WHERE id = %s''',
                (filename, content_b64, file_id,
@@ -576,9 +575,9 @@ def copy_run(db, run_id):
     '''
     db.execute('''INSERT INTO runs
                   (copy_of, source_path, source_id, source_data, state, status,
-                   worker_id, code_version, job_id, datetime, datetime_tz)
+                   worker_id, code_version, job_id, datetime_tz)
                   SELECT id, source_path, source_id, source_data, state, status,
-                         worker_id, code_version, job_id, NOW() AT TIME ZONE 'UTC', NOW()
+                         worker_id, code_version, job_id, NOW()
                   FROM runs
                   WHERE id = %s''',
                (run_id, ))
