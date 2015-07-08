@@ -16,6 +16,7 @@ import json, os
 from flask import Flask, request, Response, current_app, jsonify, render_template
 from uritemplate import expand
 from requests import get, post
+from dateutil.tz import tzutc
 from psycopg2 import connect
 from boto import connect_sns
 from pq import PQ
@@ -529,10 +530,17 @@ def read_job(db, job_id):
 def is_completed_run(db, run_id, min_datetime):
     '''
     '''
+    if min_datetime.tzinfo:
+        # Convert known time zones to UTC.
+        min_dtz = min_datetime.astimezone(tzutc())
+    else:
+        # Assume unspecified time zones are UTC.
+        min_dtz = min_datetime.replace(tzinfo=tzutc())
+
     db.execute('''SELECT id, status FROM runs
                   WHERE id = %s AND status IS NOT NULL
-                    AND datetime_tz >= (%s AT TIME ZONE 'UTC')''',
-               (run_id, min_datetime))
+                    AND datetime_tz >= %s''',
+               (run_id, min_dtz))
     
     completed_run = db.fetchone()
     
