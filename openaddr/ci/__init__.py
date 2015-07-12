@@ -506,7 +506,8 @@ def enqueue_sources(queue, sources):
                 _L.info(u'Added set {} ({commit_sha}) to sets table'.format(set_id, **source))
         
             _L.info(u'Sending {path} to task queue'.format(**source))
-            task_data = dict(job_id=None, url=None, name=source['path'],
+            task_data = dict(job_id=None, url=None, set_id=set_id,
+                             name=source['path'],
                              content_b64=source['content'],
                              commit_sha=source['commit_sha'],
                              file_id=source['blob_sha'])
@@ -641,33 +642,33 @@ def add_run(db):
     return run_id
 
 def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
-            job_id, worker_id, commit_sha):
+            job_id, worker_id, commit_sha, set_id):
     ''' Populate an identitified row in the runs table.
     '''
     db.execute('''UPDATE runs SET
                   source_path = %s, source_data = %s, source_id = %s,
                   state = %s::json, status = %s, worker_id = %s,
                   code_version = %s, job_id = %s, commit_sha = %s,
-                  datetime_tz = NOW()
+                  set_id = %s, datetime_tz = NOW()
                   WHERE id = %s''',
                (filename, content_b64, file_id,
                json.dumps(run_state), run_status, worker_id,
                __version__, job_id, commit_sha,
-               run_id))
+               set_id, run_id))
 
-def copy_run(db, run_id, job_id, commit_sha):
+def copy_run(db, run_id, job_id, commit_sha, set_id):
     ''' Duplicate a previous run and return its new ID.
     
-        Use new values for job ID and commit SHA.
+        Use new values for job ID, commit SHA, and set ID.
     '''
     db.execute('''INSERT INTO runs
                   (copy_of, source_path, source_id, source_data, state, status,
-                   worker_id, code_version, job_id, commit_sha, datetime_tz)
+                   worker_id, code_version, job_id, commit_sha, set_id, datetime_tz)
                   SELECT id, source_path, source_id, source_data, state, status,
-                         worker_id, code_version, %s, %s, NOW()
+                         worker_id, code_version, %s, %s, %s, NOW()
                   FROM runs
                   WHERE id = %s''',
-               (job_id, commit_sha, run_id))
+               (job_id, commit_sha, set_id, run_id))
 
     db.execute("SELECT currval('runs_id_seq')")
     
@@ -749,7 +750,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
             return
 
         _L.info('Got job {job_id} from task queue'.format(**task.data))
-        passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'commit_sha'
+        passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'commit_sha', 'set_id'
         passed_on_kwargs = {k: task.data.get(k) for k in passed_on_keys}
         passed_on_kwargs['worker_id'] = hex(getnode()).rstrip('L')
 
@@ -758,7 +759,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
         if previous_run:
             # Make a copy of the previous run.
             previous_run_id, _, _ = previous_run
-            copy_args = passed_on_kwargs['job_id'], passed_on_kwargs['commit_sha']
+            copy_args = (passed_on_kwargs[k] for k in ('job_id', 'commit_sha', 'set_id'))
             passed_on_kwargs['run_id'] = copy_run(db, previous_run_id, *copy_args)
             
             # Don't send a due task, since we will not be doing any actual work.
@@ -810,6 +811,7 @@ def pop_task_from_donequeue(queue, github_auth):
         content_b64 = task.data['content_b64']
         commit_sha = task.data['commit_sha']
         worker_id = task.data.get('worker_id')
+        set_id = task.data.get('set_id')
         job_url = task.data['url']
         filename = task.data['name']
         file_id = task.data['file_id']
@@ -822,7 +824,7 @@ def pop_task_from_donequeue(queue, github_auth):
         
         run_status = bool(message == MAGIC_OK_MESSAGE)
         set_run(db, run_id, filename, file_id, content_b64, run_state,
-                run_status, job_id, worker_id, commit_sha)
+                run_status, job_id, worker_id, commit_sha, set_id)
 
         if job_id:
             update_job_status(db, job_id, job_url, filename, run_status, results, github_auth)
@@ -841,6 +843,7 @@ def pop_task_from_duequeue(queue, github_auth):
         content_b64 = task.data['content_b64']
         commit_sha = task.data['commit_sha']
         worker_id = task.data.get('worker_id')
+        set_id = task.data.get('set_id')
         job_url = task.data['url']
         filename = task.data['name']
         file_id = task.data['file_id']
@@ -853,7 +856,7 @@ def pop_task_from_duequeue(queue, github_auth):
 
         run_status = False
         set_run(db, run_id, filename, file_id, content_b64, None, run_status,
-                job_id, worker_id, commit_sha)
+                job_id, worker_id, commit_sha, set_id)
 
         if job_id:
             update_job_status(db, job_id, job_url, filename, run_status, False, github_auth)

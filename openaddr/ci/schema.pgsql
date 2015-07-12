@@ -35,5 +35,6 @@ CREATE TABLE runs
     code_version        VARCHAR(8) NULL,
     worker_id           VARCHAR(16) NULL,
     job_id              VARCHAR(40) REFERENCES jobs(id) NULL,
+    set_id              INTEGER REFERENCES sets(id) NULL,
     commit_sha          VARCHAR(40) NULL
 );

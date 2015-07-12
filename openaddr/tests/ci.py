@@ -1162,18 +1162,20 @@ class TestBatch (unittest.TestCase):
             
             # Find a record of the two runs.
             with done_Q as db:
-                db.execute('SELECT status, commit_sha FROM runs ORDER BY datetime_tz ASC')
-                (status1, commit_sha1), (status2, commit_sha2) = db.fetchall()
+                db.execute('SELECT id, commit_sha, datetime_start, datetime_end FROM sets')
+                ((set_id, commit_sha, datetime_start, datetime_end), ) = db.fetchall()
+                self.assertEqual(commit_sha[:6], '8dd262')
+                self.assertTrue(datetime_start is not None)
+                self.assertTrue(datetime_end is None, 'Set should not have completed')
+
+                db.execute('SELECT set_id, status, commit_sha FROM runs ORDER BY datetime_tz ASC')
+                (set1, status1, commit_sha1), (set2, status2, commit_sha2) = db.fetchall()
+                self.assertEqual(set1, set_id)
+                self.assertEqual(set2, set_id)
                 self.assertEqual(status1, True)
                 self.assertEqual(status2, False)
                 self.assertEqual(commit_sha1[:6], '8dd262')
                 self.assertEqual(commit_sha2[:6], '8dd262')
-
-                db.execute('SELECT commit_sha, datetime_start, datetime_end FROM sets')
-                ((commit_sha, datetime_start, datetime_end), ) = db.fetchall()
-                self.assertEqual(commit_sha[:6], '8dd262')
-                self.assertTrue(datetime_start is not None)
-                self.assertTrue(datetime_end is None, 'Set should not have completed')
 
 if __name__ == '__main__':
     unittest.main()
