@@ -1,6 +1,9 @@
 DROP TABLE IF EXISTS runs;
 DROP TABLE IF EXISTS sets;
 DROP TABLE IF EXISTS jobs;
+DROP SEQUENCE IF EXISTS ints;
+
+CREATE SEQUENCE ints;
 
 CREATE TABLE jobs
 (
@@ -14,7 +17,7 @@ CREATE TABLE jobs
 
 CREATE TABLE sets
 (
-    id                  SERIAL PRIMARY KEY,
+    id                  INTEGER NOT NULL DEFAULT NEXTVAL('ints') PRIMARY KEY,
     commit_sha          VARCHAR(40) NULL,
     datetime_start      TIMESTAMP WITH TIME ZONE,
     datetime_end        TIMESTAMP WITH TIME ZONE

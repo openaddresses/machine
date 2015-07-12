@@ -500,7 +500,7 @@ def enqueue_sources(queue, sources):
                               VALUES (%s, NOW())''',
                            (source['commit_sha'], ))
 
-                db.execute("SELECT CURRVAL('sets_id_seq')")
+                db.execute("SELECT CURRVAL('ints')")
                 (set_id, ) = db.fetchone()
 
                 _L.info(u'Added set {} ({commit_sha}) to sets table'.format(set_id, **source))

@@ -71,12 +71,6 @@ class TestHook (unittest.TestCase):
         '''
         rmtree(self.output_dir)
         remove(self.s3._fake_keys)
-        return
-        
-        with db_connect(self.database_url) as conn:
-            with db_cursor(conn) as db:
-                db.execute('TRUNCATE jobs')
-                db.execute('TRUNCATE queue')
     
     def response_content(self, url, request):
         '''
@@ -535,12 +529,6 @@ class TestRuns (unittest.TestCase):
         '''
         rmtree(self.output_dir)
         remove(self.s3._fake_keys)
-        return
-        
-        with db_connect(self.database_url) as conn:
-            with db_cursor(conn) as db:
-                db.execute('TRUNCATE jobs')
-                db.execute('TRUNCATE queue')
     
     def response_content(self, url, request):
         '''
@@ -910,12 +898,6 @@ class TestWorker (unittest.TestCase):
         '''
         rmtree(self.output_dir)
         remove(self.s3._fake_keys)
-        return
-        
-        with db_connect(self.database_url) as conn:
-            with db_cursor(conn) as db:
-                db.execute('TRUNCATE jobs')
-                db.execute('TRUNCATE queue')
     
     @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')
@@ -1022,12 +1004,6 @@ class TestBatch (unittest.TestCase):
         '''
         rmtree(self.output_dir)
         remove(self.s3._fake_keys)
-        return
-        
-        with db_connect(self.database_url) as conn:
-            with db_cursor(conn) as db:
-                db.execute('TRUNCATE jobs')
-                db.execute('TRUNCATE queue')
     
     def response_content(self, url, request):
         '''
