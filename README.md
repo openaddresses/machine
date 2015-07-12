@@ -69,6 +69,13 @@ Run it on an Amazon EC2 spot instance with `openaddr-ec2-run`:
 
     openaddr-ec2-run -a <AWS key> -s <AWS secret> data.openaddresses.io
 
+### Batch Mode & CI Workers
+
+To run batch mode with existing CI workers and queue, prepare a complete set of
+sources from master branch with `openaddr-ci-enqueue`:
+
+    openaddr-ci-enqueue -d <database URL> -t <Github token> -o <repo owner> -r <repo name>
+
 Development
 -----------
 

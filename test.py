@@ -22,7 +22,7 @@ from openaddr.tests.conform import TestConformCli, TestConformTransforms, TestCo
 from openaddr.tests.expand import TestExpand
 from openaddr.tests.render import TestRender
 from openaddr.tests.util import TestEsri2GeoJSON
-from openaddr.tests.ci import TestHook, TestRuns, TestWorker
+from openaddr.tests.ci import TestHook, TestRuns, TestWorker, TestBatch
 from openaddr.tests.run import TestEC2
 
 if __name__ == '__main__':

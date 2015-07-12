@@ -292,13 +292,12 @@ def process_pullrequest_payload_files(payload, github_auth):
             # Skip non-JSON files.
             continue
 
-        contents_url = payload['pull_request']['head']['repo']['contents_url']
+        contents_url = payload['pull_request']['head']['repo']['contents_url'] + '{?ref}'
         try:
-            contents_url = expand(contents_url, dict(path=filename))
+            contents_url = expand(contents_url, dict(path=filename, ref=commit_sha))
         except UnicodeEncodeError:
             # Python 2 behavior
-            contents_url = expand(contents_url, dict(path=filename.encode('utf8')))
-        contents_url = '{contents_url}?ref={commit_sha}'.format(**locals())
+            contents_url = expand(contents_url, dict(path=filename.encode('utf8'), ref=commit_sha))
         
         current_app.logger.debug('Contents URL {}'.format(contents_url))
         
@@ -337,13 +336,12 @@ def process_pushevent_payload_files(payload, github_auth):
             # Skip non-JSON files.
             continue
         
-        contents_url = payload['repository']['contents_url']
+        contents_url = payload['repository']['contents_url'] + '{?ref}'
         try:
-            contents_url = expand(contents_url, dict(path=filename))
+            contents_url = expand(contents_url, dict(path=filename, ref=commit_sha))
         except UnicodeEncodeError:
             # Python 2 behavior
-            contents_url = expand(contents_url, dict(path=filename.encode('utf8')))
-        contents_url = '{contents_url}?ref={commit_sha}'.format(**locals())
+            contents_url = expand(contents_url, dict(path=filename.encode('utf8'), ref=commit_sha))
         
         current_app.logger.debug('Contents URL {}'.format(contents_url))
         
@@ -441,6 +439,90 @@ def update_success_status(status_url, job_url, filenames, github_auth):
                   target_url=job_url)
     
     return post_github_status(status_url, status, github_auth)
+
+def find_batch_sources(owner, repository, github_auth):
+    ''' Starting with a Github repo API URL, generate a stream of master sources.
+    '''
+    resp = get('https://api.github.com/', auth=github_auth)
+    if resp.status_code >= 400:
+        raise Exception('Got status {} from Github API'.format(resp.status_code))
+    start_url = expand(resp.json()['repository_url'], dict(owner=owner, repo=repository))
+    
+    _L.info('Starting batch sources at {start_url}'.format(**locals()))
+    got = get(start_url, auth=github_auth).json()
+    contents_url, commits_url = got['contents_url'], got['commits_url']
+
+    master_url = expand(commits_url, dict(sha=got['default_branch']))
+
+    _L.debug('Getting {ref} branch {master_url}'.format(ref=got['default_branch'], **locals()))
+    got = get(master_url, auth=github_auth).json()
+    commit_sha, commit_date = got['sha'], got['commit']['committer']['date']
+    
+    contents_url += '{?ref}' # So that we are consistently at the same commit.
+    sources_urls = [expand(contents_url, dict(path='sources', ref=commit_sha))]
+    sources_dict = dict()
+
+    for sources_url in sources_urls:
+        _L.debug('Getting sources {sources_url}'.format(**locals()))
+        sources = get(sources_url, auth=github_auth).json()
+    
+        for source in sources:
+            if source['type'] == 'dir':
+                params = dict(path=source['path'], ref=commit_sha)
+                sources_urls.append(expand(contents_url, params))
+                continue
+        
+            if source['type'] != 'file':
+                continue
+        
+            path_base, ext = splitext(source['path'])
+        
+            if ext == '.json':
+                _L.debug('Getting source {url}'.format(**source))
+                more_source = get(source['url'], auth=github_auth).json()
+
+                yield dict(commit_sha=commit_sha, url=source['url'],
+                           blob_sha=source['sha'], path=source['path'],
+                           content=more_source['content'])
+
+def enqueue_sources(queue, sources):
+    ''' Batch task generator, yields sweet nothings.
+    '''
+    saved_set = False
+    
+    for source in sources:
+        while len(queue) >= 1:
+            yield
+        
+        with queue as db:
+            if not saved_set:
+                saved_set = True
+                db.execute('''INSERT INTO sets
+                              (commit_sha, datetime_start)
+                              VALUES (%s, NOW())''',
+                           (source['commit_sha'], ))
+
+                db.execute("SELECT CURRVAL('ints')")
+                (set_id, ) = db.fetchone()
+
+                _L.info(u'Added set {} ({commit_sha}) to sets table'.format(set_id, **source))
+        
+            _L.info(u'Sending {path} to task queue'.format(**source))
+            task_data = dict(job_id=None, url=None, set_id=set_id,
+                             name=source['path'],
+                             content_b64=source['content'],
+                             commit_sha=source['commit_sha'],
+                             file_id=source['blob_sha'])
+        
+            task_id = queue.put(task_data)
+
+        yield
+
+    with queue as db:
+        _L.info(u'Updating set {} in sets table'.format(set_id))
+        db.execute('UPDATE sets SET datetime_end = NOW() WHERE id = %s', (set_id, ))
+
+    yield
 
 def calculate_job_id(files):
     '''
@@ -562,31 +644,33 @@ def add_run(db):
     return run_id
 
 def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
-            job_id, worker_id, commit_sha):
+            job_id, worker_id, commit_sha, set_id):
     ''' Populate an identitified row in the runs table.
     '''
     db.execute('''UPDATE runs SET
                   source_path = %s, source_data = %s, source_id = %s,
                   state = %s::json, status = %s, worker_id = %s,
                   code_version = %s, job_id = %s, commit_sha = %s,
-                  datetime_tz = NOW()
+                  set_id = %s, datetime_tz = NOW()
                   WHERE id = %s''',
                (filename, content_b64, file_id,
                json.dumps(run_state), run_status, worker_id,
                __version__, job_id, commit_sha,
-               run_id))
+               set_id, run_id))
 
-def copy_run(db, run_id):
+def copy_run(db, run_id, job_id, commit_sha, set_id):
     ''' Duplicate a previous run and return its new ID.
+    
+        Use new values for job ID, commit SHA, and set ID.
     '''
     db.execute('''INSERT INTO runs
                   (copy_of, source_path, source_id, source_data, state, status,
-                   worker_id, code_version, job_id, datetime_tz)
+                   worker_id, code_version, job_id, commit_sha, set_id, datetime_tz)
                   SELECT id, source_path, source_id, source_data, state, status,
-                         worker_id, code_version, job_id, NOW()
+                         worker_id, code_version, %s, %s, %s, NOW()
                   FROM runs
                   WHERE id = %s''',
-               (run_id, ))
+               (job_id, commit_sha, set_id, run_id))
 
     db.execute("SELECT currval('runs_id_seq')")
     
@@ -616,9 +700,23 @@ def get_previously_completed_run(db, file_id):
 
     return previous_run
 
-def update_job_status(db, job_id, job_url, filenames, task_files, file_states, file_results, status_url, github_auth):
+def update_job_status(db, job_id, job_url, filename, run_status, results, github_auth):
     '''
     '''
+    try:
+        _, task_files, file_states, file_results, status_url = read_job(db, job_id)
+    except TypeError:
+        raise Exception('Job {} not found'.format(job_id))
+
+    if filename not in file_states:
+        raise Exception('Unknown file from job {}: "{}"'.format(job_id, filename))
+    
+    filenames = list(task_files.values())
+    file_states[filename] = run_status
+    file_results[filename] = results
+    
+    # Update job status.
+
     if False in file_states.values():
         # Any task failure means the whole job has failed.
         job_status = False
@@ -654,7 +752,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
             return
 
         _L.info('Got job {job_id} from task queue'.format(**task.data))
-        passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'commit_sha'
+        passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'commit_sha', 'set_id'
         passed_on_kwargs = {k: task.data.get(k) for k in passed_on_keys}
         passed_on_kwargs['worker_id'] = hex(getnode()).rstrip('L')
 
@@ -663,7 +761,8 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
         if previous_run:
             # Make a copy of the previous run.
             previous_run_id, _, _ = previous_run
-            passed_on_kwargs['run_id'] = copy_run(db, previous_run_id)
+            copy_args = (passed_on_kwargs[k] for k in ('job_id', 'commit_sha', 'set_id'))
+            passed_on_kwargs['run_id'] = copy_run(db, previous_run_id, *copy_args)
             
             # Don't send a due task, since we will not be doing any actual work.
         
@@ -691,6 +790,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
     # Send a Done task
     done_task_data = dict(result=result, **passed_on_kwargs)
     done_queue.put(done_task_data, expected_at=td2str(timedelta(0)))
+    _L.info('Done')
     
     # Sleep a short time to allow done task to show up in runs table.
     # In a one-worker situation with repetitive pull request jobs,
@@ -713,6 +813,7 @@ def pop_task_from_donequeue(queue, github_auth):
         content_b64 = task.data['content_b64']
         commit_sha = task.data['commit_sha']
         worker_id = task.data.get('worker_id')
+        set_id = task.data.get('set_id')
         job_url = task.data['url']
         filename = task.data['name']
         file_id = task.data['file_id']
@@ -725,22 +826,10 @@ def pop_task_from_donequeue(queue, github_auth):
         
         run_status = bool(message == MAGIC_OK_MESSAGE)
         set_run(db, run_id, filename, file_id, content_b64, run_state,
-                run_status, job_id, worker_id, commit_sha)
+                run_status, job_id, worker_id, commit_sha, set_id)
 
-        try:
-            _, task_files, file_states, file_results, status_url = read_job(db, job_id)
-        except TypeError:
-            raise Exception('Job {} not found'.format(job_id))
-    
-        if filename not in file_states:
-            raise Exception('Unknown file from job {}: "{}"'.format(job_id, filename))
-        
-        filenames = list(task_files.values())
-        file_states[filename] = run_status
-        file_results[filename] = results
-        
-        update_job_status(db, job_id, job_url, filenames, task_files,
-                          file_states, file_results, status_url, github_auth)
+        if job_id:
+            update_job_status(db, job_id, job_url, filename, run_status, results, github_auth)
 
 def pop_task_from_duequeue(queue, github_auth):
     '''
@@ -756,6 +845,7 @@ def pop_task_from_duequeue(queue, github_auth):
         content_b64 = task.data['content_b64']
         commit_sha = task.data['commit_sha']
         worker_id = task.data.get('worker_id')
+        set_id = task.data.get('set_id')
         job_url = task.data['url']
         filename = task.data['name']
         file_id = task.data['file_id']
@@ -768,22 +858,10 @@ def pop_task_from_duequeue(queue, github_auth):
 
         run_status = False
         set_run(db, run_id, filename, file_id, content_b64, None, run_status,
-                job_id, worker_id, commit_sha)
+                job_id, worker_id, commit_sha, set_id)
 
-        try:
-            _, task_files, file_states, file_results, status_url = read_job(db, job_id)
-        except TypeError:
-            raise Exception('Job {} not found'.format(job_id))
-    
-        if filename not in file_states:
-            raise Exception('Unknown file from job {}: "{}"'.format(job_id, filename))
-        
-        filenames = list(task_files.values())
-        file_states[filename] = run_status
-        file_results[filename] = False
-        
-        update_job_status(db, job_id, job_url, filenames, task_files,
-                          file_states, file_results, status_url, github_auth)
+        if job_id:
+            update_job_status(db, job_id, job_url, filename, run_status, False, github_auth)
 
 def db_connect(dsn):
     ''' Connect to database using DSN string.
