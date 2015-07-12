@@ -25,7 +25,7 @@ CREATE TABLE sets
 
 CREATE TABLE runs
 (
-    id                  SERIAL PRIMARY KEY,
+    id                  INTEGER NOT NULL DEFAULT NEXTVAL('ints') PRIMARY KEY,
     source_path         TEXT,
     source_id           VARCHAR(40),
     source_data         BYTEA,

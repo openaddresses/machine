@@ -637,7 +637,7 @@ def add_run(db):
     ''' Reserve a row in the runs table and return its new ID.
     '''
     db.execute("INSERT INTO runs (datetime_tz) VALUES (NOW())")
-    db.execute("SELECT currval('runs_id_seq')")
+    db.execute("SELECT currval('ints')")
     
     (run_id, ) = db.fetchone()
     
@@ -672,7 +672,7 @@ def copy_run(db, run_id, job_id, commit_sha, set_id):
                   WHERE id = %s''',
                (job_id, commit_sha, set_id, run_id))
 
-    db.execute("SELECT currval('runs_id_seq')")
+    db.execute("SELECT currval('ints')")
     
     (run_id, ) = db.fetchone()
     
