@@ -9,9 +9,8 @@ from . import (
     )
 
 auth = environ['GITHUB_TOKEN'], 'x-oauth-basic'
-start_url = 'https://api.github.com/repos/openaddresses/openaddresses'
-start_url = 'https://api.github.com/repos/openaddresses/hooked-on-sources'
-
+owner, repository = 'openaddresses', 'openaddresses'
+owner, repository = 'openaddresses', 'hooked-on-sources'
 
 def main():
     ''' Single threaded worker to serve the job queue.
@@ -20,11 +19,11 @@ def main():
     config = load_config()
 
     try:
-        sources = find_batch_sources(start_url, auth)
+        sources = find_batch_sources(owner, repository, auth)
 
         with db_connect(config['DATABASE_URL']) as conn:
             task_Q = db_queue(conn, TASK_QUEUE)
-            for _ in enqueue_sources(task_Q, sources, auth):
+            for _ in enqueue_sources(task_Q, sources):
                 print(_, len(task_Q))
                 sleep(5)
     except:

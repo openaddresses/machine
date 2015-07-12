@@ -440,16 +440,19 @@ def update_success_status(status_url, job_url, filenames, github_auth):
     
     return post_github_status(status_url, status, github_auth)
 
-def find_batch_sources(start_url, github_auth):
-    ''' Starting with a Github repo API URL, return a list of master sources.
+def find_batch_sources(owner, repository, github_auth):
+    ''' Starting with a Github repo API URL, generate a stream of master sources.
     '''
-    print('Starting at {start_url}'.format(**locals()))
+    got = get('https://api.github.com/', auth=github_auth).json()
+    start_url = expand(got['repository_url'], dict(owner=owner, repo=repository))
+    
+    _L.info('Starting batch sources at {start_url}'.format(**locals()))
     got = get(start_url, auth=github_auth).json()
     contents_url, commits_url = got['contents_url'], got['commits_url']
 
     master_url = expand(commits_url, dict(sha=got['default_branch']))
 
-    print('Getting {ref} branch {master_url}'.format(ref=got['default_branch'], **locals()))
+    _L.info('Getting {ref} branch {master_url}'.format(ref=got['default_branch'], **locals()))
     got = get(master_url, auth=github_auth).json()
     commit_sha, commit_date = got['sha'], got['commit']['committer']['date']
     
@@ -458,7 +461,7 @@ def find_batch_sources(start_url, github_auth):
     sources_dict = dict()
 
     for sources_url in sources_urls:
-        print('Getting sources {sources_url}'.format(**locals()))
+        _L.info('Getting sources {sources_url}'.format(**locals()))
         sources = get(sources_url, auth=github_auth).json()
     
         for source in sources:
@@ -473,21 +476,14 @@ def find_batch_sources(start_url, github_auth):
             path_base, ext = splitext(source['path'])
         
             if ext == '.json':
-                key = relpath(path_base, 'sources')
-                val = dict(commit_sha=commit_sha, url=source['url'],
-                           blob_sha=source['sha'], path=source['path'])
-                sources_dict[key] = val
-                continue
-            
-                source = get(source['url'], auth=github_auth).json()
-                path = relpath(source['path'], 'sources')
-                bytes = len(source['content'])
-            
-                print('{} bytes of {encoding}-encoded data in {}'.format(bytes, path, **source))
-    
-    return list(sources_dict.values())
+                _L.info('Getting {url} data'.format(**source))
+                more_source = get(source['url'], auth=github_auth).json()
 
-def enqueue_sources(queue, sources, github_auth):
+                yield dict(commit_sha=commit_sha, url=source['url'],
+                           blob_sha=source['sha'], path=source['path'],
+                           content=more_source['content'])
+
+def enqueue_sources(queue, sources):
     ''' Batch task generator, yields sweet nothings.
     '''
     for source in sources:
@@ -495,10 +491,8 @@ def enqueue_sources(queue, sources, github_auth):
             yield
         
         with queue as db:
-            more_source = get(source['url'], auth=github_auth).json()
-
             task_data = dict(job_id=None, url=None, name=source['path'],
-                             content_b64=more_source['content'],
+                             content_b64=source['content'],
                              commit_sha=source['commit_sha'],
                              file_id=source['blob_sha'])
         
