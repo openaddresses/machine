@@ -25,7 +25,7 @@ from ..ci import (
     app, db_connect, db_cursor, db_queue, recreate_db, read_job, worker,
     pop_task_from_donequeue, pop_task_from_taskqueue, pop_task_from_duequeue,
     create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE,
-    enqueue_sources
+    enqueue_sources, find_batch_sources
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -1081,10 +1081,11 @@ class TestBatch (unittest.TestCase):
         ''' Show that the right tasks are enqueued in a batch context.
         '''
         with db_connect(self.database_url) as conn, HTTMock(self.response_content):
-            task_Q = db_queue(conn, TASK_QUEUE)
             start_url = 'https://api.github.com/repos/openaddresses/hooked-on-sources'
+            sources = find_batch_sources(start_url, self.github_auth)
+            task_Q = db_queue(conn, TASK_QUEUE)
 
-            enqueued = enqueue_sources(task_Q, start_url, self.github_auth)
+            enqueued = enqueue_sources(task_Q, sources, self.github_auth)
             file_names = set()
             
             for _ in enqueued:

@@ -4,7 +4,8 @@ from os import environ
 from time import sleep
 
 from . import (
-    db_connect, db_queue, TASK_QUEUE, load_config, setup_logger, enqueue_sources
+    db_connect, db_queue, TASK_QUEUE, load_config, setup_logger,
+    enqueue_sources, find_batch_sources
     )
 
 auth = environ['GITHUB_TOKEN'], 'x-oauth-basic'
@@ -19,9 +20,11 @@ def main():
     config = load_config()
 
     try:
+        sources = find_batch_sources(start_url, auth)
+
         with db_connect(config['DATABASE_URL']) as conn:
             task_Q = db_queue(conn, TASK_QUEUE)
-            for _ in enqueue_sources(task_Q, start_url, auth):
+            for _ in enqueue_sources(task_Q, sources, auth):
                 print(_, len(task_Q))
                 sleep(5)
     except:

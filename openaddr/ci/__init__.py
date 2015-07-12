@@ -440,8 +440,8 @@ def update_success_status(status_url, job_url, filenames, github_auth):
     
     return post_github_status(status_url, status, github_auth)
 
-def enqueue_sources(queue, start_url, github_auth):
-    ''' Batch task generator, yields sweet nothings.
+def find_batch_sources(start_url, github_auth):
+    ''' Starting with a Github repo API URL, return a list of master sources.
     '''
     print('Starting at {start_url}'.format(**locals()))
     got = get(start_url, auth=github_auth).json()
@@ -474,7 +474,8 @@ def enqueue_sources(queue, start_url, github_auth):
         
             if ext == '.json':
                 key = relpath(path_base, 'sources')
-                val = dict(url=source['url'], sha=source['sha'], path=source['path'])
+                val = dict(commit_sha=commit_sha, url=source['url'],
+                           blob_sha=source['sha'], path=source['path'])
                 sources_dict[key] = val
                 continue
             
@@ -483,10 +484,13 @@ def enqueue_sources(queue, start_url, github_auth):
                 bytes = len(source['content'])
             
                 print('{} bytes of {encoding}-encoded data in {}'.format(bytes, path, **source))
+    
+    return list(sources_dict.values())
 
-    print(sources_dict)
-
-    for source in sources_dict.values():
+def enqueue_sources(queue, sources, github_auth):
+    ''' Batch task generator, yields sweet nothings.
+    '''
+    for source in sources:
         while len(queue) >= 1:
             yield
         
@@ -495,8 +499,8 @@ def enqueue_sources(queue, start_url, github_auth):
 
             task_data = dict(job_id=None, url=None, name=source['path'],
                              content_b64=more_source['content'],
-                             file_id=source['sha'],
-                             commit_sha=commit_sha)
+                             commit_sha=source['commit_sha'],
+                             file_id=source['blob_sha'])
         
             task_id = queue.put(task_data)
             yield
