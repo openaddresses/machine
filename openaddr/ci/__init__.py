@@ -443,8 +443,10 @@ def update_success_status(status_url, job_url, filenames, github_auth):
 def find_batch_sources(owner, repository, github_auth):
     ''' Starting with a Github repo API URL, generate a stream of master sources.
     '''
-    got = get('https://api.github.com/', auth=github_auth).json()
-    start_url = expand(got['repository_url'], dict(owner=owner, repo=repository))
+    resp = get('https://api.github.com/', auth=github_auth)
+    if resp.status_code >= 400:
+        raise Exception('Got status {} from Github API'.format(resp.status_code))
+    start_url = expand(resp.json()['repository_url'], dict(owner=owner, repo=repository))
     
     _L.info('Starting batch sources at {start_url}'.format(**locals()))
     got = get(start_url, auth=github_auth).json()

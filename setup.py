@@ -39,6 +39,7 @@ setup(
             'openaddr-ci-recreate-db = openaddr.ci.recreate_db:main',
             'openaddr-ci-run-dequeue = openaddr.ci.run_dequeue:main',
             'openaddr-ci-worker = openaddr.ci.worker:main',
+            'openaddr-ci-enqueue = openaddr.ci.enqueue:main',
         ]
     ),
     package_data = {
