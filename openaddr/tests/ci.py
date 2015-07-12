@@ -1080,9 +1080,11 @@ class TestBatch (unittest.TestCase):
     def test_batch_runs(self):
         '''
         '''
-        with HTTMock(self.response_content):
+        with db_connect(self.database_url) as conn, HTTMock(self.response_content):
+            task_Q = db_queue(conn, TASK_QUEUE)
             start_url = 'https://api.github.com/repos/openaddresses/hooked-on-sources'
-            enqueue_sources(start_url, self.github_auth)
+
+            enqueue_sources(task_Q, start_url, self.github_auth)
 
 if __name__ == '__main__':
     unittest.main()
