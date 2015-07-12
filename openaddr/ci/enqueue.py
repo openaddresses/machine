@@ -1,8 +1,11 @@
 import logging; _L = logging.getLogger('openaddr.ci.enqueue')
 
 from os import environ
+from time import sleep
 
-from . import db_connect, db_queue, load_config, setup_logger, enqueue_sources, TASK_QUEUE
+from . import (
+    db_connect, db_queue, TASK_QUEUE, load_config, setup_logger, enqueue_sources
+    )
 
 auth = environ['GITHUB_TOKEN'], 'x-oauth-basic'
 start_url = 'https://api.github.com/repos/openaddresses/openaddresses'
@@ -18,10 +21,11 @@ def main():
     try:
         with db_connect(config['DATABASE_URL']) as conn:
             task_Q = db_queue(conn, TASK_QUEUE)
-            enqueue_sources(task_Q, start_url, auth)
+            for _ in enqueue_sources(task_Q, start_url, auth):
+                print(_, len(task_Q))
+                sleep(5)
     except:
         _L.error('Error in worker main()', exc_info=True)
-        time.sleep(5)
 
 if __name__ == '__main__':
     exit(main())

@@ -441,7 +441,7 @@ def update_success_status(status_url, job_url, filenames, github_auth):
     return post_github_status(status_url, status, github_auth)
 
 def enqueue_sources(queue, start_url, github_auth):
-    '''
+    ''' Batch task generator, yields sweet nothings.
     '''
     print('Starting at {start_url}'.format(**locals()))
     got = get(start_url, auth=github_auth).json()
@@ -488,8 +488,7 @@ def enqueue_sources(queue, start_url, github_auth):
 
     for source in sources_dict.values():
         while len(queue) >= 1:
-            print('sleeping because queue is', len(queue), 'long')
-            sleep(5)
+            yield
         
         with queue as db:
             more_source = get(source['url'], auth=github_auth).json()
@@ -500,13 +499,13 @@ def enqueue_sources(queue, start_url, github_auth):
                              commit_sha=commit_sha)
         
             task_id = queue.put(task_data)
-            print('enqueued task', task_id)
-    
-        break
+            yield
     
         #run_id = add_run(db)
         #set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
         #    job_id, worker_id, commit_sha)
+
+    yield None
 
 def calculate_job_id(files):
     '''

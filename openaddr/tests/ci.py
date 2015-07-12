@@ -1078,13 +1078,31 @@ class TestBatch (unittest.TestCase):
         raise ValueError('Unknowable Request {} "{}"'.format(request.method, url.geturl()))
     
     def test_batch_runs(self):
-        '''
+        ''' Show that the right tasks are enqueued in a batch context.
         '''
         with db_connect(self.database_url) as conn, HTTMock(self.response_content):
             task_Q = db_queue(conn, TASK_QUEUE)
             start_url = 'https://api.github.com/repos/openaddresses/hooked-on-sources'
 
-            enqueue_sources(task_Q, start_url, self.github_auth)
+            enqueued = enqueue_sources(task_Q, start_url, self.github_auth)
+            file_names = set()
+            
+            for _ in enqueued:
+                # There is a task for us in the queue, get it out.
+                task = task_Q.get()
+                if task:
+                    self.assertEqual(task.data['commit_sha'][:6], '8dd262')
+                    self.assertTrue(task.data['job_id'] is None, 'There should be no job ID')
+                    self.assertTrue(task.data['url'] is None, 'There should be no job URL')
+                    file_names.add(task.data['name'])
+        
+        expected_names = set([
+            u'sources/us-ca-contra_costa_county.json', u'sources/fr/la-réunion.json',
+            u'sources/us-ca-berkeley.json', u'sources/us-ca-alameda_county.json',
+            u'sources/us-ca-san_francisco.json', u'sources/us-ca-nevada_county.json'
+            ])
+        
+        self.assertEqual(file_names, expected_names)
 
 if __name__ == '__main__':
     unittest.main()
