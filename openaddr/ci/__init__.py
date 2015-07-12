@@ -452,7 +452,7 @@ def find_batch_sources(owner, repository, github_auth):
 
     master_url = expand(commits_url, dict(sha=got['default_branch']))
 
-    _L.info('Getting {ref} branch {master_url}'.format(ref=got['default_branch'], **locals()))
+    _L.debug('Getting {ref} branch {master_url}'.format(ref=got['default_branch'], **locals()))
     got = get(master_url, auth=github_auth).json()
     commit_sha, commit_date = got['sha'], got['commit']['committer']['date']
     
@@ -461,7 +461,7 @@ def find_batch_sources(owner, repository, github_auth):
     sources_dict = dict()
 
     for sources_url in sources_urls:
-        _L.info('Getting sources {sources_url}'.format(**locals()))
+        _L.debug('Getting sources {sources_url}'.format(**locals()))
         sources = get(sources_url, auth=github_auth).json()
     
         for source in sources:
@@ -476,7 +476,7 @@ def find_batch_sources(owner, repository, github_auth):
             path_base, ext = splitext(source['path'])
         
             if ext == '.json':
-                _L.info('Getting {url} data'.format(**source))
+                _L.debug('Getting source {url}'.format(**source))
                 more_source = get(source['url'], auth=github_auth).json()
 
                 yield dict(commit_sha=commit_sha, url=source['url'],
@@ -491,6 +491,7 @@ def enqueue_sources(queue, sources):
             yield
         
         with queue as db:
+            _L.info(u'Sending {path} to task queue'.format(**source))
             task_data = dict(job_id=None, url=None, name=source['path'],
                              content_b64=source['content'],
                              commit_sha=source['commit_sha'],

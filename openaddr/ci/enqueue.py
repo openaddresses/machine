@@ -24,7 +24,7 @@ def main():
         with db_connect(config['DATABASE_URL']) as conn:
             task_Q = db_queue(conn, TASK_QUEUE)
             for _ in enqueue_sources(task_Q, sources):
-                print(_, len(task_Q))
+                _L.debug('Task queue has {} item{}'.format(len(task_Q), 's' if len(task_Q) != 1 else ''))
                 sleep(5)
     except:
         _L.error('Error in worker main()', exc_info=True)
