@@ -676,9 +676,23 @@ def get_previously_completed_run(db, file_id):
 
     return previous_run
 
-def update_job_status(db, job_id, job_url, filenames, task_files, file_states, file_results, status_url, github_auth):
+def update_job_status(db, job_id, job_url, filename, run_status, results, github_auth):
     '''
     '''
+    try:
+        _, task_files, file_states, file_results, status_url = read_job(db, job_id)
+    except TypeError:
+        raise Exception('Job {} not found'.format(job_id))
+
+    if filename not in file_states:
+        raise Exception('Unknown file from job {}: "{}"'.format(job_id, filename))
+    
+    filenames = list(task_files.values())
+    file_states[filename] = run_status
+    file_results[filename] = results
+    
+    # Update job status.
+
     if False in file_states.values():
         # Any task failure means the whole job has failed.
         job_status = False
@@ -788,23 +802,8 @@ def pop_task_from_donequeue(queue, github_auth):
         set_run(db, run_id, filename, file_id, content_b64, run_state,
                 run_status, job_id, worker_id, commit_sha)
 
-        if job_id is None:
-            return
-        
-        try:
-            _, task_files, file_states, file_results, status_url = read_job(db, job_id)
-        except TypeError:
-            raise Exception('Job {} not found'.format(job_id))
-    
-        if filename not in file_states:
-            raise Exception('Unknown file from job {}: "{}"'.format(job_id, filename))
-        
-        filenames = list(task_files.values())
-        file_states[filename] = run_status
-        file_results[filename] = results
-        
-        update_job_status(db, job_id, job_url, filenames, task_files,
-                          file_states, file_results, status_url, github_auth)
+        if job_id:
+            update_job_status(db, job_id, job_url, filename, run_status, results, github_auth)
 
 def pop_task_from_duequeue(queue, github_auth):
     '''
@@ -834,23 +833,8 @@ def pop_task_from_duequeue(queue, github_auth):
         set_run(db, run_id, filename, file_id, content_b64, None, run_status,
                 job_id, worker_id, commit_sha)
 
-        if job_id is None:
-            return
-        
-        try:
-            _, task_files, file_states, file_results, status_url = read_job(db, job_id)
-        except TypeError:
-            raise Exception('Job {} not found'.format(job_id))
-    
-        if filename not in file_states:
-            raise Exception('Unknown file from job {}: "{}"'.format(job_id, filename))
-        
-        filenames = list(task_files.values())
-        file_states[filename] = run_status
-        file_results[filename] = False
-        
-        update_job_status(db, job_id, job_url, filenames, task_files,
-                          file_states, file_results, status_url, github_auth)
+        if job_id:
+            update_job_status(db, job_id, job_url, filename, run_status, False, github_auth)
 
 def db_connect(dsn):
     ''' Connect to database using DSN string.
