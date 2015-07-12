@@ -1103,6 +1103,14 @@ class TestBatch (unittest.TestCase):
                     self.assertTrue(task.data['url'] is None, 'There should be no job URL')
                     file_names.add(task.data['name'])
         
+            # Find a record of the one set.
+            with task_Q as db:
+                db.execute('SELECT commit_sha, datetime_start, datetime_end FROM sets')
+                ((commit_sha, datetime_start, datetime_end), ) = db.fetchall()
+                self.assertEqual(commit_sha[:6], '8dd262')
+                self.assertTrue(datetime_start is not None)
+                self.assertTrue(datetime_end is not None)
+        
         expected_names = set([
             u'sources/us-ca-contra_costa_county.json', u'sources/fr/la-réunion.json',
             u'sources/us-ca-berkeley.json', u'sources/us-ca-alameda_county.json',
@@ -1160,6 +1168,12 @@ class TestBatch (unittest.TestCase):
                 self.assertEqual(status2, False)
                 self.assertEqual(commit_sha1[:6], '8dd262')
                 self.assertEqual(commit_sha2[:6], '8dd262')
+
+                db.execute('SELECT commit_sha, datetime_start, datetime_end FROM sets')
+                ((commit_sha, datetime_start, datetime_end), ) = db.fetchall()
+                self.assertEqual(commit_sha[:6], '8dd262')
+                self.assertTrue(datetime_start is not None)
+                self.assertTrue(datetime_end is None, 'Set should not have completed')
 
 if __name__ == '__main__':
     unittest.main()

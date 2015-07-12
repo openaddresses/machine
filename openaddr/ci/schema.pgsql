@@ -1,4 +1,5 @@
 DROP TABLE IF EXISTS runs;
+DROP TABLE IF EXISTS sets;
 DROP TABLE IF EXISTS jobs;
 
 CREATE TABLE jobs
@@ -9,6 +10,14 @@ CREATE TABLE jobs
     file_states         JSON,
     file_results        JSON,
     github_status_url   TEXT
+);
+
+CREATE TABLE sets
+(
+    id                  SERIAL PRIMARY KEY,
+    commit_sha          VARCHAR(40) NULL,
+    datetime_start      TIMESTAMP WITH TIME ZONE,
+    datetime_end        TIMESTAMP WITH TIME ZONE
 );
 
 CREATE TABLE runs

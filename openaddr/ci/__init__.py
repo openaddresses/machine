@@ -486,11 +486,25 @@ def find_batch_sources(owner, repository, github_auth):
 def enqueue_sources(queue, sources):
     ''' Batch task generator, yields sweet nothings.
     '''
+    saved_set = False
+    
     for source in sources:
         while len(queue) >= 1:
             yield
         
         with queue as db:
+            if not saved_set:
+                saved_set = True
+                db.execute('''INSERT INTO sets
+                              (commit_sha, datetime_start)
+                              VALUES (%s, NOW())''',
+                           (source['commit_sha'], ))
+
+                db.execute("SELECT CURRVAL('sets_id_seq')")
+                (set_id, ) = db.fetchone()
+
+                _L.info(u'Added set {} ({commit_sha}) to sets table'.format(set_id, **source))
+        
             _L.info(u'Sending {path} to task queue'.format(**source))
             task_data = dict(job_id=None, url=None, name=source['path'],
                              content_b64=source['content'],
@@ -500,6 +514,10 @@ def enqueue_sources(queue, sources):
             task_id = queue.put(task_data)
 
         yield
+
+    with queue as db:
+        _L.info(u'Updating set {} in sets table'.format(set_id))
+        db.execute('UPDATE sets SET datetime_end = NOW() WHERE id = %s', (set_id, ))
 
     yield
 
