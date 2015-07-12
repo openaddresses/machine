@@ -1,3 +1,6 @@
+2015-07-12: 1.16.0
+- Added openaddr-ci-enqueue batch script and sets table.
+
 2015-07-08: 1.15.1
 - Fixed calculation of worker ID to the worker machine itself.
 
