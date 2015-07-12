@@ -497,13 +497,10 @@ def enqueue_sources(queue, sources):
                              file_id=source['blob_sha'])
         
             task_id = queue.put(task_data)
-            yield
-    
-        #run_id = add_run(db)
-        #set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
-        #    job_id, worker_id, commit_sha)
 
-    yield None
+        yield
+
+    yield
 
 def calculate_job_id(files):
     '''
@@ -791,6 +788,9 @@ def pop_task_from_donequeue(queue, github_auth):
         set_run(db, run_id, filename, file_id, content_b64, run_state,
                 run_status, job_id, worker_id, commit_sha)
 
+        if job_id is None:
+            return
+        
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)
         except TypeError:
@@ -834,6 +834,9 @@ def pop_task_from_duequeue(queue, github_auth):
         set_run(db, run_id, filename, file_id, content_b64, None, run_status,
                 job_id, worker_id, commit_sha)
 
+        if job_id is None:
+            return
+        
         try:
             _, task_files, file_states, file_results, status_url = read_job(db, job_id)
         except TypeError:

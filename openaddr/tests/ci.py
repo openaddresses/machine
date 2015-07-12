@@ -1011,6 +1011,7 @@ class TestBatch (unittest.TestCase):
         '''
         '''
         recreate_db.recreate(app.config['DATABASE_URL'])
+        self.s3 = FakeS3()
 
         self.output_dir = mkdtemp(prefix='TestBatch-')
         self.database_url = app.config['DATABASE_URL']
@@ -1020,6 +1021,7 @@ class TestBatch (unittest.TestCase):
         '''
         '''
         rmtree(self.output_dir)
+        remove(self.s3._fake_keys)
         return
         
         with db_connect(self.database_url) as conn:
@@ -1108,6 +1110,56 @@ class TestBatch (unittest.TestCase):
             ])
         
         self.assertEqual(file_names, expected_names)
+    
+    @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
+    @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=0))
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.worker.do_work')
+    def test_single_run(self, do_work):
+        ''' Show that the tasks enqueued in a batch context can be run.
+        '''
+        def returns_plausible_result(s3, run_id, source_name, content, output_dir):
+            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
+        
+        do_work.side_effect = returns_plausible_result
+
+        with db_connect(self.database_url) as conn, HTTMock(self.response_content):
+            task_Q = db_queue(conn, TASK_QUEUE)
+            done_Q = db_queue(conn, DONE_QUEUE)
+            due_Q = db_queue(conn, DUE_QUEUE)
+            
+            owner, repository = 'openaddresses', 'hooked-on-sources'
+            sources = find_batch_sources(owner, repository, self.github_auth)
+            enqueued = enqueue_sources(task_Q, sources)
+
+            #
+            # There is a task for us in the queue, run it successfully.
+            #
+            next(enqueued)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
+            pop_task_from_donequeue(done_Q, self.github_auth)
+            
+            sleep(1.1)
+            pop_task_from_duequeue(due_Q, self.github_auth)
+
+            #
+            # There is a task for us in the queue, make it take too long.
+            #
+            next(enqueued)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
+            
+            sleep(1.1)
+            pop_task_from_duequeue(due_Q, self.github_auth)
+            pop_task_from_donequeue(done_Q, self.github_auth)
+            
+            # Find a record of the two runs.
+            with done_Q as db:
+                db.execute('SELECT status, commit_sha FROM runs ORDER BY datetime_tz ASC')
+                (status1, commit_sha1), (status2, commit_sha2) = db.fetchall()
+                self.assertEqual(status1, True)
+                self.assertEqual(status2, False)
+                self.assertEqual(commit_sha1[:6], '8dd262')
+                self.assertEqual(commit_sha2[:6], '8dd262')
 
 if __name__ == '__main__':
     unittest.main()
