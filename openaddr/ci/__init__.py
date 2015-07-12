@@ -751,7 +751,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
         if task is None:
             return
 
-        _L.info('Got job {job_id} from task queue'.format(**task.data))
+        _L.info(u'Got file {name} from task queue'.format(**task.data))
         passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'commit_sha', 'set_id'
         passed_on_kwargs = {k: task.data.get(k) for k in passed_on_keys}
         passed_on_kwargs['worker_id'] = hex(getnode()).rstrip('L')
@@ -806,7 +806,7 @@ def pop_task_from_donequeue(queue, github_auth):
         if task is None:
             return
     
-        _L.info('Got job {job_id} from done queue'.format(**task.data))
+        _L.info(u'Got file {name} from done queue'.format(**task.data))
         results = task.data['result']
         message = results['message']
         run_state = results.get('output', None)
@@ -840,7 +840,7 @@ def pop_task_from_duequeue(queue, github_auth):
         if task is None:
             return
         
-        _L.info('Got job {job_id} from due queue'.format(**task.data))
+        _L.info(u'Got file {name} from due queue'.format(**task.data))
         original_task = task.data['task_data']
         content_b64 = task.data['content_b64']
         commit_sha = task.data['commit_sha']
