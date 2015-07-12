@@ -637,17 +637,19 @@ def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
                __version__, job_id, commit_sha,
                run_id))
 
-def copy_run(db, run_id):
+def copy_run(db, run_id, job_id, commit_sha):
     ''' Duplicate a previous run and return its new ID.
+    
+        Use new values for job ID and commit SHA.
     '''
     db.execute('''INSERT INTO runs
                   (copy_of, source_path, source_id, source_data, state, status,
-                   worker_id, code_version, job_id, datetime_tz)
+                   worker_id, code_version, job_id, commit_sha, datetime_tz)
                   SELECT id, source_path, source_id, source_data, state, status,
-                         worker_id, code_version, job_id, NOW()
+                         worker_id, code_version, %s, %s, NOW()
                   FROM runs
                   WHERE id = %s''',
-               (run_id, ))
+               (job_id, commit_sha, run_id))
 
     db.execute("SELECT currval('runs_id_seq')")
     
@@ -738,7 +740,8 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
         if previous_run:
             # Make a copy of the previous run.
             previous_run_id, _, _ = previous_run
-            passed_on_kwargs['run_id'] = copy_run(db, previous_run_id)
+            copy_args = passed_on_kwargs['job_id'], passed_on_kwargs['commit_sha']
+            passed_on_kwargs['run_id'] = copy_run(db, previous_run_id, *copy_args)
             
             # Don't send a due task, since we will not be doing any actual work.
         
