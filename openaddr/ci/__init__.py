@@ -566,7 +566,7 @@ def add_files_to_queue(queue, job_id, job_url, files, commit_sha):
                          commit_sha=commit_sha)
     
         # Spread tasks out over time.
-        delay = timedelta(len(tasks))
+        delay = timedelta(seconds=len(tasks))
 
         queue.put(task_data, expected_at=td2str(delay))
         tasks[file_id] = file_name
