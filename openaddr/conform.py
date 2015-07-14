@@ -213,9 +213,7 @@ class ExcerptDataTask(object):
                 input = csvreader(file, encoding=encoding, delimiter=csvsplit)
                 data_sample = [row for (row, _) in zip(input, range(6))]
 
-                if len(data_sample) < 2:
-                    raise ValueError('Not enough rows in data source')
-                elif GEOM_FIELDNAME in data_sample[0]:
+                if len(data_sample) >= 2 and GEOM_FIELDNAME in data_sample[0]:
                     geom_index = data_sample[0].index(GEOM_FIELDNAME)
                     geometry = ogr.CreateGeometryFromWkt(data_sample[1][geom_index])
                     geometry_type = geometry_types.get(geometry.GetGeometryType(), None)
