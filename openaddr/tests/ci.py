@@ -204,8 +204,11 @@ class TestHook (unittest.TestCase):
         
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data))
+            job_url = json.loads(posted.data.decode('utf8')).get('url')
+            gotten = self.client.get(urlparse(job_url).path)
         
         self.assertEqual(posted.status_code, 200)
+        self.assertEqual(gotten.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending')
         self.assertTrue(b'us-ca-badjson_county' in posted.data, 'Bad JSON County source should be present in master commit')
         
@@ -226,8 +229,11 @@ class TestHook (unittest.TestCase):
         
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data))
+            job_url = json.loads(posted.data.decode('utf8')).get('url')
+            gotten = self.client.get(urlparse(job_url).path)
         
         self.assertEqual(posted.status_code, 200)
+        self.assertEqual(gotten.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending', 'Should be pending even though content is invalid UTF8')
 
     def test_webhook_bad_signature(self):
@@ -257,8 +263,11 @@ class TestHook (unittest.TestCase):
         
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data))
+            job_url = json.loads(posted.data.decode('utf8')).get('url')
+            gotten = self.client.get(urlparse(job_url).path)
         
         self.assertEqual(posted.status_code, 200)
+        self.assertEqual(gotten.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending')
 
         files = json.loads(posted.data.decode('utf8'))['files'].items()
@@ -295,8 +304,11 @@ class TestHook (unittest.TestCase):
         
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data))
+            job_url = json.loads(posted.data.decode('utf8')).get('url')
+            gotten = self.client.get(urlparse(job_url).path)
         
         self.assertEqual(posted.status_code, 200)
+        self.assertEqual(gotten.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending')
 
         files = json.loads(posted.data.decode('utf8'))['files'].items()
@@ -338,8 +350,11 @@ class TestHook (unittest.TestCase):
         
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data))
+            job_url = json.loads(posted.data.decode('utf8')).get('url')
+            gotten = self.client.get(urlparse(job_url).path)
         
         self.assertEqual(posted.status_code, 200)
+        self.assertEqual(gotten.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending')
 
         files = json.loads(posted.data.decode('utf8'))['files'].items()
@@ -491,8 +506,11 @@ class TestHook (unittest.TestCase):
         
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data))
+            job_url = json.loads(posted.data.decode('utf8')).get('url')
+            gotten = self.client.get(urlparse(job_url).path)
         
         self.assertEqual(posted.status_code, 200)
+        self.assertEqual(gotten.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending', 'Status should be pending for a valid push')
         
         # Look for the task in the task queue.
