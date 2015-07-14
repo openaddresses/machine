@@ -22,12 +22,13 @@ os.environ['DATABASE_URL'] = environ.get('DATABASE_URL', 'postgres:///hooked_on_
 os.environ['WEBHOOK_SECRETS'] = 'hello,world'
 
 from ..ci import (
-    app, db_connect, db_cursor, db_queue, recreate_db, read_job, worker,
+    db_connect, db_cursor, db_queue, recreate_db, read_job, worker,
     pop_task_from_donequeue, pop_task_from_taskqueue, pop_task_from_duequeue,
     create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE,
     enqueue_sources, find_batch_sources
     )
 
+from ..ci.webhooks import app
 from ..jobs import JOB_TIMEOUT
 from .. import compat
 from . import FakeS3
