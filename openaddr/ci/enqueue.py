@@ -1,7 +1,7 @@
 import logging; _L = logging.getLogger('openaddr.ci.enqueue')
 
 from os import environ
-from time import sleep
+from time import time, sleep
 from argparse import ArgumentParser
 
 from . import (
@@ -35,8 +35,11 @@ def main():
 
         with db_connect(args.database_url) as conn:
             task_Q = db_queue(conn, TASK_QUEUE)
+            next_queue_report = time() + 60
             for _ in enqueue_sources(task_Q, sources):
-                _L.debug('Task queue has {} item{}'.format(len(task_Q), 's' if len(task_Q) != 1 else ''))
+                if time() >= next_queue_report:
+                    next_queue_report, n = time() + 60, len(task_Q)
+                    _L.debug('Task queue has {} item{}'.format(n, 's' if n != 1 else ''))
                 sleep(5)
     except:
         _L.error('Error in worker main()', exc_info=True)
