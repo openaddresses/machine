@@ -12,7 +12,6 @@ aws_sns_arn = node[:aws_sns_arn]
 
 gag_github_status = node['gag_github_status']
 database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=require"
-github_token = node['github_token']
 web_docroot = node['web_docroot']
 
 env_file = "/tmp/#{app_name}.conf"
@@ -27,7 +26,6 @@ file env_file do
   content <<-CONF
 WEB_DOCROOT=#{web_docroot}
 DATABASE_URL=#{database_url}
-GITHUB_TOKEN=#{github_token}
 GAG_GITHUB_STATUS=#{gag_github_status}
 AWS_ACCESS_KEY_ID=#{aws_access_id}
 AWS_SECRET_ACCESS_KEY=#{aws_secret_key}
