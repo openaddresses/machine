@@ -17,9 +17,7 @@ import hmac, hashlib
 
 import unittest, json, os, sys, itertools
 
-os.environ['GITHUB_TOKEN'] = ''
-os.environ['DATABASE_URL'] = environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
-os.environ['WEBHOOK_SECRETS'] = 'hello,world'
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
 
 from ..ci import (
     db_connect, db_cursor, db_queue, recreate_db, read_job, worker,
@@ -28,7 +26,6 @@ from ..ci import (
     enqueue_sources, find_batch_sources
     )
 
-from ..ci.webhooks import app
 from ..jobs import JOB_TIMEOUT
 from .. import compat
 from . import FakeS3
@@ -57,6 +54,11 @@ class TestHook (unittest.TestCase):
     def setUp(self):
         '''
         '''
+        os.environ['GITHUB_TOKEN'] = ''
+        os.environ['DATABASE_URL'] = DATABASE_URL
+        os.environ['WEBHOOK_SECRETS'] = 'hello,world'
+        from ..ci.webhooks import app
+
         recreate_db.recreate(app.config['DATABASE_URL'])
 
         self.output_dir = mkdtemp(prefix='TestHook-')
@@ -70,6 +72,10 @@ class TestHook (unittest.TestCase):
     def tearDown(self):
         '''
         '''
+        del os.environ['GITHUB_TOKEN']
+        del os.environ['DATABASE_URL']
+        del os.environ['WEBHOOK_SECRETS']
+
         rmtree(self.output_dir)
         remove(self.s3._fake_keys)
     
@@ -529,8 +535,8 @@ class TestRuns (unittest.TestCase):
     def setUp(self):
         '''
         '''
-        recreate_db.recreate(os.environ['DATABASE_URL'])
-        self.database_url = os.environ['DATABASE_URL']
+        recreate_db.recreate(DATABASE_URL)
+        self.database_url = DATABASE_URL
         self.output_dir = mkdtemp(prefix='TestRuns-')
         self.s3 = FakeS3()
         
@@ -907,8 +913,8 @@ class TestWorker (unittest.TestCase):
     def setUp(self):
         '''
         '''
-        recreate_db.recreate(os.environ['DATABASE_URL'])
-        self.database_url = os.environ['DATABASE_URL']
+        recreate_db.recreate(DATABASE_URL)
+        self.database_url = DATABASE_URL
         self.output_dir = mkdtemp(prefix='TestWorker-')
         self.s3 = FakeS3()
     
@@ -1011,6 +1017,11 @@ class TestBatch (unittest.TestCase):
     def setUp(self):
         '''
         '''
+        os.environ['GITHUB_TOKEN'] = ''
+        os.environ['DATABASE_URL'] = DATABASE_URL
+        os.environ['WEBHOOK_SECRETS'] = 'hello,world'
+        from ..ci.webhooks import app
+
         recreate_db.recreate(app.config['DATABASE_URL'])
         self.s3 = FakeS3()
 
@@ -1021,6 +1032,10 @@ class TestBatch (unittest.TestCase):
     def tearDown(self):
         '''
         '''
+        del os.environ['GITHUB_TOKEN']
+        del os.environ['DATABASE_URL']
+        del os.environ['WEBHOOK_SECRETS']
+
         rmtree(self.output_dir)
         remove(self.s3._fake_keys)
     
