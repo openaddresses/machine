@@ -83,10 +83,9 @@ Test the OpenAddresses machine with `test.py`:
 
     python test.py
 
-Run the webhook server, queue listener, and worker processes from the
-`openaddr` module:
+Run the webhook server, queue listener, and worker processes:
 
-    gunicorn -w 4 --bind 0.0.0.0:$PORT openaddr.ci:app
+    python run-debug-webhooks.py
     python -m openaddr.ci.run_dequeue
     
     python -m openaddr.ci.worker
