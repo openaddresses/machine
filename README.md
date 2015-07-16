@@ -72,9 +72,9 @@ Run it on an Amazon EC2 spot instance with `openaddr-ec2-run`:
 ### Batch Mode & CI Workers
 
 To run batch mode with existing CI workers and queue, prepare a complete set of
-sources from master branch with `openaddr-ci-enqueue`:
+sources from master branch with `openaddr-enqueue-sources`:
 
-    openaddr-ci-enqueue -d <database URL> -t <Github token> -o <repo owner> -r <repo name>
+    openaddr-enqueue-sources -d <database URL> -t <Github token> -o <repo owner> -r <repo name>
 
 Development
 -----------
