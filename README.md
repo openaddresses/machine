@@ -72,9 +72,9 @@ Run it on an Amazon EC2 spot instance with `openaddr-ec2-run`:
 ### Batch Mode & CI Workers
 
 To run batch mode with existing CI workers and queue, prepare a complete set of
-sources from master branch with `openaddr-ci-enqueue`:
+sources from master branch with `openaddr-enqueue-sources`:
 
-    openaddr-ci-enqueue -d <database URL> -t <Github token> -o <repo owner> -r <repo name>
+    openaddr-enqueue-sources -d <database URL> -t <Github token> -o <repo owner> -r <repo name>
 
 Development
 -----------
@@ -83,10 +83,9 @@ Test the OpenAddresses machine with `test.py`:
 
     python test.py
 
-Run the webhook server, queue listener, and worker processes from the
-`openaddr` module:
+Run the webhook server, queue listener, and worker processes:
 
-    gunicorn -w 4 --bind 0.0.0.0:$PORT openaddr.ci:app
+    python run-debug-webhooks.py
     python -m openaddr.ci.run_dequeue
     
     python -m openaddr.ci.worker

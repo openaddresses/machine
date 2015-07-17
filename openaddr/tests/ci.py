@@ -17,12 +17,10 @@ import hmac, hashlib
 
 import unittest, json, os, sys, itertools
 
-os.environ['GITHUB_TOKEN'] = ''
-os.environ['DATABASE_URL'] = environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
-os.environ['WEBHOOK_SECRETS'] = 'hello,world'
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
 
 from ..ci import (
-    app, db_connect, db_cursor, db_queue, recreate_db, read_job, worker,
+    db_connect, db_cursor, db_queue, recreate_db, read_job, worker,
     pop_task_from_donequeue, pop_task_from_taskqueue, pop_task_from_duequeue,
     create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE,
     enqueue_sources, find_batch_sources
@@ -56,6 +54,11 @@ class TestHook (unittest.TestCase):
     def setUp(self):
         '''
         '''
+        os.environ['GITHUB_TOKEN'] = ''
+        os.environ['DATABASE_URL'] = DATABASE_URL
+        os.environ['WEBHOOK_SECRETS'] = 'hello,world'
+        from ..ci.webhooks import app
+
         recreate_db.recreate(app.config['DATABASE_URL'])
 
         self.output_dir = mkdtemp(prefix='TestHook-')
@@ -69,6 +72,10 @@ class TestHook (unittest.TestCase):
     def tearDown(self):
         '''
         '''
+        del os.environ['GITHUB_TOKEN']
+        del os.environ['DATABASE_URL']
+        del os.environ['WEBHOOK_SECRETS']
+
         rmtree(self.output_dir)
         remove(self.s3._fake_keys)
     
@@ -204,8 +211,11 @@ class TestHook (unittest.TestCase):
         
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data))
+            job_url = json.loads(posted.data.decode('utf8')).get('url')
+            gotten = self.client.get(urlparse(job_url).path)
         
         self.assertEqual(posted.status_code, 200)
+        self.assertEqual(gotten.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending')
         self.assertTrue(b'us-ca-badjson_county' in posted.data, 'Bad JSON County source should be present in master commit')
         
@@ -226,8 +236,11 @@ class TestHook (unittest.TestCase):
         
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data))
+            job_url = json.loads(posted.data.decode('utf8')).get('url')
+            gotten = self.client.get(urlparse(job_url).path)
         
         self.assertEqual(posted.status_code, 200)
+        self.assertEqual(gotten.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending', 'Should be pending even though content is invalid UTF8')
 
     def test_webhook_bad_signature(self):
@@ -257,8 +270,11 @@ class TestHook (unittest.TestCase):
         
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data))
+            job_url = json.loads(posted.data.decode('utf8')).get('url')
+            gotten = self.client.get(urlparse(job_url).path)
         
         self.assertEqual(posted.status_code, 200)
+        self.assertEqual(gotten.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending')
 
         files = json.loads(posted.data.decode('utf8'))['files'].items()
@@ -295,8 +311,11 @@ class TestHook (unittest.TestCase):
         
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data))
+            job_url = json.loads(posted.data.decode('utf8')).get('url')
+            gotten = self.client.get(urlparse(job_url).path)
         
         self.assertEqual(posted.status_code, 200)
+        self.assertEqual(gotten.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending')
 
         files = json.loads(posted.data.decode('utf8'))['files'].items()
@@ -338,8 +357,11 @@ class TestHook (unittest.TestCase):
         
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data))
+            job_url = json.loads(posted.data.decode('utf8')).get('url')
+            gotten = self.client.get(urlparse(job_url).path)
         
         self.assertEqual(posted.status_code, 200)
+        self.assertEqual(gotten.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending')
 
         files = json.loads(posted.data.decode('utf8'))['files'].items()
@@ -491,8 +513,11 @@ class TestHook (unittest.TestCase):
         
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data))
+            job_url = json.loads(posted.data.decode('utf8')).get('url')
+            gotten = self.client.get(urlparse(job_url).path)
         
         self.assertEqual(posted.status_code, 200)
+        self.assertEqual(gotten.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending', 'Status should be pending for a valid push')
         
         # Look for the task in the task queue.
@@ -510,8 +535,8 @@ class TestRuns (unittest.TestCase):
     def setUp(self):
         '''
         '''
-        recreate_db.recreate(os.environ['DATABASE_URL'])
-        self.database_url = os.environ['DATABASE_URL']
+        recreate_db.recreate(DATABASE_URL)
+        self.database_url = DATABASE_URL
         self.output_dir = mkdtemp(prefix='TestRuns-')
         self.s3 = FakeS3()
         
@@ -888,8 +913,8 @@ class TestWorker (unittest.TestCase):
     def setUp(self):
         '''
         '''
-        recreate_db.recreate(os.environ['DATABASE_URL'])
-        self.database_url = os.environ['DATABASE_URL']
+        recreate_db.recreate(DATABASE_URL)
+        self.database_url = DATABASE_URL
         self.output_dir = mkdtemp(prefix='TestWorker-')
         self.s3 = FakeS3()
     
@@ -992,6 +1017,11 @@ class TestBatch (unittest.TestCase):
     def setUp(self):
         '''
         '''
+        os.environ['GITHUB_TOKEN'] = ''
+        os.environ['DATABASE_URL'] = DATABASE_URL
+        os.environ['WEBHOOK_SECRETS'] = 'hello,world'
+        from ..ci.webhooks import app
+
         recreate_db.recreate(app.config['DATABASE_URL'])
         self.s3 = FakeS3()
 
@@ -1002,6 +1032,10 @@ class TestBatch (unittest.TestCase):
     def tearDown(self):
         '''
         '''
+        del os.environ['GITHUB_TOKEN']
+        del os.environ['DATABASE_URL']
+        del os.environ['WEBHOOK_SECRETS']
+
         rmtree(self.output_dir)
         remove(self.s3._fake_keys)
     
