@@ -12,7 +12,8 @@ CREATE TABLE jobs
     task_files          JSON,
     file_states         JSON,
     file_results        JSON,
-    github_status_url   TEXT
+    github_status_url   TEXT,
+    sequence            INTEGER NULL DEFAULT NEXTVAL('ints')
 );
 
 CREATE TABLE sets

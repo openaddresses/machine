@@ -28,8 +28,8 @@ def read_jobs(db, past_id):
         Returns list of Jobs.
     '''
     db.execute('''SELECT id, status, task_files, file_states, file_results, github_status_url
-                  FROM jobs WHERE id > %s
-                  ORDER BY id LIMIT 25''',
+                  FROM jobs WHERE sequence < COALESCE((SELECT sequence FROM jobs WHERE id = %s), 2^64)
+                  ORDER BY sequence DESC, id ASC LIMIT 25''',
                (past_id, ))
     
     return [Job(*row) for row in db.fetchall()]
