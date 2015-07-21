@@ -38,6 +38,19 @@ def read_jobs(db, past_id):
     
     return [Job(*row) for row in db.fetchall()]
 
+def read_set(db, set_id):
+    '''
+    '''
+    db.execute('''SELECT id, commit_sha, datetime_start, datetime_end
+                  FROM sets WHERE id = %s''', (set_id, ))
+    
+    try:
+        id, commit_sha, datetime_start, datetime_end = db.fetchone()
+    except TypeError:
+        return None
+    else:
+        return Set(id, commit_sha, datetime_start, datetime_end)
+    
 def read_sets(db, past_id):
     ''' Read information about recent sets.
     

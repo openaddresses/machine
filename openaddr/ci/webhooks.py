@@ -16,7 +16,7 @@ from . import (
     db_connect, db_queue, db_cursor, TASK_QUEUE, create_queued_job, read_job
     )
 
-from .objects import read_jobs, read_sets
+from .objects import read_jobs, read_sets, read_set
 
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
 
@@ -169,6 +169,20 @@ def app_get_sets():
             sets = read_sets(db, past_id)
     
     return render_template('sets.html', sets=sets)
+
+@webhooks.route('/sets/<set_id>', methods=['GET'])
+@log_application_errors
+def app_get_set(set_id):
+    '''
+    '''
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            set = read_set(db, set_id)
+
+    if set is None:
+        return Response('Set {} not found'.format(set_id), 404)
+    
+    return render_template('set.html', set=set)
 
 app = Flask(__name__)
 app.config.update(load_config())
