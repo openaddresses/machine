@@ -11,10 +11,10 @@
         {% endif %}
         </span>
 
-        {% if job.length != 1 %}
-            <a href="{{ job.id }}">{{ job.length }} files</a>
+        {% if job.task_files|length != 1 %}
+            <a href="{{ job.id }}">{{ job.task_files|length }} files</a>
         {% else %}
-            <a href="{{ job.id }}">{{ job.length }} file</a>
+            <a href="{{ job.id }}">{{ job.task_files|length }} file</a>
         {% endif %}
     </li>
 {% endfor %}

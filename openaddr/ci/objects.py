@@ -11,10 +11,6 @@ class Job:
         self.file_results = file_results
         self.github_status_url = github_status_url
     
-    @property
-    def length(self):
-        return len(self.task_files.keys())
-    
 class Set:
     '''
     '''
