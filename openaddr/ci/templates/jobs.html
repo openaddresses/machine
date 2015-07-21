@@ -1,0 +1,30 @@
+<p>
+    I am an experimental OpenAddresses test service, currently under development (July 2015).
+    <a href="https://github.com/openaddresses/machine">Find me on Github</a> or
+    <a href="http://mike.teczno.com/notes/openaddresses-ci.html">read this blog post</a>
+    to learn more.
+</p>
+
+<ol>
+{% for job in jobs %}
+    <li>
+        <span style="width: 1.2em; display: inline-block; text-align: center">
+        {% if job.status is sameas True %}
+            <span style="color: #0c3">&#x2714;</span>
+        {% elif job.status is sameas False %}
+            <span style="color: #f00">&#x274C;</span>
+        {% endif %}
+        </span>
+
+        {% if job.length != 1 %}
+            <a href="{{ job.id }}">{{ job.length }} files</a>
+        {% else %}
+            <a href="{{ job.id }}">{{ job.length }} file</a>
+        {% endif %}
+    </li>
+{% endfor %}
+</ol>
+
+<p>
+    <a href="/jobs/?after={{ jobs[-1].id }}">More…</a>
+</p>

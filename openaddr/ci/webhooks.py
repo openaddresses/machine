@@ -16,6 +16,8 @@ from . import (
     db_connect, db_queue, db_cursor, TASK_QUEUE, create_queued_job, read_job
     )
 
+from .objects import read_jobs
+
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
 
 def log_application_errors(route_function):
@@ -120,6 +122,18 @@ def app_hook():
             update_pending_status(status_url, job_url, filenames, github_auth)
             return jsonify({'id': job_id, 'url': job_url, 'files': files,
                             'status_url': status_url})
+
+@webhooks.route('/jobs/', methods=['GET'])
+@log_application_errors
+def app_get_jobs():
+    '''
+    '''
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            after_id = request.args.get('after', '')
+            jobs = read_jobs(db, after_id)
+    
+    return render_template('jobs.html', jobs=jobs)
 
 @webhooks.route('/jobs/<job_id>', methods=['GET'])
 @log_application_errors
