@@ -16,7 +16,7 @@ from . import (
     db_connect, db_queue, db_cursor, TASK_QUEUE, create_queued_job, read_job
     )
 
-from .objects import read_jobs
+from .objects import read_jobs, read_sets
 
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
 
@@ -130,8 +130,8 @@ def app_get_jobs():
     '''
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
-            after_id = request.args.get('after', '')
-            jobs = read_jobs(db, after_id)
+            past_id = request.args.get('past', '')
+            jobs = read_jobs(db, past_id)
     
     return render_template('jobs.html', jobs=jobs)
 
@@ -157,6 +157,18 @@ def app_get_job(job_id):
                file_results=file_results, github_status_url=github_status_url)
     
     return render_template('job.html', job=job)
+
+@webhooks.route('/sets/', methods=['GET'])
+@log_application_errors
+def app_get_sets():
+    '''
+    '''
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            past_id = int(request.args.get('past', 0)) or None
+            sets = read_sets(db, past_id)
+    
+    return render_template('sets.html', sets=sets)
 
 app = Flask(__name__)
 app.config.update(load_config())

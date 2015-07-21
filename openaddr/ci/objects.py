@@ -15,14 +15,37 @@ class Job:
     def length(self):
         return len(self.task_files.keys())
     
-def read_jobs(db, after_id):
+class Set:
+    '''
+    '''
+    def __init__(self, id, commit_sha, datetime_start, datetime_end):
+        '''
+        '''
+        self.id = id
+        self.commit_sha = commit_sha
+        self.datetime_start = datetime_start
+        self.datetime_end = datetime_end
+    
+def read_jobs(db, past_id):
     ''' Read information about recent jobs.
     
-        Returns Job or None.
+        Returns list of Jobs.
     '''
     db.execute('''SELECT id, status, task_files, file_states, file_results, github_status_url
                   FROM jobs WHERE id > %s
                   ORDER BY id LIMIT 25''',
-               (after_id, ))
+               (past_id, ))
     
     return [Job(*row) for row in db.fetchall()]
+
+def read_sets(db, past_id):
+    ''' Read information about recent sets.
+    
+        Returns list of Sets.
+    '''
+    db.execute('''SELECT id, commit_sha, datetime_start, datetime_end
+                  FROM sets WHERE id < COALESCE(%s, 2^32)
+                  ORDER BY id DESC LIMIT 25''',
+               (past_id, ))
+    
+    return [Set(*row) for row in db.fetchall()]
