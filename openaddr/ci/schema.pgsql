@@ -16,6 +16,8 @@ CREATE TABLE jobs
     sequence            INTEGER NULL DEFAULT NEXTVAL('ints')
 );
 
+CREATE INDEX jobs_sequence_reverse ON jobs (sequence DESC);
+
 CREATE TABLE sets
 (
     id                  INTEGER NOT NULL DEFAULT NEXTVAL('ints') PRIMARY KEY,
