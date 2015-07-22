@@ -1,6 +1,12 @@
 {% include 'info.html' %}
 
-<ol>
+{% if n != 1 %}
+    <p>
+        <a href="./">Newest</a>
+    </p>
+{% endif %}
+
+<ol start="{{n}}">
 {% for job in jobs %}
     <li>
         <span style="width: 1.2em; display: inline-block; text-align: center">
@@ -20,8 +26,8 @@
 {% endfor %}
 </ol>
 
-{% if jobs %}
+{% if next_link %}
     <p>
-        <a href="/jobs/?past={{ jobs[-1].id }}">More…</a>
+        <a href="{{ next_link }}">More…</a>
     </p>
 {% endif %}

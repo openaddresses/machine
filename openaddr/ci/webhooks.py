@@ -133,7 +133,14 @@ def app_get_jobs():
             past_id = request.args.get('past', '')
             jobs = read_jobs(db, past_id)
     
-    return render_template('jobs.html', jobs=jobs)
+    n = int(request.args.get('n', '1'))
+
+    if jobs:
+        next_link = './?n={n}&past={id}'.format(id=jobs[-1].id, n=(n+len(jobs)))
+    else:
+        next_link = False
+    
+    return render_template('jobs.html', jobs=jobs, next_link=next_link, n=n)
 
 @webhooks.route('/jobs/<job_id>', methods=['GET'])
 @log_application_errors
