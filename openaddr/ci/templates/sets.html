@@ -1,0 +1,23 @@
+{% include 'info.html' %}
+
+<ol>
+{% for set in sets %}
+    <li>
+        <span style="width: 1.2em; display: inline-block; text-align: center">
+        {% if set.datetime_end is sameas None %}
+            
+        {% else %}
+            <span style="color: #0c3">&#x2714;</span>
+        {% endif %}
+        </span>
+
+        <a href="{{ set.id }}">{{ set.id }}</a>
+    </li>
+{% endfor %}
+</ol>
+
+{% if sets %}
+    <p>
+        <a href="/sets/?past={{ sets[-1].id }}">More…</a>
+    </p>
+{% endif %}

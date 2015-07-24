@@ -16,6 +16,8 @@ from . import (
     db_connect, db_queue, db_cursor, TASK_QUEUE, create_queued_job, read_job
     )
 
+from .objects import read_jobs, read_sets, read_set
+
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
 
 def log_application_errors(route_function):
@@ -121,6 +123,25 @@ def app_hook():
             return jsonify({'id': job_id, 'url': job_url, 'files': files,
                             'status_url': status_url})
 
+@webhooks.route('/jobs/', methods=['GET'])
+@log_application_errors
+def app_get_jobs():
+    '''
+    '''
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            past_id = request.args.get('past', '')
+            jobs = read_jobs(db, past_id)
+    
+    n = int(request.args.get('n', '1'))
+
+    if jobs:
+        next_link = './?n={n}&past={id}'.format(id=jobs[-1].id, n=(n+len(jobs)))
+    else:
+        next_link = False
+    
+    return render_template('jobs.html', jobs=jobs, next_link=next_link, n=n)
+
 @webhooks.route('/jobs/<job_id>', methods=['GET'])
 @log_application_errors
 def app_get_job(job_id):
@@ -143,6 +164,32 @@ def app_get_job(job_id):
                file_results=file_results, github_status_url=github_status_url)
     
     return render_template('job.html', job=job)
+
+@webhooks.route('/sets/', methods=['GET'])
+@log_application_errors
+def app_get_sets():
+    '''
+    '''
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            past_id = int(request.args.get('past', 0)) or None
+            sets = read_sets(db, past_id)
+    
+    return render_template('sets.html', sets=sets)
+
+@webhooks.route('/sets/<set_id>', methods=['GET'])
+@log_application_errors
+def app_get_set(set_id):
+    '''
+    '''
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            set = read_set(db, set_id)
+
+    if set is None:
+        return Response('Set {} not found'.format(set_id), 404)
+    
+    return render_template('set.html', set=set)
 
 app = Flask(__name__)
 app.config.update(load_config())

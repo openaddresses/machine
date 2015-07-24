@@ -1,0 +1,33 @@
+{% include 'info.html' %}
+
+{% if n != 1 %}
+    <p>
+        <a href="./">Newest</a>
+    </p>
+{% endif %}
+
+<ol start="{{n}}">
+{% for job in jobs %}
+    <li>
+        <span style="width: 1.2em; display: inline-block; text-align: center">
+        {% if job.status is sameas True %}
+            <span style="color: #0c3">&#x2714;</span>
+        {% elif job.status is sameas False %}
+            <span style="color: #f00">&#x274C;</span>
+        {% endif %}
+        </span>
+
+        {% if job.task_files|length != 1 %}
+            <a href="{{ job.id }}">{{ job.task_files|length }} files</a>
+        {% else %}
+            <a href="{{ job.id }}">{{ job.task_files|length }} file</a>
+        {% endif %}
+    </li>
+{% endfor %}
+</ol>
+
+{% if next_link %}
+    <p>
+        <a href="{{ next_link }}">More…</a>
+    </p>
+{% endif %}

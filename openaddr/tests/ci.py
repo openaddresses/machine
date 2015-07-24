@@ -6,7 +6,7 @@ from os.path import join
 from shutil import rmtree
 from tempfile import mkdtemp
 from httmock import HTTMock, response
-from urllib.parse import parse_qsl, urlparse
+from urllib.parse import parse_qsl, urlparse, urljoin
 from base64 import b64decode, b64encode
 from datetime import timedelta
 from zipfile import ZipFile
@@ -212,10 +212,12 @@ class TestHook (unittest.TestCase):
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data))
             job_url = json.loads(posted.data.decode('utf8')).get('url')
-            gotten = self.client.get(urlparse(job_url).path)
+            got_job = self.client.get(urlparse(job_url).path)
+            got_jobs = self.client.get(urlparse(urljoin(job_url, './')).path)
         
         self.assertEqual(posted.status_code, 200)
-        self.assertEqual(gotten.status_code, 200)
+        self.assertEqual(got_job.status_code, 200)
+        self.assertEqual(got_jobs.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending')
         self.assertTrue(b'us-ca-badjson_county' in posted.data, 'Bad JSON County source should be present in master commit')
         
@@ -237,10 +239,12 @@ class TestHook (unittest.TestCase):
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data))
             job_url = json.loads(posted.data.decode('utf8')).get('url')
-            gotten = self.client.get(urlparse(job_url).path)
+            got_job = self.client.get(urlparse(job_url).path)
+            got_jobs = self.client.get(urlparse(urljoin(job_url, './')).path)
         
         self.assertEqual(posted.status_code, 200)
-        self.assertEqual(gotten.status_code, 200)
+        self.assertEqual(got_job.status_code, 200)
+        self.assertEqual(got_jobs.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending', 'Should be pending even though content is invalid UTF8')
 
     def test_webhook_bad_signature(self):
@@ -271,12 +275,14 @@ class TestHook (unittest.TestCase):
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data))
             job_url = json.loads(posted.data.decode('utf8')).get('url')
-            gotten = self.client.get(urlparse(job_url).path)
+            got_job = self.client.get(urlparse(job_url).path)
+            got_jobs = self.client.get(urlparse(urljoin(job_url, './')).path)
         
         self.assertEqual(posted.status_code, 200)
-        self.assertEqual(gotten.status_code, 200)
+        self.assertEqual(got_job.status_code, 200)
+        self.assertEqual(got_jobs.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending')
-
+        
         files = json.loads(posted.data.decode('utf8'))['files'].items()
         smashed_contents = '\n'.join([name + '\n' + de64(b64) for (name, (b64, sha)) in files])
         self.assertTrue('us-ca-alameda_county' in smashed_contents, 'Alameda County source should be present in master commit')
@@ -312,10 +318,12 @@ class TestHook (unittest.TestCase):
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data))
             job_url = json.loads(posted.data.decode('utf8')).get('url')
-            gotten = self.client.get(urlparse(job_url).path)
+            got_job = self.client.get(urlparse(job_url).path)
+            got_jobs = self.client.get(urlparse(urljoin(job_url, './')).path)
         
         self.assertEqual(posted.status_code, 200)
-        self.assertEqual(gotten.status_code, 200)
+        self.assertEqual(got_job.status_code, 200)
+        self.assertEqual(got_jobs.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending')
 
         files = json.loads(posted.data.decode('utf8'))['files'].items()
@@ -358,10 +366,12 @@ class TestHook (unittest.TestCase):
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data))
             job_url = json.loads(posted.data.decode('utf8')).get('url')
-            gotten = self.client.get(urlparse(job_url).path)
+            got_job = self.client.get(urlparse(job_url).path)
+            got_jobs = self.client.get(urlparse(urljoin(job_url, './')).path)
         
         self.assertEqual(posted.status_code, 200)
-        self.assertEqual(gotten.status_code, 200)
+        self.assertEqual(got_job.status_code, 200)
+        self.assertEqual(got_jobs.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending')
 
         files = json.loads(posted.data.decode('utf8'))['files'].items()
@@ -514,10 +524,12 @@ class TestHook (unittest.TestCase):
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data))
             job_url = json.loads(posted.data.decode('utf8')).get('url')
-            gotten = self.client.get(urlparse(job_url).path)
+            got_job = self.client.get(urlparse(job_url).path)
+            got_jobs = self.client.get(urlparse(urljoin(job_url, './')).path)
         
         self.assertEqual(posted.status_code, 200)
-        self.assertEqual(gotten.status_code, 200)
+        self.assertEqual(got_job.status_code, 200)
+        self.assertEqual(got_jobs.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending', 'Status should be pending for a valid push')
         
         # Look for the task in the task queue.
