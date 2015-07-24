@@ -70,4 +70,5 @@ CREATE VIEW dashboard_stats AS
     FROM runs AS r
     LEFT JOIN sets AS s ON s.id = r.set_id
     WHERE r.set_id IS NOT NULL
+      AND s.datetime_end IS NOT NULL
       AND r.state::text != 'null';
