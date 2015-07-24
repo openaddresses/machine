@@ -1,3 +1,6 @@
+DROP VIEW IF EXISTS dashboard_runs;
+DROP VIEW IF EXISTS dashboard_stats;
+
 DROP TABLE IF EXISTS runs;
 DROP TABLE IF EXISTS sets;
 DROP TABLE IF EXISTS jobs;
@@ -41,3 +44,30 @@ CREATE TABLE runs
     set_id              INTEGER REFERENCES sets(id) NULL,
     commit_sha          VARCHAR(40) NULL
 );
+
+--
+-- Two views mimicking Nelson's dashboard tables that were
+-- previously populated by scraping from data.openaddresses.io.
+--
+
+CREATE VIEW dashboard_runs AS
+    SELECT round(extract(epoch from datetime_start)::numeric, 3)::text AS tsname
+    FROM sets;
+
+CREATE VIEW dashboard_stats AS
+    SELECT round(extract(epoch from s.datetime_start)::numeric, 3)::text AS tsname,
+           r.source_path AS source,
+           r.state->>'version' AS version,
+           extract(epoch from (r.state->>'process time')::interval) AS process_time,
+           extract(epoch from (r.state->>'cache time')::interval) AS cache_time,
+           (r.state->>'address count')::integer AS address_count,
+           r.state->>'geometry type' AS geometry_type,
+           r.state->>'processed' AS processed_url,
+           r.state->>'cached' AS cache_url,
+           r.state->>'sample' AS sample_url,
+           r.state->>'output' AS output_url,
+           r.state->>'fingerprint' AS fingerprint
+    FROM runs AS r
+    LEFT JOIN sets AS s ON s.id = r.set_id
+    WHERE r.set_id IS NOT NULL
+      AND r.state::text != 'null';
