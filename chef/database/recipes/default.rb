@@ -18,7 +18,9 @@ bash "create database" do
   code <<-CODE
   # psql #{args} -c "DROP DATABASE IF EXISTS #{name}";
   # psql #{args} -c "DROP USER IF EXISTS #{user}";
+  # psql #{args} -c "DROP USER IF EXISTS dashboard";
 
+    psql #{args} -c "CREATE USER dashboard";
     psql #{args} -c "CREATE USER #{user} WITH SUPERUSER PASSWORD '#{pass}'";
     psql #{args} -c "CREATE DATABASE #{name} WITH OWNER #{user}";
 
