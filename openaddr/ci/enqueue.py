@@ -36,7 +36,7 @@ def main():
         with db_connect(args.database_url) as conn:
             task_Q = db_queue(conn, TASK_QUEUE)
             next_queue_report = time() + 60
-            for _ in enqueue_sources(task_Q, sources):
+            for _ in enqueue_sources(task_Q, sources, args.owner, args.repository):
                 if time() >= next_queue_report:
                     next_queue_report, n = time() + 60, len(task_Q)
                     _L.debug('Task queue has {} item{}'.format(n, 's' if n != 1 else ''))

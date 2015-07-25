@@ -348,7 +348,7 @@ def find_batch_sources(owner, repository, github_auth):
                            blob_sha=source['sha'], path=source['path'],
                            content=more_source['content'])
 
-def enqueue_sources(queue, sources):
+def enqueue_sources(queue, sources, owner, repository):
     ''' Batch task generator, yields sweet nothings.
     '''
     saved_set = False
@@ -361,9 +361,9 @@ def enqueue_sources(queue, sources):
             if not saved_set:
                 saved_set = True
                 db.execute('''INSERT INTO sets
-                              (commit_sha, datetime_start)
-                              VALUES (%s, NOW())''',
-                           (source['commit_sha'], ))
+                              (owner, repository, commit_sha, datetime_start)
+                              VALUES (%s, %s, %s, NOW())''',
+                           (owner, repository, source['commit_sha']))
 
                 db.execute("SELECT CURRVAL('ints')")
                 (set_id, ) = db.fetchone()

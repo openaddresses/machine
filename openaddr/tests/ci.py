@@ -1113,7 +1113,7 @@ class TestBatch (unittest.TestCase):
             sources = find_batch_sources(owner, repository, self.github_auth)
             task_Q = db_queue(conn, TASK_QUEUE)
 
-            enqueued = enqueue_sources(task_Q, sources)
+            enqueued = enqueue_sources(task_Q, sources, owner, repository)
             file_names = set()
             
             for _ in enqueued:
@@ -1160,7 +1160,7 @@ class TestBatch (unittest.TestCase):
             
             owner, repository = 'openaddresses', 'hooked-on-sources'
             sources = find_batch_sources(owner, repository, self.github_auth)
-            enqueued = enqueue_sources(task_Q, sources)
+            enqueued = enqueue_sources(task_Q, sources, owner, repository)
 
             #
             # There is a task for us in the queue, run it successfully.
