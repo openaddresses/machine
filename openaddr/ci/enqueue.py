@@ -9,6 +9,8 @@ from . import (
     enqueue_sources, find_batch_sources
     )
 
+from .objects import add_set
+
 parser = ArgumentParser(description='Run some source files.')
 
 parser.add_argument('-o', '--owner', default='openaddresses',
@@ -36,7 +38,11 @@ def main():
         with db_connect(args.database_url) as conn:
             task_Q = db_queue(conn, TASK_QUEUE)
             next_queue_report = time() + 60
-            for expected_count in enqueue_sources(task_Q, sources, args.owner, args.repository):
+
+            with task_Q as db:
+                new_set = add_set(db, args.owner, args.repository)
+
+            for expected_count in enqueue_sources(task_Q, new_set, sources):
                 if time() >= next_queue_report:
                     next_queue_report, n = time() + 60, len(task_Q)
                     args = n, 's' if n != 1 else '', expected_count

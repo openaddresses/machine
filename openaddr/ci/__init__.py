@@ -348,11 +348,11 @@ def find_batch_sources(owner, repository, github_auth):
                            blob_sha=source['sha'], path=source['path'],
                            content=more_source['content'])
 
-def enqueue_sources(queue, sources, owner, repository):
+def enqueue_sources(queue, the_set, sources):
     ''' Batch task generator, yields counts of remaining expected paths.
     '''
-    saved_set = False
     expected_paths = set()
+    commit_sha = None
     
     #
     # Enqueue each source if there is nothing else in the queue.
@@ -362,20 +362,8 @@ def enqueue_sources(queue, sources, owner, repository):
             yield len(expected_paths)
         
         with queue as db:
-            if not saved_set:
-                saved_set = True
-                db.execute('''INSERT INTO sets
-                              (owner, repository, commit_sha, datetime_start)
-                              VALUES (%s, %s, %s, NOW())''',
-                           (owner, repository, source['commit_sha']))
-
-                db.execute("SELECT CURRVAL('ints')")
-                (set_id, ) = db.fetchone()
-
-                _L.info(u'Added set {} ({commit_sha}) to sets table'.format(set_id, **source))
-        
             _L.info(u'Sending {path} to task queue'.format(**source))
-            task_data = dict(job_id=None, url=None, set_id=set_id,
+            task_data = dict(job_id=None, url=None, set_id=the_set.id,
                              name=source['path'],
                              content_b64=source['content'],
                              commit_sha=source['commit_sha'],
@@ -383,19 +371,23 @@ def enqueue_sources(queue, sources, owner, repository):
         
             task_id = queue.put(task_data)
             expected_paths.add(source['path'])
+            commit_sha = source['commit_sha']
 
         yield len(expected_paths)
     
-    for n in _observe_expected_paths(queue, expected_paths, set_id):
+    for n in _observe_expected_paths(queue, expected_paths, the_set):
         yield n
 
     with queue as db:
-        _L.info(u'Updating set {} in sets table'.format(set_id))
-        db.execute('UPDATE sets SET datetime_end = NOW() WHERE id = %s', (set_id, ))
+        _L.info(u'Updating set {} in sets table'.format(the_set.id))
+        db.execute('''UPDATE sets
+                      SET datetime_end = NOW(), commit_sha = %s
+                      WHERE id = %s''',
+                   (commit_sha, the_set.id))
 
     yield 0
 
-def _observe_expected_paths(queue, expected_paths, set_id):
+def _observe_expected_paths(queue, expected_paths, the_set):
     ''' Generate a stream of expected path counts.
     
         Discard sources from expected_paths set as they appear in runs table.
@@ -407,7 +399,7 @@ def _observe_expected_paths(queue, expected_paths, set_id):
         with queue as db:
             db.execute('''SELECT source_path FROM runs
                           WHERE set_id = %s AND status IS NOT NULL''',
-                       (set_id, ))
+                       (the_set.id, ))
 
             for (source_path, ) in db:
                 _L.info('discarding {}'.format(source_path))

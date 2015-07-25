@@ -1,3 +1,5 @@
+import logging; _L = logging.getLogger('openaddr.ci.objects')
+
 class Job:
     '''
     '''
@@ -37,6 +39,21 @@ def read_jobs(db, past_id):
                (past_id, ))
     
     return [Job(*row) for row in db.fetchall()]
+
+def add_set(db, owner, repository):
+    '''
+    '''
+    db.execute('''INSERT INTO sets
+                  (owner, repository, datetime_start)
+                  VALUES (%s, %s, NOW())''',
+               (owner, repository))
+
+    db.execute("SELECT CURRVAL('ints')")
+    (set_id, ) = db.fetchone()
+
+    _L.info(u'Added set {} to sets table'.format(set_id))
+
+    return read_set(db, set_id)
 
 def read_set(db, set_id):
     '''

@@ -26,6 +26,8 @@ from ..ci import (
     enqueue_sources, find_batch_sources, add_run, set_run
     )
 
+from ..ci.objects import add_set
+
 from ..jobs import JOB_TIMEOUT
 from .. import compat
 from . import FakeS3
@@ -1113,7 +1115,8 @@ class TestBatch (unittest.TestCase):
             sources = find_batch_sources(owner, repository, self.github_auth)
             task_Q = db_queue(conn, TASK_QUEUE)
 
-            enqueued = enqueue_sources(task_Q, sources, owner, repository)
+            with task_Q as db: new_set = add_set(db, owner, repository)
+            enqueued = enqueue_sources(task_Q, new_set, sources)
             file_names = set()
             
             for _ in enqueued:
@@ -1162,8 +1165,9 @@ class TestBatch (unittest.TestCase):
             due_Q = db_queue(conn, DUE_QUEUE)
             
             owner, repository = 'openaddresses', 'hooked-on-sources'
+            with task_Q as db: new_set = add_set(db, owner, repository)
             sources = find_batch_sources(owner, repository, self.github_auth)
-            enqueued = enqueue_sources(task_Q, sources, owner, repository)
+            enqueued = enqueue_sources(task_Q, new_set, sources)
 
             #
             # There is a task for us in the queue, run it successfully.
@@ -1189,7 +1193,7 @@ class TestBatch (unittest.TestCase):
             with done_Q as db:
                 db.execute('SELECT id, commit_sha, datetime_start, datetime_end FROM sets')
                 ((set_id, commit_sha, datetime_start, datetime_end), ) = db.fetchall()
-                self.assertEqual(commit_sha[:6], '8dd262')
+                self.assertIsNone(commit_sha, 'Commit SHA should not be in sets table yet')
                 self.assertTrue(datetime_start is not None)
                 self.assertTrue(datetime_end is None, 'Set should not have completed')
 
