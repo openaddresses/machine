@@ -349,13 +349,17 @@ def find_batch_sources(owner, repository, github_auth):
                            content=more_source['content'])
 
 def enqueue_sources(queue, sources, owner, repository):
-    ''' Batch task generator, yields sweet nothings.
+    ''' Batch task generator, yields counts of remaining expected paths.
     '''
     saved_set = False
+    expected_paths = set()
     
+    #
+    # Enqueue each source if there is nothing else in the queue.
+    #
     for source in sources:
         while len(queue) >= 1:
-            yield
+            yield len(expected_paths)
         
         with queue as db:
             if not saved_set:
@@ -378,14 +382,41 @@ def enqueue_sources(queue, sources, owner, repository):
                              file_id=source['blob_sha'])
         
             task_id = queue.put(task_data)
+            expected_paths.add(source['path'])
 
-        yield
+        yield len(expected_paths)
+    
+    for n in _observe_expected_paths(queue, expected_paths, set_id):
+        yield n
 
     with queue as db:
         _L.info(u'Updating set {} in sets table'.format(set_id))
         db.execute('UPDATE sets SET datetime_end = NOW() WHERE id = %s', (set_id, ))
 
-    yield
+    yield 0
+
+def _observe_expected_paths(queue, expected_paths, set_id):
+    ''' Generate a stream of expected path counts.
+    
+        Discard sources from expected_paths set as they appear in runs table.
+    '''
+    #
+    # Wait for all expected paths to appear in the runs table.
+    #
+    while True:
+        with queue as db:
+            db.execute('''SELECT source_path FROM runs
+                          WHERE set_id = %s AND status IS NOT NULL''',
+                       (set_id, ))
+
+            for (source_path, ) in db:
+                _L.info('discarding {}'.format(source_path))
+                expected_paths.discard(source_path)
+        
+        if len(expected_paths):
+            yield len(expected_paths)
+        else:
+            break
 
 def calculate_job_id(files):
     '''

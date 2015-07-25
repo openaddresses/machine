@@ -23,7 +23,7 @@ from ..ci import (
     db_connect, db_cursor, db_queue, recreate_db, read_job, worker,
     pop_task_from_donequeue, pop_task_from_taskqueue, pop_task_from_duequeue,
     create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE,
-    enqueue_sources, find_batch_sources
+    enqueue_sources, find_batch_sources, add_run, set_run
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -1124,6 +1124,9 @@ class TestBatch (unittest.TestCase):
                     self.assertTrue(task.data['job_id'] is None, 'There should be no job ID')
                     self.assertTrue(task.data['url'] is None, 'There should be no job URL')
                     file_names.add(task.data['name'])
+                    with task_Q as db:
+                        set_run(db, add_run(db), task.data['name'], None, None,
+                                None, True, None, None, None, task.data['set_id'])
         
             # Find a record of the one set.
             with task_Q as db:
