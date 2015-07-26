@@ -23,7 +23,7 @@ from ..ci import (
     db_connect, db_cursor, db_queue, recreate_db, read_job, worker,
     pop_task_from_donequeue, pop_task_from_taskqueue, pop_task_from_duequeue,
     create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE,
-    enqueue_sources, find_batch_sources, add_run, set_run
+    enqueue_sources, find_batch_sources, add_run, set_run, render_that_shit
     )
 
 from ..ci.objects import add_set
@@ -1205,6 +1205,47 @@ class TestBatch (unittest.TestCase):
                 self.assertEqual(status2, False)
                 self.assertEqual(commit_sha1[:6], '8dd262')
                 self.assertEqual(commit_sha2[:6], '8dd262')
+    
+    @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
+    @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=0))
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.worker.do_work')
+    def test_complete_run(self, do_work):
+        ''' Show that the tasks enqueued in a batch context can be run.
+        '''
+        def returns_plausible_result(s3, run_id, source_name, content, output_dir):
+            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
+        
+        do_work.side_effect = returns_plausible_result
+
+        with db_connect(self.database_url) as conn, HTTMock(self.response_content):
+            task_Q = db_queue(conn, TASK_QUEUE)
+            done_Q = db_queue(conn, DONE_QUEUE)
+            due_Q = db_queue(conn, DUE_QUEUE)
+            
+            owner, repository = 'openaddresses', 'hooked-on-sources'
+            with task_Q as db: new_set = add_set(db, owner, repository)
+            sources = find_batch_sources(owner, repository, self.github_auth)
+            enqueued = enqueue_sources(task_Q, new_set, sources)
+            
+            # Burn through all the runs
+            for _ in enqueued:
+                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
+                pop_task_from_donequeue(done_Q, self.github_auth)
+                pop_task_from_duequeue(due_Q, self.github_auth)
+            
+            # See that the set is done.
+            with done_Q as db:
+                db.execute('SELECT id, commit_sha, datetime_start, datetime_end FROM sets')
+                ((set_id, commit_sha, datetime_start, datetime_end), ) = db.fetchall()
+                self.assertEqual(commit_sha[:6], '8dd262')
+                self.assertIsNotNone(datetime_start)
+                self.assertIsNotNone(datetime_end)
+            
+            render_that_shit(self.s3, task_Q, new_set)
+        
+        # Show that the render happened.
+        self.assertIsNotNone(self.s3._read_fake_key('sets/{}/render-2163.png'.format(new_set.id)))
 
 if __name__ == '__main__':
     unittest.main()

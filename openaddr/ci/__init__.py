@@ -410,7 +410,7 @@ def _observe_expected_paths(queue, expected_paths, the_set):
         else:
             break
 
-def render_that_shit(queue, the_set):
+def render_that_shit(s3, queue, the_set):
     '''
     '''
     from tempfile import mkdtemp
@@ -434,11 +434,17 @@ def render_that_shit(queue, the_set):
             if status is True:
                 good_sources.add(filename)
         
-        from ..render import render, USA
+        from .. import render
         
         print(dirname, good_sources)
         
-        render(dirname, good_sources, 960, 4, '/tmp/out.png', USA)
+        png_filename = '/tmp/render-{}-{}.png'.format(the_set.id, render.USA)
+        render.render(dirname, good_sources, 960, 2, png_filename, render.USA)
+        render_data = open(png_filename, 'rb').read()
+        render_path = 'render-{}.png'.format(render.USA)
+        render_key = s3.new_key(join('sets', str(the_set.id), render_path))
+        render_key.set_contents_from_string(render_data, policy='public-read',
+                                            headers={'Content-Type': 'image/png'})
 
 def calculate_job_id(files):
     '''
