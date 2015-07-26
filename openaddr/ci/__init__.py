@@ -20,6 +20,12 @@ from psycopg2 import connect
 from boto import connect_sns
 from pq import PQ
 
+# Ask Python 2 to get real unicode from the database.
+# http://initd.org/psycopg/docs/usage.html#unicode-handling
+import psycopg2.extensions
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
+
 def load_config():
     def truthy(value):
         return bool(value.lower() in ('yes', 'true'))
@@ -399,7 +405,7 @@ def _update_expected_paths(db, expected_paths, the_set):
                (the_set.id, ))
 
     for (source_path, ) in db:
-        _L.debug('Discarding {}'.format(source_path))
+        _L.debug(u'Discarding {}'.format(source_path))
         expected_paths.discard(source_path)
 
 def render_set_maps(s3, db, the_set):

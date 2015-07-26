@@ -1215,8 +1215,8 @@ class TestBatch (unittest.TestCase):
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=0))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
     @patch('openaddr.ci.worker.do_work')
-    def test_complete_run(self, do_work):
-        ''' Show that the tasks enqueued in a batch context can be run.
+    def test_run_with_renders(self, do_work):
+        ''' Show that a batch context will result in rendered maps.
         '''
         def returns_plausible_result(s3, run_id, source_name, content, output_dir):
             return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
@@ -1238,7 +1238,6 @@ class TestBatch (unittest.TestCase):
                 pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
                 pop_task_from_donequeue(done_Q, self.github_auth)
                 pop_task_from_duequeue(due_Q, self.github_auth)
-            
             
             # Render images and see that the set is done.
             with done_Q as db:
