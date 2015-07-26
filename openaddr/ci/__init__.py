@@ -410,6 +410,36 @@ def _observe_expected_paths(queue, expected_paths, the_set):
         else:
             break
 
+def render_that_shit(queue, the_set):
+    '''
+    '''
+    from tempfile import mkdtemp
+    dirname = mkdtemp(dir='/tmp', prefix='enqueued-set-')
+    
+    with queue as db:
+        db.execute('''SELECT source_id, source_data, status FROM runs
+                      WHERE set_id = %s AND status IS NOT NULL''',
+                   (the_set.id, ))
+        
+        good_sources = set()
+        
+        from os.path import join, basename
+        for (source_id, source_data, status) in db.fetchall():
+            filename = '{source_id}.json'.format(**locals())
+            with open(join(dirname, filename), 'w+b') as file:
+                from base64 import b64decode
+                content = b64decode(source_data)
+                file.write(content)
+            
+            if status is True:
+                good_sources.add(filename)
+        
+        from ..render import render, USA
+        
+        print(dirname, good_sources)
+        
+        render(dirname, good_sources, 960, 4, '/tmp/out.png', USA)
+
 def calculate_job_id(files):
     '''
     '''

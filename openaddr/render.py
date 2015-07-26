@@ -100,7 +100,7 @@ def load_geoids(directory, good_sources):
     '''
     good_geoids, bad_geoids = set(), set()
 
-    for path in glob(join(directory, 'us-*.json')):
+    for path in glob(join(directory, '*.json')):
         with open(path) as file:
             data = json.load(file)
     

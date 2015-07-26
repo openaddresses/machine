@@ -47,7 +47,13 @@ def main():
                     next_queue_report, n = time() + 60, len(task_Q)
                     args = n, 's' if n != 1 else '', expected_count
                     _L.debug('Task queue has {} item{}, {} sources expected'.format(*args))
-                sleep(5)
+                if expected_count:
+                    sleep(5)
+        
+        _L.debug('Rendering that shit')
+        from . import render_that_shit
+        render_that_shit(task_Q, new_set)
+        
     except:
         _L.error('Error in worker main()', exc_info=True)
 
