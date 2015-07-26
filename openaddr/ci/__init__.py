@@ -1,11 +1,14 @@
 import logging; _L = logging.getLogger('openaddr.ci')
 
 from ..compat import standard_library
-from .. import jobs, __version__
+from .. import jobs, render, __version__
 
-from os.path import relpath, splitext
+from os.path import relpath, splitext, join, basename
 from datetime import timedelta
 from uuid import uuid4, getnode
+from base64 import b64decode
+from tempfile import mkdtemp
+from shutil import rmtree
 from time import sleep
 import json, os
 
@@ -399,41 +402,57 @@ def _update_expected_paths(db, expected_paths, the_set):
         _L.debug('Discarding {}'.format(source_path))
         expected_paths.discard(source_path)
 
-def render_that_shit(s3, queue, the_set):
+def render_set_maps(s3, db, the_set):
+    ''' Render set maps, upload them to S3 and add to the database.
     '''
-    '''
-    from tempfile import mkdtemp
-    dirname = mkdtemp(dir='/tmp', prefix='enqueued-set-')
+    dirname = mkdtemp(prefix='set-maps-')
+
+    try:
+        good_sources = _prepare_render_sources(db, the_set, dirname)
+
+        urls = dict()
+        areas = (render.WORLD, 'world'), (render.USA, 'usa'), (render.EUROPE, 'europe')
+        key_kwargs = dict(policy='public-read', headers={'Content-Type': 'image/png'})
+        url_kwargs = dict(expires_in=0, query_auth=False, force_http=True)
+
+        for (area, area_name) in areas:
+            png_basename = 'render-{}.png'.format(area_name)
+            png_filename = join(dirname, png_basename)
+            render.render(dirname, good_sources, 960, 2, png_filename, area)
+
+            with open(png_filename, 'rb') as file:
+                render_path = 'render-{}.png'.format(area_name)
+                render_key = s3.new_key(join('/sets', str(the_set.id), png_basename))
+                render_key.set_contents_from_string(file.read(), **key_kwargs)
     
-    with queue as db:
-        db.execute('''SELECT source_id, source_data, status FROM runs
-                      WHERE set_id = %s AND status IS NOT NULL''',
-                   (the_set.id, ))
+            urls[area_name] = render_key.generate_url(**url_kwargs)
+
+        db.execute('''UPDATE sets
+                      SET render_world = %s, render_usa = %s, render_europe = %s
+                      WHERE id = %s''',
+                   (urls['world'], urls['usa'], urls['europe'], the_set.id))
+    finally:
+        rmtree(dirname)
+
+def _prepare_render_sources(db, the_set, dirname):
+    ''' Dump all non-null set runs into a directory for rendering.
+    '''
+    db.execute('''SELECT source_id, source_data, status FROM runs
+                  WHERE set_id = %s AND status IS NOT NULL''',
+               (the_set.id, ))
+    
+    good_sources = set()
+    
+    for (source_id, source_data, status) in db.fetchall():
+        filename = '{source_id}.json'.format(**locals())
+        with open(join(dirname, filename), 'w+b') as file:
+            content = b64decode(source_data)
+            file.write(content)
         
-        good_sources = set()
-        
-        from os.path import join, basename
-        for (source_id, source_data, status) in db.fetchall():
-            filename = '{source_id}.json'.format(**locals())
-            with open(join(dirname, filename), 'w+b') as file:
-                from base64 import b64decode
-                content = b64decode(source_data)
-                file.write(content)
-            
-            if status is True:
-                good_sources.add(filename)
-        
-        from .. import render
-        
-        print(dirname, good_sources)
-        
-        png_filename = '/tmp/render-{}-{}.png'.format(the_set.id, render.USA)
-        render.render(dirname, good_sources, 960, 2, png_filename, render.USA)
-        render_data = open(png_filename, 'rb').read()
-        render_path = 'render-{}.png'.format(render.USA)
-        render_key = s3.new_key(join('sets', str(the_set.id), render_path))
-        render_key.set_contents_from_string(render_data, policy='public-read',
-                                            headers={'Content-Type': 'image/png'})
+        if status is True:
+            good_sources.add(filename)
+    
+    return good_sources
 
 def calculate_job_id(files):
     '''

@@ -28,7 +28,11 @@ CREATE TABLE sets
     repository          TEXT,
     commit_sha          VARCHAR(40) NULL,
     datetime_start      TIMESTAMP WITH TIME ZONE,
-    datetime_end        TIMESTAMP WITH TIME ZONE
+    datetime_end        TIMESTAMP WITH TIME ZONE,
+    
+    render_world        TEXT,
+    render_europe       TEXT,
+    render_usa          TEXT
 );
 
 CREATE TABLE runs

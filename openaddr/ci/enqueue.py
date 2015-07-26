@@ -10,6 +10,7 @@ from . import (
     )
 
 from .objects import add_set
+from . import render_set_maps
 from .. import S3
 
 parser = ArgumentParser(description='Run some source files.')
@@ -34,7 +35,7 @@ def main():
     github_auth = args.github_token, 'x-oauth-basic'
 
     # Rely on boto AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY variables.
-    s3 = S3(None, None, os.environ.get('AWS_S3_BUCKET', 'data.openaddresses.io'))
+    s3 = S3(None, None, environ.get('AWS_S3_BUCKET', 'data.openaddresses.io'))
 
     try:
         sources = find_batch_sources(args.owner, args.repository, github_auth)
@@ -54,9 +55,9 @@ def main():
                 if expected_count:
                     sleep(5)
         
-        _L.debug('Rendering that shit')
-        from . import render_that_shit
-        render_that_shit(s3, task_Q, new_set)
+        with task_Q as db:
+            _L.debug('Rendering that shit')
+            render_set_maps(s3, db, new_set)
         
     except:
         _L.error('Error in worker main()', exc_info=True)
