@@ -372,11 +372,12 @@ def enqueue_sources(queue, the_set, sources):
             task_id = queue.put(task_data)
             expected_paths.add(source['path'])
             commit_sha = source['commit_sha']
+    
+    while len(expected_paths):
+        with queue as db:
+            _update_expected_paths(db, expected_paths, the_set)
 
         yield len(expected_paths)
-    
-    for n in _observe_expected_paths(queue, expected_paths, the_set):
-        yield n
 
     with queue as db:
         _L.info(u'Updating set {} in sets table'.format(the_set.id))
@@ -387,28 +388,16 @@ def enqueue_sources(queue, the_set, sources):
 
     yield 0
 
-def _observe_expected_paths(queue, expected_paths, the_set):
-    ''' Generate a stream of expected path counts.
-    
-        Discard sources from expected_paths set as they appear in runs table.
+def _update_expected_paths(db, expected_paths, the_set):
+    ''' Discard sources from expected_paths set as they appear in runs table.
     '''
-    #
-    # Wait for all expected paths to appear in the runs table.
-    #
-    while True:
-        with queue as db:
-            db.execute('''SELECT source_path FROM runs
-                          WHERE set_id = %s AND status IS NOT NULL''',
-                       (the_set.id, ))
+    db.execute('''SELECT source_path FROM runs
+                  WHERE set_id = %s AND status IS NOT NULL''',
+               (the_set.id, ))
 
-            for (source_path, ) in db:
-                _L.info('discarding {}'.format(source_path))
-                expected_paths.discard(source_path)
-        
-        if len(expected_paths):
-            yield len(expected_paths)
-        else:
-            break
+    for (source_path, ) in db:
+        _L.debug('Discarding {}'.format(source_path))
+        expected_paths.discard(source_path)
 
 def render_that_shit(s3, queue, the_set):
     '''
