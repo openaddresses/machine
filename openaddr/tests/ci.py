@@ -1248,6 +1248,8 @@ class TestBatch (unittest.TestCase):
             self.assertIsNotNone(the_set.datetime_start)
             self.assertIsNotNone(the_set.datetime_end)
             
+            self.assertEqual(the_set.owner, owner)
+            self.assertEqual(the_set.repository, repository)
             self.assertEqual(get(the_set.render_usa).status_code, 200)
             self.assertEqual(get(the_set.render_europe).status_code, 200)
             self.assertEqual(get(the_set.render_world).status_code, 200)

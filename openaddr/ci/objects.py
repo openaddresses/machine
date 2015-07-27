@@ -17,7 +17,7 @@ class Set:
     '''
     '''
     def __init__(self, id, commit_sha, datetime_start, datetime_end,
-                 render_world, render_europe, render_usa):
+                 render_world, render_europe, render_usa, owner, repository):
         '''
         '''
         self.id = id
@@ -28,6 +28,9 @@ class Set:
         self.render_world = render_world
         self.render_europe = render_europe
         self.render_usa = render_usa
+
+        self.owner = owner
+        self.repository = repository
     
 def read_jobs(db, past_id):
     ''' Read information about recent jobs.
@@ -64,15 +67,16 @@ def read_set(db, set_id):
     '''
     '''
     db.execute('''SELECT id, commit_sha, datetime_start, datetime_end,
-                         render_world, render_europe, render_usa
+                         render_world, render_europe, render_usa,
+                         owner, repository
                   FROM sets WHERE id = %s''', (set_id, ))
     
     try:
-        id, c_sha, dt_start, dt_end, r_world, r_europe, r_usa = db.fetchone()
+        id, sha, start, end, world, europe, usa, own, repo = db.fetchone()
     except TypeError:
         return None
     else:
-        return Set(id, c_sha, dt_start, dt_end, r_world, r_europe, r_usa)
+        return Set(id, sha, start, end, world, europe, usa, own, repo)
     
 def read_sets(db, past_id):
     ''' Read information about recent sets.
