@@ -103,7 +103,10 @@ def app_hook():
         return jsonify({'url': None, 'files': [], 'status_url': status_url})
 
     filenames = list(files.keys())
-    job_url_template = urljoin(request.url, '/jobs/{id}')
+    try:
+        job_url_template = urljoin(request.url, '/jobs/{id}')
+    except TypeError:
+        raise TypeError('Cannot mix str and non-str arguments: {}, {}'.format(repr(request.url), repr('/jobs/{id}')))
 
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         queue = db_queue(conn, TASK_QUEUE)

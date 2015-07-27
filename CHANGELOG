@@ -1,3 +1,6 @@
+2015-07-27: 1.18.1
+- Reporting local vars in weird urljoin error.
+
 2015-07-26: 1.18.0
 - Added new views for sets and jobs to CI web application.
 - Added owner, repository, and render column to sets table.
