@@ -1,3 +1,5 @@
+import logging; _L = logging.getLogger('openaddr.ci.objects')
+
 class Job:
     '''
     '''
@@ -14,13 +16,18 @@ class Job:
 class Set:
     '''
     '''
-    def __init__(self, id, commit_sha, datetime_start, datetime_end):
+    def __init__(self, id, commit_sha, datetime_start, datetime_end,
+                 render_world, render_europe, render_usa):
         '''
         '''
         self.id = id
         self.commit_sha = commit_sha
         self.datetime_start = datetime_start
         self.datetime_end = datetime_end
+
+        self.render_world = render_world
+        self.render_europe = render_europe
+        self.render_usa = render_usa
     
 def read_jobs(db, past_id):
     ''' Read information about recent jobs.
@@ -38,18 +45,34 @@ def read_jobs(db, past_id):
     
     return [Job(*row) for row in db.fetchall()]
 
+def add_set(db, owner, repository):
+    '''
+    '''
+    db.execute('''INSERT INTO sets
+                  (owner, repository, datetime_start)
+                  VALUES (%s, %s, NOW())''',
+               (owner, repository))
+
+    db.execute("SELECT CURRVAL('ints')")
+    (set_id, ) = db.fetchone()
+
+    _L.info(u'Added set {} to sets table'.format(set_id))
+
+    return read_set(db, set_id)
+
 def read_set(db, set_id):
     '''
     '''
-    db.execute('''SELECT id, commit_sha, datetime_start, datetime_end
+    db.execute('''SELECT id, commit_sha, datetime_start, datetime_end,
+                         render_world, render_europe, render_usa
                   FROM sets WHERE id = %s''', (set_id, ))
     
     try:
-        id, commit_sha, datetime_start, datetime_end = db.fetchone()
+        id, c_sha, dt_start, dt_end, r_world, r_europe, r_usa = db.fetchone()
     except TypeError:
         return None
     else:
-        return Set(id, commit_sha, datetime_start, datetime_end)
+        return Set(id, c_sha, dt_start, dt_end, r_world, r_europe, r_usa)
     
 def read_sets(db, past_id):
     ''' Read information about recent sets.

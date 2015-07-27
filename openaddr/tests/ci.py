@@ -5,7 +5,6 @@ from os import environ, remove
 from os.path import join
 from shutil import rmtree
 from tempfile import mkdtemp
-from httmock import HTTMock, response
 from urllib.parse import parse_qsl, urlparse, urljoin
 from base64 import b64decode, b64encode
 from datetime import timedelta
@@ -17,14 +16,19 @@ import hmac, hashlib
 
 import unittest, json, os, sys, itertools
 
+from requests import get
+from httmock import HTTMock, response
+
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
 
 from ..ci import (
     db_connect, db_cursor, db_queue, recreate_db, read_job, worker,
     pop_task_from_donequeue, pop_task_from_taskqueue, pop_task_from_duequeue,
     create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE,
-    enqueue_sources, find_batch_sources
+    enqueue_sources, find_batch_sources, add_run, set_run, render_set_maps
     )
+
+from ..ci.objects import add_set, read_set
 
 from ..jobs import JOB_TIMEOUT
 from .. import compat
@@ -1058,6 +1062,9 @@ class TestBatch (unittest.TestCase):
         MHP = request.method, url.hostname, url.path
         GH, response_headers = 'api.github.com', {'Content-Type': 'application/json; charset=utf-8'}
         
+        if url.hostname == 'fake-s3.local':
+            return response(200, self.s3._read_fake_key(url.path))
+        
         if MHP == ('GET', GH, '/'):
             data = u'''{\r  "current_user_url": "https://api.github.com/user",\r  "current_user_authorizations_html_url": "https://github.com/settings/connections/applications{/client_id}",\r  "authorizations_url": "https://api.github.com/authorizations",\r  "code_search_url": "https://api.github.com/search/code?q={query}{&page,per_page,sort,order}",\r  "emails_url": "https://api.github.com/user/emails",\r  "emojis_url": "https://api.github.com/emojis",\r  "events_url": "https://api.github.com/events",\r  "feeds_url": "https://api.github.com/feeds",\r  "following_url": "https://api.github.com/user/following{/target}",\r  "gists_url": "https://api.github.com/gists{/gist_id}",\r  "hub_url": "https://api.github.com/hub",\r  "issue_search_url": "https://api.github.com/search/issues?q={query}{&page,per_page,sort,order}",\r  "issues_url": "https://api.github.com/issues",\r  "keys_url": "https://api.github.com/user/keys",\r  "notifications_url": "https://api.github.com/notifications",\r  "organization_repositories_url": "https://api.github.com/orgs/{org}/repos{?type,page,per_page,sort}",\r  "organization_url": "https://api.github.com/orgs/{org}",\r  "public_gists_url": "https://api.github.com/gists/public",\r  "rate_limit_url": "https://api.github.com/rate_limit",\r  "repository_url": "https://api.github.com/repos/{owner}/{repo}",\r  "repository_search_url": "https://api.github.com/search/repositories?q={query}{&page,per_page,sort,order}",\r  "current_user_repositories_url": "https://api.github.com/user/repos{?type,page,per_page,sort}",\r  "starred_url": "https://api.github.com/user/starred{/owner}{/repo}",\r  "starred_gists_url": "https://api.github.com/gists/starred",\r  "team_url": "https://api.github.com/teams",\r  "user_url": "https://api.github.com/users/{user}",\r  "user_organizations_url": "https://api.github.com/user/orgs",\r  "user_repositories_url": "https://api.github.com/users/{user}/repos{?type,page,per_page,sort}",\r  "user_search_url": "https://api.github.com/search/users?q={query}{&page,per_page,sort,order}"\r}'''
             return response(200, data.encode('utf8'), headers=response_headers)
@@ -1113,7 +1120,8 @@ class TestBatch (unittest.TestCase):
             sources = find_batch_sources(owner, repository, self.github_auth)
             task_Q = db_queue(conn, TASK_QUEUE)
 
-            enqueued = enqueue_sources(task_Q, sources)
+            with task_Q as db: new_set = add_set(db, owner, repository)
+            enqueued = enqueue_sources(task_Q, new_set, sources)
             file_names = set()
             
             for _ in enqueued:
@@ -1124,6 +1132,9 @@ class TestBatch (unittest.TestCase):
                     self.assertTrue(task.data['job_id'] is None, 'There should be no job ID')
                     self.assertTrue(task.data['url'] is None, 'There should be no job URL')
                     file_names.add(task.data['name'])
+                    with task_Q as db:
+                        set_run(db, add_run(db), task.data['name'], None, None,
+                                None, True, None, None, None, task.data['set_id'])
         
             # Find a record of the one set.
             with task_Q as db:
@@ -1159,8 +1170,9 @@ class TestBatch (unittest.TestCase):
             due_Q = db_queue(conn, DUE_QUEUE)
             
             owner, repository = 'openaddresses', 'hooked-on-sources'
+            with task_Q as db: new_set = add_set(db, owner, repository)
             sources = find_batch_sources(owner, repository, self.github_auth)
-            enqueued = enqueue_sources(task_Q, sources)
+            enqueued = enqueue_sources(task_Q, new_set, sources)
 
             #
             # There is a task for us in the queue, run it successfully.
@@ -1186,7 +1198,7 @@ class TestBatch (unittest.TestCase):
             with done_Q as db:
                 db.execute('SELECT id, commit_sha, datetime_start, datetime_end FROM sets')
                 ((set_id, commit_sha, datetime_start, datetime_end), ) = db.fetchall()
-                self.assertEqual(commit_sha[:6], '8dd262')
+                self.assertIsNone(commit_sha, 'Commit SHA should not be in sets table yet')
                 self.assertTrue(datetime_start is not None)
                 self.assertTrue(datetime_end is None, 'Set should not have completed')
 
@@ -1198,6 +1210,47 @@ class TestBatch (unittest.TestCase):
                 self.assertEqual(status2, False)
                 self.assertEqual(commit_sha1[:6], '8dd262')
                 self.assertEqual(commit_sha2[:6], '8dd262')
+    
+    @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
+    @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=0))
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.worker.do_work')
+    def test_run_with_renders(self, do_work):
+        ''' Show that a batch context will result in rendered maps.
+        '''
+        def returns_plausible_result(s3, run_id, source_name, content, output_dir):
+            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
+        
+        do_work.side_effect = returns_plausible_result
+
+        with db_connect(self.database_url) as conn, HTTMock(self.response_content):
+            task_Q = db_queue(conn, TASK_QUEUE)
+            done_Q = db_queue(conn, DONE_QUEUE)
+            due_Q = db_queue(conn, DUE_QUEUE)
+            
+            owner, repository = 'openaddresses', 'hooked-on-sources'
+            with task_Q as db: new_set = add_set(db, owner, repository)
+            sources = find_batch_sources(owner, repository, self.github_auth)
+            enqueued = enqueue_sources(task_Q, new_set, sources)
+            
+            # Burn through all the runs
+            for _ in enqueued:
+                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
+                pop_task_from_donequeue(done_Q, self.github_auth)
+                pop_task_from_duequeue(due_Q, self.github_auth)
+            
+            # Render images and see that the set is done.
+            with done_Q as db:
+                render_set_maps(self.s3, db, new_set)
+                the_set = read_set(db, new_set.id)
+    
+            self.assertEqual(the_set.commit_sha[:6], '8dd262')
+            self.assertIsNotNone(the_set.datetime_start)
+            self.assertIsNotNone(the_set.datetime_end)
+            
+            self.assertEqual(get(the_set.render_usa).status_code, 200)
+            self.assertEqual(get(the_set.render_europe).status_code, 200)
+            self.assertEqual(get(the_set.render_world).status_code, 200)
 
 if __name__ == '__main__':
     unittest.main()

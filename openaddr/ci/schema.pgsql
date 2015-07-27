@@ -24,9 +24,15 @@ CREATE INDEX jobs_sequence_reverse ON jobs (sequence DESC);
 CREATE TABLE sets
 (
     id                  INTEGER NOT NULL DEFAULT NEXTVAL('ints') PRIMARY KEY,
+    owner               TEXT,
+    repository          TEXT,
     commit_sha          VARCHAR(40) NULL,
     datetime_start      TIMESTAMP WITH TIME ZONE,
-    datetime_end        TIMESTAMP WITH TIME ZONE
+    datetime_end        TIMESTAMP WITH TIME ZONE,
+    
+    render_world        TEXT,
+    render_europe       TEXT,
+    render_usa          TEXT
 );
 
 CREATE TABLE runs
