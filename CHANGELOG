@@ -1,3 +1,8 @@
+2015-07-26: 1.18.0
+- Added new views for sets and jobs to CI web application.
+- Added owner, repository, and render column to sets table.
+- Added dashboard views for historic set metrics.
+
 2015-07-18: 1.17.0
 - Added run-debug-webhooks.py script for debugging Flask app.
 - Added openaddr-enqueue-sources script for enqueuing complete sources.
