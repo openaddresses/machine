@@ -1,3 +1,6 @@
+2015-07-27: 1.18.2
+- Fixed TypeError in future.backports.urllib.parse.urljoin() argument types.
+
 2015-07-27: 1.18.1
 - Reporting local vars in weird urljoin error.
 

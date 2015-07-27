@@ -217,7 +217,7 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data, headers=signed(data))
             job_url = json.loads(posted.data.decode('utf8')).get('url')
             got_job = self.client.get(urlparse(job_url).path)
-            got_jobs = self.client.get(urlparse(urljoin(job_url, './')).path)
+            got_jobs = self.client.get(urlparse(urljoin(job_url, u'./')).path)
         
         self.assertEqual(posted.status_code, 200)
         self.assertEqual(got_job.status_code, 200)
@@ -244,7 +244,7 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data, headers=signed(data))
             job_url = json.loads(posted.data.decode('utf8')).get('url')
             got_job = self.client.get(urlparse(job_url).path)
-            got_jobs = self.client.get(urlparse(urljoin(job_url, './')).path)
+            got_jobs = self.client.get(urlparse(urljoin(job_url, u'./')).path)
         
         self.assertEqual(posted.status_code, 200)
         self.assertEqual(got_job.status_code, 200)
@@ -280,7 +280,7 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data, headers=signed(data))
             job_url = json.loads(posted.data.decode('utf8')).get('url')
             got_job = self.client.get(urlparse(job_url).path)
-            got_jobs = self.client.get(urlparse(urljoin(job_url, './')).path)
+            got_jobs = self.client.get(urlparse(urljoin(job_url, u'./')).path)
         
         self.assertEqual(posted.status_code, 200)
         self.assertEqual(got_job.status_code, 200)
@@ -323,7 +323,7 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data, headers=signed(data))
             job_url = json.loads(posted.data.decode('utf8')).get('url')
             got_job = self.client.get(urlparse(job_url).path)
-            got_jobs = self.client.get(urlparse(urljoin(job_url, './')).path)
+            got_jobs = self.client.get(urlparse(urljoin(job_url, u'./')).path)
         
         self.assertEqual(posted.status_code, 200)
         self.assertEqual(got_job.status_code, 200)
@@ -371,7 +371,7 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data, headers=signed(data))
             job_url = json.loads(posted.data.decode('utf8')).get('url')
             got_job = self.client.get(urlparse(job_url).path)
-            got_jobs = self.client.get(urlparse(urljoin(job_url, './')).path)
+            got_jobs = self.client.get(urlparse(urljoin(job_url, u'./')).path)
         
         self.assertEqual(posted.status_code, 200)
         self.assertEqual(got_job.status_code, 200)
@@ -529,7 +529,7 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data, headers=signed(data))
             job_url = json.loads(posted.data.decode('utf8')).get('url')
             got_job = self.client.get(urlparse(job_url).path)
-            got_jobs = self.client.get(urlparse(urljoin(job_url, './')).path)
+            got_jobs = self.client.get(urlparse(urljoin(job_url, u'./')).path)
         
         self.assertEqual(posted.status_code, 200)
         self.assertEqual(got_job.status_code, 200)
