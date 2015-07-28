@@ -452,7 +452,7 @@ def _prepare_render_sources(db, the_set, dirname):
     for (source_id, source_data, status) in db.fetchall():
         filename = '{source_id}.json'.format(**locals())
         with open(join(dirname, filename), 'w+b') as file:
-            content = b64decode(source_data)
+            content = b64decode(bytes(source_data))
             file.write(content)
         
         if status is True:
