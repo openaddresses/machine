@@ -1,7 +1,7 @@
 import logging; _L = logging.getLogger('openaddr.ci')
 
 from ..compat import standard_library
-from .objects import add_job, write_job, read_job
+from .objects import add_job, write_job, read_job, complete_set, update_set_renders
 from .. import jobs, render, __version__
 
 from os.path import relpath, splitext, join, basename
@@ -390,11 +390,7 @@ def enqueue_sources(queue, the_set, sources):
         yield len(expected_paths)
 
     with queue as db:
-        _L.info(u'Updating set {} in sets table'.format(the_set.id))
-        db.execute('''UPDATE sets
-                      SET datetime_end = NOW(), commit_sha = %s
-                      WHERE id = %s''',
-                   (commit_sha, the_set.id))
+        complete_set(db, the_set.id, commit_sha)
 
     yield 0
 
@@ -434,10 +430,7 @@ def render_set_maps(s3, db, the_set):
     
             urls[area_name] = render_key.generate_url(**url_kwargs)
 
-        db.execute('''UPDATE sets
-                      SET render_world = %s, render_usa = %s, render_europe = %s
-                      WHERE id = %s''',
-                   (urls['world'], urls['usa'], urls['europe'], the_set.id))
+        update_set_renders(db, the_set.id, urls['world'], urls['usa'], urls['europe'])
     finally:
         rmtree(dirname)
 

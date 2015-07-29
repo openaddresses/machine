@@ -29,7 +29,8 @@ from ..ci import (
     )
 
 from ..ci.objects import (
-    add_job, write_job, read_job, read_jobs, add_set, read_set, read_sets, Set
+    add_job, write_job, read_job, read_jobs,
+    Set, add_set, complete_set, update_set_renders, read_set, read_sets
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -135,6 +136,28 @@ class TestObjects (unittest.TestCase):
                ])
         
         read_set.assert_called_with(self.db, 123)
+
+    def test_complete_set(self):
+        ''' Check behavior of objects.complete_set()
+        '''
+        complete_set(self.db, 123, 'abc')
+
+        self.db.execute.assert_called_once_with(
+               '''UPDATE sets
+                  SET datetime_end = NOW(), commit_sha = %s
+                  WHERE id = %s''',
+                  ('abc', 123))
+
+    def test_update_set_renders(self):
+        ''' Check behavior of objects.update_set_renders()
+        '''
+        update_set_renders(self.db, 123, 'http://w', 'http://usa', 'http://eu')
+
+        self.db.execute.assert_called_once_with(
+               '''UPDATE sets
+                  SET render_world = %s, render_usa = %s, render_europe = %s
+                  WHERE id = %s''',
+                  ('http://w', 'http://usa', 'http://eu', 123))
 
     def test_read_set(self):
         ''' Check behavior of objects.read_set()

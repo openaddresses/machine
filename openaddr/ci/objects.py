@@ -101,6 +101,24 @@ def add_set(db, owner, repository):
 
     return read_set(db, set_id)
 
+def complete_set(db, set_id, commit_sha):
+    '''
+    '''
+    _L.info(u'Updating set {} in sets table'.format(set_id))
+
+    db.execute('''UPDATE sets
+                  SET datetime_end = NOW(), commit_sha = %s
+                  WHERE id = %s''',
+               (commit_sha, set_id))
+
+def update_set_renders(db, set_id, render_world, render_usa, render_europe):
+    '''
+    '''
+    db.execute('''UPDATE sets
+                  SET render_world = %s, render_usa = %s, render_europe = %s
+                  WHERE id = %s''',
+               (render_world, render_usa, render_europe, set_id))
+
 def read_set(db, set_id):
     '''
     '''
