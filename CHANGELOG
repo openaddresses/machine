@@ -1,3 +1,6 @@
+2015-07-28: 1.18.3
+- Fixed GeoJSON excerpt error.
+
 2015-07-27: 1.18.2
 - Fixed TypeError in future.backports.urllib.parse.urljoin() argument types.
 
