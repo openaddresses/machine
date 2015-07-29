@@ -12,6 +12,7 @@ from zipfile import ZipFile
 from io import BytesIO
 from mock import patch
 from time import sleep
+from mock import Mock
 import hmac, hashlib
 
 import unittest, json, os, sys, itertools
@@ -28,7 +29,9 @@ from ..ci import (
     enqueue_sources, find_batch_sources, add_run, set_run, render_set_maps
     )
 
-from ..ci.objects import read_job, add_set, read_set
+from ..ci.objects import (
+    add_job, write_job, read_job, read_jobs, add_set, read_set, read_sets
+    )
 
 from ..jobs import JOB_TIMEOUT
 from .. import compat
@@ -52,6 +55,67 @@ def signed(data, valid=True):
     signature = 'sha1={}'.format(hash.hexdigest())
     
     return {'X-Hub-Signature': signature}
+
+class TestObjects (unittest.TestCase):
+
+    def setUp(self):
+        self.db = Mock()
+
+    def test_add_job(self):
+        ''' Check behavior of objects.add_job()
+        '''
+        add_job(self.db, 'xyz', True, {}, {}, {}, 'http://')
+
+        self.db.execute.assert_called_once_with(
+               '''INSERT INTO jobs
+                  (task_files, file_states, file_results, github_status_url, status, id)
+                  VALUES (%s::json, %s::json, %s::json, %s, %s, %s)''',
+                  ('{}', '{}', '{}', 'http://', True, 'xyz'))
+
+    def test_write_job(self):
+        ''' Check behavior of objects.write_job()
+        '''
+        write_job(self.db, 'xyz', True, {}, {}, {}, 'http://')
+
+        self.db.execute.assert_called_once_with(
+               '''UPDATE jobs
+                  SET task_files=%s::json, file_states=%s::json,
+                      file_results=%s::json, github_status_url=%s, status=%s
+                  WHERE id = %s''',
+                  ('{}', '{}', '{}', 'http://', True, 'xyz'))
+
+    def test_read_job(self):
+        ''' Check behavior of objects.read_job()
+        '''
+        self.db.fetchone.return_value = True, {}, {}, {}, 'http://'
+        
+        job = read_job(self.db, 'xyz')
+        self.assertEqual(job.id, 'xyz')
+        self.assertEqual(job.status, True)
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT status, task_files, file_states, file_results, github_status_url
+                  FROM jobs WHERE id = %s''',
+                  ('xyz', ))
+
+    def test_read_jobs(self):
+        ''' Check behavior of objects.read_jobs()
+        '''
+        self.db.fetchall.return_value = (('xyz', True, {}, {}, {}, 'http://'), )
+        
+        (job, ) = read_jobs(self.db, None)
+        self.assertEqual(job.id, 'xyz')
+        self.assertEqual(job.status, True)
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT id, status, task_files, file_states, file_results, github_status_url
+                  --
+                  -- Select sequence value from jobs based on ID. Null sequence
+                  -- values will be excluded by this comparison to an integer.
+                  --
+                  FROM jobs WHERE sequence < COALESCE((SELECT sequence FROM jobs WHERE id = %s), 2^64)
+                  ORDER BY sequence DESC LIMIT 25''',
+                  (None, ))
 
 class TestHook (unittest.TestCase):
 
