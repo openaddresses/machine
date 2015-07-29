@@ -1,3 +1,6 @@
+2015-07-29: 1.18.4
+- Moved DB access functions down to ci.objects.
+
 2015-07-28: 1.18.3
 - Fixed GeoJSON excerpt error.
 
