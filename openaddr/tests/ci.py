@@ -22,13 +22,13 @@ from httmock import HTTMock, response
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
 
 from ..ci import (
-    db_connect, db_cursor, db_queue, recreate_db, read_job, worker,
+    db_connect, db_cursor, db_queue, recreate_db, worker,
     pop_task_from_donequeue, pop_task_from_taskqueue, pop_task_from_duequeue,
     create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE,
     enqueue_sources, find_batch_sources, add_run, set_run, render_set_maps
     )
 
-from ..ci.objects import add_set, read_set
+from ..ci.objects import read_job, add_set, read_set
 
 from ..jobs import JOB_TIMEOUT
 from .. import compat
@@ -683,8 +683,8 @@ class TestRuns (unittest.TestCase):
             
             # Check for result
             with db_cursor(conn) as db:
-                job_status, _, _, _, _ = read_job(db, job_id)
-                self.assertEqual(job_status, None, 'Status should be null at this early stage')
+                job = read_job(db, job_id)
+                self.assertEqual(job.status, None, 'Status should be null at this early stage')
 
             sleep(2.1)
             
@@ -696,8 +696,8 @@ class TestRuns (unittest.TestCase):
             
             # Check for result
             with db_cursor(conn) as db:
-                job_status, _, _, _, _ = read_job(db, job_id)
-                self.assertEqual(job_status, False, 'Status should be false after unexpected error')
+                job = read_job(db, job_id)
+                self.assertEqual(job.status, False, 'Status should be false after unexpected error')
             
             # Find a record of this run.
             with done_Q as db:
@@ -747,8 +747,8 @@ class TestRuns (unittest.TestCase):
             
             # Check for result
             with db_cursor(conn) as db:
-                job_status, _, _, _, _ = read_job(db, job_id)
-                self.assertEqual(job_status, False, 'Status should be false since it took so long')
+                job = read_job(db, job_id)
+                self.assertEqual(job.status, False, 'Status should be false since it took so long')
 
             # The job eventually completes, but it's too late
             pop_task_from_donequeue(done_Q, None)
@@ -756,8 +756,8 @@ class TestRuns (unittest.TestCase):
             
             # Check for result
             with db_cursor(conn) as db:
-                job_status, _, _, _, _ = read_job(db, job_id)
-                self.assertEqual(job_status, False, 'Status should still be false no matter what')
+                job = read_job(db, job_id)
+                self.assertEqual(job.status, False, 'Status should still be false no matter what')
             
             # Find a record of this run.
             with done_Q as db:

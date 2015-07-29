@@ -1,5 +1,7 @@
 import logging; _L = logging.getLogger('openaddr.ci.objects')
 
+import json
+
 class Job:
     '''
     '''
@@ -31,6 +33,42 @@ class Set:
 
         self.owner = owner
         self.repository = repository
+
+def add_job(db, job_id, status, task_files, file_states, file_results, status_url):
+    ''' Save information about a job to the database.
+    
+        Throws an IntegrityError exception if the job ID exists.
+    '''
+    db.execute('''INSERT INTO jobs
+                  (task_files, file_states, file_results, github_status_url, status, id)
+                  VALUES (%s::json, %s::json, %s::json, %s, %s, %s)''',
+               (json.dumps(task_files), json.dumps(file_states),
+                json.dumps(file_results), status_url, status, job_id))
+
+def write_job(db, job_id, status, task_files, file_states, file_results, status_url):
+    ''' Save information about a job to the database.
+    '''
+    db.execute('''UPDATE jobs
+                  SET task_files=%s::json, file_states=%s::json,
+                      file_results=%s::json, github_status_url=%s, status=%s
+                  WHERE id = %s''',
+               (json.dumps(task_files), json.dumps(file_states),
+                json.dumps(file_results), status_url, status, job_id))
+
+def read_job(db, job_id):
+    ''' Read information about a job from the database.
+    
+        Returns a Job or None.
+    '''
+    db.execute('''SELECT status, task_files, file_states, file_results, github_status_url
+                  FROM jobs WHERE id = %s''', (job_id, ))
+    
+    try:
+        status, task_files, states, file_results, github_status_url = db.fetchone()
+    except TypeError:
+        return None
+    else:
+        return Job(job_id, status, task_files, states, file_results, github_status_url)
     
 def read_jobs(db, past_id):
     ''' Read information about recent jobs.

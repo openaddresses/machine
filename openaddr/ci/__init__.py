@@ -1,6 +1,7 @@
 import logging; _L = logging.getLogger('openaddr.ci')
 
 from ..compat import standard_library
+from .objects import add_job, write_job, read_job
 from .. import jobs, render, __version__
 
 from os.path import relpath, splitext, join, basename
@@ -509,42 +510,6 @@ def add_files_to_queue(queue, job_id, job_url, files, commit_sha):
     
     return tasks
 
-def add_job(db, job_id, status, task_files, file_states, file_results, status_url):
-    ''' Save information about a job to the database.
-    
-        Throws an IntegrityError exception if the job ID exists.
-    '''
-    db.execute('''INSERT INTO jobs
-                  (task_files, file_states, file_results, github_status_url, status, id)
-                  VALUES (%s::json, %s::json, %s::json, %s, %s, %s)''',
-               (json.dumps(task_files), json.dumps(file_states),
-                json.dumps(file_results), status_url, status, job_id))
-
-def write_job(db, job_id, status, task_files, file_states, file_results, status_url):
-    ''' Save information about a job to the database.
-    '''
-    db.execute('''UPDATE jobs
-                  SET task_files=%s::json, file_states=%s::json,
-                      file_results=%s::json, github_status_url=%s, status=%s
-                  WHERE id = %s''',
-               (json.dumps(task_files), json.dumps(file_states),
-                json.dumps(file_results), status_url, status, job_id))
-
-def read_job(db, job_id):
-    ''' Read information about a job from the database.
-    
-        Returns (status, task_files, file_states, file_results, github_status_url) or None.
-    '''
-    db.execute('''SELECT status, task_files, file_states, file_results, github_status_url
-                  FROM jobs WHERE id = %s''', (job_id, ))
-    
-    try:
-        status, task_files, states, file_results, github_status_url = db.fetchone()
-    except TypeError:
-        return None
-    else:
-        return status, task_files, states, file_results, github_status_url
-
 def is_completed_run(db, run_id, min_datetime):
     '''
     '''
@@ -640,42 +605,42 @@ def update_job_status(db, job_id, job_url, filename, run_status, results, github
     '''
     '''
     try:
-        _, task_files, file_states, file_results, status_url = read_job(db, job_id)
+        job = read_job(db, job_id)
     except TypeError:
         raise Exception('Job {} not found'.format(job_id))
 
-    if filename not in file_states:
-        raise Exception('Unknown file from job {}: "{}"'.format(job_id, filename))
+    if filename not in job.states:
+        raise Exception('Unknown file from job {}: "{}"'.format(job.id, filename))
     
-    filenames = list(task_files.values())
-    file_states[filename] = run_status
-    file_results[filename] = results
+    filenames = list(job.task_files.values())
+    job.states[filename] = run_status
+    job.file_results[filename] = results
     
     # Update job status.
 
-    if False in file_states.values():
+    if False in job.states.values():
         # Any task failure means the whole job has failed.
-        job_status = False
-    elif None in file_states.values():
-        job_status = None
+        job.status = False
+    elif None in job.states.values():
+        job.status = None
     else:
-        job_status = True
+        job.status = True
     
-    write_job(db, job_id, job_status, task_files, file_states, file_results, status_url)
+    write_job(db, job.id, job.status, job.task_files, job.states, job.file_results, job.github_status_url)
     
-    if not status_url:
-        _L.warning('No status_url to tell about {} status of job {}'.format(job_status, job_id))
+    if not job.github_status_url:
+        _L.warning('No status_url to tell about {} status of job {}'.format(job.status, job.id))
         return
     
-    if job_status is False:
-        bad_files = [name for (name, state) in file_states.items() if state is False]
-        update_failing_status(status_url, job_url, bad_files, filenames, github_auth)
+    if job.status is False:
+        bad_files = [name for (name, state) in job.states.items() if state is False]
+        update_failing_status(job.github_status_url, job_url, bad_files, filenames, github_auth)
     
-    elif job_status is None:
-        update_pending_status(status_url, job_url, filenames, github_auth)
+    elif job.status is None:
+        update_pending_status(job.github_status_url, job_url, filenames, github_auth)
     
-    elif job_status is True:
-        update_success_status(status_url, job_url, filenames, github_auth)
+    elif job.status is True:
+        update_success_status(job.github_status_url, job_url, filenames, github_auth)
 
 def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
     '''

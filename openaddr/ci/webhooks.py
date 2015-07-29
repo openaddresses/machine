@@ -13,10 +13,10 @@ from . import (
     load_config, setup_logger, skip_payload, get_commit_info,
     update_pending_status, update_error_status, update_failing_status,
     update_empty_status, update_success_status, process_payload_files,
-    db_connect, db_queue, db_cursor, TASK_QUEUE, create_queued_job, read_job
+    db_connect, db_queue, db_cursor, TASK_QUEUE, create_queued_job
     )
 
-from .objects import read_jobs, read_sets, read_set
+from .objects import read_job, read_jobs, read_sets, read_set
 
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
 
@@ -150,18 +150,18 @@ def app_get_job(job_id):
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
             try:
-                status, task_files, file_states, file_results, github_status_url = read_job(db, job_id)
+                job = read_job(db, job_id)
             except TypeError:
                 return Response('Job {} not found'.format(job_id), 404)
     
     statuses = False, None, True
-    key_func = lambda _path: (statuses.index(file_states[_path[1]]), _path[1])
-    file_tuples = [(sha, path) for (sha, path) in task_files.items()]
+    key_func = lambda _path: (statuses.index(job.states[_path[1]]), _path[1])
+    file_tuples = [(sha, path) for (sha, path) in job.task_files.items()]
 
     ordered_files = OrderedDict(sorted(file_tuples, key=key_func))
     
-    job = dict(status=status, task_files=ordered_files, file_states=file_states,
-               file_results=file_results, github_status_url=github_status_url)
+    job = dict(status=job.status, task_files=ordered_files, file_states=job.states,
+               file_results=job.file_results, github_status_url=job.github_status_url)
     
     return render_template('job.html', job=job)
 
