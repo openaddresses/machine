@@ -121,7 +121,9 @@ def read_sets(db, past_id):
     
         Returns list of Sets.
     '''
-    db.execute('''SELECT id, commit_sha, datetime_start, datetime_end
+    db.execute('''SELECT id, commit_sha, datetime_start, datetime_end,
+                         render_world, render_europe, render_usa,
+                         owner, repository
                   FROM sets WHERE id < COALESCE(%s, 2^64)
                   ORDER BY id DESC LIMIT 25''',
                (past_id, ))

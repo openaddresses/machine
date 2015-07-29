@@ -12,8 +12,7 @@ from zipfile import ZipFile
 from io import BytesIO
 from mock import patch
 from time import sleep
-from mock import Mock
-import hmac, hashlib
+import hmac, hashlib, mock
 
 import unittest, json, os, sys, itertools
 
@@ -30,7 +29,7 @@ from ..ci import (
     )
 
 from ..ci.objects import (
-    add_job, write_job, read_job, read_jobs, add_set, read_set, read_sets
+    add_job, write_job, read_job, read_jobs, add_set, read_set, read_sets, Set
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -59,7 +58,7 @@ def signed(data, valid=True):
 class TestObjects (unittest.TestCase):
 
     def setUp(self):
-        self.db = Mock()
+        self.db = mock.Mock()
 
     def test_add_job(self):
         ''' Check behavior of objects.add_job()
@@ -115,6 +114,59 @@ class TestObjects (unittest.TestCase):
                   --
                   FROM jobs WHERE sequence < COALESCE((SELECT sequence FROM jobs WHERE id = %s), 2^64)
                   ORDER BY sequence DESC LIMIT 25''',
+                  (None, ))
+
+    @patch('openaddr.ci.objects.read_set')
+    def test_add_set(self, read_set):
+        ''' Check behavior of objects.add_set()
+        '''
+        self.db.fetchone.return_value = (123, )
+        read_set.return_value = Set(123, None, None, None, None, None, None, None, None)
+
+        set = add_set(self.db, 'oa', 'openaddresses')
+        self.assertEqual(set.id, 123)
+
+        self.db.execute.assert_has_calls([mock.call(
+               '''INSERT INTO sets
+                  (owner, repository, datetime_start)
+                  VALUES (%s, %s, NOW())''',
+                  ('oa', 'openaddresses')
+               ), mock.call("SELECT CURRVAL('ints')", )
+               ])
+        
+        read_set.assert_called_with(self.db, 123)
+
+    def test_read_set(self):
+        ''' Check behavior of objects.read_set()
+        '''
+        self.db.fetchone.return_value = 123, '', None, None, '', '', '', 'oa', 'openaddresses'
+        
+        set = read_set(self.db, 123)
+        self.assertEqual(set.id, 123)
+        self.assertEqual(set.owner, 'oa')
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT id, commit_sha, datetime_start, datetime_end,
+                         render_world, render_europe, render_usa,
+                         owner, repository
+                  FROM sets WHERE id = %s''',
+                  (123, ))
+
+    def test_read_sets(self):
+        ''' Check behavior of objects.read_sets()
+        '''
+        self.db.fetchall.return_value = ((123, '', None, None, None, None, None, 'oa', None), )
+        
+        (set, ) = read_sets(self.db, None)
+        self.assertEqual(set.id, 123)
+        self.assertEqual(set.owner, 'oa')
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT id, commit_sha, datetime_start, datetime_end,
+                         render_world, render_europe, render_usa,
+                         owner, repository
+                  FROM sets WHERE id < COALESCE(%s, 2^64)
+                  ORDER BY id DESC LIMIT 25''',
                   (None, ))
 
 class TestHook (unittest.TestCase):
