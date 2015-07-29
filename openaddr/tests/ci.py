@@ -25,12 +25,13 @@ from ..ci import (
     db_connect, db_cursor, db_queue, recreate_db, worker,
     pop_task_from_donequeue, pop_task_from_taskqueue, pop_task_from_duequeue,
     create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE,
-    enqueue_sources, find_batch_sources, add_run, set_run, render_set_maps
+    enqueue_sources, find_batch_sources, render_set_maps
     )
 
 from ..ci.objects import (
     add_job, write_job, read_job, read_jobs,
-    Set, add_set, complete_set, update_set_renders, read_set, read_sets
+    Set, add_set, complete_set, update_set_renders, read_set, read_sets,
+    add_run, set_run
     )
 
 from ..jobs import JOB_TIMEOUT
