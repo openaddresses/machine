@@ -1,13 +1,15 @@
 # coding=utf8
 from __future__ import print_function
 
+from .. import __version__
+
 from os import environ, remove
 from os.path import join
 from shutil import rmtree
 from tempfile import mkdtemp
 from urllib.parse import parse_qsl, urlparse, urljoin
 from base64 import b64decode, b64encode
-from datetime import timedelta
+from datetime import timedelta, datetime
 from zipfile import ZipFile
 from io import BytesIO
 from mock import patch
@@ -31,7 +33,8 @@ from ..ci import (
 from ..ci.objects import (
     add_job, write_job, read_job, read_jobs,
     Set, add_set, complete_set, update_set_renders, read_set, read_sets,
-    add_run, set_run
+    add_run, set_run, copy_run, get_completed_file_run, get_completed_run,
+    read_completed_set_runs
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -85,7 +88,7 @@ class TestObjects (unittest.TestCase):
                   WHERE id = %s''',
                   ('{}', '{}', '{}', 'http://', True, 'xyz'))
 
-    def test_read_job(self):
+    def test_read_job_yes(self):
         ''' Check behavior of objects.read_job()
         '''
         self.db.fetchone.return_value = True, {}, {}, {}, 'http://'
@@ -93,6 +96,19 @@ class TestObjects (unittest.TestCase):
         job = read_job(self.db, 'xyz')
         self.assertEqual(job.id, 'xyz')
         self.assertEqual(job.status, True)
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT status, task_files, file_states, file_results, github_status_url
+                  FROM jobs WHERE id = %s''',
+                  ('xyz', ))
+
+    def test_read_job_no(self):
+        ''' Check behavior of objects.read_job()
+        '''
+        self.db.fetchone.return_value = None
+        
+        nothing = read_job(self.db, 'xyz')
+        self.assertIsNone(nothing)
 
         self.db.execute.assert_called_once_with(
                '''SELECT status, task_files, file_states, file_results, github_status_url
@@ -160,7 +176,7 @@ class TestObjects (unittest.TestCase):
                   WHERE id = %s''',
                   ('http://w', 'http://usa', 'http://eu', 123))
 
-    def test_read_set(self):
+    def test_read_set_yes(self):
         ''' Check behavior of objects.read_set()
         '''
         self.db.fetchone.return_value = 123, '', None, None, '', '', '', 'oa', 'openaddresses'
@@ -168,6 +184,21 @@ class TestObjects (unittest.TestCase):
         set = read_set(self.db, 123)
         self.assertEqual(set.id, 123)
         self.assertEqual(set.owner, 'oa')
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT id, commit_sha, datetime_start, datetime_end,
+                         render_world, render_europe, render_usa,
+                         owner, repository
+                  FROM sets WHERE id = %s''',
+                  (123, ))
+
+    def test_read_set_no(self):
+        ''' Check behavior of objects.read_set()
+        '''
+        self.db.fetchone.return_value = None
+        
+        nothing = read_set(self.db, 123)
+        self.assertIsNone(nothing)
 
         self.db.execute.assert_called_once_with(
                '''SELECT id, commit_sha, datetime_start, datetime_end,
@@ -192,6 +223,136 @@ class TestObjects (unittest.TestCase):
                   FROM sets WHERE id < COALESCE(%s, 2^64)
                   ORDER BY id DESC LIMIT 25''',
                   (None, ))
+
+    def test_add_set(self):
+        ''' Check behavior of objects.add_set()
+        '''
+        self.db.fetchone.return_value = (456, )
+
+        run_id = add_run(self.db)
+        self.assertEqual(run_id, 456)
+
+        self.db.execute.assert_has_calls([
+               mock.call("INSERT INTO runs (datetime_tz) VALUES (NOW())"),
+               mock.call("SELECT currval('ints')")
+               ])
+
+    def test_set_run(self):
+        ''' Check behavior of objects.add_set()
+        '''
+        set_run(self.db, 456, '', '', b'', {}, True, 'xyz', '', '', 123)
+
+        self.db.execute.assert_called_once_with(
+               '''UPDATE runs SET
+                  source_path = %s, source_data = %s, source_id = %s,
+                  state = %s::json, status = %s, worker_id = %s,
+                  code_version = %s, job_id = %s, commit_sha = %s,
+                  set_id = %s, datetime_tz = NOW()
+                  WHERE id = %s''',
+                  ('', b'', '',
+                   '{}', True, '',
+                   __version__, 'xyz', '',
+                   123, 456))
+
+    def test_copy_run(self):
+        ''' Check behavior of objects.copy_run()
+        '''
+        self.db.fetchone.return_value = (456, )
+        
+        run_id = copy_run(self.db, 456, 'xyz', '', 123)
+        self.assertEqual(run_id, 456)
+
+        self.db.execute.assert_has_calls([mock.call(
+               '''INSERT INTO runs
+                  (copy_of, source_path, source_id, source_data, state, status,
+                   worker_id, code_version, job_id, commit_sha, set_id, datetime_tz)
+                  SELECT id, source_path, source_id, source_data, state, status,
+                         worker_id, code_version, %s, %s, %s, NOW()
+                  FROM runs
+                  WHERE id = %s''',
+                  ('xyz', '', 123, 456)
+               ), mock.call("SELECT currval('ints')", )
+               ])
+    
+    def test_get_completed_file_run_yes(self):
+        ''' Check behavior of objects.get_completed_file_run_yes()
+        '''
+        self.db.fetchone.return_value = (456, True, {})
+        
+        run_id, state, status = get_completed_file_run(self.db, 'abc', timedelta(0))
+        self.assertEqual(run_id, 456)
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT id, state, status FROM runs
+                  WHERE source_id = %s
+                    AND datetime_tz > NOW() - INTERVAL %s
+                    AND status IS NOT NULL
+                    AND copy_of IS NULL
+                  ORDER BY id DESC LIMIT 1''',
+                  ('abc', timedelta(0)))
+
+    def test_get_completed_file_run_no(self):
+        ''' Check behavior of objects.get_completed_file_run_no()
+        '''
+        self.db.fetchone.return_value = None
+        
+        nothing = get_completed_file_run(self.db, 'abc', timedelta(0))
+        self.assertIsNone(nothing)
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT id, state, status FROM runs
+                  WHERE source_id = %s
+                    AND datetime_tz > NOW() - INTERVAL %s
+                    AND status IS NOT NULL
+                    AND copy_of IS NULL
+                  ORDER BY id DESC LIMIT 1''',
+                  ('abc', timedelta(0)))
+
+    def test_get_completed_run_yes(self):
+        ''' Check behavior of objects.get_completed_run_yes()
+        '''
+        self.db.fetchone.return_value = (456, True)
+        now = datetime.now()
+        
+        run_id, status = get_completed_run(self.db, 456, now)
+        self.assertEqual(run_id, 456)
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT id, status FROM runs
+                  WHERE id = %s AND status IS NOT NULL
+                    AND datetime_tz >= %s''',
+                  (456, now))
+
+    def test_get_completed_run_no(self):
+        ''' Check behavior of objects.get_completed_run_no()
+        '''
+        self.db.fetchone.return_value = None
+        now = datetime.now()
+        
+        nothing = get_completed_run(self.db, 456, now)
+        self.assertIsNone(nothing)
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT id, status FROM runs
+                  WHERE id = %s AND status IS NOT NULL
+                    AND datetime_tz >= %s''',
+                  (456, now))
+
+    def test_read_completed_set_runs(self):
+        ''' Check behavior of objects.read_completed_set_runs()
+        '''
+        self.db.fetchall.return_value = (('abc', 'pl', b'', True), )
+        
+        ((source_id, source_path, source_data, status), ) = read_completed_set_runs(self.db, 123)
+        self.assertEqual(source_id, 'abc')
+        self.assertEqual(source_path, 'pl')
+        self.assertEqual(source_data, b'')
+        self.assertEqual(status, True)
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT source_id, source_path, source_data, status FROM runs
+                  WHERE set_id = %s AND status IS NOT NULL''',
+                  (123, ))
 
 class TestHook (unittest.TestCase):
 
