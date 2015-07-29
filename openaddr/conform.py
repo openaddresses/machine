@@ -127,7 +127,7 @@ class ZipDecompressTask(DecompressionTask):
 class ExcerptDataTask(object):
     ''' Task for sampling three rows of data from datasource.
     '''
-    known_types = ('.shp', '.json', '.csv', '.kml', '.gml')
+    known_types = ('.shp', '.json', '.geojson', '.csv', '.kml', '.gml')
 
     def excerpt(self, source_paths, workdir, conform):
         '''
@@ -192,7 +192,7 @@ class ExcerptDataTask(object):
         _, data_ext = os.path.splitext(data_path.lower())
 
         # Sample a few GeoJSON features to save on memory for large datasets.
-        if data_ext == '.json':
+        if data_ext in ('.geojson', '.json'):
             with open(data_path, 'r') as complete_layer:
                 temp_dir = os.path.dirname(data_path)
                 _, temp_path = tempfile.mkstemp(dir=temp_dir, suffix='.json')
