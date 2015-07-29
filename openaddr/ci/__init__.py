@@ -1,7 +1,13 @@
 import logging; _L = logging.getLogger('openaddr.ci')
 
 from ..compat import standard_library
-from .. import jobs, render, __version__
+from .. import jobs, render
+
+from .objects import (
+    add_job, write_job, read_job, complete_set, update_set_renders,
+    add_run, set_run, copy_run, read_completed_set_runs,
+    get_completed_file_run, get_completed_run
+    )
 
 from os.path import relpath, splitext, join, basename
 from datetime import timedelta
@@ -389,22 +395,14 @@ def enqueue_sources(queue, the_set, sources):
         yield len(expected_paths)
 
     with queue as db:
-        _L.info(u'Updating set {} in sets table'.format(the_set.id))
-        db.execute('''UPDATE sets
-                      SET datetime_end = NOW(), commit_sha = %s
-                      WHERE id = %s''',
-                   (commit_sha, the_set.id))
+        complete_set(db, the_set.id, commit_sha)
 
     yield 0
 
 def _update_expected_paths(db, expected_paths, the_set):
     ''' Discard sources from expected_paths set as they appear in runs table.
     '''
-    db.execute('''SELECT source_path FROM runs
-                  WHERE set_id = %s AND status IS NOT NULL''',
-               (the_set.id, ))
-
-    for (source_path, ) in db:
+    for (_, source_path, _, _) in read_completed_set_runs(db, the_set.id):
         _L.debug(u'Discarding {}'.format(source_path))
         expected_paths.discard(source_path)
 
@@ -433,23 +431,16 @@ def render_set_maps(s3, db, the_set):
     
             urls[area_name] = render_key.generate_url(**url_kwargs)
 
-        db.execute('''UPDATE sets
-                      SET render_world = %s, render_usa = %s, render_europe = %s
-                      WHERE id = %s''',
-                   (urls['world'], urls['usa'], urls['europe'], the_set.id))
+        update_set_renders(db, the_set.id, urls['world'], urls['usa'], urls['europe'])
     finally:
         rmtree(dirname)
 
 def _prepare_render_sources(db, the_set, dirname):
     ''' Dump all non-null set runs into a directory for rendering.
     '''
-    db.execute('''SELECT source_id, source_data, status FROM runs
-                  WHERE set_id = %s AND status IS NOT NULL''',
-               (the_set.id, ))
-    
     good_sources = set()
     
-    for (source_id, source_data, status) in db.fetchall():
+    for (source_id, _, source_data, status) in read_completed_set_runs(db, the_set.id):
         filename = '{source_id}.json'.format(**locals())
         with open(join(dirname, filename), 'w+b') as file:
             content = b64decode(bytes(source_data))
@@ -509,42 +500,6 @@ def add_files_to_queue(queue, job_id, job_url, files, commit_sha):
     
     return tasks
 
-def add_job(db, job_id, status, task_files, file_states, file_results, status_url):
-    ''' Save information about a job to the database.
-    
-        Throws an IntegrityError exception if the job ID exists.
-    '''
-    db.execute('''INSERT INTO jobs
-                  (task_files, file_states, file_results, github_status_url, status, id)
-                  VALUES (%s::json, %s::json, %s::json, %s, %s, %s)''',
-               (json.dumps(task_files), json.dumps(file_states),
-                json.dumps(file_results), status_url, status, job_id))
-
-def write_job(db, job_id, status, task_files, file_states, file_results, status_url):
-    ''' Save information about a job to the database.
-    '''
-    db.execute('''UPDATE jobs
-                  SET task_files=%s::json, file_states=%s::json,
-                      file_results=%s::json, github_status_url=%s, status=%s
-                  WHERE id = %s''',
-               (json.dumps(task_files), json.dumps(file_states),
-                json.dumps(file_results), status_url, status, job_id))
-
-def read_job(db, job_id):
-    ''' Read information about a job from the database.
-    
-        Returns (status, task_files, file_states, file_results, github_status_url) or None.
-    '''
-    db.execute('''SELECT status, task_files, file_states, file_results, github_status_url
-                  FROM jobs WHERE id = %s''', (job_id, ))
-    
-    try:
-        status, task_files, states, file_results, github_status_url = db.fetchone()
-    except TypeError:
-        return None
-    else:
-        return status, task_files, states, file_results, github_status_url
-
 def is_completed_run(db, run_id, min_datetime):
     '''
     '''
@@ -555,12 +510,7 @@ def is_completed_run(db, run_id, min_datetime):
         # Assume unspecified time zones are UTC.
         min_dtz = min_datetime.replace(tzinfo=tzutc())
 
-    db.execute('''SELECT id, status FROM runs
-                  WHERE id = %s AND status IS NOT NULL
-                    AND datetime_tz >= %s''',
-               (run_id, min_dtz))
-    
-    completed_run = db.fetchone()
+    completed_run = get_completed_run(db, run_id, min_dtz)
     
     if completed_run:
         _L.debug('Found completed run {0} ({1}) since {min_datetime}'.format(*completed_run, **locals()))
@@ -569,113 +519,46 @@ def is_completed_run(db, run_id, min_datetime):
     
     return bool(completed_run is not None)
 
-def add_run(db):
-    ''' Reserve a row in the runs table and return its new ID.
-    '''
-    db.execute("INSERT INTO runs (datetime_tz) VALUES (NOW())")
-    db.execute("SELECT currval('ints')")
-    
-    (run_id, ) = db.fetchone()
-    
-    return run_id
-
-def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
-            job_id, worker_id, commit_sha, set_id):
-    ''' Populate an identitified row in the runs table.
-    '''
-    db.execute('''UPDATE runs SET
-                  source_path = %s, source_data = %s, source_id = %s,
-                  state = %s::json, status = %s, worker_id = %s,
-                  code_version = %s, job_id = %s, commit_sha = %s,
-                  set_id = %s, datetime_tz = NOW()
-                  WHERE id = %s''',
-               (filename, content_b64, file_id,
-               json.dumps(run_state), run_status, worker_id,
-               __version__, job_id, commit_sha,
-               set_id, run_id))
-
-def copy_run(db, run_id, job_id, commit_sha, set_id):
-    ''' Duplicate a previous run and return its new ID.
-    
-        Use new values for job ID, commit SHA, and set ID.
-    '''
-    db.execute('''INSERT INTO runs
-                  (copy_of, source_path, source_id, source_data, state, status,
-                   worker_id, code_version, job_id, commit_sha, set_id, datetime_tz)
-                  SELECT id, source_path, source_id, source_data, state, status,
-                         worker_id, code_version, %s, %s, %s, NOW()
-                  FROM runs
-                  WHERE id = %s''',
-               (job_id, commit_sha, set_id, run_id))
-
-    db.execute("SELECT currval('ints')")
-    
-    (run_id, ) = db.fetchone()
-    
-    return run_id
-
-def get_previously_completed_run(db, file_id):
-    ''' Look for an existing run on this file ID within the reuse timeout limit.
-    '''
-    interval = '{} seconds'.format(RUN_REUSE_TIMEOUT.seconds + RUN_REUSE_TIMEOUT.days * 86400)
-    
-    db.execute('''SELECT id, state, status FROM runs
-                  WHERE source_id = %s
-                    AND datetime_tz > NOW() - INTERVAL %s
-                    AND status IS NOT NULL
-                    AND copy_of IS NULL
-                  ORDER BY id DESC LIMIT 1''',
-               (file_id, interval))
-    
-    previous_run = db.fetchone()
-    
-    if previous_run:
-        _L.debug('Found previous run {0} ({2}) for file {file_id}'.format(*previous_run, **locals()))
-    else:
-        _L.debug('No previous run for file {file_id}'.format(**locals()))
-
-    return previous_run
-
 def update_job_status(db, job_id, job_url, filename, run_status, results, github_auth):
     '''
     '''
     try:
-        _, task_files, file_states, file_results, status_url = read_job(db, job_id)
+        job = read_job(db, job_id)
     except TypeError:
         raise Exception('Job {} not found'.format(job_id))
 
-    if filename not in file_states:
-        raise Exception('Unknown file from job {}: "{}"'.format(job_id, filename))
+    if filename not in job.states:
+        raise Exception('Unknown file from job {}: "{}"'.format(job.id, filename))
     
-    filenames = list(task_files.values())
-    file_states[filename] = run_status
-    file_results[filename] = results
+    filenames = list(job.task_files.values())
+    job.states[filename] = run_status
+    job.file_results[filename] = results
     
     # Update job status.
 
-    if False in file_states.values():
+    if False in job.states.values():
         # Any task failure means the whole job has failed.
-        job_status = False
-    elif None in file_states.values():
-        job_status = None
+        job.status = False
+    elif None in job.states.values():
+        job.status = None
     else:
-        job_status = True
+        job.status = True
     
-    write_job(db, job_id, job_status, task_files, file_states, file_results, status_url)
+    write_job(db, job.id, job.status, job.task_files, job.states, job.file_results, job.github_status_url)
     
-    if not status_url:
-        _L.warning('No status_url to tell about {} status of job {}'.format(job_status, job_id))
+    if not job.github_status_url:
+        _L.warning('No status_url to tell about {} status of job {}'.format(job.status, job.id))
         return
     
-    if job_status is False:
-        bad_files = [name for (name, state) in file_states.items() if state is False]
-        update_failing_status(status_url, job_url, bad_files, filenames, github_auth)
+    if job.status is False:
+        bad_files = [name for (name, state) in job.states.items() if state is False]
+        update_failing_status(job.github_status_url, job_url, bad_files, filenames, github_auth)
     
-    elif job_status is None:
-        update_pending_status(status_url, job_url, filenames, github_auth)
+    elif job.status is None:
+        update_pending_status(job.github_status_url, job_url, filenames, github_auth)
     
-    elif job_status is True:
-        update_success_status(status_url, job_url, filenames, github_auth)
+    elif job.status is True:
+        update_success_status(job.github_status_url, job_url, filenames, github_auth)
 
 def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
     '''
@@ -692,7 +575,8 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
         passed_on_kwargs = {k: task.data.get(k) for k in passed_on_keys}
         passed_on_kwargs['worker_id'] = hex(getnode()).rstrip('L')
 
-        previous_run = get_previously_completed_run(db, task.data.get('file_id'))
+        interval = '{} seconds'.format(RUN_REUSE_TIMEOUT.seconds + RUN_REUSE_TIMEOUT.days * 86400)
+        previous_run = get_completed_file_run(db, task.data.get('file_id'), interval)
     
         if previous_run:
             # Make a copy of the previous run.
