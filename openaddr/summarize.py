@@ -107,6 +107,11 @@ def summarize(s3, source_dir):
     template = env.get_template('state.html')
 
     last_modified, states, counts = load_states(s3, source_dir)
+    from pprint import pprint
+    pprint(last_modified)
+    pprint(states)
+    pprint(counts)
+    return b''
     return template.render(states=states, last_modified=last_modified, counts=counts)
 
 if __name__ == '__main__':
