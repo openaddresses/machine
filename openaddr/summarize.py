@@ -3,7 +3,7 @@ from .compat import standard_library
 
 import json
 from csv import DictReader
-from io import BytesIO
+from io import StringIO
 from operator import itemgetter
 from os.path import join, dirname, splitext
 from dateutil.parser import parse as parse_datetime
@@ -22,13 +22,13 @@ def load_states(s3, source_dir):
 
     if state_key:
         state_link = state_key.get_contents_as_string()
-        if '\t' not in state_link:
+        if b'\t' not in state_link:
             # it's probably a link to someplace else.
             state_key = s3.get_key(state_link.strip())
     
     if state_key:
         last_modified = parse_datetime(state_key.last_modified)
-        state_file = BytesIO(state_key.get_contents_as_string())
+        state_file = StringIO(state_key.get_contents_as_string().decode('utf8'))
         
         for row in DictReader(state_file, dialect='excel-tab'):
             row['shortname'], _ = splitext(row['source'])
