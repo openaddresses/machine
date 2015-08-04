@@ -34,7 +34,7 @@ from ..ci.objects import (
     add_job, write_job, read_job, read_jobs,
     Set, add_set, complete_set, update_set_renders, read_set, read_sets,
     add_run, set_run, copy_run, get_completed_file_run, get_completed_run,
-    read_completed_set_runs
+    read_completed_set_runs, new_read_completed_set_runs
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -351,6 +351,25 @@ class TestObjects (unittest.TestCase):
 
         self.db.execute.assert_called_once_with(
                '''SELECT source_id, source_path, source_data, status FROM runs
+                  WHERE set_id = %s AND status IS NOT NULL''',
+                  (123, ))
+
+    def test_new_read_completed_set_runs(self):
+        ''' Check behavior of objects.new_read_completed_set_runs()
+        '''
+        self.db.fetchall.return_value = (('abc', 'pl', 'jkl', b'', None, {}, True,
+                                          None, '', '', 'mno', 123, 'abc'), )
+        
+        sets = new_read_completed_set_runs(self.db, 123)
+        self.assertEqual(sets[0].id, 'abc')
+        self.assertEqual(sets[0].source_path, 'pl')
+        self.assertEqual(sets[0].source_data, b'')
+        self.assertEqual(sets[0].status, True)
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT id, source_path, source_id, source_data, datetime_tz,
+                         state, status, copy_of, code_version, worker_id,
+                         job_id, set_id, commit_sha FROM runs
                   WHERE set_id = %s AND status IS NOT NULL''',
                   (123, ))
 
