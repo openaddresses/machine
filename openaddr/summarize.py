@@ -31,6 +31,12 @@ def is_coverage_complete(source):
 def state_conform_type(state):
     '''
     '''
+    if 'cache' not in state:
+        return None
+    
+    if state['cache'] is None:
+        return None
+    
     if state['cache'].endswith('.zip'):
         if state.get('geometry type', 'Point') in ('Polygon', 'MultiPolygon'):
             return 'shapefile-polygon'
@@ -56,37 +62,41 @@ def convert_run(run, url_template):
     except:
         sample_data = None
     
+    run_state = run.state or {}
+    
     return {
-        'address count': run.state.get('address count'),
-        'cache': run.state.get('cache'),
-        'cache time': run.state.get('cache time'),
+        'address count': run_state.get('address count'),
+        'cache': run_state.get('cache'),
+        'cache time': run_state.get('cache time'),
         'cache_date': run.datetime_tz.strftime('%Y-%m-%d'),
         'conform': bool(source.get('conform', False)),
-        'conform type': state_conform_type(run.state),
+        'conform type': state_conform_type(run_state),
         'coverage complete': is_coverage_complete(source),
-        'fingerprint': run.state.get('fingerprint'),
-        'geometry type': run.state.get('geometry type'),
+        'fingerprint': run_state.get('fingerprint'),
+        'geometry type': run_state.get('geometry type'),
         'href': expand(url_template, run.__dict__),
-        'output': run.state.get('output'),
-        'process time': run.state.get('process time'),
-        'processed': run.state.get('processed'),
-        'sample': run.state.get('sample'),
+        'output': run_state.get('output'),
+        'process time': run_state.get('process time'),
+        'processed': run_state.get('processed'),
+        'sample': run_state.get('sample'),
         'sample_data': sample_data,
         'shortname': splitext(relpath(run.source_path, 'sources'))[0],
         'skip': bool(source.get('skip', False)),
         'source': relpath(run.source_path, 'sources'),
         'type': source.get('type', '').lower(),
-        'version': run.state.get('version')
+        'version': run_state.get('version')
         }
 
 def run_counts(runs):
     '''
     '''
+    states = [(run.state or {}) for run in runs]
+    
     return {
         'sources': len(runs),
-        'cached': sum([int(bool(run.state.get('cache'))) for run in runs]),
-        'processed': sum([int(bool(run.state.get('processed'))) for run in runs]),
-        'addresses': sum([int(run.state.get('address count')) for run in runs])
+        'cached': sum([int(bool(state.get('cache'))) for state in states]),
+        'processed': sum([int(bool(state.get('processed'))) for state in states]),
+        'addresses': sum([int(state.get('address count') or 0) for state in states])
         }
 
 def sort_run_dicts(dicts):
