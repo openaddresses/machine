@@ -4,16 +4,95 @@ from .compat import standard_library
 import json
 from csv import DictReader
 from io import StringIO
+from base64 import b64decode
 from operator import itemgetter
-from os.path import join, dirname, splitext
+from os.path import join, dirname, splitext, relpath
 from dateutil.parser import parse as parse_datetime
+from uritemplate import expand
 from os import environ
 from re import compile
+import json
 
 from jinja2 import Environment, FileSystemLoader
 from requests import get
 
 from . import S3, paths
+
+def is_coverage_complete(source):
+    '''
+    '''
+    if 'coverage' in source:
+        cov = source['coverage']
+        if ('ISO 3166' in cov or 'US Census' in cov or 'geometry' in cov):
+            return True
+    
+    return False
+
+def state_conform_type(state):
+    '''
+    '''
+    if state['cache'].endswith('.zip'):
+        if state.get('geometry type', 'Point') in ('Polygon', 'MultiPolygon'):
+            return 'shapefile-polygon'
+        else:
+            return 'shapefile'
+    elif state['cache'].endswith('.json'):
+        return 'geojson'
+    elif state['cache'].endswith('.csv'):
+        return 'csv'
+    else:
+        return None
+
+def convert_run(run, url_template):
+    '''
+    '''
+    try:
+        source = json.loads(b64decode(run.source_data).decode('utf8'))
+    except:
+        source = {}
+    
+    try:
+        sample_data = get(run.state.get('sample')).json()
+    except:
+        sample_data = None
+    
+    return {
+        'address count': run.state.get('address count'),
+        'cache': run.state.get('cache'),
+        'cache time': run.state.get('cache time'),
+        'cache_date': run.datetime_tz.strftime('%Y-%m-%d'),
+        'conform': bool(source.get('conform', False)),
+        'conform type': state_conform_type(run.state),
+        'coverage complete': is_coverage_complete(source),
+        'fingerprint': run.state.get('fingerprint'),
+        'geometry type': run.state.get('geometry type'),
+        'href': expand(url_template, run.__dict__),
+        'output': run.state.get('output'),
+        'process time': run.state.get('process time'),
+        'processed': run.state.get('processed'),
+        'sample': run.state.get('sample'),
+        'sample_data': sample_data,
+        'shortname': splitext(relpath(run.source_path, 'sources'))[0],
+        'skip': bool(source.get('skip', False)),
+        'source': relpath(run.source_path, 'sources'),
+        'type': source.get('type', '').lower(),
+        'version': run.state.get('version')
+        }
+
+def run_counts(runs):
+    '''
+    '''
+    return {
+        'sources': len(runs),
+        'cached': sum([int(bool(run.state.get('cache'))) for run in runs]),
+        'processed': sum([int(bool(run.state.get('processed'))) for run in runs]),
+        'addresses': sum([int(run.state.get('address count')) for run in runs])
+        }
+
+def sort_run_dicts(dicts):
+    '''
+    '''
+    dicts.sort(key=lambda d: (bool(d['cache']), bool(d['processed']), d['source']))
 
 def load_states(s3, source_dir):
     # Find existing cache information
@@ -59,27 +138,12 @@ def load_states(s3, source_dir):
             if not row.get('sample_data', False):
                 row['sample_data'] = list()
             
-            if row['cache'].endswith('.zip'):
-                if row.get('geometry type', 'Point') in ('Polygon', 'MultiPolygon'):
-                    row['conform type'] = 'shapefile-polygon'
-                else:
-                    row['conform type'] = 'shapefile'
-            elif row['cache'].endswith('.json'):
-                row['conform type'] = 'geojson'
-            elif row['cache'].endswith('.csv'):
-                row['conform type'] = 'csv'
-            else:
-                row['conform type'] = None
-            
-            row['coverage complete'] = False
-            if 'coverage' in data:
-                coverage = data['coverage']
-                if ('ISO 3166' in coverage or 'US Census' in coverage or 'geometry' in coverage):
-                    row['coverage complete'] = True
+            row['conform type'] = state_conform_type(row)
+            row['coverage complete'] = is_coverage_complete(data)
             
             states.append(row)
     
-    states.sort(key=lambda s: (bool(s['cache']), bool(s['processed']), s['source']))
+    sort_run_dicts(states)
     
     return last_modified, states, counts
 

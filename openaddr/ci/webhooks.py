@@ -1,6 +1,7 @@
 import logging; _L = logging.getLogger('openaddr.ci.webhooks')
 
 from functools import wraps
+from operator import itemgetter
 from urllib.parse import urljoin
 from collections import OrderedDict
 import hashlib, hmac
@@ -16,7 +17,8 @@ from . import (
     db_connect, db_queue, db_cursor, TASK_QUEUE, create_queued_job
     )
 
-from .objects import read_job, read_jobs, read_sets, read_set
+from .objects import read_job, read_jobs, read_sets, read_set, new_read_completed_set_runs
+from ..summarize import convert_run, run_counts, sort_run_dicts
 
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
 
@@ -185,9 +187,18 @@ def app_get_set(set_id):
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
             set = read_set(db, set_id)
+            runs = new_read_completed_set_runs(db, set.id)
 
     if set is None:
         return Response('Set {} not found'.format(set_id), 404)
+    
+    base_url = expand('https://github.com/{owner}/{repository}/', set.__dict__)
+    url_template = urljoin(base_url, 'blob/{commit_sha}/{+source_path}')
+    run_dicts = [convert_run(run, url_template) for run in runs]
+    counts = run_counts(runs)
+    sort_run_dicts(run_dicts)
+    
+    return jsonify({'runs': run_dicts, 'counts': counts})
     
     return render_template('set.html', set=set)
 

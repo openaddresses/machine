@@ -35,6 +35,30 @@ class Set:
         self.owner = owner
         self.repository = repository
 
+class Run:
+    '''
+    '''
+    def __init__(self, id, source_path, source_id, source_data, datetime_tz,
+                 state, status, copy_of, code_version, worker_id, job_id,
+                 set_id, commit_sha):
+        '''
+        '''
+        self.id = id
+        self.source_path = source_path
+        self.source_id = source_id
+        self.source_data = source_data
+        self.datetime_tz = datetime_tz
+
+        self.state = state
+        self.status = status
+        self.copy_of = copy_of
+
+        self.code_version = code_version
+        self.worker_id = worker_id
+        self.job_id = job_id
+        self.set_id = set_id
+        self.commit_sha = commit_sha
+
 def add_job(db, job_id, status, task_files, file_states, file_results, status_url):
     ''' Save information about a job to the database.
     
@@ -232,3 +256,14 @@ def read_completed_set_runs(db, set_id):
                (set_id, ))
     
     return list(db.fetchall())
+
+def new_read_completed_set_runs(db, set_id):
+    '''
+    '''
+    db.execute('''SELECT id, source_path, source_id, source_data, datetime_tz,
+                         state, status, copy_of, code_version, worker_id,
+                         job_id, set_id, commit_sha FROM runs
+                  WHERE set_id = %s AND status IS NOT NULL''',
+               (set_id, ))
+    
+    return [Run(*row) for row in db.fetchall()]
