@@ -7,8 +7,12 @@ from collections import OrderedDict
 import hashlib, hmac
 import json, os
 
-from flask import Flask, Blueprint, request, Response, current_app, jsonify, render_template
 from uritemplate import expand
+from jinja2 import Environment, FileSystemLoader
+from flask import (
+    Flask, Blueprint, request, Response, current_app, jsonify, render_template,
+    redirect
+    )
 
 from . import (
     load_config, setup_logger, skip_payload, get_commit_info,
@@ -18,7 +22,7 @@ from . import (
     )
 
 from .objects import read_job, read_jobs, read_sets, read_set, new_read_completed_set_runs
-from ..summarize import convert_run, run_counts, sort_run_dicts
+from ..summarize import convert_run, run_counts, sort_run_dicts, nice_integer
 
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
 
@@ -179,7 +183,7 @@ def app_get_sets():
     
     return render_template('sets.html', sets=sets)
 
-@webhooks.route('/sets/<set_id>', methods=['GET'])
+@webhooks.route('/sets/<set_id>/', methods=['GET'])
 @log_application_errors
 def app_get_set(set_id):
     '''
@@ -194,13 +198,40 @@ def app_get_set(set_id):
     
     base_url = expand('https://github.com/{owner}/{repository}/', set.__dict__)
     url_template = urljoin(base_url, 'blob/{commit_sha}/{+source_path}')
-    run_dicts = [convert_run(run, url_template) for run in runs]
+    states = [convert_run(run, url_template) for run in runs]
     counts = run_counts(runs)
-    sort_run_dicts(run_dicts)
+    sort_run_dicts(states)
     
-    return jsonify({'runs': run_dicts, 'counts': counts})
+    # Fudge in state.html from a different template directory for now.
+    dir = os.path.join(os.path.dirname(__file__), '..', 'templates')
+    env = Environment(loader=FileSystemLoader(dir))
+    env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
+    env.filters['nice_integer'] = nice_integer
+    template = env.get_template('state.html')
     
-    return render_template('set.html', set=set)
+    return template.render(states=states, last_modified=set.datetime_end, counts=counts)
+
+@webhooks.route('/sets/<set_id>/render-<area>.png', methods=['GET'])
+@log_application_errors
+def app_get_set_image(set_id, area):
+    '''
+    '''
+    if area not in ('usa', 'world', 'europe'):
+        return Response('Area "{}" not found'.format(area), 404)
+    
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            set = read_set(db, set_id)
+
+    if set is None:
+        return Response('Set {} not found'.format(set_id), 404)
+    
+    image_url = getattr(set, 'render_{}'.format(area))
+    
+    if image_url is None:
+        return Response('Area "{}" has no image'.format(area), 404)
+    
+    return redirect(image_url)
 
 app = Flask(__name__)
 app.config.update(load_config())
