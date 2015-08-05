@@ -290,7 +290,7 @@ def new_read_completed_set_runs(db, set_id):
 def read_completed_set_run_ids(db, set_id):
     '''
     '''
-    db.execute('SELECT id WHERE set_id = %s AND status IS NOT NULL', (set_id, ))
+    db.execute('SELECT id FROM runs WHERE set_id = %s AND status IS NOT NULL', (set_id, ))
     
     return [run_id for (run_id, ) in db.fetchall()]
     

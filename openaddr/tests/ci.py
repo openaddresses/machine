@@ -407,7 +407,7 @@ class TestObjects (unittest.TestCase):
         self.assertEqual(ids[1], 789)
 
         self.db.execute.assert_called_once_with(
-            'SELECT id WHERE set_id = %s AND status IS NOT NULL', (123, )
+            'SELECT id FROM runs WHERE set_id = %s AND status IS NOT NULL', (123, )
             )
 
 class TestHook (unittest.TestCase):
