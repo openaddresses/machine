@@ -1,7 +1,7 @@
 import logging; _L = logging.getLogger('openaddr.ci.objects')
 
 from .. import __version__
-import json
+import json, pickle
 
 class Job:
     '''
@@ -46,7 +46,7 @@ class Run:
         self.id = id
         self.source_path = source_path
         self.source_id = source_id
-        self.source_data = source_data
+        self.source_data = bytes(source_data)
         self.datetime_tz = datetime_tz
 
         self.state = state
@@ -183,6 +183,25 @@ def add_run(db):
     
     return run_id
 
+def read_run(db, mc, run_id):
+    '''
+    '''
+    key = 'run-{}-{}'.format(run_id, __version__)
+    cached_run = _get_cached(mc, key)
+    if cached_run is not None:
+        return cached_run
+    
+    db.execute('''SELECT id, source_path, source_id, source_data, datetime_tz,
+                         state, status, copy_of, code_version, worker_id,
+                         job_id, set_id, commit_sha FROM runs
+                  WHERE id = %s''',
+               (run_id, ))
+    
+    run = Run(*db.fetchone())
+    _set_cached(mc, key, run)
+    
+    return run
+
 def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
             job_id, worker_id, commit_sha, set_id):
     ''' Populate an identitified row in the runs table.
@@ -267,3 +286,43 @@ def new_read_completed_set_runs(db, set_id):
                (set_id, ))
     
     return [Run(*row) for row in db.fetchall()]
+
+def read_completed_set_run_ids(db, set_id):
+    '''
+    '''
+    db.execute('SELECT id WHERE set_id = %s AND status IS NOT NULL', (set_id, ))
+    
+    return [run_id for (run_id, ) in db.fetchall()]
+    
+    import memcache
+    mc = memcache.Client(['127.0.0.1:11211'])
+    return [read_run(db, mc, run_id) for (run_id, ) in db.fetchall()]
+    
+    return [Run(*row) for row in db.fetchall()]
+
+def _get_cached(memcache, key):
+    ''' Get a thing from the cache, or None.
+    '''
+    if not memcache:
+        return None
+    
+    pickled = memcache.get(key)
+    
+    if pickled is None:
+        return None
+
+    try:
+        value = pickle.loads(pickled)
+    except Exception as e:
+        return None
+    else:
+        return value
+
+def _set_cached(memcache, key, value):
+    ''' Put a thing in the cache, if it exists.
+    '''
+    if not memcache:
+        return
+    
+    pickled = pickle.dumps(value)
+    memcache.set(key, pickled)

@@ -34,7 +34,8 @@ from ..ci.objects import (
     add_job, write_job, read_job, read_jobs,
     Set, add_set, complete_set, update_set_renders, read_set, read_sets,
     add_run, set_run, copy_run, get_completed_file_run, get_completed_run,
-    read_completed_set_runs, new_read_completed_set_runs
+    read_completed_set_runs, new_read_completed_set_runs,
+    read_completed_set_run_ids, read_run
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -64,6 +65,7 @@ class TestObjects (unittest.TestCase):
 
     def setUp(self):
         self.db = mock.Mock()
+        self.mc = mock.Mock()
 
     def test_add_job(self):
         ''' Check behavior of objects.add_job()
@@ -224,8 +226,8 @@ class TestObjects (unittest.TestCase):
                   ORDER BY id DESC LIMIT 25''',
                   (None, ))
 
-    def test_add_set(self):
-        ''' Check behavior of objects.add_set()
+    def test_add_run(self):
+        ''' Check behavior of objects.add_run()
         '''
         self.db.fetchone.return_value = (456, )
 
@@ -236,6 +238,28 @@ class TestObjects (unittest.TestCase):
                mock.call("INSERT INTO runs (datetime_tz) VALUES (NOW())"),
                mock.call("SELECT currval('ints')")
                ])
+    
+    def test_read_run_uncached(self):
+        ''' Check behavior of objects.read_run() with an empty cache.
+        '''
+        self.mc.get.return_value = None
+        
+        self.db.fetchone.return_value = (456, 'pl', 'jkl', b'', None, {}, True,
+                                         None, '', '', 'mno', 123, 'abc')
+        
+        run = read_run(self.db, self.mc, 456)
+        self.assertEqual(run.id, 456)
+    
+    def test_read_run_cached(self):
+        ''' Check behavior of objects.read_run() with a cached run.
+        '''
+        self.mc.get.return_value = b'\x80\x03copenaddr.ci.objects\nRun\nq\x00)\x81q\x01}q\x02(X\x05\x00\x00\x00stateq\x03}q\x04X\x02\x00\x00\x00idq\x05M\xc8\x01X\x06\x00\x00\x00statusq\x06\x88X\x06\x00\x00\x00job_idq\x07X\x03\x00\x00\x00mnoq\x08X\x0c\x00\x00\x00code_versionq\tX\x00\x00\x00\x00q\nX\n\x00\x00\x00commit_shaq\x0bX\x03\x00\x00\x00abcq\x0cX\t\x00\x00\x00source_idq\rX\x03\x00\x00\x00jklq\x0eX\t\x00\x00\x00worker_idq\x0fh\nX\x07\x00\x00\x00copy_ofq\x10NX\x0b\x00\x00\x00datetime_tzq\x11NX\x06\x00\x00\x00set_idq\x12K{X\x0b\x00\x00\x00source_dataq\x13C\x00q\x14X\x0b\x00\x00\x00source_pathq\x15X\x02\x00\x00\x00plq\x16ub.'
+        
+        run = read_run(self.db, self.mc, 456)
+        self.assertEqual(run.id, 456)
+        
+        self.db.execute.assert_not_called()
+        self.mc.get.assert_called_once_with('run-456-{}'.format(__version__))
 
     def test_set_run(self):
         ''' Check behavior of objects.add_set()
@@ -372,6 +396,19 @@ class TestObjects (unittest.TestCase):
                          job_id, set_id, commit_sha FROM runs
                   WHERE set_id = %s AND status IS NOT NULL''',
                   (123, ))
+
+    def test_read_completed_set_run_ids(self):
+        ''' Check behavior of objects.read_completed_set_run_ids()
+        '''
+        self.db.fetchall.return_value = ((456, ), (789, ))
+        
+        ids = read_completed_set_run_ids(self.db, 123)
+        self.assertEqual(ids[0], 456)
+        self.assertEqual(ids[1], 789)
+
+        self.db.execute.assert_called_once_with(
+            'SELECT id WHERE set_id = %s AND status IS NOT NULL', (123, )
+            )
 
 class TestHook (unittest.TestCase):
 
