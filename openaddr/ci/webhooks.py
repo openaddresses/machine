@@ -222,6 +222,25 @@ def app_get_set_image(set_id, area):
     
     return redirect(image_url)
 
+@webhooks.route('/sets/<set_id>/<path:shortname>.txt', methods=['GET'])
+@log_application_errors
+def app_get_set_log(set_id, shortname):
+    '''
+    '''
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            runs = new_read_completed_set_runs(db, set_id)
+
+    if not runs:
+        return Response('Set {} has no runs'.format(set_id), 404)
+    
+    for run in runs:
+        run_shortname = os.path.splitext(os.path.relpath(run.source_path, 'sources'))[0]
+        if run_shortname == shortname:
+            return redirect(run.state.get('output'))
+    
+    return Response('Set {} has no run "{}"'.format(set_id, shortname), 404)
+
 app = Flask(__name__)
 app.config.update(load_config())
 app.register_blueprint(webhooks)
