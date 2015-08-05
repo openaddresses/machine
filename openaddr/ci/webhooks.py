@@ -23,7 +23,7 @@ from . import (
     )
 
 from .objects import read_job, read_jobs, read_sets, read_set, new_read_completed_set_runs
-from ..summarize import convert_run, run_counts, sort_run_dicts, nice_integer
+from ..summarize import summarize_set
 
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
 
@@ -197,21 +197,8 @@ def app_get_set(set_id):
     if set is None:
         return Response('Set {} not found'.format(set_id), 404)
     
-    memcache = memcache.Client([current_app.config['MEMCACHE_SERVER']])
-    base_url = expand('https://github.com/{owner}/{repository}/', set.__dict__)
-    url_template = urljoin(base_url, 'blob/{commit_sha}/{+source_path}')
-    states = [convert_run(memcache, run, url_template) for run in runs]
-    counts = run_counts(runs)
-    sort_run_dicts(states)
-    
-    # Fudge in state.html from a different template directory for now.
-    dir = os.path.join(os.path.dirname(__file__), '..', 'templates')
-    env = Environment(loader=FileSystemLoader(dir))
-    env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
-    env.filters['nice_integer'] = nice_integer
-    template = env.get_template('state.html')
-    
-    return template.render(states=states, last_modified=set.datetime_end, counts=counts)
+    mc = memcache.Client([current_app.config['MEMCACHE_SERVER']])
+    return summarize_set(mc, set, runs)
 
 @webhooks.route('/sets/<set_id>/render-<area>.png', methods=['GET'])
 @log_application_errors

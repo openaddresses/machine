@@ -8,6 +8,7 @@ from base64 import b64decode
 from operator import itemgetter
 from os.path import join, dirname, splitext, relpath
 from dateutil.parser import parse as parse_datetime
+from urllib.parse import urljoin
 from uritemplate import expand
 from os import environ
 from re import compile
@@ -206,6 +207,24 @@ def nice_integer(number):
 def main():
     s3 = S3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'data-test.openaddresses.io')
     print(summarize(s3, paths.sources).encode('utf8'))
+
+def summarize_set(memcache, set, runs):
+    ''' Return summary HTML for a set.
+    '''
+    base_url = expand('https://github.com/{owner}/{repository}/', set.__dict__)
+    url_template = urljoin(base_url, 'blob/{commit_sha}/{+source_path}')
+
+    states = [convert_run(memcache, run, url_template) for run in runs]
+    counts = run_counts(runs)
+    sort_run_dicts(states)
+    
+    # Fudge in state.html from a different template directory for now.
+    env = Environment(loader=FileSystemLoader(join(dirname(__file__), 'templates')))
+    env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
+    env.filters['nice_integer'] = nice_integer
+    template = env.get_template('state.html')
+    
+    return template.render(states=states, last_modified=set.datetime_end, counts=counts)
 
 def summarize(s3, source_dir):
     ''' Return summary HTML.
