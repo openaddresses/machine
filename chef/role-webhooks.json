@@ -5,6 +5,7 @@
     "db_pass": "openaddr",
     "db_host": "localhost",
     "db_name": "openaddr",
+    "memcache_server": "127.0.0.1:11211",
     "aws_access_id": "{Amazon Access Key ID}",
     "aws_secret_key": "{Amazon Secret Access Key}",
     "aws_sns_arn": "{Amazon SNS Subscription ID}",

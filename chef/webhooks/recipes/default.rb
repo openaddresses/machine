@@ -5,6 +5,7 @@ db_user = node[:db_user]
 db_pass = node[:db_pass]
 db_host = node[:db_host]
 db_name = node[:db_name]
+memcache_server = node[:memcache_server]
 aws_access_id = node[:aws_access_id]
 aws_secret_key = node[:aws_secret_key]
 aws_sns_arn = node[:aws_sns_arn]
@@ -25,6 +26,7 @@ execute 'pip install honcho[export]'
 file env_file do
   content <<-CONF
 DATABASE_URL=#{database_url}
+MEMCACHE_SERVER=#{memcache_server}
 GITHUB_TOKEN=#{github_token}
 GAG_GITHUB_STATUS=#{gag_github_status}
 AWS_ACCESS_KEY_ID=#{aws_access_id}
