@@ -11,12 +11,39 @@ from dateutil.parser import parse as parse_datetime
 from uritemplate import expand
 from os import environ
 from re import compile
-import json
+import json, pickle
 
 from jinja2 import Environment, FileSystemLoader
-from requests import get
+import requests
 
-from . import S3, paths
+from . import S3, paths, __version__
+
+def _get_cached(memcache, key):
+    ''' Get a thing from the cache, or None.
+    '''
+    if not memcache:
+        return None
+    
+    pickled = memcache.get(key)
+    
+    if pickled is None:
+        return None
+
+    try:
+        value = pickle.loads(pickled)
+    except Exception as e:
+        return None
+    else:
+        return value
+
+def _set_cached(memcache, key, value):
+    ''' Put a thing in the cache, if it exists.
+    '''
+    if not memcache:
+        return
+    
+    pickled = pickle.dumps(value)
+    memcache.set(key, pickled)
 
 def is_coverage_complete(source):
     '''
@@ -49,22 +76,27 @@ def state_conform_type(state):
     else:
         return None
 
-def convert_run(run, url_template):
+def convert_run(memcache, run, url_template):
     '''
     '''
+    cache_key = 'converted-run-{}-{}'.format(run.id, __version__)
+    cached_run = _get_cached(memcache, cache_key)
+    if cached_run is not None:
+        return cached_run
+    
     try:
         source = json.loads(b64decode(run.source_data).decode('utf8'))
     except:
         source = {}
     
     try:
-        sample_data = get(run.state.get('sample')).json()
+        sample_data = requests.get(run.state.get('sample')).json()
     except:
         sample_data = None
     
     run_state = run.state or {}
     
-    return {
+    converted_run = {
         'address count': run_state.get('address count'),
         'cache': run_state.get('cache'),
         'cache time': run_state.get('cache time'),
@@ -86,6 +118,9 @@ def convert_run(run, url_template):
         'type': source.get('type', '').lower(),
         'version': run_state.get('version')
         }
+
+    _set_cached(memcache, cache_key, converted_run)
+    return converted_run
 
 def run_counts(runs):
     '''

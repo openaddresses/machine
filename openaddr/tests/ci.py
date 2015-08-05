@@ -259,6 +259,7 @@ class TestObjects (unittest.TestCase):
         self.assertEqual(run.id, 456)
         
         self.db.execute.assert_not_called()
+        self.mc.set.assert_not_called()
         self.mc.get.assert_called_once_with('run-456-{}'.format(__version__))
 
     def test_set_run(self):

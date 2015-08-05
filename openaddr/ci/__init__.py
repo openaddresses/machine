@@ -41,6 +41,7 @@ def load_config():
 
     return dict(GAG_GITHUB_STATUS=truthy(os.environ.get('GAG_GITHUB_STATUS', '')),
                 GITHUB_AUTH=(os.environ['GITHUB_TOKEN'], 'x-oauth-basic'),
+                MEMCACHE_SERVER=os.environ.get('MEMCACHE_SERVER'),
                 DATABASE_URL=os.environ['DATABASE_URL'],
                 WEBHOOK_SECRETS=webhook_secrets)
 

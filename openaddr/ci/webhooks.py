@@ -7,6 +7,7 @@ from collections import OrderedDict
 import hashlib, hmac
 import json, os
 
+import memcache
 from uritemplate import expand
 from jinja2 import Environment, FileSystemLoader
 from flask import (
@@ -196,9 +197,10 @@ def app_get_set(set_id):
     if set is None:
         return Response('Set {} not found'.format(set_id), 404)
     
+    memcache = memcache.Client([current_app.config['MEMCACHE_SERVER']])
     base_url = expand('https://github.com/{owner}/{repository}/', set.__dict__)
     url_template = urljoin(base_url, 'blob/{commit_sha}/{+source_path}')
-    states = [convert_run(run, url_template) for run in runs]
+    states = [convert_run(memcache, run, url_template) for run in runs]
     counts = run_counts(runs)
     sort_run_dicts(states)
     
