@@ -1,3 +1,7 @@
+2015-08-05: 1.19.0
+- Added web view for sets matching data.openaddresses.io summaries.
+- Added memcache to support heavier web views.
+
 2015-07-29: 1.18.4
 - Moved DB access functions down to ci.objects.
 
