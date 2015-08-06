@@ -43,7 +43,7 @@ def _set_cached(memcache, key, value):
     if not memcache:
         return
     
-    pickled = pickle.dumps(value)
+    pickled = pickle.dumps(value, protocol=2)
     memcache.set(key, pickled)
 
 def is_coverage_complete(source):
