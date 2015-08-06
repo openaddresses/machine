@@ -1,3 +1,6 @@
+2015-08-05: 1.19.2
+- Fixed unicode error in summarize.convert_run().
+
 2015-08-05: 1.19.1
 - Fixed unicode error in summarize.summarize_set().
 

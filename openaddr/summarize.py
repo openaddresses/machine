@@ -96,6 +96,14 @@ def convert_run(memcache, run, url_template):
         sample_data = None
     
     run_state = run.state or {}
+
+    try:
+        run_href = expand(url_template, run.__dict__)
+    except UnicodeEncodeError:
+        # Python 2 behavior
+        _run_href_dict = dict(commit_sha=run.commit_sha.encode('utf8'),
+                              source_path=run.source_path.encode('utf8'))
+        run_href = expand(url_template, _run_href_dict)
     
     converted_run = {
         'address count': run_state.get('address count'),
@@ -107,7 +115,7 @@ def convert_run(memcache, run, url_template):
         'coverage complete': is_coverage_complete(source),
         'fingerprint': run_state.get('fingerprint'),
         'geometry type': run_state.get('geometry type'),
-        'href': expand(url_template, run.__dict__),
+        'href': run_href,
         'output': run_state.get('output'),
         'process time': run_state.get('process time'),
         'processed': run_state.get('processed'),

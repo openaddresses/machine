@@ -1,3 +1,5 @@
+# coding=utf8
+
 from base64 import b64encode
 from datetime import datetime
 from os.path import splitext, relpath
@@ -86,19 +88,27 @@ class TestSummarizeFunctions (unittest.TestCase):
         
         source = {'conform': {}, 'skip': False, 'type': 'http'}
         source_b64 = b64encode(json.dumps(source).encode('utf8'))
-        url_template = 'http://blob/{commit_sha}/{+source_path}'
+        url_template = u'http://blob/{commit_sha}/{+source_path}'
         
         state = {'address count': 99, 'cache': 'zip1', 'cache time': '1:00',
                  'fingerprint': 'xyz', 'geometry type': 'Point', 'output': 'zip2',
                  'process time': '2:00', 'processed': 'zip3', 'version': '2015',
                  'sample': 'http://example.com/sample.json'}
         
-        run = Run(id, 'sources/pl/foo.json', 'abc', source_b64, datetime.utcnow(),
+        run = Run(id, u'sources/pl/foö.json', 'abc', source_b64, datetime.utcnow(),
                   state, True, None, '', '', None, None, 'def')
         
         with HTTMock(self.response_content):
             conv = convert_run(memcache, run, url_template)
         
+        try:
+            run_href = expand(url_template, run.__dict__)
+        except UnicodeEncodeError:
+            # Python 2 behavior
+            _run_href_dict = dict(commit_sha=run.commit_sha.encode('utf8'),
+                                  source_path=run.source_path.encode('utf8'))
+            run_href = expand(url_template, _run_href_dict)
+
         self.assertEqual(conv['address count'], state['address count'])
         self.assertEqual(conv['cache'], state['cache'])
         self.assertEqual(conv['cache time'], state['cache time'])
@@ -108,15 +118,15 @@ class TestSummarizeFunctions (unittest.TestCase):
         self.assertEqual(conv['coverage complete'], is_coverage_complete(source))
         self.assertEqual(conv['fingerprint'], state['fingerprint'])
         self.assertEqual(conv['geometry type'], state['geometry type'])
-        self.assertEqual(conv['href'], expand(url_template, run.__dict__))
+        self.assertEqual(conv['href'], run_href)
         self.assertEqual(conv['output'], state['output'])
         self.assertEqual(conv['process time'], state['process time'])
         self.assertEqual(conv['processed'], state['processed'])
         self.assertEqual(conv['sample'], state['sample'])
         self.assertEqual(conv['sample_data'], [['Yo'], [0]])
-        self.assertEqual(conv['shortname'], 'pl/foo')
+        self.assertEqual(conv['shortname'], u'pl/foö')
         self.assertEqual(conv['skip'], source['skip'])
-        self.assertEqual(conv['source'], 'pl/foo.json')
+        self.assertEqual(conv['source'], u'pl/foö.json')
         self.assertEqual(conv['type'], source['type'])
         self.assertEqual(conv['version'], state['version'])
     
