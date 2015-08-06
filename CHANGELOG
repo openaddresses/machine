@@ -1,3 +1,6 @@
+2015-08-06: 1.19.3
+- Refactored Python 2 compatibility for uritemplate.expand().
+
 2015-08-05: 1.19.2
 - Fixed unicode error in summarize.convert_run().
 

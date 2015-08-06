@@ -1,6 +1,6 @@
 import logging; _L = logging.getLogger('openaddr.ci')
 
-from ..compat import standard_library
+from ..compat import standard_library, expand_uri
 from .. import jobs, render
 
 from .objects import (
@@ -19,7 +19,6 @@ from time import sleep
 import json, os
 
 from flask import Flask, request, Response, current_app, jsonify, render_template
-from uritemplate import expand
 from requests import get, post
 from dateutil.tz import tzutc
 from psycopg2 import connect
@@ -90,7 +89,7 @@ def get_touched_branch_files(payload, github_auth):
     branch_sha = payload['head_commit']['id']
 
     compare1_url = payload['repository']['compare_url']
-    compare1_url = expand(compare1_url, dict(base='master', head=branch_sha))
+    compare1_url = expand_uri(compare1_url, dict(base='master', head=branch_sha))
     current_app.logger.debug('Compare URL 1 {}'.format(compare1_url))
     
     compare1 = get(compare1_url, auth=github_auth).json()
@@ -101,7 +100,7 @@ def get_touched_branch_files(payload, github_auth):
         return set()
 
     compare2_url = payload['repository']['compare_url']
-    compare2_url = expand(compare2_url, dict(base=merge_base_sha, head=branch_sha))
+    compare2_url = expand_uri(compare2_url, dict(base=merge_base_sha, head=branch_sha))
     current_app.logger.debug('Compare URL 2 {}'.format(compare2_url))
     
     compare2 = get(compare2_url, auth=github_auth).json()
@@ -120,7 +119,7 @@ def get_touched_pullrequest_files(payload, github_auth):
     head_sha = payload['pull_request']['head']['sha']
 
     compare_url = payload['pull_request']['head']['repo']['compare_url']
-    compare_url = expand(compare_url, dict(head=head_sha, base=base_sha))
+    compare_url = expand_uri(compare_url, dict(head=head_sha, base=base_sha))
     current_app.logger.debug('Compare URL {}'.format(compare_url))
     
     compare = get(compare_url, auth=github_auth).json()
@@ -172,12 +171,7 @@ def process_pullrequest_payload_files(payload, github_auth):
             continue
 
         contents_url = payload['pull_request']['head']['repo']['contents_url'] + '{?ref}'
-        try:
-            contents_url = expand(contents_url, dict(path=filename, ref=commit_sha))
-        except UnicodeEncodeError:
-            # Python 2 behavior
-            contents_url = expand(contents_url, dict(path=filename.encode('utf8'), ref=commit_sha))
-        
+        contents_url = expand_uri(contents_url, dict(path=filename, ref=commit_sha))
         current_app.logger.debug('Contents URL {}'.format(contents_url))
         
         got = get(contents_url, auth=github_auth)
@@ -216,12 +210,7 @@ def process_pushevent_payload_files(payload, github_auth):
             continue
         
         contents_url = payload['repository']['contents_url'] + '{?ref}'
-        try:
-            contents_url = expand(contents_url, dict(path=filename, ref=commit_sha))
-        except UnicodeEncodeError:
-            # Python 2 behavior
-            contents_url = expand(contents_url, dict(path=filename.encode('utf8'), ref=commit_sha))
-        
+        contents_url = expand_uri(contents_url, dict(path=filename, ref=commit_sha))
         current_app.logger.debug('Contents URL {}'.format(contents_url))
         
         got = get(contents_url, auth=github_auth)
@@ -249,7 +238,7 @@ def get_commit_info(payload):
     elif 'head_commit' in payload:
         commit_sha = payload['head_commit']['id']
         status_url = payload['repository']['statuses_url']
-        status_url = expand(status_url, dict(sha=commit_sha))
+        status_url = expand_uri(status_url, dict(sha=commit_sha))
     
     else:
         raise ValueError('Unintelligible payload')
@@ -325,20 +314,20 @@ def find_batch_sources(owner, repository, github_auth):
     resp = get('https://api.github.com/', auth=github_auth)
     if resp.status_code >= 400:
         raise Exception('Got status {} from Github API'.format(resp.status_code))
-    start_url = expand(resp.json()['repository_url'], dict(owner=owner, repo=repository))
+    start_url = expand_uri(resp.json()['repository_url'], dict(owner=owner, repo=repository))
     
     _L.info('Starting batch sources at {start_url}'.format(**locals()))
     got = get(start_url, auth=github_auth).json()
     contents_url, commits_url = got['contents_url'], got['commits_url']
 
-    master_url = expand(commits_url, dict(sha=got['default_branch']))
+    master_url = expand_uri(commits_url, dict(sha=got['default_branch']))
 
     _L.debug('Getting {ref} branch {master_url}'.format(ref=got['default_branch'], **locals()))
     got = get(master_url, auth=github_auth).json()
     commit_sha, commit_date = got['sha'], got['commit']['committer']['date']
     
     contents_url += '{?ref}' # So that we are consistently at the same commit.
-    sources_urls = [expand(contents_url, dict(path='sources', ref=commit_sha))]
+    sources_urls = [expand_uri(contents_url, dict(path='sources', ref=commit_sha))]
     sources_dict = dict()
 
     for sources_url in sources_urls:
@@ -348,7 +337,7 @@ def find_batch_sources(owner, repository, github_auth):
         for source in sources:
             if source['type'] == 'dir':
                 params = dict(path=source['path'], ref=commit_sha)
-                sources_urls.append(expand(contents_url, params))
+                sources_urls.append(expand_uri(contents_url, params))
                 continue
         
             if source['type'] != 'file':
@@ -474,7 +463,7 @@ def create_queued_job(queue, files, job_url_template, commit_sha, status_url):
     file_results = {name: None for name in filenames}
 
     job_id = calculate_job_id(files)
-    job_url = job_url_template and expand(job_url_template, dict(id=job_id))
+    job_url = job_url_template and expand_uri(job_url_template, dict(id=job_id))
     job_status = None
 
     with queue as db:

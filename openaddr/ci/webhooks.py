@@ -10,7 +10,6 @@ import hashlib, hmac
 import json, os
 
 import memcache
-from uritemplate import expand
 from jinja2 import Environment, FileSystemLoader
 from flask import (
     Flask, Blueprint, request, Response, current_app, jsonify, render_template,
@@ -26,6 +25,7 @@ from . import (
 
 from .objects import read_job, read_jobs, read_sets, read_set, new_read_completed_set_runs
 from ..summarize import summarize_set
+from ..compat import expand_uri
 
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
 
@@ -118,7 +118,7 @@ def app_hook():
         queue = db_queue(conn, TASK_QUEUE)
         try:
             job_id = create_queued_job(queue, files, job_url_template, commit_sha, status_url)
-            job_url = expand(job_url_template, dict(id=job_id))
+            job_url = expand_uri(job_url_template, dict(id=job_id))
         except Exception as e:
             # Oops, tell Github something went wrong.
             update_error_status(status_url, str(e), filenames, github_auth)

@@ -6,10 +6,10 @@ from os.path import splitext, relpath
 import unittest, json
 
 from httmock import HTTMock, response
-from uritemplate import expand
 import mock
 
 from .. import __version__
+from ..compat import expand_uri
 from ..ci.objects import Run
 from ..summarize import (
     state_conform_type, is_coverage_complete, run_counts, convert_run, summarize_set
@@ -101,14 +101,6 @@ class TestSummarizeFunctions (unittest.TestCase):
         with HTTMock(self.response_content):
             conv = convert_run(memcache, run, url_template)
         
-        try:
-            run_href = expand(url_template, run.__dict__)
-        except UnicodeEncodeError:
-            # Python 2 behavior
-            _run_href_dict = dict(commit_sha=run.commit_sha.encode('utf8'),
-                                  source_path=run.source_path.encode('utf8'))
-            run_href = expand(url_template, _run_href_dict)
-
         self.assertEqual(conv['address count'], state['address count'])
         self.assertEqual(conv['cache'], state['cache'])
         self.assertEqual(conv['cache time'], state['cache time'])
@@ -118,7 +110,7 @@ class TestSummarizeFunctions (unittest.TestCase):
         self.assertEqual(conv['coverage complete'], is_coverage_complete(source))
         self.assertEqual(conv['fingerprint'], state['fingerprint'])
         self.assertEqual(conv['geometry type'], state['geometry type'])
-        self.assertEqual(conv['href'], run_href)
+        self.assertEqual(conv['href'], expand_uri(url_template, run.__dict__))
         self.assertEqual(conv['output'], state['output'])
         self.assertEqual(conv['process time'], state['process time'])
         self.assertEqual(conv['processed'], state['processed'])
@@ -164,7 +156,7 @@ class TestSummarizeFunctions (unittest.TestCase):
         self.assertEqual(conv['coverage complete'], is_coverage_complete(source))
         self.assertEqual(conv['fingerprint'], state['fingerprint'])
         self.assertEqual(conv['geometry type'], state['geometry type'])
-        self.assertEqual(conv['href'], expand(url_template, run.__dict__))
+        self.assertEqual(conv['href'], expand_uri(url_template, run.__dict__))
         self.assertEqual(conv['output'], state['output'])
         self.assertEqual(conv['process time'], state['process time'])
         self.assertEqual(conv['processed'], state['processed'])
