@@ -10,7 +10,7 @@ import mock
 from .. import __version__
 from ..ci.objects import Run
 from ..summarize import (
-    state_conform_type, is_coverage_complete, run_counts, convert_run
+    state_conform_type, is_coverage_complete, run_counts, convert_run, summarize_set
     )
 
 class TestSummarizeFunctions (unittest.TestCase):
@@ -165,3 +165,18 @@ class TestSummarizeFunctions (unittest.TestCase):
         self.assertEqual(conv['source'], 'pl/foo.json')
         self.assertEqual(conv['type'], source['type'])
         self.assertEqual(conv['version'], state['version'])
+    
+    def test_summarize_set(self):
+        '''
+        '''
+        memcache, set, run = mock.Mock(), mock.Mock(), mock.Mock()
+        set.owner, set.repository = u'oa', u'oa'
+        
+        with mock.patch('openaddr.summarize.convert_run') as convert_run, \
+             mock.patch('openaddr.summarize.run_counts') as run_counts:
+            convert_run.return_value = {
+                'cache': 'zip1', 'processed': 'zip2', 'source': 'foo'
+                }
+            run_counts.return_value = {'sources': 1, 'cached': 1, 'processed': 1}
+        
+            summary_html = summarize_set(memcache, set, [run])

@@ -211,8 +211,8 @@ def main():
 def summarize_set(memcache, set, runs):
     ''' Return summary HTML for a set.
     '''
-    base_url = expand('https://github.com/{owner}/{repository}/', set.__dict__)
-    url_template = urljoin(base_url, 'blob/{commit_sha}/{+source_path}')
+    base_url = expand(u'https://github.com/{owner}/{repository}/', set.__dict__)
+    url_template = urljoin(base_url, u'blob/{commit_sha}/{+source_path}')
 
     states = [convert_run(memcache, run, url_template) for run in runs]
     counts = run_counts(runs)

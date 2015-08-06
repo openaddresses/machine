@@ -1,3 +1,6 @@
+2015-08-05: 1.19.1
+- Fixed unicode error in summarize.summarize_set().
+
 2015-08-05: 1.19.0
 - Added web view for sets matching data.openaddresses.io summaries.
 - Added memcache to support heavier web views.
