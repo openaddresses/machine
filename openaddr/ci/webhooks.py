@@ -1,13 +1,21 @@
 import logging; _L = logging.getLogger('openaddr.ci.webhooks')
 
 from functools import wraps
+from operator import itemgetter
 from urllib.parse import urljoin
 from collections import OrderedDict
+from csv import DictWriter
+from io import StringIO
 import hashlib, hmac
 import json, os
 
-from flask import Flask, Blueprint, request, Response, current_app, jsonify, render_template
+import memcache
 from uritemplate import expand
+from jinja2 import Environment, FileSystemLoader
+from flask import (
+    Flask, Blueprint, request, Response, current_app, jsonify, render_template,
+    redirect
+    )
 
 from . import (
     load_config, setup_logger, skip_payload, get_commit_info,
@@ -16,7 +24,8 @@ from . import (
     db_connect, db_queue, db_cursor, TASK_QUEUE, create_queued_job
     )
 
-from .objects import read_job, read_jobs, read_sets, read_set
+from .objects import read_job, read_jobs, read_sets, read_set, new_read_completed_set_runs
+from ..summarize import summarize_set
 
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
 
@@ -177,7 +186,7 @@ def app_get_sets():
     
     return render_template('sets.html', sets=sets)
 
-@webhooks.route('/sets/<set_id>', methods=['GET'])
+@webhooks.route('/sets/<set_id>/', methods=['GET'])
 @log_application_errors
 def app_get_set(set_id):
     '''
@@ -185,11 +194,64 @@ def app_get_set(set_id):
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
             set = read_set(db, set_id)
+            runs = new_read_completed_set_runs(db, set.id)
 
     if set is None:
         return Response('Set {} not found'.format(set_id), 404)
     
-    return render_template('set.html', set=set)
+    mc = memcache.Client([current_app.config['MEMCACHE_SERVER']])
+    return summarize_set(mc, set, runs)
+
+@webhooks.route('/sets/<set_id>/render-<area>.png', methods=['GET'])
+@log_application_errors
+def app_get_set_image(set_id, area):
+    '''
+    '''
+    if area not in ('usa', 'world', 'europe'):
+        return Response('Area "{}" not found'.format(area), 404)
+    
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            set = read_set(db, set_id)
+
+    if set is None:
+        return Response('Set {} not found'.format(set_id), 404)
+    
+    image_url = getattr(set, 'render_{}'.format(area))
+    
+    if image_url is None:
+        return Response('Area "{}" has no image'.format(area), 404)
+    
+    return redirect(image_url)
+
+@webhooks.route('/sets/<set_id>/<path:shortname>.txt', methods=['GET'])
+@log_application_errors
+def app_get_set_text(set_id, shortname):
+    '''
+    '''
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            runs = new_read_completed_set_runs(db, set_id)
+    
+    if shortname == 'state':
+        # Special case for state.txt
+        buffer = StringIO()
+        output = DictWriter(buffer, runs[0].state.keys(), dialect='excel-tab')
+        output.writerow({k: k for k in runs[0].state.keys()})
+        for run in runs: output.writerow(run.state)
+
+        return Response(buffer.getvalue().encode('utf8'),
+                        headers={'Content-Type': 'text/plain; charset=utf8'})
+
+    if not runs:
+        return Response('Set {} has no runs'.format(set_id), 404)
+    
+    for run in runs:
+        run_shortname = os.path.splitext(os.path.relpath(run.source_path, 'sources'))[0]
+        if run_shortname == shortname:
+            return redirect(run.state.get('output'))
+    
+    return Response('Set {} has no run "{}"'.format(set_id, shortname), 404)
 
 app = Flask(__name__)
 app.config.update(load_config())

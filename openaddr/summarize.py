@@ -3,17 +3,142 @@ from .compat import standard_library
 
 import json
 from csv import DictReader
-from io import BytesIO
+from io import StringIO
+from base64 import b64decode
 from operator import itemgetter
-from os.path import join, dirname, splitext
+from os.path import join, dirname, splitext, relpath
 from dateutil.parser import parse as parse_datetime
+from urllib.parse import urljoin
+from uritemplate import expand
 from os import environ
 from re import compile
+import json, pickle
 
 from jinja2 import Environment, FileSystemLoader
-from requests import get
+import requests
 
-from . import S3, paths
+from . import S3, paths, __version__
+
+def _get_cached(memcache, key):
+    ''' Get a thing from the cache, or None.
+    '''
+    if not memcache:
+        return None
+    
+    pickled = memcache.get(key)
+    
+    if pickled is None:
+        return None
+
+    try:
+        value = pickle.loads(pickled)
+    except Exception as e:
+        return None
+    else:
+        return value
+
+def _set_cached(memcache, key, value):
+    ''' Put a thing in the cache, if it exists.
+    '''
+    if not memcache:
+        return
+    
+    pickled = pickle.dumps(value, protocol=2)
+    memcache.set(key, pickled)
+
+def is_coverage_complete(source):
+    '''
+    '''
+    if 'coverage' in source:
+        cov = source['coverage']
+        if ('ISO 3166' in cov or 'US Census' in cov or 'geometry' in cov):
+            return True
+    
+    return False
+
+def state_conform_type(state):
+    '''
+    '''
+    if 'cache' not in state:
+        return None
+    
+    if state['cache'] is None:
+        return None
+    
+    if state['cache'].endswith('.zip'):
+        if state.get('geometry type', 'Point') in ('Polygon', 'MultiPolygon'):
+            return 'shapefile-polygon'
+        else:
+            return 'shapefile'
+    elif state['cache'].endswith('.json'):
+        return 'geojson'
+    elif state['cache'].endswith('.csv'):
+        return 'csv'
+    else:
+        return None
+
+def convert_run(memcache, run, url_template):
+    '''
+    '''
+    cache_key = 'converted-run-{}-{}'.format(run.id, __version__)
+    cached_run = _get_cached(memcache, cache_key)
+    if cached_run is not None:
+        return cached_run
+    
+    try:
+        source = json.loads(b64decode(run.source_data).decode('utf8'))
+    except:
+        source = {}
+    
+    try:
+        sample_data = requests.get(run.state.get('sample')).json()
+    except:
+        sample_data = None
+    
+    run_state = run.state or {}
+    
+    converted_run = {
+        'address count': run_state.get('address count'),
+        'cache': run_state.get('cache'),
+        'cache time': run_state.get('cache time'),
+        'cache_date': run.datetime_tz.strftime('%Y-%m-%d'),
+        'conform': bool(source.get('conform', False)),
+        'conform type': state_conform_type(run_state),
+        'coverage complete': is_coverage_complete(source),
+        'fingerprint': run_state.get('fingerprint'),
+        'geometry type': run_state.get('geometry type'),
+        'href': expand(url_template, run.__dict__),
+        'output': run_state.get('output'),
+        'process time': run_state.get('process time'),
+        'processed': run_state.get('processed'),
+        'sample': run_state.get('sample'),
+        'sample_data': sample_data,
+        'shortname': splitext(relpath(run.source_path, 'sources'))[0],
+        'skip': bool(source.get('skip', False)),
+        'source': relpath(run.source_path, 'sources'),
+        'type': source.get('type', '').lower(),
+        'version': run_state.get('version')
+        }
+
+    _set_cached(memcache, cache_key, converted_run)
+    return converted_run
+
+def run_counts(runs):
+    '''
+    '''
+    states = [(run.state or {}) for run in runs]
+    
+    return {
+        'sources': len(runs),
+        'cached': sum([int(bool(state.get('cache'))) for state in states]),
+        'processed': sum([int(bool(state.get('processed'))) for state in states]),
+        'addresses': sum([int(state.get('address count') or 0) for state in states])
+        }
+
+def sort_run_dicts(dicts):
+    '''
+    '''
+    dicts.sort(key=lambda d: (bool(d['cache']), bool(d['processed']), d['source']))
 
 def load_states(s3, source_dir):
     # Find existing cache information
@@ -22,13 +147,13 @@ def load_states(s3, source_dir):
 
     if state_key:
         state_link = state_key.get_contents_as_string()
-        if '\t' not in state_link:
+        if b'\t' not in state_link:
             # it's probably a link to someplace else.
             state_key = s3.get_key(state_link.strip())
     
     if state_key:
         last_modified = parse_datetime(state_key.last_modified)
-        state_file = BytesIO(state_key.get_contents_as_string())
+        state_file = StringIO(state_key.get_contents_as_string().decode('utf8'))
         
         for row in DictReader(state_file, dialect='excel-tab'):
             row['shortname'], _ = splitext(row['source'])
@@ -59,27 +184,12 @@ def load_states(s3, source_dir):
             if not row.get('sample_data', False):
                 row['sample_data'] = list()
             
-            if row['cache'].endswith('.zip'):
-                if row.get('geometry type', 'Point') in ('Polygon', 'MultiPolygon'):
-                    row['conform type'] = 'shapefile-polygon'
-                else:
-                    row['conform type'] = 'shapefile'
-            elif row['cache'].endswith('.json'):
-                row['conform type'] = 'geojson'
-            elif row['cache'].endswith('.csv'):
-                row['conform type'] = 'csv'
-            else:
-                row['conform type'] = None
-            
-            row['coverage complete'] = False
-            if 'coverage' in data:
-                coverage = data['coverage']
-                if ('ISO 3166' in coverage or 'US Census' in coverage or 'geometry' in coverage):
-                    row['coverage complete'] = True
+            row['conform type'] = state_conform_type(row)
+            row['coverage complete'] = is_coverage_complete(data)
             
             states.append(row)
     
-    states.sort(key=lambda s: (bool(s['cache']), bool(s['processed']), s['source']))
+    sort_run_dicts(states)
     
     return last_modified, states, counts
 
@@ -98,6 +208,24 @@ def main():
     s3 = S3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'data-test.openaddresses.io')
     print(summarize(s3, paths.sources).encode('utf8'))
 
+def summarize_set(memcache, set, runs):
+    ''' Return summary HTML for a set.
+    '''
+    base_url = expand('https://github.com/{owner}/{repository}/', set.__dict__)
+    url_template = urljoin(base_url, 'blob/{commit_sha}/{+source_path}')
+
+    states = [convert_run(memcache, run, url_template) for run in runs]
+    counts = run_counts(runs)
+    sort_run_dicts(states)
+    
+    # Fudge in state.html from a different template directory for now.
+    env = Environment(loader=FileSystemLoader(join(dirname(__file__), 'templates')))
+    env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
+    env.filters['nice_integer'] = nice_integer
+    template = env.get_template('state.html')
+    
+    return template.render(states=states, last_modified=set.datetime_end, counts=counts)
+
 def summarize(s3, source_dir):
     ''' Return summary HTML.
     '''
@@ -107,6 +235,11 @@ def summarize(s3, source_dir):
     template = env.get_template('state.html')
 
     last_modified, states, counts = load_states(s3, source_dir)
+    from pprint import pprint
+    pprint(last_modified)
+    pprint(states)
+    pprint(counts)
+    return b''
     return template.render(states=states, last_modified=last_modified, counts=counts)
 
 if __name__ == '__main__':

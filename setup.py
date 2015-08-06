@@ -17,6 +17,14 @@ if sys.version_info[0] == 2:
         
         # https://code.google.com/p/python-subprocess32/
         'subprocess32 == 3.2.6',
+
+        # https://pypi.python.org/pypi/python-memcached
+        'python-memcached == 1.57',
+    ]
+else:
+    conditional_requirements += [
+        # https://pypi.python.org/pypi/python-memcached
+        'python3-memcached == 1.51',
     ]
 
 setup(
@@ -93,7 +101,7 @@ setup(
         'httmock >= 1.2',
 
         # https://pypi.python.org/pypi/setproctitle/
-        'setproctitle >= 1.1.8'
+        'setproctitle >= 1.1.8',
 
         ] + conditional_requirements
 )
