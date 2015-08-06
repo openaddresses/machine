@@ -293,12 +293,6 @@ def read_completed_set_run_ids(db, set_id):
     db.execute('SELECT id FROM runs WHERE set_id = %s AND status IS NOT NULL', (set_id, ))
     
     return [run_id for (run_id, ) in db.fetchall()]
-    
-    import memcache
-    mc = memcache.Client(['127.0.0.1:11211'])
-    return [read_run(db, mc, run_id) for (run_id, ) in db.fetchall()]
-    
-    return [Run(*row) for row in db.fetchall()]
 
 def _get_cached(memcache, key):
     ''' Get a thing from the cache, or None.

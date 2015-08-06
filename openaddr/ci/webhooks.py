@@ -4,6 +4,8 @@ from functools import wraps
 from operator import itemgetter
 from urllib.parse import urljoin
 from collections import OrderedDict
+from csv import DictWriter
+from io import StringIO
 import hashlib, hmac
 import json, os
 
@@ -224,12 +226,22 @@ def app_get_set_image(set_id, area):
 
 @webhooks.route('/sets/<set_id>/<path:shortname>.txt', methods=['GET'])
 @log_application_errors
-def app_get_set_log(set_id, shortname):
+def app_get_set_text(set_id, shortname):
     '''
     '''
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
             runs = new_read_completed_set_runs(db, set_id)
+    
+    if shortname == 'state':
+        # Special case for state.txt
+        buffer = StringIO()
+        output = DictWriter(buffer, runs[0].state.keys(), dialect='excel-tab')
+        output.writerow({k: k for k in runs[0].state.keys()})
+        for run in runs: output.writerow(run.state)
+
+        return Response(buffer.getvalue().encode('utf8'),
+                        headers={'Content-Type': 'text/plain; charset=utf8'})
 
     if not runs:
         return Response('Set {} has no runs'.format(set_id), 404)
