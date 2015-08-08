@@ -26,6 +26,10 @@ from .objects import read_job, read_jobs, read_sets, read_set, new_read_complete
 from ..compat import expand_uri, csvIO, csvDictWriter
 from ..summarize import summarize_set
 
+CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
+             'version', 'fingerprint', 'cache time', 'processed', 'process time', \
+             'output'
+
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
 
 def log_application_errors(route_function):
@@ -235,11 +239,13 @@ def app_get_set_text(set_id, shortname):
     if shortname == 'state':
         # Special case for state.txt
         buffer = csvIO()
-        output = csvDictWriter(buffer, runs[0].state.keys(), dialect='excel-tab', encoding='utf8')
-        output.writerow({k: k for k in runs[0].state.keys()})
+        output = csvDictWriter(buffer, CSV_HEADER, dialect='excel-tab', encoding='utf8')
+        output.writerow({col: col for col in CSV_HEADER})
         for run in runs:
-            if run.state:
-                output.writerow(run.state)
+            run_state = run.state or {}
+            row = {col: run_state.get(col, None) for col in CSV_HEADER}
+            row['source'] = os.path.relpath(run.source_path, 'sources')
+            output.writerow(row)
 
         return Response(buffer.getvalue(),
                         headers={'Content-Type': 'text/plain; charset=utf8'})
