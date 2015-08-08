@@ -150,7 +150,7 @@ class TestSummarizeFunctions (unittest.TestCase):
         self.assertEqual(conv['address count'], state['address count'])
         self.assertEqual(conv['cache'], state['cache'])
         self.assertEqual(conv['cache time'], state['cache time'])
-        self.assertEqual(conv['cache_date'], run.datetime_tz.strftime('%Y-%m-%d'))
+        self.assertEqual(conv['cache_date'], '2015-08-06', 'Should use a timestamp from the cached version')
         self.assertEqual(conv['conform'], bool(source['conform']))
         self.assertEqual(conv['conform type'], state_conform_type(state))
         self.assertEqual(conv['coverage complete'], is_coverage_complete(source))
