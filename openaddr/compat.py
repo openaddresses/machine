@@ -10,6 +10,8 @@ if PY2:
     check_output = subprocess32.check_output
     CalledProcessError = subprocess32.CalledProcessError
     
+    csvIO = io.BytesIO
+    
     def csvreader(file, encoding=None, **kwargs):
         ''' Pass encoding to unicodecsv
         '''
@@ -76,6 +78,8 @@ else:
     
     check_output = subprocess.check_output
     CalledProcessError = subprocess.CalledProcessError
+    
+    csvIO = io.StringIO
     
     def csvreader(file, encoding=None, **kwargs):
         ''' Discard encoding

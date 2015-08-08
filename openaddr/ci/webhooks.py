@@ -5,7 +5,6 @@ from operator import itemgetter
 from urllib.parse import urljoin
 from collections import OrderedDict
 from csv import DictWriter
-from io import StringIO
 import hashlib, hmac
 import json, os
 
@@ -24,8 +23,8 @@ from . import (
     )
 
 from .objects import read_job, read_jobs, read_sets, read_set, new_read_completed_set_runs
+from ..compat import expand_uri, csvIO, csvDictWriter
 from ..summarize import summarize_set
-from ..compat import expand_uri
 
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
 
@@ -235,12 +234,14 @@ def app_get_set_text(set_id, shortname):
     
     if shortname == 'state':
         # Special case for state.txt
-        buffer = StringIO()
-        output = DictWriter(buffer, runs[0].state.keys(), dialect='excel-tab')
+        buffer = csvIO()
+        output = csvDictWriter(buffer, runs[0].state.keys(), dialect='excel-tab', encoding='utf8')
         output.writerow({k: k for k in runs[0].state.keys()})
-        for run in runs: output.writerow(run.state)
+        for run in runs:
+            if run.state:
+                output.writerow(run.state)
 
-        return Response(buffer.getvalue().encode('utf8'),
+        return Response(buffer.getvalue(),
                         headers={'Content-Type': 'text/plain; charset=utf8'})
 
     if not runs:
