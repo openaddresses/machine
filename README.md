@@ -97,6 +97,28 @@ Run the complete batch process from the `openaddr` module:
 
     python -m openaddr.process_all -a <AWS key> -s <AWS secret> -l <log> data.openaddresses.io
 
+Using Docker
+-----------
+
+You can quickly set up a local machine in environment with docker, this is especially useful if you're looking to test changes to source conform files.
+
+First, build the docker image like so:
+    
+    docker build --rm -t openaddresses/machine .
+
+You can now any of the process scripts, the default script is `openaddr-process`
+
+Here's an example:
+
+    docker run -it --rm -v `pwd`/../openaddresses:/openaddresses -v `pwd`/../output:/output openaddresses/machine -l output.log /openaddresses/sources/us-ny-nyc.json /output
+
+This will do the following:
+* Mount `../openaddresses` on the host machine to `/openaddresses` in the docker container (this expects you to have the `openaddresses` repository cloned)
+* Mount `../output` on the host machine to `/output` in the docker container (this allows you to have the processing output saved on the host machine)
+* It will run the `openaddresses/machine` container that you just built
+* The remaining arguments are sent directly to `openaddr-process-one`
+
+
 Extras
 ------
 
