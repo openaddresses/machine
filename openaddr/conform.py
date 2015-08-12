@@ -65,7 +65,7 @@ class ConformResult:
     address_count = None
     path = None
     elapsed = None
-    
+
     def __init__(self, processed, sample, geometry_type, address_count, path, elapsed):
         self.processed = processed
         self.sample = sample
@@ -118,7 +118,7 @@ class ZipDecompressTask(DecompressionTask):
                         # Download only the named file, if any.
                         _L.debug("Skipped file {}".format(name))
                         continue
-                
+
                     expanded_file_path = z.extract(name, expand_path)
                     _L.debug("Expanded file %s", expanded_file_path)
                     output_files.append(expanded_file_path)
@@ -131,7 +131,7 @@ class ExcerptDataTask(object):
 
     def excerpt(self, source_paths, workdir, conform):
         '''
-        
+
             Tested version from openaddr.excerpt() on master branch:
 
             if ext == '.zip':
@@ -140,26 +140,26 @@ class ExcerptDataTask(object):
                 with open(cachefile, 'w') as file:
                     for chunk in got.iter_content(1024**2):
                         file.write(chunk)
-    
+
                 zf = ZipFile(cachefile, 'r')
-        
+
                 for name in zf.namelist():
                     _, ext = splitext(name)
-            
+
                     if ext in ('.shp', '.shx', '.dbf'):
                         with open(join(workdir, 'cache'+ext), 'w') as file:
                             file.write(zf.read(name))
-        
+
                 if exists(join(workdir, 'cache.shp')):
                     ds = ogr.Open(join(workdir, 'cache.shp'))
                 else:
                     ds = None
-    
+
             elif ext == '.json':
                 _L.debug('Downloading part of {cache}'.format(**extras))
 
                 scheme, host, path, query, _, _ = urlparse(got.url)
-        
+
                 if scheme in ('http', 'https'):
                     conn = HTTPConnection(host, 80)
                     conn.request('GET', path + ('?' if query else '') + query)
@@ -169,21 +169,21 @@ class ExcerptDataTask(object):
                         resp = StringIO(rawfile.read(1024*1024))
                 else:
                     raise RuntimeError('Unsure what to do with {}'.format(got.url))
-        
+
                 with open(cachefile, 'w') as file:
                     file.write(sample_geojson(resp, 10))
-    
+
                 ds = ogr.Open(cachefile)
-    
+
             else:
                 ds = None
         '''
         encoding = conform.get('encoding', False)
         csvsplit = conform.get('csvsplit', ',')
-        
+
         known_paths = [source_path for source_path in source_paths
                        if os.path.splitext(source_path)[1].lower() in self.known_types]
-        
+
         if not known_paths:
             # we know nothing.
             return None, None
@@ -200,13 +200,13 @@ class ExcerptDataTask(object):
                 with open(temp_path, 'w') as temp_file:
                     temp_file.write(sample_geojson(complete_layer, 10))
                     data_path = temp_path
-        
+
         datasource = ogr.Open(data_path, 0)
         layer = datasource.GetLayer()
 
         if not encoding:
             encoding = guess_source_encoding(datasource, layer)
-        
+
         # GDAL has issues with non-UTF8 input CSV data, so use Python instead.
         if data_ext == '.csv' and encoding not in ('utf8', 'utf-8'):
             with csvopen(data_path, 'r', encoding=encoding) as file:
@@ -221,14 +221,14 @@ class ExcerptDataTask(object):
                     geometry_type = None
 
             return data_sample, geometry_type
-        
+
         layer_defn = layer.GetLayerDefn()
         fieldcount = layer_defn.GetFieldCount()
         fieldnames = [layer_defn.GetFieldDefn(i).GetName() for i in range(fieldcount)]
         fieldnames = [f.decode(encoding) if hasattr(f, 'decode') else f for f in fieldnames]
 
         data_sample = [fieldnames]
-        
+
         for (feature, _) in zip(layer, range(5)):
             row = [feature.GetField(i) for i in range(fieldcount)]
             row = [v.decode(encoding) if hasattr(v, 'decode') else v for v in row]
@@ -236,7 +236,7 @@ class ExcerptDataTask(object):
 
         if len(data_sample) < 2:
             raise ValueError('Not enough rows in data source')
-        
+
         # Determine geometry_type from layer, sample, or give up.
         if layer_defn.GetGeomType() in geometry_types:
             geometry_type = geometry_types.get(layer_defn.GetGeomType(), None)
@@ -250,32 +250,32 @@ class ExcerptDataTask(object):
 
 def elaborate_filenames(filename):
     ''' Return a list of filenames for a single name from conform file tag.
-    
+
         Used to expand example.shp with example.shx, example.dbf, and example.prj.
     '''
     if filename is None:
         return []
-    
+
     filename = filename.lower()
     base, original_ext = splitext(filename)
-    
+
     if original_ext == '.shp':
         return [base + ext for ext in (original_ext, '.shx', '.dbf', '.prj')]
-    
+
     return [filename]
 
 def guess_source_encoding(datasource, layer):
     ''' Guess at a string encoding using hints from OGR and locale().
-    
+
         Duplicate the process used in Fiona, described and implemented here:
-        
+
         https://github.com/openaddresses/machine/issues/42#issuecomment-69693143
         https://github.com/Toblerity/Fiona/blob/53df35dc70fb/docs/encoding.txt
         https://github.com/Toblerity/Fiona/blob/53df35dc70fb/fiona/ogrext.pyx#L386
     '''
     ogr_recoding = layer.TestCapability(ogr.OLCStringsAsUTF8)
     is_shapefile = datasource.GetDriver().GetName() == 'ESRI Shapefile'
-    
+
     return (ogr_recoding and 'UTF-8') \
         or (is_shapefile and 'ISO-8859-1') \
         or getpreferredencoding()
@@ -633,7 +633,7 @@ def row_transform_and_convert(sd, row):
     row = row_smash_case(sd, row)
 
     c = sd["conform"]
-    if "merge" in c:
+    if type(c["street"]) is list:
         row = row_merge_street(sd, row)
     if "advanced_merge" in c:
         row = row_advanced_merge(sd, row)
@@ -651,8 +651,8 @@ def conform_smash_case(source_definition):
     for k, v in conform.items():
         if v not in (X_FIELDNAME, Y_FIELDNAME) and getattr(v, 'lower', None):
             conform[k] = v.lower()
-    if "merge" in conform:
-        conform["merge"] = [s.lower() for s in conform["merge"]]
+    if type(conform["street"]) is list:
+        conform["street"] = [s.lower() for s in conform["street"]]
     if "advanced_merge" in conform:
         for new_col, spec in conform["advanced_merge"].items():
             spec["fields"] = [s.lower() for s in spec["fields"]]
@@ -665,8 +665,9 @@ def row_smash_case(sd, input):
 
 def row_merge_street(sd, row):
     "Merge multiple columns like 'Maple','St' to 'Maple St'"
-    merge_data = [row[field] for field in sd["conform"]["merge"]]
-    row['auto_street'] = ' '.join(merge_data)
+    merge_data = [row[field] for field in sd["conform"]["street"]]
+    row['OA:STREET'] = ' '.join(merge_data)
+    print(row)
     return row
 
 def row_advanced_merge(sd, row):
@@ -710,16 +711,21 @@ def row_round_lat_lon(sd, row):
 def row_convert_to_out(sd, row):
     "Convert a row from the source schema to OpenAddresses output schema"
     # note: sd["conform"]["lat"] and lon were already applied in the extraction from source
+    if type(sd['conform']["street"]) is list:
+        street_key = 'OA:STREET'
+    else:
+        street_key = sd['conform']["street"]
+
     city_key = sd['conform'].get('city', False)
     district_key = sd['conform'].get('district', False)
     region_key = sd['conform'].get('region', False)
     postcode_key = sd['conform'].get('postcode', False)
-    
+
     return {
         "LON": row.get(X_FIELDNAME, None),
         "LAT": row.get(Y_FIELDNAME, None),
         "NUMBER": row.get(sd["conform"]["number"], None),
-        "STREET": row.get(sd["conform"]["street"], None),
+        "STREET": row.get(street_key, None) if street_key else None,
         "CITY": row.get(city_key, None) if city_key else None,
         "DISTRICT": row.get(district_key, None) if district_key else None,
         "REGION": row.get(region_key, None) if region_key else None,
