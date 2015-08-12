@@ -28,14 +28,19 @@ class TestConformTransforms (unittest.TestCase):
 
     def test_conform_smash_case(self):
         d = { "conform": { "street": "MiXeD", "number": "U", "split": "U", "lat": "Y", "lon": "x",
-                           "merge": [ "U", "l", "MiXeD" ],
                            "advanced_merge": { "auto_street": { "fields": ["MiXeD", "UPPER"] } } } }
         r = conform_smash_case(d)
         self.assertEqual({ "conform": { "street": "mixed", "number": "u", "split": "u", "lat": "y", "lon": "x",
-                           "merge": [ "u", "l", "mixed" ],
                            "advanced_merge": { "auto_street": { "fields": ["mixed", "upper"] } } } },
                          r)
 
+    def test_conform_smash_case_street(self):
+        d = { "conform": { "street": [ "U", "l", "MiXeD" ], "number": "U", "split": "U", "lat": "Y", "lon": "x",
+                           "advanced_merge": { "auto_street": { "fields": ["MiXeD", "UPPER"] } } } }
+        r = conform_smash_case(d)
+        self.assertEqual({ "conform": { "street": [ "u", "l", "mixed" ], "number": "u", "split": "u", "lat": "y", "lon": "x",
+                           "advanced_merge": { "auto_street": { "fields": ["mixed", "upper"] } } } },
+                         r)
     def test_row_convert_to_out(self):
         d = { "conform": { "street": "s", "number": "n" } }
         r = row_convert_to_out(d, {"s": "MAPLE LN", "n": "123", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3"})
