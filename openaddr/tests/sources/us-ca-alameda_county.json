@@ -15,14 +15,10 @@
     "type": "http",
     "compression": "zip",
     "conform": {
-        "merge": [
-            "FEANME",
-            "FEATYP"
-        ],
         "lon": "X",
         "lat": "Y",
         "number": "ST_NUM",
-        "street": "auto_street",
+        "street": ["FEANME", "FEATYP"],
         "type": "shapefile"
     }
 }
