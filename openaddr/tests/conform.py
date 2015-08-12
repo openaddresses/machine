@@ -48,9 +48,9 @@ class TestConformTransforms (unittest.TestCase):
                           "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None}, r)
 
     def test_row_merge_street(self):
-        d = { "conform": { "merge": [ "n", "t" ] } }
+        d = { "conform": { "street": [ "n", "t" ] } }
         r = row_merge_street(d, {"n": "MAPLE", "t": "ST", "x": "foo"})
-        self.assertEqual({"auto_street": "MAPLE ST", "x": "foo", "t": "ST", "n": "MAPLE"}, r)
+        self.assertEqual({"OA:STREET": "MAPLE ST", "x": "foo", "t": "ST", "n": "MAPLE"}, r)
 
     def test_row_advanced_merge(self):
         c = { "conform": { "advanced_merge": {
@@ -75,7 +75,7 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual(r["auto_street"], "")
 
     def test_transform_and_convert(self):
-        d = { "conform": { "street": "auto_street", "number": "n", "merge": ["s1", "s2"], "lon": "y", "lat": "x" } }
+        d = { "conform": { "street": ["s1", "s2"], "number": "n", "lon": "y", "lat": "x" } }
         r = row_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
         self.assertEqual({"STREET": "Maple Street", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3",
                           "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None}, r)
@@ -210,7 +210,7 @@ class TestConformCli (unittest.TestCase):
     def test_lake_man_split(self):
         rc, dest_path = self._run_conform_on_source('lake-man-split', 'shp')
         self.assertEqual(0, rc)
-        
+
         with csvopen(dest_path) as fp:
             rows = list(csvDictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '915')
@@ -229,7 +229,7 @@ class TestConformCli (unittest.TestCase):
     def test_lake_man_merge_postcode(self):
         rc, dest_path = self._run_conform_on_source('lake-man-merge-postcode', 'shp')
         self.assertEqual(0, rc)
-        
+
         with csvopen(dest_path) as fp:
             rows = list(csvDictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '35845')
@@ -244,11 +244,11 @@ class TestConformCli (unittest.TestCase):
             self.assertEqual(rows[4]['STREET'], 'Eklutna Lake Road')
             self.assertEqual(rows[5]['NUMBER'], '31401')
             self.assertEqual(rows[5]['STREET'], 'Eklutna Lake Road')
-    
+
     def test_lake_man_merge_postcode2(self):
         rc, dest_path = self._run_conform_on_source('lake-man-merge-postcode2', 'shp')
         self.assertEqual(0, rc)
-        
+
         with csvopen(dest_path) as fp:
             rows = list(csvDictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '85')
@@ -425,13 +425,13 @@ class TestConformCsv(unittest.TestCase):
         "Convert a CSV source (list of byte strings) and return output as a list of unicode strings"
         self.assertNotEqual(type(src_bytes), type(u''))
         src_path = os.path.join(self.testdir, "input.csv")
-        
+
         with open(src_path, "w+b") as file:
             file.write(b'\n'.join(src_bytes))
 
         dest_path = os.path.join(self.testdir, "output.csv")
         csv_source_to_csv(conform, src_path, dest_path)
-        
+
         with open(dest_path, 'rb') as file:
             return [s.decode('utf-8').strip() for s in file]
 
@@ -491,7 +491,7 @@ class TestConformCsv(unittest.TestCase):
         c = {"conform": { "headers": 2, "skiplines": 2, "type": "csv", "lon": "LONGITUDE", "lat": "LATITUDE" }, 'type': 'test' }
         d = (u'HAHA,THIS,HEADER,IS,FAKE'.encode('ascii'),
              self._ascii_header_in.encode('ascii'),
-             self._ascii_row_in.encode('ascii')) 
+             self._ascii_row_in.encode('ascii'))
         r = self._convert(c, d)
         self.assertEqual(self._ascii_header_out, r[0])
         self.assertEqual(self._ascii_row_out, r[1])
