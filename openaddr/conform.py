@@ -667,7 +667,6 @@ def row_merge_street(sd, row):
     "Merge multiple columns like 'Maple','St' to 'Maple St'"
     merge_data = [row[field] for field in sd["conform"]["street"]]
     row['OA:STREET'] = ' '.join(merge_data)
-    print(row)
     return row
 
 def row_advanced_merge(sd, row):
