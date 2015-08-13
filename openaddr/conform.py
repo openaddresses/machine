@@ -667,7 +667,7 @@ def row_smash_case(sd, input):
 
 def row_merge_street(sd, row):
     "Merge multiple columns like 'Maple','St' to 'Maple St'"
-     if sd["conform"]["merge"]:
+    if sd["conform"]["merge"]:
         merge_data = [row[field] for field in sd["conform"]["merge"]]
         row['auto_street'] = ' '.join(merge_data)
     else:
