@@ -13,8 +13,8 @@ import shutil
 from ..conform import (
     GEOM_FIELDNAME, X_FIELDNAME, Y_FIELDNAME,
     csv_source_to_csv, find_source_path, row_transform_and_convert,
-    row_split_address, row_smash_case, row_round_lat_lon, row_merge_street,
-    row_extract_and_reproject, row_convert_to_out, row_advanced_merge,
+    row_fxn_split, row_smash_case, row_round_lat_lon, row_merge,
+    row_extract_and_reproject, row_convert_to_out, row_fxn_merge,
     row_canonicalize_street_and_number, conform_smash_case, conform_cli,
     csvopen, csvDictReader
     )
@@ -27,15 +27,6 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual({"upper": "foo", "lower": "bar", "mixed": "mixed"}, r)
 
     def test_conform_smash_case(self):
-        d = { "conform": { "street": "MiXeD", "number": "U", "split": "U", "lat": "Y", "lon": "x",
-                           "merge": [ "U", "l", "MiXeD" ],
-                           "advanced_merge": { "auto_street": { "fields": ["MiXeD", "UPPER"] } } } }
-        r = conform_smash_case(d)
-        self.assertEqual({ "conform": { "street": "mixed", "number": "u", "split": "u", "lat": "y", "lon": "x",
-                           "merge": [ "u", "l", "mixed" ],
-                           "advanced_merge": { "auto_street": { "fields": ["mixed", "upper"] } } } },
-                         r)
-
         d = { "conform": { "street": [ "U", "l", "MiXeD" ], "number": "U", "split": "U", "lat": "Y", "lon": "x",
                            "advanced_merge": { "auto_street": { "fields": ["MiXeD", "UPPER"] } } } }
         r = conform_smash_case(d)
@@ -49,39 +40,35 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual({"LON": "-119.2", "LAT": "39.3", "NUMBER": "123", "STREET": "MAPLE LN",
                           "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None}, r)
 
-    def test_row_merge_street(self):
-        d = { "conform": { "merge": [ "n", "t" ] } }
-        r = row_merge_street(d, {"n": "MAPLE", "t": "ST", "x": "foo"})
-        self.assertEqual({"auto_street": "MAPLE ST", "x": "foo", "t": "ST", "n": "MAPLE"}, r)
-
+    def test_row_merge(self):
         d = { "conform": { "street": [ "n", "t" ] } }
-        r = row_merge_street(d, {"n": "MAPLE", "t": "ST", "x": "foo"})
+        r = row_merge(d, {"n": "MAPLE", "t": "ST", "x": "foo"})
         self.assertEqual({"OA:street": "MAPLE ST", "x": "foo", "t": "ST", "n": "MAPLE"}, r)
 
-    def test_row_advanced_merge(self):
+    def test_row_fxn_merge(self):
         c = { "conform": { "advanced_merge": {
                 "new_a": { "fields": ["a1"] },
                 "new_b": { "fields": ["b1", "b2"] },
                 "new_c": { "separator": "-", "fields": ["c1", "c2"] } } } }
         d = { "a1": "va1", "b1": "vb1", "b2": "vb2", "c1": "vc1", "c2": "vc2" }
-        r = row_advanced_merge(c, d)
+        r = row_fxn_merge(c, d)
         e = copy.deepcopy(d)
         e.update({ "new_a": "va1", "new_b": "vb1 vb2", "new_c": "vc1-vc2"})
         self.assertEqual(e, d)
 
-    def test_split_address(self):
+    def test_row_fxn_split(self):
         d = { "conform": { "split": "ADDRESS" } }
-        r = row_split_address(d, { "ADDRESS": "123 MAPLE ST" })
+        r = row_fxn_split(d, { "ADDRESS": "123 MAPLE ST" })
         self.assertEqual({"ADDRESS": "123 MAPLE ST", "auto_street": "MAPLE ST", "auto_number": "123"}, r)
-        r = row_split_address(d, { "ADDRESS": "265" })
+        r = row_fxn_split(d, { "ADDRESS": "265" })
         self.assertEqual(r["auto_number"], "265")
         self.assertEqual(r["auto_street"], "")
-        r = row_split_address(d, { "ADDRESS": "" })
+        r = row_fxn_split(d, { "ADDRESS": "" })
         self.assertEqual(r["auto_number"], "")
         self.assertEqual(r["auto_street"], "")
 
     def test_transform_and_convert(self):
-        d = { "conform": { "street": "auto_street", "number": "n", "merge": ["s1", "s2"], "lon": "y", "lat": "x" } }
+        d = { "conform": { "street": ["s1", "s2"], "number": "n", "lon": "y", "lat": "x" } }
         r = row_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
         self.assertEqual({"STREET": "Maple Street", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3",
                           "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None}, r)
