@@ -633,7 +633,7 @@ def row_transform_and_convert(sd, row):
     row = row_smash_case(sd, row)
 
     c = sd["conform"]
-    if type(c["street"]) is list or merge in c:
+    if type(c["street"]) is list or "merge" in c:
         row = row_merge_street(sd, row)
     if "advanced_merge" in c:
         row = row_advanced_merge(sd, row)
@@ -667,7 +667,7 @@ def row_smash_case(sd, input):
 
 def row_merge_street(sd, row):
     "Merge multiple columns like 'Maple','St' to 'Maple St'"
-    if sd["conform"]["merge"]:
+    if "merge" in sd["conform"]:
         merge_data = [row[field] for field in sd["conform"]["merge"]]
         row['auto_street'] = ' '.join(merge_data)
     else:

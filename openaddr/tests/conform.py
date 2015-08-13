@@ -282,25 +282,6 @@ class TestConformCli (unittest.TestCase):
             self.assertEqual(rows[5]['NUMBER'], '92')
             self.assertEqual(rows[5]['STREET'], 'Maitland Drive')
 
-    def test_lake_man_merge_postcode3(self):
-        rc, dest_path = self._run_conform_on_source('lake-man-merge-postcode3', 'shp')
-        self.assertEqual(0, rc)
-
-        with csvopen(dest_path) as fp:
-            rows = list(csvDictReader(fp))
-            self.assertEqual(rows[0]['NUMBER'], '35845')
-            self.assertEqual(rows[0]['STREET'], 'Eklutna Lake Road')
-            self.assertEqual(rows[1]['NUMBER'], '35850')
-            self.assertEqual(rows[1]['STREET'], 'Eklutna Lake Road')
-            self.assertEqual(rows[2]['NUMBER'], '35900')
-            self.assertEqual(rows[2]['STREET'], 'Eklutna Lake Road')
-            self.assertEqual(rows[3]['NUMBER'], '35870')
-            self.assertEqual(rows[3]['STREET'], 'Eklutna Lake Road')
-            self.assertEqual(rows[4]['NUMBER'], '32551')
-            self.assertEqual(rows[4]['STREET'], 'Eklutna Lake Road')
-            self.assertEqual(rows[5]['NUMBER'], '31401')
-            self.assertEqual(rows[5]['STREET'], 'Eklutna Lake Road')
-
     def test_lake_man_shp_utf8(self):
         rc, dest_path = self._run_conform_on_source('lake-man-utf8', 'shp')
         self.assertEqual(0, rc)
