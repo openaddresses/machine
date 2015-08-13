@@ -94,7 +94,6 @@ class ConformResult:
 class DecompressionError(Exception):
     pass
 
-
 class DecompressionTask(object):
     @classmethod
     def from_type_string(clz, type_string):
@@ -674,8 +673,14 @@ def conform_smash_case(source_definition):
     for k, v in conform.items():
         if v not in (X_FIELDNAME, Y_FIELDNAME) and getattr(v, 'lower', None):
             conform[k] = v.lower()
-        if type(k) is list and k in conform:
+        if type(conform[k]) is list:
            conform[k] = [s.lower() for s in conform[k]] 
+        if type(conform[k]) is dict:
+            if "field" in conform[k]:
+                conform[k]["field"] = conform[k]["field"]
+            elif "fields" in conform[k]:
+                conform[k]["fields"] = [s.lower() for s in conform[k]["fields"]]
+    
     if "advanced_merge" in conform:
         for new_col, spec in conform["advanced_merge"].items():
             spec["fields"] = [s.lower() for s in spec["fields"]]
