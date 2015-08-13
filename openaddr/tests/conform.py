@@ -56,7 +56,7 @@ class TestConformTransforms (unittest.TestCase):
 
         d = { "conform": { "street": [ "n", "t" ] } }
         r = row_merge_street(d, {"n": "MAPLE", "t": "ST", "x": "foo"})
-        self.assertEqual({"OA:STREET": "MAPLE ST", "x": "foo", "t": "ST", "n": "MAPLE"}, r)
+        self.assertEqual({"OA:street": "MAPLE ST", "x": "foo", "t": "ST", "n": "MAPLE"}, r)
 
     def test_row_advanced_merge(self):
         c = { "conform": { "advanced_merge": {
