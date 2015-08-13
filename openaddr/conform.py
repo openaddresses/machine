@@ -27,7 +27,7 @@ ogr.UseExceptions()
 # Field names for use in cached CSV files.
 # We add columns to the extracted CSV with our own data with these names.
 GEOM_FIELDNAME = 'OA:geom'
-X_FIELDNAME, Y_FIELDNAME = 'OA:x', 'OA:y'
+X_FIELDNAME, Y_FIELDNAME, STREET_FIELDNAME = 'OA:x', 'OA:y', 'OA:street'
 
 geometry_types = {
     ogr.wkbPoint: 'Point',
@@ -633,7 +633,7 @@ def row_transform_and_convert(sd, row):
     row = row_smash_case(sd, row)
 
     c = sd["conform"]
-    if "merge" in c:
+    if "merge" in c or type(c["street"]) is list:
         row = row_merge_street(sd, row)
     if "advanced_merge" in c:
         row = row_advanced_merge(sd, row)
@@ -651,6 +651,8 @@ def conform_smash_case(source_definition):
     for k, v in conform.items():
         if v not in (X_FIELDNAME, Y_FIELDNAME) and getattr(v, 'lower', None):
             conform[k] = v.lower()
+    if type(conform["street"]) is list:
+        conform["street"] = [s.lower() for s in conform["street"]]
     if "merge" in conform:
         conform["merge"] = [s.lower() for s in conform["merge"]]
     if "advanced_merge" in conform:
@@ -665,8 +667,12 @@ def row_smash_case(sd, input):
 
 def row_merge_street(sd, row):
     "Merge multiple columns like 'Maple','St' to 'Maple St'"
-    merge_data = [row[field] for field in sd["conform"]["merge"]]
-    row['auto_street'] = ' '.join(merge_data)
+    if "merge" in sd["conform"]:
+        merge_data = [row[field] for field in sd["conform"]["merge"]]
+        row['auto_street'] = ' '.join(merge_data)
+    else:
+        merge_data = [row[field] for field in sd["conform"]["street"]]
+        row[STREET_FIELDNAME] = ' '.join(merge_data)
     return row
 
 def row_advanced_merge(sd, row):
@@ -710,6 +716,10 @@ def row_round_lat_lon(sd, row):
 def row_convert_to_out(sd, row):
     "Convert a row from the source schema to OpenAddresses output schema"
     # note: sd["conform"]["lat"] and lon were already applied in the extraction from source
+    if type(sd['conform']["street"]) is list:
+        street_key = STREET_FIELDNAME
+    else:
+        street_key = sd['conform']["street"]
     city_key = sd['conform'].get('city', False)
     district_key = sd['conform'].get('district', False)
     region_key = sd['conform'].get('region', False)
@@ -719,7 +729,7 @@ def row_convert_to_out(sd, row):
         "LON": row.get(X_FIELDNAME, None),
         "LAT": row.get(Y_FIELDNAME, None),
         "NUMBER": row.get(sd["conform"]["number"], None),
-        "STREET": row.get(sd["conform"]["street"], None),
+        "STREET": row.get(street_key, None) if street_key else None,
         "CITY": row.get(city_key, None) if city_key else None,
         "DISTRICT": row.get(district_key, None) if district_key else None,
         "REGION": row.get(region_key, None) if region_key else None,
