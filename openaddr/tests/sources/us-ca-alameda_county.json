@@ -22,7 +22,7 @@
         "lon": "X",
         "lat": "Y",
         "number": "ST_NUM",
-        "street": "auto_street",
+        "merge": ["FEANME", "FEATYP"],
         "type": "shapefile"
     }
 }
