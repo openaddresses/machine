@@ -11,6 +11,7 @@ import tempfile
 import json
 import copy
 import sys
+import re
 
 from zipfile import ZipFile
 from argparse import ArgumentParser
@@ -650,15 +651,15 @@ def row_transform_and_convert(sd, row):
         if k in attrib_types and type(c[k]) is dict:
             "Dicts are custom processing functions"
             if c[k]["fxn"] == "merge":
-                row = row_advanced_merge(sd, row, k) 
+                row = row_fxn_merge(sd, row, k) 
             elif c[k]["fxn"] == "split":
-                row = row_split_address(sd, row, k)
+                row = row_fxn_split(sd, row, k)
 
     ### Deprecated ###
     if "advanced_merge" in c:
-        row = row_advanced_merge(sd, row)
+        row = row_fxn_merge(sd, row)
     if "split" in c:
-        row = row_split_address(sd, row)
+        row = row_fxn_split(sd, row)
     ##################
     
     row2 = row_convert_to_out(sd, row)
@@ -691,7 +692,7 @@ def row_merge(sd, row, key):
     row[attrib_types[key]] = ' '.join(merge_data)
     return row
 
-def row_advanced_merge(sd, row, key):
+def row_fxn_merge(sd, row, key):
     "Create new columns by merging arbitrary other columns with a separator"
     if not key: ## Deprecated Behavior
         advanced_merge = sd["conform"]["advanced_merge"]
@@ -710,11 +711,16 @@ def row_advanced_merge(sd, row, key):
             _L.debug("Failure to merge row %r %s", e, row)
     return row
 
-def row_split_address(sd, row):
+def row_fxn_split(sd, row, key):
     "Split addresses like '123 Maple St' into '123' and 'Maple St'"
-    cols = row[sd["conform"]["split"]].split(' ', 1)  # maxsplit
-    row['auto_number'] = cols[0]
-    row['auto_street'] = cols[1] if len(cols) > 1 else ''
+    if not key: ## Deprecated Behavior
+        cols = row[sd["conform"]["split"]].split(' ', 1)  # maxsplit
+        row['auto_number'] = cols[0]
+        row['auto_street'] = cols[1] if len(cols) > 1 else ''
+    else: ## New Behavior
+        fxn = sd["conform"][key]
+        regex = re.compile(fxn.get("regex", ""))
+        row[attrib_types[key]] = regex.match(row[fxn["field"]]).group()
     return row
 
 def row_canonicalize_street_and_number(sd, row):
