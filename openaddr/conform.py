@@ -633,7 +633,7 @@ def row_transform_and_convert(sd, row):
     row = row_smash_case(sd, row)
 
     c = sd["conform"]
-    if type(c["street"]) is list:
+    if type(c["street"]) is list or merge in c:
         row = row_merge_street(sd, row)
     if "advanced_merge" in c:
         row = row_advanced_merge(sd, row)
@@ -651,6 +651,8 @@ def conform_smash_case(source_definition):
     for k, v in conform.items():
         if v not in (X_FIELDNAME, Y_FIELDNAME) and getattr(v, 'lower', None):
             conform[k] = v.lower()
+    if "merge" in conform:
+        conform["merge"] = [s.lower() for s in conform["merge"]]
     if type(conform["street"]) is list:
         conform["street"] = [s.lower() for s in conform["street"]]
     if "advanced_merge" in conform:
@@ -665,8 +667,12 @@ def row_smash_case(sd, input):
 
 def row_merge_street(sd, row):
     "Merge multiple columns like 'Maple','St' to 'Maple St'"
-    merge_data = [row[field] for field in sd["conform"]["street"]]
-    row['OA:STREET'] = ' '.join(merge_data)
+     if sd["conform"]["merge"]:
+        merge_data = [row[field] for field in sd["conform"]["merge"]]
+        row['auto_street'] = ' '.join(merge_data)
+    else:
+        merge_data = [row[field] for field in sd["conform"]["street"]]
+        row['OA:STREET'] = ' '.join(merge_data)
     return row
 
 def row_advanced_merge(sd, row):
