@@ -649,11 +649,18 @@ def row_transform_and_convert(sd, row):
             row = row_merge(sd, row, k)
         if k in attrib_types and type(c[k]) is dict:
             "Dicts are custom processing functions"
+            if c[k]["fxn"] == "merge":
+                row = row_advanced_merge(sd, row, k) 
+            elif c[k]["fxn"] == "split":
+                row = row_split_address(sd, row, k)
 
+    ### Deprecated ###
     if "advanced_merge" in c:
         row = row_advanced_merge(sd, row)
     if "split" in c:
         row = row_split_address(sd, row)
+    ##################
+    
     row2 = row_convert_to_out(sd, row)
     row3 = row_canonicalize_street_and_number(sd, row2)
     row4 = row_round_lat_lon(sd, row3)
@@ -684,13 +691,21 @@ def row_merge(sd, row, key):
     row[attrib_types[key]] = ' '.join(merge_data)
     return row
 
-def row_advanced_merge(sd, row):
+def row_advanced_merge(sd, row, key):
     "Create new columns by merging arbitrary other columns with a separator"
-    advanced_merge = sd["conform"]["advanced_merge"]
-    for new_field_name, merge_spec in advanced_merge.items():
-        separator = merge_spec.get("separator", " ")
+    if not key: ## Deprecated Behavior
+        advanced_merge = sd["conform"]["advanced_merge"]
+        for new_field_name, merge_spec in advanced_merge.items():
+            separator = merge_spec.get("separator", " ")
+            try:
+                row[new_field_name] = separator.join([row[n] for n in merge_spec["fields"]])
+            except Exception as e:
+                _L.debug("Failure to merge row %r %s", e, row)
+    else: ## New behavior
+        fxn = sd["conform"][key]
+        separator = fxn.get("separator", " ")
         try:
-            row[new_field_name] = separator.join([row[n] for n in merge_spec["fields"]])
+            row[attrib_types[key]] = separator.join([row[n] for n in fxn["fields"]])
         except Exception as e:
             _L.debug("Failure to merge row %r %s", e, row)
     return row
