@@ -677,7 +677,7 @@ def conform_smash_case(source_definition):
            conform[k] = [s.lower() for s in conform[k]] 
         if type(conform[k]) is dict:
             if "field" in conform[k]:
-                conform[k]["field"] = conform[k]["field"]
+                conform[k]["field"] = conform[k]["field"].lower()
             elif "fields" in conform[k]:
                 conform[k]["fields"] = [s.lower() for s in conform[k]["fields"]]
     
