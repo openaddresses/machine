@@ -49,18 +49,43 @@ class TestConformTransforms (unittest.TestCase):
         r = row_merge(d, {"n": "MAPLE", "t": "ST", "x": "foo"}, 'street')
         self.assertEqual({"OA:street": "MAPLE ST", "x": "foo", "t": "ST", "n": "MAPLE"}, r)
 
+        d = { "conform": { "city": [ "n", "t" ] } }
+        r = row_merge(d, {"n": "Village of", "t": "Stanley", "x": "foo"}, 'city')
+        self.assertEqual({"OA:city": "Village of Stanley", "x": "foo", "t": "Stanley", "n": "Village of"}, r)
+    
     def test_row_fxn_merge(self):
+        "Deprecated advanced_merge"
         c = { "conform": { "advanced_merge": {
                 "new_a": { "fields": ["a1"] },
                 "new_b": { "fields": ["b1", "b2"] },
                 "new_c": { "separator": "-", "fields": ["c1", "c2"] } } } }
         d = { "a1": "va1", "b1": "vb1", "b2": "vb2", "c1": "vc1", "c2": "vc2" }
-        r = row_fxn_merge(c, d, False)
         e = copy.deepcopy(d)
         e.update({ "new_a": "va1", "new_b": "vb1 vb2", "new_c": "vc1-vc2"})
+        r = row_fxn_merge(c, d, False)
+        self.assertEqual(e, r)
+
+        "New fxn merge"
+        c = { "conform": {
+            "number": {
+                "fxn": "merge",
+                "fields": ["a1"]
+            },
+            "street": {
+                "fxn": "merge",
+                "fields": ["b1","b2"],
+                "separator": "-"
+            }
+        } }
+        d = { "a1": "va1", "b1": "vb1", "b2": "vb2" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "va1", "OA:street": "vb1-vb2" })
+        d = row_fxn_merge(c, d, "number")
+        d = row_fxn_merge(c, d, "street")
         self.assertEqual(e, d)
 
     def test_row_fxn_split(self):
+        "Deprecated advanced_merge"
         d = { "conform": { "split": "ADDRESS" } }
         r = row_fxn_split(d, { "ADDRESS": "123 MAPLE ST" }, False)
         self.assertEqual({"ADDRESS": "123 MAPLE ST", "auto_street": "MAPLE ST", "auto_number": "123"}, r)
@@ -71,6 +96,27 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual(r["auto_number"], "")
         self.assertEqual(r["auto_street"], "")
 
+        "New fxn split"
+        c = { "conform": { 
+            "number": {
+                "fxn": "split",
+                "field": "ADDRESS",
+                "regex": "^[0-9]+"
+            },
+            "street": {
+                "fxn": "split",
+                "field": "ADDRESS",
+                "regex": "fake"
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123", "OA:street": "" })
+        
+        d = row_fxn_split(c, d, "number")
+        d = row_fxn_split(c, d, "street")
+        self.assertEqual(e, d)
+        
     def test_transform_and_convert(self):
         d = { "conform": { "street": ["s1", "s2"], "number": "n", "lon": "y", "lat": "x" } }
         r = row_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
