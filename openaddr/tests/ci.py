@@ -99,7 +99,8 @@ class TestObjects (unittest.TestCase):
 
         self.db.execute.assert_called_once_with(
                '''SELECT status, task_files, file_states, file_results, github_status_url
-                  FROM jobs WHERE id = %s''',
+                  FROM jobs WHERE id = %s
+                  LIMIT 1''',
                   ('xyz', ))
 
     def test_read_job_no(self):
@@ -112,7 +113,8 @@ class TestObjects (unittest.TestCase):
 
         self.db.execute.assert_called_once_with(
                '''SELECT status, task_files, file_states, file_results, github_status_url
-                  FROM jobs WHERE id = %s''',
+                  FROM jobs WHERE id = %s
+                  LIMIT 1''',
                   ('xyz', ))
 
     def test_read_jobs(self):
@@ -192,7 +194,8 @@ class TestObjects (unittest.TestCase):
                   FROM sets
                   WHERE owner = %s AND repository = %s
                     AND datetime_end IS NOT NULL
-                  ORDER BY datetime_start DESC''',
+                  ORDER BY datetime_start DESC
+                  LIMIT 1''',
                   ('oa', 'oa'))
 
     def test_read_set_yes(self):
@@ -208,7 +211,8 @@ class TestObjects (unittest.TestCase):
                '''SELECT id, commit_sha, datetime_start, datetime_end,
                          render_world, render_europe, render_usa,
                          owner, repository
-                  FROM sets WHERE id = %s''',
+                  FROM sets WHERE id = %s
+                  LIMIT 1''',
                   (123, ))
 
     def test_read_set_no(self):
@@ -223,7 +227,8 @@ class TestObjects (unittest.TestCase):
                '''SELECT id, commit_sha, datetime_start, datetime_end,
                          render_world, render_europe, render_usa,
                          owner, repository
-                  FROM sets WHERE id = %s''',
+                  FROM sets WHERE id = %s
+                  LIMIT 1''',
                   (123, ))
 
     def test_read_sets(self):
@@ -339,7 +344,8 @@ class TestObjects (unittest.TestCase):
         self.db.execute.assert_called_once_with(
                '''SELECT id, status FROM runs
                   WHERE id = %s AND status IS NOT NULL
-                    AND datetime_tz >= %s''',
+                    AND datetime_tz >= %s
+                    LIMIT 1''',
                   (456, now))
 
     def test_get_completed_run_no(self):
@@ -354,7 +360,8 @@ class TestObjects (unittest.TestCase):
         self.db.execute.assert_called_once_with(
                '''SELECT id, status FROM runs
                   WHERE id = %s AND status IS NOT NULL
-                    AND datetime_tz >= %s''',
+                    AND datetime_tz >= %s
+                    LIMIT 1''',
                   (456, now))
 
     def test_read_completed_set_runs(self):

@@ -86,7 +86,8 @@ def read_job(db, job_id):
         Returns a Job or None.
     '''
     db.execute('''SELECT status, task_files, file_states, file_results, github_status_url
-                  FROM jobs WHERE id = %s''', (job_id, ))
+                  FROM jobs WHERE id = %s
+                  LIMIT 1''', (job_id, ))
     
     try:
         status, task_files, states, file_results, github_status_url = db.fetchone()
@@ -150,7 +151,8 @@ def read_set(db, set_id):
     db.execute('''SELECT id, commit_sha, datetime_start, datetime_end,
                          render_world, render_europe, render_usa,
                          owner, repository
-                  FROM sets WHERE id = %s''', (set_id, ))
+                  FROM sets WHERE id = %s
+                  LIMIT 1''', (set_id, ))
     
     try:
         id, sha, start, end, world, europe, usa, own, repo = db.fetchone()
@@ -182,7 +184,8 @@ def read_latest_set(db, owner, repository):
                   FROM sets
                   WHERE owner = %s AND repository = %s
                     AND datetime_end IS NOT NULL
-                  ORDER BY datetime_start DESC''',
+                  ORDER BY datetime_start DESC
+                  LIMIT 1''',
                (owner, repository, ))
     
     try:
@@ -262,7 +265,8 @@ def get_completed_run(db, run_id, min_dtz):
     '''
     db.execute('''SELECT id, status FROM runs
                   WHERE id = %s AND status IS NOT NULL
-                    AND datetime_tz >= %s''',
+                    AND datetime_tz >= %s
+                    LIMIT 1''',
                (run_id, min_dtz))
     
     return db.fetchone()
