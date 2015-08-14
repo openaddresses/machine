@@ -173,6 +173,25 @@ def read_sets(db, past_id):
     
     return [Set(*row) for row in db.fetchall()]
 
+def read_latest_set(db, owner, repository):
+    ''' Read latest completed set with given owner and repository.
+    '''
+    db.execute('''SELECT id, commit_sha, datetime_start, datetime_end,
+                         render_world, render_europe, render_usa,
+                         owner, repository
+                  FROM sets
+                  WHERE owner = %s AND repository = %s
+                    AND datetime_end IS NOT NULL
+                  ORDER BY datetime_start DESC''',
+               (owner, repository, ))
+    
+    try:
+        id, sha, start, end, world, europe, usa, own, repo = db.fetchone()
+    except TypeError:
+        return None
+    else:
+        return Set(id, sha, start, end, world, europe, usa, own, repo)
+
 def add_run(db):
     ''' Reserve a row in the runs table and return its new ID.
     '''

@@ -34,7 +34,7 @@ from ..ci.objects import (
     add_job, write_job, read_job, read_jobs,
     Set, add_set, complete_set, update_set_renders, read_set, read_sets,
     add_run, set_run, copy_run, get_completed_file_run, get_completed_run,
-    read_completed_set_runs, new_read_completed_set_runs
+    read_completed_set_runs, new_read_completed_set_runs, read_latest_set
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -175,6 +175,25 @@ class TestObjects (unittest.TestCase):
                   SET render_world = %s, render_usa = %s, render_europe = %s
                   WHERE id = %s''',
                   ('http://w', 'http://usa', 'http://eu', 123))
+
+    def test_get_latest_set(self):
+        ''' 
+        '''
+        self.db.fetchone.return_value = 123, '', None, None, '', '', '', 'oa', 'openaddresses'
+        
+        set = read_latest_set(self.db, 'oa', 'oa')
+        self.assertEqual(set.id, 123)
+        self.assertEqual(set.owner, 'oa')
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT id, commit_sha, datetime_start, datetime_end,
+                         render_world, render_europe, render_usa,
+                         owner, repository
+                  FROM sets
+                  WHERE owner = %s AND repository = %s
+                    AND datetime_end IS NOT NULL
+                  ORDER BY datetime_start DESC''',
+                  ('oa', 'oa'))
 
     def test_read_set_yes(self):
         ''' Check behavior of objects.read_set()
@@ -865,6 +884,27 @@ class TestHook (unittest.TestCase):
         self.assertEqual(task_count, 1, 'There should be exactly one task in the queue')
         self.assertEqual(task.data['name'], 'sources/us-ca-san_diego_county.json', 'San Diego should be there')
         self.assertEqual(task.data['file_id'], '0c7cf2f3e4cb5f0c07818a029e1decc9797ad3a1')
+    
+    def test_get_latest_set(self):
+        ''' 
+        '''
+        now = datetime.now()
+        yesterday = now - timedelta(days=1)
+        last_week = now - timedelta(days=7)
+        
+        # Look for the task in the task queue.
+        with db_connect(self.database_url) as conn:
+            with db_cursor(conn) as db:
+                db.executemany('''INSERT INTO sets
+                                  (id, owner, repository, datetime_start, datetime_end)
+                                  VALUES (%s, %s, %s, %s, %s)''',
+                               [(1, 'openaddresses', 'openaddresses', now, None),
+                                (2, 'openaddresses', 'openaddresses', yesterday, now),
+                                (3, 'openaddresses', 'openaddresses', last_week, now)])
+        
+        got = self.client.get('/latest/set')
+        self.assertEqual(got.status_code, 302)
+        self.assertTrue(got.headers.get('Location').endswith('/sets/2'))
     
 class TestRuns (unittest.TestCase):
 

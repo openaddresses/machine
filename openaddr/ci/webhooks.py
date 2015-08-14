@@ -22,7 +22,11 @@ from . import (
     db_connect, db_queue, db_cursor, TASK_QUEUE, create_queued_job
     )
 
-from .objects import read_job, read_jobs, read_sets, read_set, new_read_completed_set_runs
+from .objects import (
+    read_job, read_jobs, read_sets, read_set, read_latest_set,
+    new_read_completed_set_runs
+    )
+
 from ..compat import expand_uri, csvIO, csvDictWriter
 from ..summarize import summarize_set
 
@@ -188,6 +192,20 @@ def app_get_sets():
             sets = read_sets(db, past_id)
     
     return render_template('sets.html', sets=sets)
+
+@webhooks.route('/latest/set', methods=['GET'])
+@log_application_errors
+def app_get_latest_set():
+    '''
+    '''
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            set = read_latest_set(db, 'openaddresses', 'openaddresses')
+
+    if set is None:
+        return Response('No latest set found', 404)
+    
+    return redirect('/sets/{id}'.format(id=set.id), 302)
 
 @webhooks.route('/sets/<set_id>/', methods=['GET'])
 @log_application_errors
