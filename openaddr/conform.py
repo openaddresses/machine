@@ -724,8 +724,12 @@ def row_fxn_split(sd, row, key):
         row['auto_street'] = cols[1] if len(cols) > 1 else ''
     else: ## New Behavior
         fxn = sd["conform"][key]
-        regex = re.compile(fxn.get("regex", ""))
-        row[attrib_types[key]] = regex.match(row[fxn["field"]]).group()
+        regex = re.compile(fxn.get("regex", False))
+        match = regex.match(row[fxn["field"]])
+        if match: 
+            row[attrib_types[key]] = match.group()
+        else:
+            row[attrib_types[key]] = ""
     return row
 
 def row_canonicalize_street_and_number(sd, row):
