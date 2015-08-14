@@ -656,9 +656,9 @@ def row_transform_and_convert(sd, row):
 
     ### Deprecated ###
     if "advanced_merge" in c:
-        row = row_fxn_merge(sd, row)
+        row = row_fxn_merge(sd, row, False)
     if "split" in c:
-        row = row_fxn_split(sd, row)
+        row = row_fxn_split(sd, row, False)
     ##################
     
     row2 = row_convert_to_out(sd, row)

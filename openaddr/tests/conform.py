@@ -42,7 +42,7 @@ class TestConformTransforms (unittest.TestCase):
 
     def test_row_merge(self):
         d = { "conform": { "street": [ "n", "t" ] } }
-        r = row_merge(d, {"n": "MAPLE", "t": "ST", "x": "foo"})
+        r = row_merge(d, {"n": "MAPLE", "t": "ST", "x": "foo"}, 'street')
         self.assertEqual({"OA:street": "MAPLE ST", "x": "foo", "t": "ST", "n": "MAPLE"}, r)
 
     def test_row_fxn_merge(self):
@@ -51,19 +51,19 @@ class TestConformTransforms (unittest.TestCase):
                 "new_b": { "fields": ["b1", "b2"] },
                 "new_c": { "separator": "-", "fields": ["c1", "c2"] } } } }
         d = { "a1": "va1", "b1": "vb1", "b2": "vb2", "c1": "vc1", "c2": "vc2" }
-        r = row_fxn_merge(c, d)
+        r = row_fxn_merge(c, d, False)
         e = copy.deepcopy(d)
         e.update({ "new_a": "va1", "new_b": "vb1 vb2", "new_c": "vc1-vc2"})
         self.assertEqual(e, d)
 
     def test_row_fxn_split(self):
         d = { "conform": { "split": "ADDRESS" } }
-        r = row_fxn_split(d, { "ADDRESS": "123 MAPLE ST" })
+        r = row_fxn_split(d, { "ADDRESS": "123 MAPLE ST" }, False)
         self.assertEqual({"ADDRESS": "123 MAPLE ST", "auto_street": "MAPLE ST", "auto_number": "123"}, r)
-        r = row_fxn_split(d, { "ADDRESS": "265" })
+        r = row_fxn_split(d, { "ADDRESS": "265" }, False)
         self.assertEqual(r["auto_number"], "265")
         self.assertEqual(r["auto_street"], "")
-        r = row_fxn_split(d, { "ADDRESS": "" })
+        r = row_fxn_split(d, { "ADDRESS": "" }, False)
         self.assertEqual(r["auto_number"], "")
         self.assertEqual(r["auto_street"], "")
 
