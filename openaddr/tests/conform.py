@@ -28,13 +28,13 @@ class TestConformTransforms (unittest.TestCase):
 
     def test_conform_smash_case(self):
         d = { "conform": { "street": [ "U", "l", "MiXeD" ], "number": "U", "split": "U", "lat": "Y", "lon": "x",
-                           "city": { "fxn": "merge", "fields": ["ThIs","FiELd"], "separator": "-" },
-                           "district": { "fxn": "split", "field": "ThaT", "regex": ""},
+                           "city": { "function": "merge", "fields": ["ThIs","FiELd"], "separator": "-" },
+                           "district": { "function": "split", "field": "ThaT", "regex": ""},
                            "advanced_merge": { "auto_street": { "fields": ["MiXeD", "UPPER"] } } } }
         r = conform_smash_case(d)
         self.assertEqual({ "conform": { "street": [ "u", "l", "mixed" ], "number": "u", "split": "u", "lat": "y", "lon": "x",
-                           "city": {"fields": ["this", "field"], "fxn": "merge", "separator": "-"},
-                           "district": { "field": "that", "fxn": "split", "regex": ""},
+                           "city": {"fields": ["this", "field"], "function": "merge", "separator": "-"},
+                           "district": { "field": "that", "function": "split", "regex": ""},
                            "advanced_merge": { "auto_street": { "fields": ["mixed", "upper"] } } } },
                          r)
 
@@ -68,11 +68,11 @@ class TestConformTransforms (unittest.TestCase):
         "New fxn merge"
         c = { "conform": {
             "number": {
-                "fxn": "merge",
+                "function": "merge",
                 "fields": ["a1"]
             },
             "street": {
-                "fxn": "merge",
+                "function": "merge",
                 "fields": ["b1","b2"],
                 "separator": "-"
             }
@@ -99,12 +99,12 @@ class TestConformTransforms (unittest.TestCase):
         "New fxn split"
         c = { "conform": { 
             "number": {
-                "fxn": "split",
+                "function": "split",
                 "field": "ADDRESS",
                 "regex": "^[0-9]+"
             },
             "street": {
-                "fxn": "split",
+                "function": "split",
                 "field": "ADDRESS",
                 "regex": "fake"
             }

@@ -649,9 +649,9 @@ def row_transform_and_convert(sd, row):
             row = row_merge(sd, row, k)
         if k in attrib_types and type(c[k]) is dict:
             "Dicts are custom processing functions"
-            if c[k]["fxn"] == "merge":
+            if c[k]["function"] == "merge":
                 row = row_fxn_merge(sd, row, k) 
-            elif c[k]["fxn"] == "split":
+            elif c[k]["function"] == "split":
                 row = row_fxn_split(sd, row, k)
 
     ### Deprecated ###
