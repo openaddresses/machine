@@ -8,7 +8,7 @@ from csv import DictWriter
 import hashlib, hmac
 import json, os
 
-import memcache
+import memcache, requests
 from jinja2 import Environment, FileSystemLoader
 from flask import (
     Flask, Blueprint, request, Response, current_app, jsonify, render_template,
@@ -24,7 +24,7 @@ from . import (
 
 from .objects import (
     read_job, read_jobs, read_sets, read_set, read_latest_set,
-    new_read_completed_set_runs
+    new_read_completed_set_runs, read_run
     )
 
 from ..compat import expand_uri, csvIO, csvDictWriter
@@ -277,6 +277,23 @@ def app_get_set_text(set_id, shortname):
             return redirect(run.state.get('output'))
     
     return Response('Set {} has no run "{}"'.format(set_id, shortname), 404)
+
+@webhooks.route('/runs/<run_id>/sample.html')
+@log_application_errors
+def app_get_run_sample(run_id):
+    '''
+    '''
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            run = read_run(db, run_id)
+
+    if run is None:
+        return Response('Run {} does not exist'.format(run_id), 404)
+    
+    sample_url = run.state.get('sample')
+    sample_data = requests.get(sample_url).json()
+    
+    return render_template('run-sample.html', sample_data=sample_data)
 
 app = Flask(__name__)
 app.config.update(load_config())
