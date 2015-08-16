@@ -240,6 +240,25 @@ def copy_run(db, run_id, job_id, commit_sha, set_id):
     
     return run_id
 
+def read_run(db, run_id):
+    '''
+    '''
+    db.execute('''SELECT id, source_path, source_id, source_data, datetime_tz,
+                         state, status, copy_of, code_version, worker_id,
+                         job_id, set_id, commit_sha
+                  FROM runs WHERE id = %s
+                  LIMIT 1''', (run_id, ))
+    
+    try:
+        (id, source_path, source_id, source_data, datetime_tz, state, status,
+         copy_of, code_version, worker_id, job_id, set_id, commit_sha) = db.fetchone()
+    except TypeError:
+        return None
+    else:
+        return Run(id, source_path, source_id, source_data, datetime_tz,
+                   state, status, copy_of, code_version, worker_id,
+                   job_id, set_id, commit_sha)
+    
 def get_completed_file_run(db, file_id, interval):
     ''' Look for an existing run on this file ID within the reuse timeout limit.
     '''
