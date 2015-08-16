@@ -13,8 +13,8 @@ import shutil
 from ..conform import (
     GEOM_FIELDNAME, X_FIELDNAME, Y_FIELDNAME,
     csv_source_to_csv, find_source_path, row_transform_and_convert,
-    row_fxn_split, row_smash_case, row_round_lat_lon, row_merge,
-    row_extract_and_reproject, row_convert_to_out, row_fxn_merge,
+    row_fxn_extract, row_smash_case, row_round_lat_lon, row_merge,
+    row_extract_and_reproject, row_convert_to_out, row_fxn_join,
     row_canonicalize_street_and_number, conform_smash_case, conform_cli,
     csvopen, csvDictReader
     )
@@ -28,13 +28,13 @@ class TestConformTransforms (unittest.TestCase):
 
     def test_conform_smash_case(self):
         d = { "conform": { "street": [ "U", "l", "MiXeD" ], "number": "U", "split": "U", "lat": "Y", "lon": "x",
-                           "city": { "function": "merge", "fields": ["ThIs","FiELd"], "separator": "-" },
-                           "district": { "function": "split", "field": "ThaT", "regex": ""},
+                           "city": { "function": "join", "fields": ["ThIs","FiELd"], "separator": "-" },
+                           "district": { "function": "extract", "field": "ThaT", "regex": ""},
                            "advanced_merge": { "auto_street": { "fields": ["MiXeD", "UPPER"] } } } }
         r = conform_smash_case(d)
         self.assertEqual({ "conform": { "street": [ "u", "l", "mixed" ], "number": "u", "split": "u", "lat": "y", "lon": "x",
-                           "city": {"fields": ["this", "field"], "function": "merge", "separator": "-"},
-                           "district": { "field": "that", "function": "split", "regex": ""},
+                           "city": {"fields": ["this", "field"], "function": "join", "separator": "-"},
+                           "district": { "field": "that", "function": "extract", "regex": ""},
                            "advanced_merge": { "auto_street": { "fields": ["mixed", "upper"] } } } },
                          r)
 
@@ -53,7 +53,7 @@ class TestConformTransforms (unittest.TestCase):
         r = row_merge(d, {"n": "Village of", "t": "Stanley", "x": "foo"}, 'city')
         self.assertEqual({"OA:city": "Village of Stanley", "x": "foo", "t": "Stanley", "n": "Village of"}, r)
     
-    def test_row_fxn_merge(self):
+    def test_row_fxn_join(self):
         "Deprecated advanced_merge"
         c = { "conform": { "advanced_merge": {
                 "new_a": { "fields": ["a1"] },
@@ -62,17 +62,17 @@ class TestConformTransforms (unittest.TestCase):
         d = { "a1": "va1", "b1": "vb1", "b2": "vb2", "c1": "vc1", "c2": "vc2" }
         e = copy.deepcopy(d)
         e.update({ "new_a": "va1", "new_b": "vb1 vb2", "new_c": "vc1-vc2"})
-        r = row_fxn_merge(c, d, False)
+        r = row_fxn_join(c, d, False)
         self.assertEqual(e, r)
 
-        "New fxn merge"
+        "New fxn join"
         c = { "conform": {
             "number": {
-                "function": "merge",
+                "function": "join",
                 "fields": ["a1"]
             },
             "street": {
-                "function": "merge",
+                "function": "join",
                 "fields": ["b1","b2"],
                 "separator": "-"
             }
@@ -80,31 +80,31 @@ class TestConformTransforms (unittest.TestCase):
         d = { "a1": "va1", "b1": "vb1", "b2": "vb2" }
         e = copy.deepcopy(d)
         e.update({ "OA:number": "va1", "OA:street": "vb1-vb2" })
-        d = row_fxn_merge(c, d, "number")
-        d = row_fxn_merge(c, d, "street")
+        d = row_fxn_join(c, d, "number")
+        d = row_fxn_join(c, d, "street")
         self.assertEqual(e, d)
 
-    def test_row_fxn_split(self):
-        "Deprecated advanced_merge"
+    def test_row_fxn_extract(self):
+        "Deprecated split"
         d = { "conform": { "split": "ADDRESS" } }
-        r = row_fxn_split(d, { "ADDRESS": "123 MAPLE ST" }, False)
+        r = row_fxn_extract(d, { "ADDRESS": "123 MAPLE ST" }, False)
         self.assertEqual({"ADDRESS": "123 MAPLE ST", "auto_street": "MAPLE ST", "auto_number": "123"}, r)
-        r = row_fxn_split(d, { "ADDRESS": "265" }, False)
+        r = row_fxn_extract(d, { "ADDRESS": "265" }, False)
         self.assertEqual(r["auto_number"], "265")
         self.assertEqual(r["auto_street"], "")
-        r = row_fxn_split(d, { "ADDRESS": "" }, False)
+        r = row_fxn_extract(d, { "ADDRESS": "" }, False)
         self.assertEqual(r["auto_number"], "")
         self.assertEqual(r["auto_street"], "")
 
-        "New fxn split"
+        "New fxn extract"
         c = { "conform": { 
             "number": {
-                "function": "split",
+                "function": "extract",
                 "field": "ADDRESS",
                 "regex": "^[0-9]+"
             },
             "street": {
-                "function": "split",
+                "function": "extract",
                 "field": "ADDRESS",
                 "regex": "fake"
             }
@@ -113,8 +113,8 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123", "OA:street": "" })
         
-        d = row_fxn_split(c, d, "number")
-        d = row_fxn_split(c, d, "street")
+        d = row_fxn_extract(c, d, "number")
+        d = row_fxn_extract(c, d, "street")
         self.assertEqual(e, d)
         
     def test_transform_and_convert(self):
