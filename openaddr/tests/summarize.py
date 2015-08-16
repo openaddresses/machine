@@ -115,7 +115,6 @@ class TestSummarizeFunctions (unittest.TestCase):
         self.assertEqual(conv['process time'], state['process time'])
         self.assertEqual(conv['processed'], state['processed'])
         self.assertEqual(conv['sample'], state['sample'])
-        self.assertEqual(conv['sample_data'], [['Yo'], [0]])
         self.assertEqual(conv['sample_link'], '/runs/456/sample.html')
         self.assertEqual(conv['shortname'], u'pl/foö')
         self.assertEqual(conv['skip'], source['skip'])
@@ -127,7 +126,7 @@ class TestSummarizeFunctions (unittest.TestCase):
         '''
         '''
         memcache = mock.Mock()
-        memcache.get.return_value = b'\x80\x02}q\x00(X\x0b\x00\x00\x00fingerprintq\x01X\x03\x00\x00\x00xyzq\x02X\x04\x00\x00\x00typeq\x03X\x04\x00\x00\x00httpq\x04X\t\x00\x00\x00shortnameq\x05X\x07\x00\x00\x00pl/fo\xc3\xb6q\x06X\x06\x00\x00\x00sampleq\x07X\x1e\x00\x00\x00http://example.com/sample.jsonq\x08X\x07\x00\x00\x00versionq\tX\x04\x00\x00\x002015q\nX\x06\x00\x00\x00outputq\x0bX\x04\x00\x00\x00zip2q\x0cX\x0c\x00\x00\x00conform typeq\rNX\r\x00\x00\x00geometry typeq\x0eX\x05\x00\x00\x00Pointq\x0fX\n\x00\x00\x00cache_dateq\x10X\n\x00\x00\x002015-08-16q\x11X\x07\x00\x00\x00conformq\x12\x89X\x05\x00\x00\x00cacheq\x13X\x04\x00\x00\x00zip1q\x14X\r\x00\x00\x00address countq\x15KcX\x0b\x00\x00\x00sample_linkq\x16X\x15\x00\x00\x00/runs/456/sample.htmlq\x17X\x06\x00\x00\x00sourceq\x18X\x0c\x00\x00\x00pl/fo\xc3\xb6.jsonq\x19X\x04\x00\x00\x00hrefq\x1aX(\x00\x00\x00http://blob/def/sources/pl/fo%C3%B6.jsonq\x1bX\x0b\x00\x00\x00sample_dataq\x1c]q\x1d(]q\x1eX\x02\x00\x00\x00Yoq\x1fa]q K\x00aeX\x04\x00\x00\x00skipq!\x89X\t\x00\x00\x00processedq"X\x04\x00\x00\x00zip3q#X\n\x00\x00\x00cache timeq$X\x04\x00\x00\x001:00q%X\x0c\x00\x00\x00process timeq&X\x04\x00\x00\x002:00q\'X\x11\x00\x00\x00coverage completeq(\x89u.'
+        memcache.get.return_value = b'\x80\x02}q\x00(X\x0b\x00\x00\x00sample_linkq\x01X\x15\x00\x00\x00/runs/456/sample.htmlq\x02X\x07\x00\x00\x00conformq\x03\x89X\x06\x00\x00\x00sourceq\x04X\x0c\x00\x00\x00pl/fo\xc3\xb6.jsonq\x05X\x0c\x00\x00\x00process timeq\x06X\x04\x00\x00\x002:00q\x07X\n\x00\x00\x00cache timeq\x08X\x04\x00\x00\x001:00q\tX\r\x00\x00\x00address countq\nKcX\t\x00\x00\x00shortnameq\x0bX\x07\x00\x00\x00pl/fo\xc3\xb6q\x0cX\t\x00\x00\x00processedq\rX\x04\x00\x00\x00zip3q\x0eX\x06\x00\x00\x00sampleq\x0fX\x1e\x00\x00\x00http://example.com/sample.jsonq\x10X\x05\x00\x00\x00cacheq\x11X\x04\x00\x00\x00zip1q\x12X\x06\x00\x00\x00outputq\x13X\x04\x00\x00\x00zip2q\x14X\x0b\x00\x00\x00fingerprintq\x15X\x03\x00\x00\x00xyzq\x16X\x04\x00\x00\x00typeq\x17X\x04\x00\x00\x00httpq\x18X\x04\x00\x00\x00hrefq\x19X(\x00\x00\x00http://blob/def/sources/pl/fo%C3%B6.jsonq\x1aX\x07\x00\x00\x00versionq\x1bX\x04\x00\x00\x002015q\x1cX\x0c\x00\x00\x00conform typeq\x1dNX\n\x00\x00\x00cache_dateq\x1eX\n\x00\x00\x002015-08-16q\x1fX\x11\x00\x00\x00coverage completeq \x89X\r\x00\x00\x00geometry typeq!X\x05\x00\x00\x00Pointq"X\x04\x00\x00\x00skipq#\x89u.'
         
         source = {'conform': {}, 'skip': False, 'type': 'http'}
         source_b64 = b64encode(json.dumps(source).encode('utf8'))
@@ -162,7 +161,6 @@ class TestSummarizeFunctions (unittest.TestCase):
         self.assertEqual(conv['process time'], state['process time'])
         self.assertEqual(conv['processed'], state['processed'])
         self.assertEqual(conv['sample'], state['sample'])
-        self.assertEqual(conv['sample_data'], [['Yo'], [0]])
         self.assertEqual(conv['sample_link'], '/runs/456/sample.html')
         self.assertEqual(conv['shortname'], u'pl/foö')
         self.assertEqual(conv['skip'], source['skip'])
