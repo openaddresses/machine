@@ -649,16 +649,16 @@ def row_transform_and_convert(sd, row):
             row = row_merge(sd, row, k)
         if k in attrib_types and type(c[k]) is dict:
             "Dicts are custom processing functions"
-            if c[k]["function"] == "merge":
-                row = row_fxn_merge(sd, row, k) 
-            elif c[k]["function"] == "split":
-                row = row_fxn_split(sd, row, k)
+            if c[k]["function"] == "join":
+                row = row_fxn_join(sd, row, k) 
+            elif c[k]["function"] == "extract":
+                row = row_fxn_extract(sd, row, k)
 
     ### Deprecated ###
     if "advanced_merge" in c:
-        row = row_fxn_merge(sd, row, False)
+        row = row_fxn_join(sd, row, False)
     if "split" in c:
-        row = row_fxn_split(sd, row, False)
+        row = row_fxn_extract(sd, row, False)
     ##################
     
     row2 = row_convert_to_out(sd, row)
@@ -697,7 +697,7 @@ def row_merge(sd, row, key):
     row[attrib_types[key]] = ' '.join(merge_data)
     return row
 
-def row_fxn_merge(sd, row, key):
+def row_fxn_join(sd, row, key):
     "Create new columns by merging arbitrary other columns with a separator"
     if not key: ## Deprecated Behavior
         advanced_merge = sd["conform"]["advanced_merge"]
@@ -716,7 +716,7 @@ def row_fxn_merge(sd, row, key):
             _L.debug("Failure to merge row %r %s", e, row)
     return row
 
-def row_fxn_split(sd, row, key):
+def row_fxn_extract(sd, row, key):
     "Split addresses like '123 Maple St' into '123' and 'Maple St'"
     if not key: ## Deprecated Behavior
         cols = row[sd["conform"]["split"]].split(' ', 1)  # maxsplit
