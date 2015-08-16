@@ -185,12 +185,12 @@
         
           } else {
             // We reached our target server, but it returned an error
-
+            link.innerHTML = 'Failed to load.';
           }
         };
 
         request.onerror = function() {
-          // There was a connection error of some sort
+            link.innerHTML = 'Failed to load.';
         };
 
         link.innerHTML = '(Loading)';
