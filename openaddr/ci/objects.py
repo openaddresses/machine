@@ -323,8 +323,10 @@ def read_completed_runs_to_date(db, starting_set_id):
                   WHERE source_path IN (
                       -- Get all source paths for successful runs in this set.
                       SELECT source_path FROM runs
-                      WHERE set_id = %s AND status = true
+                      WHERE set_id = %s
                     )
+                    -- Get only successful runs.
+                    AND status = true
                   GROUP BY source_path''',
                (set.id, ))
     
@@ -335,8 +337,10 @@ def read_completed_runs_to_date(db, starting_set_id):
                   WHERE source_path IN (
                       -- Get all source paths for failed runs in this set.
                       SELECT source_path FROM runs
-                      WHERE set_id = %s AND status = false
+                      WHERE set_id = %s
                     )
+                    -- Get only unsuccessful runs.
+                    AND status = false
                   GROUP BY source_path''',
                (set.id, ))
     
@@ -345,7 +349,7 @@ def read_completed_runs_to_date(db, starting_set_id):
         if source_path not in run_path_ids:
             run_path_ids[source_path] = run_id
     
-    run_ids = list(sorted(run_path_ids.values()))
+    run_ids = tuple(sorted(run_path_ids.values()))
 
     # Get Run instance for each of the returned run IDs.
     db.execute('''SELECT id, source_path, source_id, source_data, datetime_tz,

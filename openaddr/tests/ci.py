@@ -502,8 +502,10 @@ class TestObjects (unittest.TestCase):
                   WHERE source_path IN (
                       -- Get all source paths for successful runs in this set.
                       SELECT source_path FROM runs
-                      WHERE set_id = %s AND status = true
+                      WHERE set_id = %s
                     )
+                    -- Get only successful runs.
+                    AND status = true
                   GROUP BY source_path''')
 
         self.assertEqual(e2_query, 
@@ -511,8 +513,10 @@ class TestObjects (unittest.TestCase):
                   WHERE source_path IN (
                       -- Get all source paths for failed runs in this set.
                       SELECT source_path FROM runs
-                      WHERE set_id = %s AND status = false
+                      WHERE set_id = %s
                     )
+                    -- Get only unsuccessful runs.
+                    AND status = false
                   GROUP BY source_path''')
 
         self.assertEqual(e3_query, 
@@ -524,7 +528,7 @@ class TestObjects (unittest.TestCase):
 
         self.assertEqual(e1_args, (123, ))
         self.assertEqual(e2_args, (123, ))
-        self.assertEqual(e3_args, ([403, 501, 502, 504], ))
+        self.assertEqual(e3_args, ((403, 501, 502, 504), ))
 
         self.assertEqual(len(runs), 4)
 
