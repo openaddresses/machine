@@ -320,17 +320,32 @@ def read_completed_runs_to_date(db, starting_set_id):
     
     # Get IDs for latest successful source runs of any run in the requested set.
     db.execute('''SELECT MAX(id), source_path FROM runs
-                  -- Get only successful runs.
-                  WHERE status = true
-                    AND source_path IN (
-                      -- Get all source paths for this set.
+                  WHERE source_path IN (
+                      -- Get all source paths for successful runs in this set.
                       SELECT source_path FROM runs
-                      WHERE set_id = %s AND status IS NOT NULL
+                      WHERE set_id = %s AND status = true
                     )
                   GROUP BY source_path''',
                (set.id, ))
     
-    run_ids = [run_id for (run_id, _) in db.fetchall()]
+    run_path_ids = {path: run_id for (run_id, path) in db.fetchall()}
+    
+    # Get IDs for latest unsuccessful source runs of any run in the requested set.
+    db.execute('''SELECT MAX(id), source_path FROM runs
+                  WHERE source_path IN (
+                      -- Get all source paths for failed runs in this set.
+                      SELECT source_path FROM runs
+                      WHERE set_id = %s AND status = false
+                    )
+                  GROUP BY source_path''',
+               (set.id, ))
+    
+    # Use unsuccessful runs if no successful ones exist.
+    for (run_id, source_path) in db.fetchall():
+        if source_path not in run_path_ids:
+            run_path_ids[source_path] = run_id
+    
+    run_ids = list(sorted(run_path_ids.values()))
 
     # Get Run instance for each of the returned run IDs.
     db.execute('''SELECT id, source_path, source_id, source_data, datetime_tz,

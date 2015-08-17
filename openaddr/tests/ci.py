@@ -465,22 +465,23 @@ class TestObjects (unittest.TestCase):
         def fake_fetchall():
             if len(queries) == 1:
                 return [
-                    (456, u'sources/us-ca-alameda_county.json'),
-                    (567, u'sources/us-ca-nevada_county.json'),
-                    (678, u'sources/us-ca-berkeley.json'),
-                    (789, u'sources/us-ca-san_francisco.json'),
-                    (890, u'sources/fr/la-réunion.json'),
-                    (900, u'sources/us-ca-contra_costa_county.json'),
+                    (403, u'sources/fails-second-time.json'),
+                    (501, u'sources/works-both-times.json'),
+                    (502, u'sources/works-second-time.json'),
                     ]
             if len(queries) == 2:
+                return [
+                    (402, u'sources/works-second-time.json'),
+                    (503, u'sources/fails-second-time.json'),
+                    (504, u'sources/fails-both-times.json'),
+                    ]
+            if len(queries) == 3:
                 _ = None
                 return [
-                    (456, u'sources/us-ca-alameda_county.json', _, b'', _, _, _, _, _, _, _, 123, _),
-                    (567, u'sources/us-ca-nevada_county.json', _, b'', _, _, _, _, _, _, _, 123, _),
-                    (678, u'sources/us-ca-berkeley.json', _, b'', _, _, _, _, _, _, _, 123, _),
-                    (789, u'sources/us-ca-san_francisco.json', _, b'', _, _, _, _, _, _, _, 123, _),
-                    (890, u'sources/fr/la-réunion.json', _, b'', _, _, _, _, _, _, _, 123, _),
-                    (900, u'sources/us-ca-contra_costa_county.json', _, b'', _, _, _, _, _, _, _, 123, _),
+                    (403, u'sources/fails-second-time.json', _, b'', _, _, _, _, _, _, _, 123, _),
+                    (501, u'sources/works-both-times.json', _, b'', _, _, _, _, _, _, _, 123, _),
+                    (502, u'sources/works-second-time.json', _, b'', _, _, _, _, _, _, _, 123, _),
+                    (504, u'sources/fails-both-times.json', _, b'', _, _, _, _, _, _, _, 123, _),
                     ]
         
         with patch('openaddr.ci.objects.read_set') as read_set:
@@ -492,21 +493,29 @@ class TestObjects (unittest.TestCase):
 
             runs = read_completed_runs_to_date(self.db, 123)
 
-        exec1, exec2 = self.db.execute.mock_calls[:]
-        (e1_query, e1_args), (e2_query, e2_args) = exec1[1][:], exec2[1][:]
+        exec1, exec2, exec3 = self.db.execute.mock_calls
+        (e1_query, e1_args), (e2_query, e2_args), (e3_query, e3_args) \
+            = exec1[1][:], exec2[1][:], exec3[1][:]
         
         self.assertEqual(e1_query, 
                '''SELECT MAX(id), source_path FROM runs
-                  -- Get only successful runs.
-                  WHERE status = true
-                    AND source_path IN (
-                      -- Get all source paths for this set.
+                  WHERE source_path IN (
+                      -- Get all source paths for successful runs in this set.
                       SELECT source_path FROM runs
-                      WHERE set_id = %s AND status IS NOT NULL
+                      WHERE set_id = %s AND status = true
                     )
                   GROUP BY source_path''')
 
         self.assertEqual(e2_query, 
+               '''SELECT MAX(id), source_path FROM runs
+                  WHERE source_path IN (
+                      -- Get all source paths for failed runs in this set.
+                      SELECT source_path FROM runs
+                      WHERE set_id = %s AND status = false
+                    )
+                  GROUP BY source_path''')
+
+        self.assertEqual(e3_query, 
                '''SELECT id, source_path, source_id, source_data, datetime_tz,
                          state, status, copy_of, code_version, worker_id,
                          job_id, set_id, commit_sha
@@ -514,9 +523,10 @@ class TestObjects (unittest.TestCase):
                   WHERE id IN %s''')
 
         self.assertEqual(e1_args, (123, ))
-        self.assertEqual(e2_args, ([456, 567, 678, 789, 890, 900], ))
+        self.assertEqual(e2_args, (123, ))
+        self.assertEqual(e3_args, ([403, 501, 502, 504], ))
 
-        self.assertEqual(len(runs), 6)
+        self.assertEqual(len(runs), 4)
 
 class TestHook (unittest.TestCase):
 
