@@ -54,6 +54,9 @@ CREATE TABLE runs
     commit_sha          VARCHAR(40) NULL
 );
 
+CREATE INDEX runs_set_ids ON runs (set_id);
+CREATE INDEX runs_source_paths ON runs (source_path);
+
 --
 -- Two views mimicking Nelson's dashboard tables that were
 -- previously populated by scraping from data.openaddresses.io.

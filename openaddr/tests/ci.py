@@ -35,7 +35,7 @@ from ..ci.objects import (
     Set, add_set, complete_set, update_set_renders, read_set, read_sets,
     add_run, set_run, copy_run, get_completed_file_run, get_completed_run,
     read_completed_set_runs, new_read_completed_set_runs, read_latest_set,
-    read_run
+    read_run, read_completed_runs_to_date
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -432,6 +432,91 @@ class TestObjects (unittest.TestCase):
                          job_id, set_id, commit_sha FROM runs
                   WHERE set_id = %s AND status IS NOT NULL''',
                   (123, ))
+    
+    def test_read_completed_runs_to_date_missing_set(self):
+        ''' Check when read_completed_runs_to_date() called with missing set.
+        '''
+        with patch('openaddr.ci.objects.read_set') as read_set:
+            read_set.return_value = None
+            runs = read_completed_runs_to_date(self.db, 123)
+            self.assertIsNone(runs)
+            self.db.execute.assert_not_called()
+    
+    def test_read_completed_runs_to_date_incomplete_set(self):
+        ''' Check when read_completed_runs_to_date() called with unfinished set.
+        '''
+        with patch('openaddr.ci.objects.read_set') as read_set:
+            read_set.return_value = Set(123, '', datetime.now(), None,
+                                        None, None, None, None, None)
+
+            runs = read_completed_runs_to_date(self.db, 123)
+            self.assertIsNone(runs)
+            self.db.execute.assert_not_called()
+    
+    def test_read_completed_runs_to_date_complete_set(self):
+        ''' Check when read_completed_runs_to_date() called with finished set.
+        '''
+        queries = []
+        
+        def fake_execute(q, *args, **kwargs):
+            # Build up a list of queries so we can fetchall() the right rows.
+            queries.append(q)
+
+        def fake_fetchall():
+            if len(queries) == 1:
+                return [
+                    (456, u'sources/us-ca-alameda_county.json'),
+                    (567, u'sources/us-ca-nevada_county.json'),
+                    (678, u'sources/us-ca-berkeley.json'),
+                    (789, u'sources/us-ca-san_francisco.json'),
+                    (890, u'sources/fr/la-réunion.json'),
+                    (900, u'sources/us-ca-contra_costa_county.json'),
+                    ]
+            if len(queries) == 2:
+                _ = None
+                return [
+                    (456, u'sources/us-ca-alameda_county.json', _, b'', _, _, _, _, _, _, _, 123, _),
+                    (567, u'sources/us-ca-nevada_county.json', _, b'', _, _, _, _, _, _, _, 123, _),
+                    (678, u'sources/us-ca-berkeley.json', _, b'', _, _, _, _, _, _, _, 123, _),
+                    (789, u'sources/us-ca-san_francisco.json', _, b'', _, _, _, _, _, _, _, 123, _),
+                    (890, u'sources/fr/la-réunion.json', _, b'', _, _, _, _, _, _, _, 123, _),
+                    (900, u'sources/us-ca-contra_costa_county.json', _, b'', _, _, _, _, _, _, _, 123, _),
+                    ]
+        
+        with patch('openaddr.ci.objects.read_set') as read_set:
+            read_set.return_value = Set(123, '', datetime.now(), datetime.now(),
+                                        None, None, None, None, None)
+            
+            self.db.execute.side_effect = fake_execute
+            self.db.fetchall.side_effect = fake_fetchall
+
+            runs = read_completed_runs_to_date(self.db, 123)
+
+        exec1, exec2 = self.db.execute.mock_calls[:]
+        (e1_query, e1_args), (e2_query, e2_args) = exec1[1][:], exec2[1][:]
+        
+        self.assertEqual(e1_query, 
+               '''SELECT MAX(id), source_path FROM runs
+                  -- Get only successful runs.
+                  WHERE status = true
+                    AND source_path IN (
+                      -- Get all source paths for this set.
+                      SELECT source_path FROM runs
+                      WHERE set_id = %s AND status IS NOT NULL
+                    )
+                  GROUP BY source_path''')
+
+        self.assertEqual(e2_query, 
+               '''SELECT id, source_path, source_id, source_data, datetime_tz,
+                         state, status, copy_of, code_version, worker_id,
+                         job_id, set_id, commit_sha
+                  FROM runs
+                  WHERE id IN %s''')
+
+        self.assertEqual(e1_args, (123, ))
+        self.assertEqual(e2_args, ([456, 567, 678, 789, 890, 900], ))
+
+        self.assertEqual(len(runs), 6)
 
 class TestHook (unittest.TestCase):
 
