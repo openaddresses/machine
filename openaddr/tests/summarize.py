@@ -95,7 +95,7 @@ class TestSummarizeFunctions (unittest.TestCase):
                  'process time': '2:00', 'processed': 'zip3', 'version': '2015',
                  'sample': 'http://example.com/sample.json'}
         
-        run = Run(id, u'sources/pl/foö.json', 'abc', source_b64, datetime.utcnow(),
+        run = Run(456, u'sources/pl/foö.json', 'abc', source_b64, datetime.utcnow(),
                   state, True, None, '', '', None, None, 'def')
         
         with HTTMock(self.response_content):
@@ -115,7 +115,7 @@ class TestSummarizeFunctions (unittest.TestCase):
         self.assertEqual(conv['process time'], state['process time'])
         self.assertEqual(conv['processed'], state['processed'])
         self.assertEqual(conv['sample'], state['sample'])
-        self.assertEqual(conv['sample_data'], [['Yo'], [0]])
+        self.assertEqual(conv['sample_link'], '/runs/456/sample.html')
         self.assertEqual(conv['shortname'], u'pl/foö')
         self.assertEqual(conv['skip'], source['skip'])
         self.assertEqual(conv['source'], u'pl/foö.json')
@@ -126,7 +126,7 @@ class TestSummarizeFunctions (unittest.TestCase):
         '''
         '''
         memcache = mock.Mock()
-        memcache.get.return_value = b'\x80\x02}q\x00(U\x07conformq\x01\x89U\ncache_dateq\x02U\n2015-08-06q\x03U\x0bsample_dataq\x04]q\x05(]q\x06U\x02Yoq\x07a]q\x08K\x00aeU\x11coverage completeq\t\x89U\x04skipq\n\x89U\x0bfingerprintq\x0bU\x03xyzq\x0cU\x05cacheq\rU\x04zip1q\x0eU\x0cconform typeq\x0fNU\x06sampleq\x10U\x1ehttp://example.com/sample.jsonq\x11U\x06sourceq\x12U\x0bpl/foo.jsonq\x13U\x04hrefq\x14X#\x00\x00\x00http://blob/def/sources/pl/foo.jsonq\x15U\rgeometry typeq\x16U\x05Pointq\x17U\x07versionq\x18U\x042015q\x19U\ncache timeq\x1aU\x041:00q\x1bU\raddress countq\x1cKcU\x06outputq\x1dU\x04zip2q\x1eU\tshortnameq\x1fU\x06pl/fooq U\x04typeq!X\x04\x00\x00\x00httpq"U\x0cprocess timeq#U\x042:00q$U\tprocessedq%U\x04zip3q&u.'
+        memcache.get.return_value = b'\x80\x02}q\x00(X\x0b\x00\x00\x00sample_linkq\x01X\x15\x00\x00\x00/runs/456/sample.htmlq\x02X\x07\x00\x00\x00conformq\x03\x89X\x06\x00\x00\x00sourceq\x04X\x0c\x00\x00\x00pl/fo\xc3\xb6.jsonq\x05X\x0c\x00\x00\x00process timeq\x06X\x04\x00\x00\x002:00q\x07X\n\x00\x00\x00cache timeq\x08X\x04\x00\x00\x001:00q\tX\r\x00\x00\x00address countq\nKcX\t\x00\x00\x00shortnameq\x0bX\x07\x00\x00\x00pl/fo\xc3\xb6q\x0cX\t\x00\x00\x00processedq\rX\x04\x00\x00\x00zip3q\x0eX\x06\x00\x00\x00sampleq\x0fX\x1e\x00\x00\x00http://example.com/sample.jsonq\x10X\x05\x00\x00\x00cacheq\x11X\x04\x00\x00\x00zip1q\x12X\x06\x00\x00\x00outputq\x13X\x04\x00\x00\x00zip2q\x14X\x0b\x00\x00\x00fingerprintq\x15X\x03\x00\x00\x00xyzq\x16X\x04\x00\x00\x00typeq\x17X\x04\x00\x00\x00httpq\x18X\x04\x00\x00\x00hrefq\x19X(\x00\x00\x00http://blob/def/sources/pl/fo%C3%B6.jsonq\x1aX\x07\x00\x00\x00versionq\x1bX\x04\x00\x00\x002015q\x1cX\x0c\x00\x00\x00conform typeq\x1dNX\n\x00\x00\x00cache_dateq\x1eX\n\x00\x00\x002015-08-16q\x1fX\x11\x00\x00\x00coverage completeq \x89X\r\x00\x00\x00geometry typeq!X\x05\x00\x00\x00Pointq"X\x04\x00\x00\x00skipq#\x89u.'
         
         source = {'conform': {}, 'skip': False, 'type': 'http'}
         source_b64 = b64encode(json.dumps(source).encode('utf8'))
@@ -137,7 +137,7 @@ class TestSummarizeFunctions (unittest.TestCase):
                  'process time': '2:00', 'processed': 'zip3', 'version': '2015',
                  'sample': 'http://example.com/sample.json'}
         
-        run = Run(456, 'sources/pl/foo.json', 'abc', source_b64, datetime.utcnow(),
+        run = Run(456, u'sources/pl/foö.json', 'abc', source_b64, datetime.utcnow(),
                   state, True, None, '', '', None, None, 'def')
         
         with mock.patch('requests.get') as get:
@@ -150,7 +150,7 @@ class TestSummarizeFunctions (unittest.TestCase):
         self.assertEqual(conv['address count'], state['address count'])
         self.assertEqual(conv['cache'], state['cache'])
         self.assertEqual(conv['cache time'], state['cache time'])
-        self.assertEqual(conv['cache_date'], '2015-08-06', 'Should use a timestamp from the cached version')
+        self.assertEqual(conv['cache_date'], '2015-08-16', 'Should use a timestamp from the cached version')
         self.assertEqual(conv['conform'], bool(source['conform']))
         self.assertEqual(conv['conform type'], state_conform_type(state))
         self.assertEqual(conv['coverage complete'], is_coverage_complete(source))
@@ -161,10 +161,10 @@ class TestSummarizeFunctions (unittest.TestCase):
         self.assertEqual(conv['process time'], state['process time'])
         self.assertEqual(conv['processed'], state['processed'])
         self.assertEqual(conv['sample'], state['sample'])
-        self.assertEqual(conv['sample_data'], [['Yo'], [0]])
-        self.assertEqual(conv['shortname'], 'pl/foo')
+        self.assertEqual(conv['sample_link'], '/runs/456/sample.html')
+        self.assertEqual(conv['shortname'], u'pl/foö')
         self.assertEqual(conv['skip'], source['skip'])
-        self.assertEqual(conv['source'], 'pl/foo.json')
+        self.assertEqual(conv['source'], u'pl/foö.json')
         self.assertEqual(conv['type'], source['type'])
         self.assertEqual(conv['version'], state['version'])
     
@@ -181,4 +181,4 @@ class TestSummarizeFunctions (unittest.TestCase):
                 }
             run_counts.return_value = {'sources': 1, 'cached': 1, 'processed': 1}
         
-            summary_html = summarize_set(memcache, set, [run])
+            summary_data = summarize_set(memcache, set, [run])

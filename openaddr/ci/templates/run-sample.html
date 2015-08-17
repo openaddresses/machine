@@ -1,0 +1,11 @@
+<table>
+  {#
+    Brief sample data header, with text "Column", "Row 0", etc.
+  #}
+  <tr>{% for i in range(sample_data|length) %}<th>{% if i == 0 %}Column{% else %}Row {{ i }}{% endif %}</th>{% endfor %}</tr>
+  {#
+    Rotate sample data for readability, so that each
+    HTML table row is a single column from source data.
+  #}
+  {% for j in range(sample_data[0]|length) %}<tr>{% for i in range(sample_data|length) %}<td>{% if i == 0 %}{{ sample_data[i][j] }}{% else %}{{ sample_data[i][j]|tojson }}{% endif %}</td>{% endfor %}</tr>{% endfor %}
+</table>

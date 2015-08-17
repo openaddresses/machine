@@ -8,7 +8,7 @@ from csv import DictWriter
 import hashlib, hmac
 import json, os
 
-import memcache
+import memcache, requests
 from jinja2 import Environment, FileSystemLoader
 from flask import (
     Flask, Blueprint, request, Response, current_app, jsonify, render_template,
@@ -24,11 +24,11 @@ from . import (
 
 from .objects import (
     read_job, read_jobs, read_sets, read_set, read_latest_set,
-    new_read_completed_set_runs
+    new_read_completed_set_runs, read_run
     )
 
 from ..compat import expand_uri, csvIO, csvDictWriter
-from ..summarize import summarize_set
+from ..summarize import summarize_set, nice_integer
 
 CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
              'version', 'fingerprint', 'cache time', 'processed', 'process time', \
@@ -221,7 +221,8 @@ def app_get_set(set_id):
         return Response('Set {} not found'.format(set_id), 404)
     
     mc = memcache.Client([current_app.config['MEMCACHE_SERVER']])
-    return summarize_set(mc, set, runs)
+    summary_data = summarize_set(mc, set, runs)
+    return render_template('set.html', **summary_data)
 
 @webhooks.route('/sets/<set_id>/render-<area>.png', methods=['GET'])
 @log_application_errors
@@ -278,9 +279,29 @@ def app_get_set_text(set_id, shortname):
     
     return Response('Set {} has no run "{}"'.format(set_id, shortname), 404)
 
+@webhooks.route('/runs/<run_id>/sample.html')
+@log_application_errors
+def app_get_run_sample(run_id):
+    '''
+    '''
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            run = read_run(db, run_id)
+
+    if run is None:
+        return Response('Run {} does not exist'.format(run_id), 404)
+    
+    sample_url = run.state.get('sample')
+    sample_data = requests.get(sample_url).json()
+    
+    return render_template('run-sample.html', sample_data=sample_data)
+
 app = Flask(__name__)
 app.config.update(load_config())
 app.register_blueprint(webhooks)
+
+app.jinja_env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
+app.jinja_env.filters['nice_integer'] = nice_integer
 
 @app.before_first_request
 def app_prepare():

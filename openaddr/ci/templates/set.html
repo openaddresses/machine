@@ -1,11 +1,335 @@
-{% include 'info.html' %}
+<html>
 
-<p>
-    <a href="./">All sets</a>
-</p>
+<head>
+<meta charset=utf-8 />
+<title>OpenAddresses</title>
+<link href="http://fonts.googleapis.com/css?family=Titillium+Web" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=Raleway" rel="stylesheet" type="text/css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<link href="https://raw.githubusercontent.com/openaddresses/openaddresses.io/805f02d1e/site.css" rel="stylesheet" />
+<link href="https://raw.githubusercontent.com/openaddresses/openaddresses.io/805f02d1e/style.css" rel="stylesheet" />
+<link rel="shortcut icon" href="https://raw.githubusercontent.com/openaddresses/openaddresses.io/805f02d1e/17.png">
+<link rel="apple-touch-icon-precomposed" href="https://raw.githubusercontent.com/openaddresses/openaddresses.io/805f02d1e/17.png">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style lang="text/css">
 
+    body
+    {
+        margin-bottom: 2em;
+        font-size: 1em;
+    }
+
+    body>*
+    {
+        margin: 1em auto;
+        width: 960px;
+    }
+    
+    body>p { line-height: 1.5em }
+    
+    pre
+    {
+        font-family: monospace;
+        line-height: 1.5em;
+        margin-left: 1em;
+    }
+    
+    @media (max-width: 960px)
+    {
+        body>* { width: 96% }
+    }
+    
+    a, .stat { white-space: nowrap }
+
+    table { border-collapse: collapse }
+    
+    table tr th,
+    table tr td.type,
+    table tr td.cached,
+    table tr td.problems,
+    table tr td.sample,
+    table tr td table tr td
+    {
+        font-size: 65%;
+    }
+    
+    table tr th, table tr td
+    {
+        text-align: left;
+        padding: 3px 10px;
+    }
+    
+    table tr td>a
+    {
+        display: block;
+        margin: -3px -10px;
+        padding: 3px 10px;
+        text-decoration: underline;
+    }
+    
+    table tr td.problems>a,
+    table tr td.sample>a
+    {
+        display: inline;
+        margin: 0;
+        padding: 0;
+    }
+    
+    table tr td.name>a
+    {
+        text-decoration: none;
+    }
+    
+    table tr:nth-child(4n-2) td, table tr:nth-child(4n-1) td { background-color: #f8f8f8 }
+    table tr:nth-child(4n+0) td, table tr:nth-child(4n+1) td { background-color: #ffffff }
+
+    table tr td table { margin: 1em 0 }
+    table tr td table { margin: 1em 0 }
+    table tr td table tr th { color: #666 }
+
+    table tr td table tr th,
+    table tr td table tr td
+    {
+        font-family: monospace;
+        background-color: transparent !important;
+        line-height: 1.5em;
+        padding: 1px 10px;
+    }
+    
+   /*
+    * Progressively show additional sample data columns.
+    */
+
+    table tr td table tr th,
+    table tr td table tr td
+    {
+        display: none
+    }
+
+    table tr td table tr th:nth-child(1),
+    table tr td table tr th:nth-child(2),
+    table tr td table tr td:nth-child(1),
+    table tr td table tr td:nth-child(2)
+    {
+        display: table-cell
+    }
+
+    @media (min-width: 400px)
+    {
+        table tr td table tr th:nth-child(3),
+        table tr td table tr td:nth-child(3)
+        {
+            display: table-cell
+        }
+    }
+    
+    @media (min-width: 640px)
+    {
+        table tr td table tr th:nth-child(4),
+        table tr td table tr td:nth-child(4)
+        {
+            display: table-cell
+        }
+    }
+    
+    @media (min-width: 960px)
+    {
+        table tr td table tr th:nth-child(5),
+        table tr td table tr th:nth-child(6),
+        table tr td table tr td:nth-child(5),
+        table tr td table tr td:nth-child(6)
+        {
+            display: table-cell
+        }
+    }
+
+</style>
+<script type="text/javascript">
+
+    function showhide(button, row_id, link_id)
+    {
+        var row = document.getElementById(row_id),
+            link = document.getElementById(link_id),
+            style = getComputedStyle(row);
+    
+        if(row && style.display == 'none') {
+            row.style.display = 'table-row';
+            button.innerText = 'Hide sample data';
+            if(link) { populatesample(link) }
+
+        } else if(row) {
+            row.style.display = 'none';
+            button.innerText = 'Show sample data';
+        }
+
+        return false;
+    }
+    
+    function populatesample(link)
+    {
+        var anchors = link.getElementsByTagName('a'),
+            neighbor = link.nextSibling,
+            parent = link.parentNode;
+    
+        var request = new XMLHttpRequest();
+        request.open('GET', anchors[0].href, true);
+
+        request.onload = function() {
+          if (request.status >= 200 && request.status < 400) {
+            // Success!
+            var stuff = document.createElement('div');
+            stuff.innerHTML = request.responseText;
+        
+            parent.removeChild(link);
+            parent.insertBefore(stuff.firstChild, neighbor);
+        
+          } else {
+            // We reached our target server, but it returned an error
+            link.innerHTML = 'Failed to load.';
+          }
+        };
+
+        request.onerror = function() {
+            link.innerHTML = 'Failed to load.';
+        };
+
+        link.innerHTML = '(Loading)';
+        request.send();            
+    }
+    
+    function choosemap(src)
+    {
+        var img = document.getElementById('render-img');
+        
+        if(img)
+        {
+            img.src = src;
+        }
+        
+        return false;
+    }
+
+</script>
+</head>
+
+<body>
 <p>
-    {{ set.id }}
-    {{ set.datetime_start }}
-    {{ set.datetime_end }}
+    This is a summary view of <a href="http://openaddresses.io">OpenAddresses data</a>.
+    <a href="/openaddresses-complete.zip" class="stat">{{ counts.addresses|nice_integer }} addresses</a>
+    were processed <span class="stat">{{ last_modified.strftime('%A, %b %d, %Y') }}</span>.
+    Out of <span class="stat">{{ counts.sources }} total sources</span>,
+    <a href="#first-processed" class="stat">{{ counts.processed }} were completed</a>.
+    <span class="stat">{{ counts.sources - counts.cached }} sources failed cache</span>,
+    <span class="stat">{{ counts.cached - counts.processed }} cached but not processed</span>.
+    To help complete more sources, look for “missing conform” below and add a
+    <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#conform-object">conform object</a>
+    based on the included sample data.
 </p>
+<p>
+    The latest summary can always be found at
+    <a href="http://data.openaddresses.io">data.openaddresses.io</a>.<br>
+    A plain text version of data on this page can be found at
+    <a href="state.txt">state.txt</a>.
+</p>
+<p>
+    <button onclick="choosemap('render-world.png')">Show World</button>
+    <button onclick="choosemap('render-usa.png')">Show United States</button>
+    <button onclick="choosemap('render-europe.png')">Show Europe</button>
+</p>
+<p><img src="render-world.png" width="100%" id="render-img"></p>
+<table>
+    <tr>
+        <th class="name">Name</th>
+        <th class="type">Type</th>
+        <th class="cached">Cached?</th>
+        <th class="processed">Processed?</th>
+        <th class="problems">Problems</th>
+        <th class="sample"> </th>
+    </tr>
+    {% set first_processed = False %}
+    {% for state in states %}
+      {% if not first_processed and state.processed %}
+        {% set first_processed = True %}
+      {% elif first_processed %}
+        {% set first_processed = False %}
+      {% endif %}
+      <tr>
+        <td class="name">
+            <a href="{{ state.href }}" name="{% if first_processed %}first-processed{% endif %}">{{ state.shortname }}</a>
+        </td>
+        <td class="type">
+            {{ state.type }}
+        </td>
+        <td class="cached">
+          {% if state.cache %}
+            <a href="{{ state.cache }}">{{ state.cache_date }}</a>
+          {% elif state.cache_date %}
+            <strike>{{ state.cache_date }}</strike>
+          {% else %}
+            –
+          {% endif %}
+        </td>
+        <td class="processed">
+          {% if state.processed %}
+            <a href="{{ state.processed }}">csv</a>
+          {% else %}
+            –
+          {% endif %}
+        </td>
+        <td class="problems">
+          {% set suggest_conform = False %}
+          {% if not state.processed %}
+            {% if state.skip %}
+            <a href="{{ state.href }}">source</a> says to skip
+            {% elif not state.cache %}
+            cache failed ( <a href="{{ state.shortname }}.txt">log</a> )
+            {% elif not state.conform %}
+            <a href="{{ state.href }}">source</a> is
+            <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#conform-object">missing conform</a>
+            {% set suggest_conform = True %}
+            {% else %}
+            unknown ( <a href="{{ state.shortname }}.txt">log</a> )
+            {% endif %}
+          {% elif not state['coverage complete'] %}
+            <a href="{{ state.href }}">source</a> has
+            <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#coverage-object">incomplete coverage</a>
+          {% endif %}
+        </td>
+        <td class="sample">
+          {% if state.sample and state.sample_link %}
+            <button onclick="return showhide(this, '{{ state.shortname }}-sample-data', '{{ state.shortname }}-sample-link')">Show sample data</button>
+          {% else %}
+            No sample data ( <a href="{{ state.shortname }}.txt">log</a> )
+          {% endif %}
+        </td>
+      </tr>
+      <tr id="{{ state.shortname }}-sample-data" style="display: none">
+        <td colspan="6">
+          {% if suggest_conform %}
+            <p>
+              Possible <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#conform-object">conform object</a>
+              for <a href="{{ state.cache }}">{{ state.shortname }}</a>:
+            </p>
+<pre>"conform": {
+  "type": {{ state['conform type']|tojson }},
+  "number": &lt;number&gt;,
+  "street": &lt;street&gt;,
+  "lon": {% if state['conform type'] == 'csv' %}&lt;lon&gt;{% else %}"x"{% endif %},
+  "lat": {% if state['conform type'] == 'csv' %}&lt;lat&gt;{% else %}"y"{% endif %}
+}</pre>
+          {% endif %}
+          {% if state.sample and state.sample_link %}
+            <p>
+              Sample data for first rows of <a href="{{ state.cache }}">{{ state.shortname }}</a>:
+            </p>
+            <p id="{{ state.shortname }}-sample-link">
+                <a href="{{ state.sample_link }}">{{ state.shortname }} sample</a>
+            </p>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>

@@ -34,7 +34,8 @@ from ..ci.objects import (
     add_job, write_job, read_job, read_jobs,
     Set, add_set, complete_set, update_set_renders, read_set, read_sets,
     add_run, set_run, copy_run, get_completed_file_run, get_completed_run,
-    read_completed_set_runs, new_read_completed_set_runs, read_latest_set
+    read_completed_set_runs, new_read_completed_set_runs, read_latest_set,
+    read_run
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -298,6 +299,39 @@ class TestObjects (unittest.TestCase):
                ), mock.call("SELECT currval('ints')", )
                ])
     
+    def test_read_run_yes(self):
+        ''' Check behavior of objects.read_run()
+        '''
+        self.db.fetchone.return_value = (123, '', '', b'', None, {}, True, None,
+                                         __version__, '', None, None, '')
+        
+        run = read_run(self.db, 123)
+        self.assertEqual(run.id, 123)
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT id, source_path, source_id, source_data, datetime_tz,
+                         state, status, copy_of, code_version, worker_id,
+                         job_id, set_id, commit_sha
+                  FROM runs WHERE id = %s
+                  LIMIT 1''',
+                  (123, ))
+
+    def test_read_run_no(self):
+        ''' Check behavior of objects.read_run()
+        '''
+        self.db.fetchone.return_value = None
+        
+        nothing = read_run(self.db, 123)
+        self.assertIsNone(nothing)
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT id, source_path, source_id, source_data, datetime_tz,
+                         state, status, copy_of, code_version, worker_id,
+                         job_id, set_id, commit_sha
+                  FROM runs WHERE id = %s
+                  LIMIT 1''',
+                  (123, ))
+
     def test_get_completed_file_run_yes(self):
         ''' Check behavior of objects.get_completed_file_run_yes()
         '''
