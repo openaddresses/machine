@@ -181,4 +181,4 @@ class TestSummarizeFunctions (unittest.TestCase):
                 }
             run_counts.return_value = {'sources': 1, 'cached': 1, 'processed': 1}
         
-            summary_html = summarize_set(memcache, set, [run])
+            summary_data = summarize_set(memcache, set, [run])

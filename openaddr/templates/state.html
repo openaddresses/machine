@@ -146,16 +146,14 @@
 </style>
 <script type="text/javascript">
 
-    function showhide(button, row_id, link_id)
+    function showhide(button, row_id)
     {
         var row = document.getElementById(row_id),
-            link = document.getElementById(link_id),
             style = getComputedStyle(row);
     
         if(row && style.display == 'none') {
             row.style.display = 'table-row';
             button.innerText = 'Hide sample data';
-            if(link) { populatesample(link) }
 
         } else if(row) {
             row.style.display = 'none';
@@ -163,38 +161,6 @@
         }
 
         return false;
-    }
-    
-    function populatesample(link)
-    {
-        var anchors = link.getElementsByTagName('a'),
-            neighbor = link.nextSibling,
-            parent = link.parentNode;
-    
-        var request = new XMLHttpRequest();
-        request.open('GET', anchors[0].href, true);
-
-        request.onload = function() {
-          if (request.status >= 200 && request.status < 400) {
-            // Success!
-            var stuff = document.createElement('div');
-            stuff.innerHTML = request.responseText;
-        
-            parent.removeChild(link);
-            parent.insertBefore(stuff.firstChild, neighbor);
-        
-          } else {
-            // We reached our target server, but it returned an error
-            link.innerHTML = 'Failed to load.';
-          }
-        };
-
-        request.onerror = function() {
-            link.innerHTML = 'Failed to load.';
-        };
-
-        link.innerHTML = '(Loading)';
-        request.send();            
     }
     
     function choosemap(src)
@@ -297,7 +263,7 @@
         </td>
         <td class="sample">
           {% if state.sample and state.sample_data %}
-            <button onclick="return showhide(this, '{{ state.shortname }}-sample-data', '{{ state.shortname }}-sample-link')">Show sample data</button>
+            <button onclick="return showhide(this, '{{ state.shortname }}-sample-data')">Show sample data</button>
           {% else %}
             No sample data ( <a href="{{ state.shortname }}.txt">log</a> )
           {% endif %}
@@ -322,9 +288,17 @@
             <p>
               Sample data for first rows of <a href="{{ state.cache }}">{{ state.shortname }}</a>:
             </p>
-            <p id="{{ state.shortname }}-sample-link">
-                <a href="{{ state.sample_link }}">{{ state.shortname }} sample</a>
-            </p>
+            <table>
+              {#
+                Brief sample data header, with text "Column", "Row 0", etc.
+              #}
+              <tr>{% for i in range(state.sample_data|length) %}<th>{% if i == 0 %}Column{% else %}Row {{ i }}{% endif %}</th>{% endfor %}</tr>
+              {#
+                Rotate sample data for readability, so that each
+                HTML table row is a single column from source data.
+              #}
+              {% for j in range(state.sample_data[0]|length) %}<tr>{% for i in range(state.sample_data|length) %}<td>{% if i == 0 %}{{ state.sample_data[i][j] }}{% else %}{{ state.sample_data[i][j]|tojson }}{% endif %}</td>{% endfor %}</tr>{% endfor %}
+            </table>
           {% endif %}
         </td>
       </tr>

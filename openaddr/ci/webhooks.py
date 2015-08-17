@@ -28,7 +28,7 @@ from .objects import (
     )
 
 from ..compat import expand_uri, csvIO, csvDictWriter
-from ..summarize import summarize_set
+from ..summarize import summarize_set, nice_integer
 
 CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
              'version', 'fingerprint', 'cache time', 'processed', 'process time', \
@@ -221,7 +221,8 @@ def app_get_set(set_id):
         return Response('Set {} not found'.format(set_id), 404)
     
     mc = memcache.Client([current_app.config['MEMCACHE_SERVER']])
-    return summarize_set(mc, set, runs)
+    summary_data = summarize_set(mc, set, runs)
+    return render_template('set.html', **summary_data)
 
 @webhooks.route('/sets/<set_id>/render-<area>.png', methods=['GET'])
 @log_application_errors
@@ -298,6 +299,9 @@ def app_get_run_sample(run_id):
 app = Flask(__name__)
 app.config.update(load_config())
 app.register_blueprint(webhooks)
+
+app.jinja_env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
+app.jinja_env.filters['nice_integer'] = nice_integer
 
 @app.before_first_request
 def app_prepare():
