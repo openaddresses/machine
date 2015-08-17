@@ -420,11 +420,11 @@ class TestObjects (unittest.TestCase):
         self.db.fetchall.return_value = (('abc', 'pl', 'jkl', b'', None, {}, True,
                                           None, '', '', 'mno', 123, 'abc'), )
         
-        sets = new_read_completed_set_runs(self.db, 123)
-        self.assertEqual(sets[0].id, 'abc')
-        self.assertEqual(sets[0].source_path, 'pl')
-        self.assertEqual(sets[0].source_data, b'')
-        self.assertEqual(sets[0].status, True)
+        runs = new_read_completed_set_runs(self.db, 123)
+        self.assertEqual(runs[0].id, 'abc')
+        self.assertEqual(runs[0].source_path, 'pl')
+        self.assertEqual(runs[0].source_data, b'')
+        self.assertEqual(runs[0].status, True)
 
         self.db.execute.assert_called_once_with(
                '''SELECT id, source_path, source_id, source_data, datetime_tz,
