@@ -24,11 +24,11 @@ from . import (
 
 from .objects import (
     read_job, read_jobs, read_sets, read_set, read_latest_set,
-    new_read_completed_set_runs, read_run
+    read_run, new_read_completed_set_runs, read_completed_runs_to_date
     )
 
 from ..compat import expand_uri, csvIO, csvDictWriter
-from ..summarize import summarize_set, nice_integer
+from ..summarize import summarize_runs, nice_integer
 
 CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
              'version', 'fingerprint', 'cache time', 'processed', 'process time', \
@@ -89,7 +89,14 @@ def enforce_signature(route_function):
 @webhooks.route('/')
 @log_application_errors
 def app_index():
-    return 'Yo.'
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            set = read_latest_set(db, 'openaddresses', 'openaddresses')
+            runs = read_completed_runs_to_date(db, set.id)
+
+    mc = memcache.Client([current_app.config['MEMCACHE_SERVER']])
+    summary_data = summarize_runs(mc, runs, set.datetime_end, set.owner, set.repository)
+    return render_template('set.html', **summary_data)
 
 @webhooks.route('/hook', methods=['POST'])
 @log_application_errors
@@ -221,7 +228,7 @@ def app_get_set(set_id):
         return Response('Set {} not found'.format(set_id), 404)
     
     mc = memcache.Client([current_app.config['MEMCACHE_SERVER']])
-    summary_data = summarize_set(mc, set, runs)
+    summary_data = summarize_runs(mc, runs, set.datetime_end, set.owner, set.repository)
     return render_template('set.html', **summary_data)
 
 @webhooks.route('/sets/<set_id>/render-<area>.png', methods=['GET'])
