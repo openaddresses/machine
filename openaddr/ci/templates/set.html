@@ -231,12 +231,28 @@
     A plain text version of data on this page can be found at
     <a href="state.txt">state.txt</a>.
 </p>
-<p>
-    <button onclick="choosemap('render-world.png')">Show World</button>
-    <button onclick="choosemap('render-usa.png')">Show United States</button>
-    <button onclick="choosemap('render-europe.png')">Show Europe</button>
-</p>
-<p><img src="render-world.png" width="100%" id="render-img"></p>
+{% if set and (set.render_world or set.render_usa) %}
+    {#
+      In earlier versions, there was only set.render_usa.
+      Later, set.render_world and set.render_europe were added.
+    #}
+    <p>
+        {% if set.render_world %}
+            <button onclick="choosemap('{{ set.render_world }}')">Show World</button>
+        {% endif %}
+        {% if set.render_usa and set.render_world %}
+            <button onclick="choosemap('{{ set.render_usa }}')">Show United States</button>
+        {% endif %}
+        {% if set.render_europe %}
+            <button onclick="choosemap('{{ set.render_europe }}')">Show Europe</button>
+        {% endif %}
+    </p>
+    {% if set.render_world %}
+        <p><img src="{{ set.render_world }}" width="100%" id="render-img"></p>
+    {% elif set.render_usa %}
+        <p><img src="{{ set.render_usa }}" width="100%" id="render-img"></p>
+    {% endif %}
+{% endif %}
 <table>
     <tr>
         <th class="name">Name</th>

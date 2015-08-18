@@ -96,7 +96,7 @@ def app_index():
 
     mc = memcache.Client([current_app.config['MEMCACHE_SERVER']])
     summary_data = summarize_runs(mc, runs, set.datetime_end, set.owner, set.repository)
-    return render_template('set.html', **summary_data)
+    return render_template('set.html', set=None, **summary_data)
 
 @webhooks.route('/hook', methods=['POST'])
 @log_application_errors
@@ -229,29 +229,7 @@ def app_get_set(set_id):
     
     mc = memcache.Client([current_app.config['MEMCACHE_SERVER']])
     summary_data = summarize_runs(mc, runs, set.datetime_end, set.owner, set.repository)
-    return render_template('set.html', **summary_data)
-
-@webhooks.route('/sets/<set_id>/render-<area>.png', methods=['GET'])
-@log_application_errors
-def app_get_set_image(set_id, area):
-    '''
-    '''
-    if area not in ('usa', 'world', 'europe'):
-        return Response('Area "{}" not found'.format(area), 404)
-    
-    with db_connect(current_app.config['DATABASE_URL']) as conn:
-        with db_cursor(conn) as db:
-            set = read_set(db, set_id)
-
-    if set is None:
-        return Response('Set {} not found'.format(set_id), 404)
-    
-    image_url = getattr(set, 'render_{}'.format(area))
-    
-    if image_url is None:
-        return Response('Area "{}" has no image'.format(area), 404)
-    
-    return redirect(image_url)
+    return render_template('set.html', set=set, **summary_data)
 
 @webhooks.route('/sets/<set_id>/state.txt', methods=['GET'])
 @log_application_errors
