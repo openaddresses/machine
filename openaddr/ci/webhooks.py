@@ -98,6 +98,28 @@ def app_index():
     summary_data = summarize_runs(mc, runs, set.datetime_end, set.owner, set.repository)
     return render_template('set.html', set=None, **summary_data)
 
+@webhooks.route('/state.txt', methods=['GET'])
+@log_application_errors
+def app_get_state_txt():
+    '''
+    '''
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            set = read_latest_set(db, 'openaddresses', 'openaddresses')
+            runs = read_completed_runs_to_date(db, set.id)
+    
+    buffer = csvIO()
+    output = csvDictWriter(buffer, CSV_HEADER, dialect='excel-tab', encoding='utf8')
+    output.writerow({col: col for col in CSV_HEADER})
+    for run in runs:
+        run_state = run.state or {}
+        row = {col: run_state.get(col, None) for col in CSV_HEADER}
+        row['source'] = os.path.relpath(run.source_path, 'sources')
+        output.writerow(row)
+
+    return Response(buffer.getvalue(),
+                    headers={'Content-Type': 'text/plain; charset=utf8'})
+
 @webhooks.route('/hook', methods=['POST'])
 @log_application_errors
 @enforce_signature
