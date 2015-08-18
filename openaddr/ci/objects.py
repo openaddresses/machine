@@ -309,3 +309,54 @@ def new_read_completed_set_runs(db, set_id):
                (set_id, ))
     
     return [Run(*row) for row in db.fetchall()]
+
+def read_completed_runs_to_date(db, starting_set_id):
+    ''' Get only successful runs.
+    '''
+    set = read_set(db, starting_set_id)
+    
+    if set is None or set.datetime_end is None:
+        return None
+    
+    # Get IDs for latest successful source runs of any run in the requested set.
+    db.execute('''SELECT MAX(id), source_path FROM runs
+                  WHERE source_path IN (
+                      -- Get all source paths for successful runs in this set.
+                      SELECT source_path FROM runs
+                      WHERE set_id = %s
+                    )
+                    -- Get only successful runs.
+                    AND status = true
+                  GROUP BY source_path''',
+               (set.id, ))
+    
+    run_path_ids = {path: run_id for (run_id, path) in db.fetchall()}
+    
+    # Get IDs for latest unsuccessful source runs of any run in the requested set.
+    db.execute('''SELECT MAX(id), source_path FROM runs
+                  WHERE source_path IN (
+                      -- Get all source paths for failed runs in this set.
+                      SELECT source_path FROM runs
+                      WHERE set_id = %s
+                    )
+                    -- Get only unsuccessful runs.
+                    AND status = false
+                  GROUP BY source_path''',
+               (set.id, ))
+    
+    # Use unsuccessful runs if no successful ones exist.
+    for (run_id, source_path) in db.fetchall():
+        if source_path not in run_path_ids:
+            run_path_ids[source_path] = run_id
+    
+    run_ids = tuple(sorted(run_path_ids.values()))
+
+    # Get Run instance for each of the returned run IDs.
+    db.execute('''SELECT id, source_path, source_id, source_data, datetime_tz,
+                         state, status, copy_of, code_version, worker_id,
+                         job_id, set_id, commit_sha
+                  FROM runs
+                  WHERE id IN %s''',
+               (run_ids, ))
+    
+    return [Run(*row) for row in db.fetchall()]

@@ -12,7 +12,7 @@ from .. import __version__
 from ..compat import expand_uri
 from ..ci.objects import Run
 from ..summarize import (
-    state_conform_type, is_coverage_complete, run_counts, convert_run, summarize_set
+    state_conform_type, is_coverage_complete, run_counts, convert_run, summarize_runs
     )
 
 class TestSummarizeFunctions (unittest.TestCase):
@@ -168,7 +168,7 @@ class TestSummarizeFunctions (unittest.TestCase):
         self.assertEqual(conv['type'], source['type'])
         self.assertEqual(conv['version'], state['version'])
     
-    def test_summarize_set(self):
+    def test_summarize_runs(self):
         '''
         '''
         memcache, set, run = mock.Mock(), mock.Mock(), mock.Mock()
@@ -181,4 +181,5 @@ class TestSummarizeFunctions (unittest.TestCase):
                 }
             run_counts.return_value = {'sources': 1, 'cached': 1, 'processed': 1}
         
-            summary_data = summarize_set(memcache, set, [run])
+            summary_data = summarize_runs(memcache, [run], set.datetime_end,
+                                          set.owner, set.repository)

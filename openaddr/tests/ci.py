@@ -35,7 +35,7 @@ from ..ci.objects import (
     Set, add_set, complete_set, update_set_renders, read_set, read_sets,
     add_run, set_run, copy_run, get_completed_file_run, get_completed_run,
     read_completed_set_runs, new_read_completed_set_runs, read_latest_set,
-    read_run
+    read_run, read_completed_runs_to_date
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -432,6 +432,105 @@ class TestObjects (unittest.TestCase):
                          job_id, set_id, commit_sha FROM runs
                   WHERE set_id = %s AND status IS NOT NULL''',
                   (123, ))
+    
+    def test_read_completed_runs_to_date_missing_set(self):
+        ''' Check when read_completed_runs_to_date() called with missing set.
+        '''
+        with patch('openaddr.ci.objects.read_set') as read_set:
+            read_set.return_value = None
+            runs = read_completed_runs_to_date(self.db, 123)
+            self.assertIsNone(runs)
+            self.db.execute.assert_not_called()
+    
+    def test_read_completed_runs_to_date_incomplete_set(self):
+        ''' Check when read_completed_runs_to_date() called with unfinished set.
+        '''
+        with patch('openaddr.ci.objects.read_set') as read_set:
+            read_set.return_value = Set(123, '', datetime.now(), None,
+                                        None, None, None, None, None)
+
+            runs = read_completed_runs_to_date(self.db, 123)
+            self.assertIsNone(runs)
+            self.db.execute.assert_not_called()
+    
+    def test_read_completed_runs_to_date_complete_set(self):
+        ''' Check when read_completed_runs_to_date() called with finished set.
+        '''
+        queries = []
+        
+        def fake_execute(q, *args, **kwargs):
+            # Build up a list of queries so we can fetchall() the right rows.
+            queries.append(q)
+
+        def fake_fetchall():
+            if len(queries) == 1:
+                return [
+                    (403, u'sources/fails-second-time.json'),
+                    (501, u'sources/works-both-times.json'),
+                    (502, u'sources/works-second-time.json'),
+                    ]
+            if len(queries) == 2:
+                return [
+                    (402, u'sources/works-second-time.json'),
+                    (503, u'sources/fails-second-time.json'),
+                    (504, u'sources/fails-both-times.json'),
+                    ]
+            if len(queries) == 3:
+                _ = None
+                return [
+                    (403, u'sources/fails-second-time.json', _, b'', _, _, _, _, _, _, _, 123, _),
+                    (501, u'sources/works-both-times.json', _, b'', _, _, _, _, _, _, _, 123, _),
+                    (502, u'sources/works-second-time.json', _, b'', _, _, _, _, _, _, _, 123, _),
+                    (504, u'sources/fails-both-times.json', _, b'', _, _, _, _, _, _, _, 123, _),
+                    ]
+        
+        with patch('openaddr.ci.objects.read_set') as read_set:
+            read_set.return_value = Set(123, '', datetime.now(), datetime.now(),
+                                        None, None, None, None, None)
+            
+            self.db.execute.side_effect = fake_execute
+            self.db.fetchall.side_effect = fake_fetchall
+
+            runs = read_completed_runs_to_date(self.db, 123)
+
+        exec1, exec2, exec3 = self.db.execute.mock_calls
+        (e1_query, e1_args), (e2_query, e2_args), (e3_query, e3_args) \
+            = exec1[1][:], exec2[1][:], exec3[1][:]
+        
+        self.assertEqual(e1_query, 
+               '''SELECT MAX(id), source_path FROM runs
+                  WHERE source_path IN (
+                      -- Get all source paths for successful runs in this set.
+                      SELECT source_path FROM runs
+                      WHERE set_id = %s
+                    )
+                    -- Get only successful runs.
+                    AND status = true
+                  GROUP BY source_path''')
+
+        self.assertEqual(e2_query, 
+               '''SELECT MAX(id), source_path FROM runs
+                  WHERE source_path IN (
+                      -- Get all source paths for failed runs in this set.
+                      SELECT source_path FROM runs
+                      WHERE set_id = %s
+                    )
+                    -- Get only unsuccessful runs.
+                    AND status = false
+                  GROUP BY source_path''')
+
+        self.assertEqual(e3_query, 
+               '''SELECT id, source_path, source_id, source_data, datetime_tz,
+                         state, status, copy_of, code_version, worker_id,
+                         job_id, set_id, commit_sha
+                  FROM runs
+                  WHERE id IN %s''')
+
+        self.assertEqual(e1_args, (123, ))
+        self.assertEqual(e2_args, (123, ))
+        self.assertEqual(e3_args, ((403, 501, 502, 504), ))
+
+        self.assertEqual(len(runs), 4)
 
 class TestHook (unittest.TestCase):
 

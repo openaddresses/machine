@@ -203,17 +203,18 @@ def main():
     s3 = S3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'data-test.openaddresses.io')
     print(summarize(s3, paths.sources).encode('utf8'))
 
-def summarize_set(memcache, set, runs):
+def summarize_runs(memcache, runs, datetime, owner, repository):
     ''' Return summary data for set.html template.
     '''
-    base_url = expand_uri(u'https://github.com/{owner}/{repository}/', set.__dict__)
+    base_url = expand_uri(u'https://github.com/{owner}/{repository}/',
+                          dict(owner=owner, repository=repository))
     url_template = urljoin(base_url, u'blob/{commit_sha}/{+source_path}')
 
     states = [convert_run(memcache, run, url_template) for run in runs]
     counts = run_counts(runs)
     sort_run_dicts(states)
     
-    return dict(states=states, last_modified=set.datetime_end, counts=counts)
+    return dict(states=states, last_modified=datetime, counts=counts)
 
 def summarize(s3, source_dir):
     ''' Return summary HTML.
