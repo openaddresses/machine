@@ -253,38 +253,26 @@ def app_get_set_image(set_id, area):
     
     return redirect(image_url)
 
-@webhooks.route('/sets/<set_id>/<path:shortname>.txt', methods=['GET'])
+@webhooks.route('/sets/<set_id>/state.txt', methods=['GET'])
 @log_application_errors
-def app_get_set_text(set_id, shortname):
+def app_get_set_state_txt(set_id):
     '''
     '''
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
             runs = new_read_completed_set_runs(db, set_id)
     
-    if shortname == 'state':
-        # Special case for state.txt
-        buffer = csvIO()
-        output = csvDictWriter(buffer, CSV_HEADER, dialect='excel-tab', encoding='utf8')
-        output.writerow({col: col for col in CSV_HEADER})
-        for run in runs:
-            run_state = run.state or {}
-            row = {col: run_state.get(col, None) for col in CSV_HEADER}
-            row['source'] = os.path.relpath(run.source_path, 'sources')
-            output.writerow(row)
-
-        return Response(buffer.getvalue(),
-                        headers={'Content-Type': 'text/plain; charset=utf8'})
-
-    if not runs:
-        return Response('Set {} has no runs'.format(set_id), 404)
-    
+    buffer = csvIO()
+    output = csvDictWriter(buffer, CSV_HEADER, dialect='excel-tab', encoding='utf8')
+    output.writerow({col: col for col in CSV_HEADER})
     for run in runs:
-        run_shortname = os.path.splitext(os.path.relpath(run.source_path, 'sources'))[0]
-        if run_shortname == shortname:
-            return redirect(run.state.get('output'))
-    
-    return Response('Set {} has no run "{}"'.format(set_id, shortname), 404)
+        run_state = run.state or {}
+        row = {col: run_state.get(col, None) for col in CSV_HEADER}
+        row['source'] = os.path.relpath(run.source_path, 'sources')
+        output.writerow(row)
+
+    return Response(buffer.getvalue(),
+                    headers={'Content-Type': 'text/plain; charset=utf8'})
 
 @webhooks.route('/runs/<run_id>/sample.html')
 @log_application_errors
