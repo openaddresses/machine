@@ -215,7 +215,7 @@
 <body>
 <p>
     This is a summary view of <a href="http://openaddresses.io">OpenAddresses data</a>.
-    <a href="/openaddresses-complete.zip" class="stat">{{ counts.addresses|nice_integer }} addresses</a>
+    <a href="http://data.openaddresses.io/openaddresses-complete.zip" class="stat">{{ counts.addresses|nice_integer }} addresses</a>
     were processed <span class="stat">{{ last_modified.strftime('%A, %b %d, %Y') }}</span>.
     Out of <span class="stat">{{ counts.sources }} total sources</span>,
     <a href="#first-processed" class="stat">{{ counts.processed }} were completed</a>.
@@ -313,13 +313,13 @@
         </td>
         <td class="sample">
           {% if state.sample and state.sample_link %}
-            <button onclick="return showhide(this, '{{ state.shortname }}-sample-data', '{{ state.shortname }}-sample-link')">Show sample data</button>
+            <button onclick="return showhide(this, '{{ state.shortname|element_id }}-sample-data', '{{ state.shortname|element_id }}-sample-link')">Show sample data</button>
           {% else %}
             No sample data ( <a href="{{ state.output }}">log</a> )
           {% endif %}
         </td>
       </tr>
-      <tr id="{{ state.shortname }}-sample-data" style="display: none">
+      <tr id="{{ state.shortname|element_id }}-sample-data" style="display: none">
         <td colspan="6">
           {% if suggest_conform %}
             <p>
@@ -338,7 +338,7 @@
             <p>
               Sample data for first rows of <a href="{{ state.cache }}">{{ state.shortname }}</a>:
             </p>
-            <p id="{{ state.shortname }}-sample-link">
+            <p id="{{ state.shortname|element_id }}-sample-link">
                 <a href="{{ state.sample_link }}">{{ state.shortname }} sample</a>
             </p>
           {% endif %}

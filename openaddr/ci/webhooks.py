@@ -296,6 +296,7 @@ app.config.update(load_config())
 app.register_blueprint(webhooks)
 
 app.jinja_env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
+app.jinja_env.filters['element_id'] = lambda value: value.replace("'", '-')
 app.jinja_env.filters['nice_integer'] = nice_integer
 
 @app.before_first_request
