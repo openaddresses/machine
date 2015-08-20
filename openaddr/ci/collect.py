@@ -3,11 +3,11 @@ import logging; _L = logging.getLogger('openaddr.ci.collect')
 from argparse import ArgumentParser
 from os import close, remove, utime, environ
 from zipfile import ZipFile, ZIP_DEFLATED
-from os.path import relpath, splitext
-from urllib import urlretrieve
+from os.path import relpath, splitext, exists
 from urlparse import urlparse
 from tempfile import mkstemp
 from calendar import timegm
+import urllib
 
 from dateutil.parser import parse
 
@@ -76,8 +76,9 @@ def iterate_local_processed_files(runs):
             yield (source_base, filename)
         
         finally:
-            print 'rm', filename
-            remove(filename)
+            if exists(filename):
+                print 'rm', filename
+                remove(filename)
 
 def download_processed_file(url):
     ''' Download a URL to a local temporary file, return its path.
@@ -88,7 +89,7 @@ def download_processed_file(url):
     handle, filename = mkstemp(prefix='processed-', suffix=ext)
     close(handle)
     
-    _, head = urlretrieve(url, filename)
+    _, head = urllib.urlretrieve(url, filename)
     timestamp = timegm(parse(head.get('Last-Modified')).utctimetuple())
     utime(filename, (timestamp, timestamp))
     
