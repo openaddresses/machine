@@ -651,14 +651,14 @@ def row_transform_and_convert(sd, row):
             "Dicts are custom processing functions"
             if c[k]["function"] == "join":
                 row = row_fxn_join(sd, row, k) 
-            elif c[k]["function"] == "extract":
-                row = row_fxn_extract(sd, row, k)
+            elif c[k]["function"] == "regexp":
+                row = row_fxn_regexp(sd, row, k)
 
     ### Deprecated ###
     if "advanced_merge" in c:
         row = row_fxn_join(sd, row, False)
     if "split" in c:
-        row = row_fxn_extract(sd, row, False)
+        row = row_fxn_regexp(sd, row, False)
     ##################
     
     row2 = row_convert_to_out(sd, row)
@@ -716,7 +716,7 @@ def row_fxn_join(sd, row, key):
             _L.debug("Failure to merge row %r %s", e, row)
     return row
 
-def row_fxn_extract(sd, row, key):
+def row_fxn_regexp(sd, row, key):
     "Split addresses like '123 Maple St' into '123' and 'Maple St'"
     if not key: ## Deprecated Behavior
         cols = row[sd["conform"]["split"]].split(' ', 1)  # maxsplit
@@ -724,12 +724,14 @@ def row_fxn_extract(sd, row, key):
         row['auto_street'] = cols[1] if len(cols) > 1 else ''
     else: ## New Behavior
         fxn = sd["conform"][key]
-        regex = re.compile(fxn.get("regex", False))
-        match = regex.search(row[fxn["field"]])
-        if match: 
-            row[attrib_types[key]] = ''.join(match.groups())
+        pattern = re.compile(fxn.get("pattern", False))
+        replace = fxn.get('replace', False)
+        if replace:
+            match = re.sub(pattern, replace, row[fxn["field"]])
+            row[attrib_types[key]] = match;
         else:
-            row[attrib_types[key]] = ""
+            match = pattern.search(row[fxn["field"]])
+            row[attrib_types[key]] = ''.join(match.groups()) if match else '';
     return row
 
 def row_canonicalize_street_and_number(sd, row):
