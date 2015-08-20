@@ -96,17 +96,38 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual(r["auto_number"], "")
         self.assertEqual(r["auto_street"], "")
 
+        "Regex split"
+        c = { "conform": {
+            "number": {
+                "function": "extract",
+                "field": "ADDRESS",
+                "regex": "^([0-9]+)"
+            },
+            "street": {
+                "function": "extract",
+                "field": "ADDRESS",
+                "regex": "(?:[0-9]+ )(.*)"
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123", "OA:street": "MAPLE ST" })
+        
+        d = row_fxn_extract(c, d, "number")
+        d = row_fxn_extract(c, d, "street")
+        self.assertEqual(e, d)
+
         "New fxn extract"
         c = { "conform": { 
             "number": {
                 "function": "extract",
                 "field": "ADDRESS",
-                "regex": "^[0-9]+"
+                "regex": "^([0-9]+)"
             },
             "street": {
                 "function": "extract",
                 "field": "ADDRESS",
-                "regex": "fake"
+                "regex": "(fake)"
             }
         } }
         d = { "ADDRESS": "123 MAPLE ST" }

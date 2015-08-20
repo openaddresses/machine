@@ -727,7 +727,7 @@ def row_fxn_extract(sd, row, key):
         regex = re.compile(fxn.get("regex", False))
         match = regex.search(row[fxn["field"]])
         if match: 
-            row[attrib_types[key]] = match.group()
+            row[attrib_types[key]] = ''.join(match.groups())
         else:
             row[attrib_types[key]] = ""
     return row
