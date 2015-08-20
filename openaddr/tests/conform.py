@@ -13,7 +13,7 @@ import shutil
 from ..conform import (
     GEOM_FIELDNAME, X_FIELDNAME, Y_FIELDNAME,
     csv_source_to_csv, find_source_path, row_transform_and_convert,
-    row_fxn_extract, row_smash_case, row_round_lat_lon, row_merge,
+    row_fxn_regexp, row_smash_case, row_round_lat_lon, row_merge,
     row_extract_and_reproject, row_convert_to_out, row_fxn_join,
     row_canonicalize_street_and_number, conform_smash_case, conform_cli,
     csvopen, csvDictReader
@@ -29,12 +29,12 @@ class TestConformTransforms (unittest.TestCase):
     def test_conform_smash_case(self):
         d = { "conform": { "street": [ "U", "l", "MiXeD" ], "number": "U", "split": "U", "lat": "Y", "lon": "x",
                            "city": { "function": "join", "fields": ["ThIs","FiELd"], "separator": "-" },
-                           "district": { "function": "extract", "field": "ThaT", "regex": ""},
+                           "district": { "function": "regexp", "field": "ThaT", "pattern": ""},
                            "advanced_merge": { "auto_street": { "fields": ["MiXeD", "UPPER"] } } } }
         r = conform_smash_case(d)
         self.assertEqual({ "conform": { "street": [ "u", "l", "mixed" ], "number": "u", "split": "u", "lat": "y", "lon": "x",
                            "city": {"fields": ["this", "field"], "function": "join", "separator": "-"},
-                           "district": { "field": "that", "function": "extract", "regex": ""},
+                           "district": { "field": "that", "function": "regexp", "pattern": ""},
                            "advanced_merge": { "auto_street": { "fields": ["mixed", "upper"] } } } },
                          r)
 
@@ -84,58 +84,81 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_join(c, d, "street")
         self.assertEqual(e, d)
 
-    def test_row_fxn_extract(self):
+    def test_row_fxn_regexp(self):
         "Deprecated split"
         d = { "conform": { "split": "ADDRESS" } }
-        r = row_fxn_extract(d, { "ADDRESS": "123 MAPLE ST" }, False)
+        r = row_fxn_regexp(d, { "ADDRESS": "123 MAPLE ST" }, False)
         self.assertEqual({"ADDRESS": "123 MAPLE ST", "auto_street": "MAPLE ST", "auto_number": "123"}, r)
-        r = row_fxn_extract(d, { "ADDRESS": "265" }, False)
+        r = row_fxn_regexp(d, { "ADDRESS": "265" }, False)
         self.assertEqual(r["auto_number"], "265")
         self.assertEqual(r["auto_street"], "")
-        r = row_fxn_extract(d, { "ADDRESS": "" }, False)
+        r = row_fxn_regexp(d, { "ADDRESS": "" }, False)
         self.assertEqual(r["auto_number"], "")
         self.assertEqual(r["auto_street"], "")
 
-        "Regex split"
+        "Regex split - replace"
         c = { "conform": {
             "number": {
-                "function": "extract",
+                "function": "regexp",
                 "field": "ADDRESS",
-                "regex": "^([0-9]+)"
+                "pattern": "^([0-9]+)(?:.*)",
+                "replace": "\\1"
             },
             "street": {
-                "function": "extract",
+                "function": "regexp",
                 "field": "ADDRESS",
-                "regex": "(?:[0-9]+ )(.*)"
+                "pattern": "(?:[0-9]+ )(.*)",
+                "replace": "\\1"
             }
         } }
         d = { "ADDRESS": "123 MAPLE ST" }
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123", "OA:street": "MAPLE ST" })
         
-        d = row_fxn_extract(c, d, "number")
-        d = row_fxn_extract(c, d, "street")
+        d = row_fxn_regexp(c, d, "number")
+        d = row_fxn_regexp(c, d, "street")
         self.assertEqual(e, d)
-
-        "New fxn extract"
-        c = { "conform": { 
+        
+        "Regex split - no replace - good match"
+        c = { "conform": {
             "number": {
-                "function": "extract",
+                "function": "regexp",
                 "field": "ADDRESS",
-                "regex": "^([0-9]+)"
+                "pattern": "^([0-9]+)"
             },
             "street": {
-                "function": "extract",
+                "function": "regexp",
                 "field": "ADDRESS",
-                "regex": "(fake)"
+                "pattern": "(?:[0-9]+ )(.*)"
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123", "OA:street": "MAPLE ST" })
+        
+        d = row_fxn_regexp(c, d, "number")
+        d = row_fxn_regexp(c, d, "street")
+        self.assertEqual(e, d)
+
+        "regex split - no replace - bad match"
+        c = { "conform": { 
+            "number": {
+                "function": "regexp",
+                "field": "ADDRESS",
+                "pattern": "^([0-9]+)"
+            },
+            "street": {
+                "function": "regexp",
+                "field": "ADDRESS",
+                "pattern": "(fake)"
             }
         } }
         d = { "ADDRESS": "123 MAPLE ST" }
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123", "OA:street": "" })
         
-        d = row_fxn_extract(c, d, "number")
-        d = row_fxn_extract(c, d, "street")
+        d = row_fxn_regexp(c, d, "number")
+        d = row_fxn_regexp(c, d, "street")
         self.assertEqual(e, d)
         
     def test_transform_and_convert(self):
