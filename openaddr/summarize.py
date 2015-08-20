@@ -90,11 +90,6 @@ def convert_run(memcache, run, url_template):
     except:
         source = {}
     
-    try:
-        sample_data = requests.get(run.state.get('sample')).json()
-    except:
-        sample_data = None
-    
     run_state = run.state or {}
 
     converted_run = {
@@ -112,7 +107,7 @@ def convert_run(memcache, run, url_template):
         'process time': run_state.get('process time'),
         'processed': run_state.get('processed'),
         'sample': run_state.get('sample'),
-        'sample_data': sample_data,
+        'sample_link': expand_uri('/runs/{id}/sample.html', dict(id=run.id)),
         'shortname': splitext(relpath(run.source_path, 'sources'))[0],
         'skip': bool(source.get('skip', False)),
         'source': relpath(run.source_path, 'sources'),
@@ -208,23 +203,18 @@ def main():
     s3 = S3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'data-test.openaddresses.io')
     print(summarize(s3, paths.sources).encode('utf8'))
 
-def summarize_set(memcache, set, runs):
-    ''' Return summary HTML for a set.
+def summarize_runs(memcache, runs, datetime, owner, repository):
+    ''' Return summary data for set.html template.
     '''
-    base_url = expand_uri(u'https://github.com/{owner}/{repository}/', set.__dict__)
+    base_url = expand_uri(u'https://github.com/{owner}/{repository}/',
+                          dict(owner=owner, repository=repository))
     url_template = urljoin(base_url, u'blob/{commit_sha}/{+source_path}')
 
     states = [convert_run(memcache, run, url_template) for run in runs]
     counts = run_counts(runs)
     sort_run_dicts(states)
     
-    # Fudge in state.html from a different template directory for now.
-    env = Environment(loader=FileSystemLoader(join(dirname(__file__), 'templates')))
-    env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
-    env.filters['nice_integer'] = nice_integer
-    template = env.get_template('state.html')
-    
-    return template.render(states=states, last_modified=set.datetime_end, counts=counts)
+    return dict(states=states, last_modified=datetime, counts=counts)
 
 def summarize(s3, source_dir):
     ''' Return summary HTML.

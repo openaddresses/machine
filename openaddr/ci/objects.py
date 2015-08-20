@@ -86,7 +86,8 @@ def read_job(db, job_id):
         Returns a Job or None.
     '''
     db.execute('''SELECT status, task_files, file_states, file_results, github_status_url
-                  FROM jobs WHERE id = %s''', (job_id, ))
+                  FROM jobs WHERE id = %s
+                  LIMIT 1''', (job_id, ))
     
     try:
         status, task_files, states, file_results, github_status_url = db.fetchone()
@@ -150,7 +151,8 @@ def read_set(db, set_id):
     db.execute('''SELECT id, commit_sha, datetime_start, datetime_end,
                          render_world, render_europe, render_usa,
                          owner, repository
-                  FROM sets WHERE id = %s''', (set_id, ))
+                  FROM sets WHERE id = %s
+                  LIMIT 1''', (set_id, ))
     
     try:
         id, sha, start, end, world, europe, usa, own, repo = db.fetchone()
@@ -172,6 +174,26 @@ def read_sets(db, past_id):
                (past_id, ))
     
     return [Set(*row) for row in db.fetchall()]
+
+def read_latest_set(db, owner, repository):
+    ''' Read latest completed set with given owner and repository.
+    '''
+    db.execute('''SELECT id, commit_sha, datetime_start, datetime_end,
+                         render_world, render_europe, render_usa,
+                         owner, repository
+                  FROM sets
+                  WHERE owner = %s AND repository = %s
+                    AND datetime_end IS NOT NULL
+                  ORDER BY datetime_start DESC
+                  LIMIT 1''',
+               (owner, repository, ))
+    
+    try:
+        id, sha, start, end, world, europe, usa, own, repo = db.fetchone()
+    except TypeError:
+        return None
+    else:
+        return Set(id, sha, start, end, world, europe, usa, own, repo)
 
 def add_run(db):
     ''' Reserve a row in the runs table and return its new ID.
@@ -218,6 +240,25 @@ def copy_run(db, run_id, job_id, commit_sha, set_id):
     
     return run_id
 
+def read_run(db, run_id):
+    '''
+    '''
+    db.execute('''SELECT id, source_path, source_id, source_data, datetime_tz,
+                         state, status, copy_of, code_version, worker_id,
+                         job_id, set_id, commit_sha
+                  FROM runs WHERE id = %s
+                  LIMIT 1''', (run_id, ))
+    
+    try:
+        (id, source_path, source_id, source_data, datetime_tz, state, status,
+         copy_of, code_version, worker_id, job_id, set_id, commit_sha) = db.fetchone()
+    except TypeError:
+        return None
+    else:
+        return Run(id, source_path, source_id, source_data, datetime_tz,
+                   state, status, copy_of, code_version, worker_id,
+                   job_id, set_id, commit_sha)
+    
 def get_completed_file_run(db, file_id, interval):
     ''' Look for an existing run on this file ID within the reuse timeout limit.
     '''
@@ -243,7 +284,8 @@ def get_completed_run(db, run_id, min_dtz):
     '''
     db.execute('''SELECT id, status FROM runs
                   WHERE id = %s AND status IS NOT NULL
-                    AND datetime_tz >= %s''',
+                    AND datetime_tz >= %s
+                    LIMIT 1''',
                (run_id, min_dtz))
     
     return db.fetchone()
@@ -265,5 +307,56 @@ def new_read_completed_set_runs(db, set_id):
                          job_id, set_id, commit_sha FROM runs
                   WHERE set_id = %s AND status IS NOT NULL''',
                (set_id, ))
+    
+    return [Run(*row) for row in db.fetchall()]
+
+def read_completed_runs_to_date(db, starting_set_id):
+    ''' Get only successful runs.
+    '''
+    set = read_set(db, starting_set_id)
+    
+    if set is None or set.datetime_end is None:
+        return None
+    
+    # Get IDs for latest successful source runs of any run in the requested set.
+    db.execute('''SELECT MAX(id), source_path FROM runs
+                  WHERE source_path IN (
+                      -- Get all source paths for successful runs in this set.
+                      SELECT source_path FROM runs
+                      WHERE set_id = %s
+                    )
+                    -- Get only successful runs.
+                    AND status = true
+                  GROUP BY source_path''',
+               (set.id, ))
+    
+    run_path_ids = {path: run_id for (run_id, path) in db.fetchall()}
+    
+    # Get IDs for latest unsuccessful source runs of any run in the requested set.
+    db.execute('''SELECT MAX(id), source_path FROM runs
+                  WHERE source_path IN (
+                      -- Get all source paths for failed runs in this set.
+                      SELECT source_path FROM runs
+                      WHERE set_id = %s
+                    )
+                    -- Get only unsuccessful runs.
+                    AND status = false
+                  GROUP BY source_path''',
+               (set.id, ))
+    
+    # Use unsuccessful runs if no successful ones exist.
+    for (run_id, source_path) in db.fetchall():
+        if source_path not in run_path_ids:
+            run_path_ids[source_path] = run_id
+    
+    run_ids = tuple(sorted(run_path_ids.values()))
+
+    # Get Run instance for each of the returned run IDs.
+    db.execute('''SELECT id, source_path, source_id, source_data, datetime_tz,
+                         state, status, copy_of, code_version, worker_id,
+                         job_id, set_id, commit_sha
+                  FROM runs
+                  WHERE id IN %s''',
+               (run_ids, ))
     
     return [Run(*row) for row in db.fetchall()]

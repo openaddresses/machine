@@ -8,7 +8,7 @@ from csv import DictWriter
 import hashlib, hmac
 import json, os
 
-import memcache
+import memcache, requests
 from jinja2 import Environment, FileSystemLoader
 from flask import (
     Flask, Blueprint, request, Response, current_app, jsonify, render_template,
@@ -22,9 +22,13 @@ from . import (
     db_connect, db_queue, db_cursor, TASK_QUEUE, create_queued_job
     )
 
-from .objects import read_job, read_jobs, read_sets, read_set, new_read_completed_set_runs
+from .objects import (
+    read_job, read_jobs, read_sets, read_set, read_latest_set,
+    read_run, new_read_completed_set_runs, read_completed_runs_to_date
+    )
+
 from ..compat import expand_uri, csvIO, csvDictWriter
-from ..summarize import summarize_set
+from ..summarize import summarize_runs, nice_integer
 
 CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
              'version', 'fingerprint', 'cache time', 'processed', 'process time', \
@@ -85,7 +89,36 @@ def enforce_signature(route_function):
 @webhooks.route('/')
 @log_application_errors
 def app_index():
-    return 'Yo.'
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            set = read_latest_set(db, 'openaddresses', 'openaddresses')
+            runs = read_completed_runs_to_date(db, set.id)
+
+    mc = memcache.Client([current_app.config['MEMCACHE_SERVER']])
+    summary_data = summarize_runs(mc, runs, set.datetime_end, set.owner, set.repository)
+    return render_template('set.html', set=None, **summary_data)
+
+@webhooks.route('/state.txt', methods=['GET'])
+@log_application_errors
+def app_get_state_txt():
+    '''
+    '''
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            set = read_latest_set(db, 'openaddresses', 'openaddresses')
+            runs = read_completed_runs_to_date(db, set.id)
+    
+    buffer = csvIO()
+    output = csvDictWriter(buffer, CSV_HEADER, dialect='excel-tab', encoding='utf8')
+    output.writerow({col: col for col in CSV_HEADER})
+    for run in runs:
+        run_state = run.state or {}
+        row = {col: run_state.get(col, None) for col in CSV_HEADER}
+        row['source'] = os.path.relpath(run.source_path, 'sources')
+        output.writerow(row)
+
+    return Response(buffer.getvalue(),
+                    headers={'Content-Type': 'text/plain; charset=utf8'})
 
 @webhooks.route('/hook', methods=['POST'])
 @log_application_errors
@@ -189,6 +222,20 @@ def app_get_sets():
     
     return render_template('sets.html', sets=sets)
 
+@webhooks.route('/latest/set', methods=['GET'])
+@log_application_errors
+def app_get_latest_set():
+    '''
+    '''
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            set = read_latest_set(db, 'openaddresses', 'openaddresses')
+
+    if set is None:
+        return Response('No latest set found', 404)
+    
+    return redirect('/sets/{id}'.format(id=set.id), 302)
+
 @webhooks.route('/sets/<set_id>/', methods=['GET'])
 @log_application_errors
 def app_get_set(set_id):
@@ -203,66 +250,54 @@ def app_get_set(set_id):
         return Response('Set {} not found'.format(set_id), 404)
     
     mc = memcache.Client([current_app.config['MEMCACHE_SERVER']])
-    return summarize_set(mc, set, runs)
+    summary_data = summarize_runs(mc, runs, set.datetime_end, set.owner, set.repository)
+    return render_template('set.html', set=set, **summary_data)
 
-@webhooks.route('/sets/<set_id>/render-<area>.png', methods=['GET'])
+@webhooks.route('/sets/<set_id>/state.txt', methods=['GET'])
 @log_application_errors
-def app_get_set_image(set_id, area):
-    '''
-    '''
-    if area not in ('usa', 'world', 'europe'):
-        return Response('Area "{}" not found'.format(area), 404)
-    
-    with db_connect(current_app.config['DATABASE_URL']) as conn:
-        with db_cursor(conn) as db:
-            set = read_set(db, set_id)
-
-    if set is None:
-        return Response('Set {} not found'.format(set_id), 404)
-    
-    image_url = getattr(set, 'render_{}'.format(area))
-    
-    if image_url is None:
-        return Response('Area "{}" has no image'.format(area), 404)
-    
-    return redirect(image_url)
-
-@webhooks.route('/sets/<set_id>/<path:shortname>.txt', methods=['GET'])
-@log_application_errors
-def app_get_set_text(set_id, shortname):
+def app_get_set_state_txt(set_id):
     '''
     '''
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
             runs = new_read_completed_set_runs(db, set_id)
     
-    if shortname == 'state':
-        # Special case for state.txt
-        buffer = csvIO()
-        output = csvDictWriter(buffer, CSV_HEADER, dialect='excel-tab', encoding='utf8')
-        output.writerow({col: col for col in CSV_HEADER})
-        for run in runs:
-            run_state = run.state or {}
-            row = {col: run_state.get(col, None) for col in CSV_HEADER}
-            row['source'] = os.path.relpath(run.source_path, 'sources')
-            output.writerow(row)
-
-        return Response(buffer.getvalue(),
-                        headers={'Content-Type': 'text/plain; charset=utf8'})
-
-    if not runs:
-        return Response('Set {} has no runs'.format(set_id), 404)
-    
+    buffer = csvIO()
+    output = csvDictWriter(buffer, CSV_HEADER, dialect='excel-tab', encoding='utf8')
+    output.writerow({col: col for col in CSV_HEADER})
     for run in runs:
-        run_shortname = os.path.splitext(os.path.relpath(run.source_path, 'sources'))[0]
-        if run_shortname == shortname:
-            return redirect(run.state.get('output'))
+        run_state = run.state or {}
+        row = {col: run_state.get(col, None) for col in CSV_HEADER}
+        row['source'] = os.path.relpath(run.source_path, 'sources')
+        output.writerow(row)
+
+    return Response(buffer.getvalue(),
+                    headers={'Content-Type': 'text/plain; charset=utf8'})
+
+@webhooks.route('/runs/<run_id>/sample.html')
+@log_application_errors
+def app_get_run_sample(run_id):
+    '''
+    '''
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            run = read_run(db, run_id)
+
+    if run is None:
+        return Response('Run {} does not exist'.format(run_id), 404)
     
-    return Response('Set {} has no run "{}"'.format(set_id, shortname), 404)
+    sample_url = run.state.get('sample')
+    sample_data = requests.get(sample_url).json()
+    
+    return render_template('run-sample.html', sample_data=sample_data)
 
 app = Flask(__name__)
 app.config.update(load_config())
 app.register_blueprint(webhooks)
+
+app.jinja_env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
+app.jinja_env.filters['element_id'] = lambda value: value.replace("'", '-')
+app.jinja_env.filters['nice_integer'] = nice_integer
 
 @app.before_first_request
 def app_prepare():
