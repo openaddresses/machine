@@ -3,7 +3,7 @@ from __future__ import print_function
 
 from .. import __version__
 
-from os import environ, remove, stat, close
+from os import environ, remove, stat, close, utime
 from os.path import join, splitext
 from shutil import rmtree
 from tempfile import mkdtemp, mkstemp
@@ -1761,16 +1761,39 @@ class TestBatch (unittest.TestCase):
 class TestCollect (unittest.TestCase):
 
     def test_add_source_to_zipfile(self):
-    
-        handle, filename = mkstemp(suffix='.zip')
+        '''
+        '''
+        handle, filename1 = mkstemp(suffix='.zip')
         close(handle)
         
-        output = ZipFile(filename, 'w')
-        add_source_to_zipfile(output, 'foobar', 'blah')
+        handle, filename2 = mkstemp(suffix='.csv')
+        utime(filename2, (1234567890, 1234567890))
+        close(handle)
+        
+        handle, filename3 = mkstemp(suffix='.zip')
+        zipfile3 = ZipFile(filename3, 'w')
+        zipfile3.writestr('foo/thing.vrt', b'stuff')
+        zipfile3.writestr('foo/thing.csv', b'stuff')
+        zipfile3.close()
+        utime(filename3, (987654321, 987654321))
+        close(handle)
+
+        output = ZipFile(filename1, 'w')
+        
+        add_source_to_zipfile(output, 'foobar', 'temp')
+        add_source_to_zipfile(output, 'foobar', filename2)
+        add_source_to_zipfile(output, 'foobar', filename3)
         output.close()
         
-        result = ZipFile(filename, 'r')
-        self.assertEqual(len(result.namelist()), 0)
+        result = ZipFile(filename1, 'r')
+        name1, name2, name3 = result.namelist()
+        self.assertEqual(name1, 'foobar.csv')
+        self.assertEqual(name2, 'foo/thing.vrt')
+        self.assertEqual(name3, 'foo/thing.csv')
+        
+        remove(filename1)
+        remove(filename2)
+        remove(filename3)
 
     def test_iterate_local_processed_files(self):
         runs = [
@@ -1812,7 +1835,7 @@ class TestCollect (unittest.TestCase):
         raise ValueError('Unknowable URL "{}"'.format(url))
         
     def test_download_processed_file_csv(self):
-        with patch('urllib.urlretrieve') as urlretrieve:
+        with patch('urllib.request.urlretrieve') as urlretrieve:
             urlretrieve.side_effect = TestCollect.urlretrieve
             filename = download_processed_file('http://s3.amazonaws.com/openaddresses/us-oh-clinton.csv')
 
@@ -1821,7 +1844,7 @@ class TestCollect (unittest.TestCase):
         remove(filename)
 
     def test_download_processed_file_zip(self):
-        with patch('urllib.urlretrieve') as urlretrieve:
+        with patch('urllib.request.urlretrieve') as urlretrieve:
             urlretrieve.side_effect = TestCollect.urlretrieve
             filename = download_processed_file('http://data.openaddresses.io.s3.amazonaws.com/runs/11170/ca-ab-strathcona-county.zip')
 
@@ -1830,7 +1853,7 @@ class TestCollect (unittest.TestCase):
         remove(filename)
 
     def test_download_processed_file_nested_zip(self):
-        with patch('urllib.urlretrieve') as urlretrieve:
+        with patch('urllib.request.urlretrieve') as urlretrieve:
             urlretrieve.side_effect = TestCollect.urlretrieve
             filename = download_processed_file('http://data.openaddresses.io.s3.amazonaws.com/runs/13616/fr/vaucluse.zip')
 

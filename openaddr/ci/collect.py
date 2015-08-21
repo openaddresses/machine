@@ -1,13 +1,15 @@
 import logging; _L = logging.getLogger('openaddr.ci.collect')
 
+from ..compat import standard_library
+
 from argparse import ArgumentParser
 from os import close, remove, utime, environ
 from zipfile import ZipFile, ZIP_DEFLATED
 from os.path import relpath, splitext, exists
-from urlparse import urlparse
 from tempfile import mkstemp
 from calendar import timegm
-import urllib
+import urllib.request
+import urllib.parse
 
 from dateutil.parser import parse
 
@@ -95,11 +97,11 @@ def download_processed_file(url):
     
         Local file will have an appropriate timestamp and extension.
     '''
-    _, ext = splitext(urlparse(url).path)
+    _, ext = splitext(urllib.parse.urlparse(url).path)
     handle, filename = mkstemp(prefix='processed-', suffix=ext)
     close(handle)
     
-    _, head = urllib.urlretrieve(url, filename)
+    _, head = urllib.request.urlretrieve(url, filename)
     timestamp = timegm(parse(head.get('Last-Modified')).utctimetuple())
     utime(filename, (timestamp, timestamp))
     
