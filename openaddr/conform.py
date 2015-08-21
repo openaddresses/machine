@@ -399,9 +399,32 @@ class ConvertToCsvTask(object):
 
 def convert_regexp_replace(replace):
     ''' Convert regular expression replace string from $ syntax to slash-syntax.
+        
+        Replace one kind of replacement, then call self recursively to find others.
     '''
     if re.search(r'\$\d\b', replace):
-        return re.sub(r'\$(\d)\b', r'\\1', replace)
+        # $d back-reference followed by a word break.
+        return convert_regexp_replace(re.sub(r'\$(\d)\b', r'\\\g<1>', replace))
+    
+    if re.search(r'\$\d\D', replace):
+        # $d back-reference followed by an non-digit character.
+        return convert_regexp_replace(re.sub(r'\$(\d)(\D)', r'\\\g<1>\g<2>', replace))
+    
+    if re.search(r'\$\d+\b', replace):
+        # $dd* back-reference followed by a word break.
+        return convert_regexp_replace(re.sub(r'\$(\d+)\b', r'\\\g<1>', replace))
+    
+    if re.search(r'\$\{\d\}', replace):
+        # ${d} back-reference.
+        return convert_regexp_replace(re.sub(r'\$\{(\d)\}', r'\\g<\g<1>>', replace))
+    
+    if re.search(r'\$\d+\D', replace):
+        # $dd* back-reference followed by an non-digit character.
+        return convert_regexp_replace(re.sub(r'\$(\d+)(\D)', r'\\\g<1>\g<2>', replace))
+    
+    if re.search(r'\$\{\d+\}', replace):
+        # ${dd*} back-reference.
+        return convert_regexp_replace(re.sub(r'\$\{(\d+)\}', r'\\g<\g<1>>', replace))
     
     return replace    
 
