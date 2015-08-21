@@ -227,6 +227,10 @@ class TestOA (unittest.TestCase):
         
         with csvopen(output_path, encoding='utf8') as input:
             rows = list(csvDictReader(input, encoding='utf8'))
+            self.assertEqual(rows[1]['NUMBER'], '2147')
+            self.assertEqual(rows[10]['NUMBER'], '605')
+            self.assertEqual(rows[100]['NUMBER'], '167')
+            self.assertEqual(rows[1000]['NUMBER'], '322')
             self.assertEqual(rows[1]['STREET'], 'Broadway')
             self.assertEqual(rows[10]['STREET'], 'Hillsborough Street')
             self.assertEqual(rows[100]['STREET'], '8th Street')
@@ -474,6 +478,9 @@ class TestOA (unittest.TestCase):
         
         with csvopen(output_path, encoding='utf8') as input:
             rows = list(csvDictReader(input, encoding='utf8'))
+            self.assertEqual(rows[1]['NUMBER'], u'5')
+            self.assertEqual(rows[10]['NUMBER'], u'8')
+            self.assertEqual(rows[100]['NUMBER'], u'5a')
             self.assertEqual(rows[1]['STREET'], u'Ulica Dolnych Wa\u0142\xf3w  Gliwice')
             self.assertEqual(rows[10]['STREET'], u'Ulica Dolnych Wa\u0142\xf3w  Gliwice')
             self.assertEqual(rows[100]['STREET'], u'Plac Place Inwalid\xf3w Wojennych  Gliwice')
