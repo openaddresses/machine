@@ -291,82 +291,34 @@ def guess_source_encoding(datasource, layer):
 def find_source_path(source_definition, source_paths):
     "Figure out which of the possible paths is the actual source"
     conform = source_definition["conform"]
-    if conform["type"] in ("shapefile", "shapefile-polygon"):
-        # TODO this code is too complicated; see XML variant below for simpler option
-        # Shapefiles are named *.shp
-        candidates = []
-        for fn in source_paths:
-            basename, ext = os.path.splitext(fn)
-            if ext.lower() == ".shp":
-                candidates.append(fn)
-        if len(candidates) == 0:
-            _L.warning("No shapefiles found in %s", source_paths)
-            return None
-        elif len(candidates) == 1:
-            _L.debug("Selected %s for source", candidates[0])
-            return candidates[0]
-        else:
-            # Multiple candidates; look for the one named by the file attribute
-            if "file" not in conform:
-                _L.warning("Multiple shapefiles found, but source has no file attribute.")
-                return None
-            source_file_name = conform["file"]
-            for c in candidates:
-                if source_file_name == os.path.basename(c):
-                    return c
-            _L.warning("Source names file %s but could not find it", source_file_name)
-            return None
-    elif conform["type"] == "geojson" and source_definition["type"] != "ESRI":
-        candidates = []
-        for fn in source_paths:
-            basename, ext = os.path.splitext(fn)
-            if ext.lower() == ".json":
-                candidates.append(fn)
-        if len(candidates) == 0:
-            _L.warning("No JSON found in %s", source_paths)
-            return None
-        elif len(candidates) == 1:
-            _L.debug("Selected %s for source", candidates[0])
-            return candidates[0]
-        else:
-            _L.warning("Found more than one JSON file in source, can't pick one")
-            # geojson spec currently doesn't include a file attribute. Maybe it should?
-            return None
-    elif conform["type"] == "geojson" and source_definition["type"] == "ESRI":
-        # Old style ESRI conform: ESRI downloader should only give us a single cache.csv file
-        return source_paths[0]
-    elif conform["type"] == "csv":
-        # Return file if it's specified, else return the first file we find
-        if "file" in conform:
-            for fn in source_paths:
-                # Consider it a match if the basename matches; directory names are a mess
-                if os.path.basename(conform["file"]) == os.path.basename(fn):
-                    return fn
-            _L.warning("Conform named %s as file but we could not find it." % conform["file"])
-            return None
-        else:
-            return source_paths[0]
-
-    elif conform["type"] == "xml":
-        # Return file if it's specified, else return the first .gml file we find
-        if "file" in conform:
-            for fn in source_paths:
-                # Consider it a match if the basename matches; directory names are a mess
-                if os.path.basename(conform["file"]) == os.path.basename(fn):
-                    return fn
-            _L.warning("Conform named %s as file but we could not find it." % conform["file"])
-            return None
-        else:
-            for fn in source_paths:
-                _, ext = os.path.splitext(fn)
-                if ext == ".gml":
-                    return fn
-            _L.warning("Could not find a .gml file")
-            return None
-
-
+   
+    # Determine possible inputs
+    candidates = []
+    for fn in source_paths:
+        basename, ext = os.path.splitext(fn)
+        if ext.lower() in ['.shp', '.json', '.geojson', '.csv', '.gml', '.txt']:
+            candidates.append(fn)
+    if len(candidates) == 0:
+        _L.warning("No geometry sources found %s", source_paths)
+        return None
+    elif len(candidates) == 1 and "file" not in conform:
+        _L.debug("Selected %s for source", candidates[0])
+        return candidates[0]
     else:
-        _L.warning("Unknown source type %s", conform["type"])
+        # Multiple candidates; look for the one named by the file attribute
+        if "file" not in conform:
+            _L.warning("Multiple geometry sources found, but source has no file attribute.")
+            return None
+        source_file_name = conform["file"]
+        # Looks for file with exact path & name
+        for c in candidates:
+            if source_file_name == c:
+                return c
+        # Looks for file with similiar name
+        for c in candidates:
+            if c.find(source_file_name) != -1:
+                return c
+        _L.warning("Source names file %s but could not find it", source_file_name)
         return None
 
 class ConvertToCsvTask(object):

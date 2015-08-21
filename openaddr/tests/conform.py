@@ -441,54 +441,47 @@ class TestConformCli (unittest.TestCase):
 
 class TestConformMisc(unittest.TestCase):
     def test_find_shapefile_source_path(self):
-        shp_conform = {"conform": { "type": "shapefile" } }
+        shp_conform = {"conform": { } }
         self.assertEqual("foo.shp", find_source_path(shp_conform, ["foo.shp"]))
         self.assertEqual("FOO.SHP", find_source_path(shp_conform, ["FOO.SHP"]))
         self.assertEqual("xyzzy/FOO.SHP", find_source_path(shp_conform, ["xyzzy/FOO.SHP"]))
         self.assertEqual("foo.shp", find_source_path(shp_conform, ["foo.shp", "foo.prj", "foo.shx"]))
-        self.assertEqual(None, find_source_path(shp_conform, ["nope.txt"]))
-        self.assertEqual(None, find_source_path(shp_conform, ["foo.shp", "bar.shp"]))
 
-        shp_file_conform = {"conform": { "type": "shapefile", "file": "foo.shp" } }
+        shp_file_conform = {"conform": { "file": "foo.shp" } }
         self.assertEqual("foo.shp", find_source_path(shp_file_conform, ["foo.shp"]))
         self.assertEqual("foo.shp", find_source_path(shp_file_conform, ["foo.shp", "bar.shp"]))
         self.assertEqual("xyzzy/foo.shp", find_source_path(shp_file_conform, ["xyzzy/foo.shp", "xyzzy/bar.shp"]))
 
-        shp_poly_conform = {"conform": { "type": "shapefile-polygon" } }
+        shp_poly_conform = {"conform": { } }
         self.assertEqual("foo.shp", find_source_path(shp_poly_conform, ["foo.shp"]))
 
-        broken_conform = {"conform": { "type": "broken" }}
-        self.assertEqual(None, find_source_path(broken_conform, ["foo.shp"]))
-
     def test_find_geojson_source_path(self):
-        geojson_conform = {"type": "notESRI", "conform": {"type": "geojson"}}
+        geojson_conform = {"conform": { }}
         self.assertEqual("foo.json", find_source_path(geojson_conform, ["foo.json"]))
         self.assertEqual("FOO.JSON", find_source_path(geojson_conform, ["FOO.JSON"]))
         self.assertEqual("xyzzy/FOO.JSON", find_source_path(geojson_conform, ["xyzzy/FOO.JSON"]))
         self.assertEqual("foo.json", find_source_path(geojson_conform, ["foo.json", "foo.prj", "foo.shx"]))
-        self.assertEqual(None, find_source_path(geojson_conform, ["nope.txt"]))
-        self.assertEqual(None, find_source_path(geojson_conform, ["foo.json", "bar.json"]))
 
     def test_find_esri_source_path(self):
         # test that the legacy ESRI/GeoJSON style works
-        old_conform = {"type": "ESRI", "conform": {"type": "geojson"}}
+        old_conform = {"conform": { }}
         self.assertEqual("foo.csv", find_source_path(old_conform, ["foo.csv"]))
         # test that the new ESRI/CSV style works
-        new_conform = {"type": "ESRI", "conform": {"type": "csv"}}
+        new_conform = {"conform": { }}
         self.assertEqual("foo.csv", find_source_path(new_conform, ["foo.csv"]))
 
     def test_find_csv_source_path(self):
-        csv_conform = {"conform": {"type": "csv"}}
+        csv_conform = {"conform": { }}
         self.assertEqual("foo.csv", find_source_path(csv_conform, ["foo.csv"]))
-        csv_file_conform = {"conform": {"type": "csv", "file":"bar.txt"}}
+        csv_file_conform = {"conform": { "file":"bar.txt" }}
         self.assertEqual("bar.txt", find_source_path(csv_file_conform, ["license.pdf", "bar.txt"]))
         self.assertEqual("aa/bar.txt", find_source_path(csv_file_conform, ["license.pdf", "aa/bar.txt"]))
         self.assertEqual(None, find_source_path(csv_file_conform, ["foo.txt"]))
 
     def test_find_xml_source_path(self):
-        c = {"conform": {"type": "xml"}}
+        c = {"conform": { }}
         self.assertEqual("foo.gml", find_source_path(c, ["foo.gml"]))
-        c = {"conform": {"type": "xml", "file": "xyzzy/foo.gml"}}
+        c = {"conform": {"file": "xyzzy/foo.gml"}}
         self.assertEqual("xyzzy/foo.gml", find_source_path(c, ["xyzzy/foo.gml", "bar.gml", "foo.gml"]))
         self.assertEqual("/tmp/foo/xyzzy/foo.gml", find_source_path(c, ["/tmp/foo/xyzzy/foo.gml"]))
 
