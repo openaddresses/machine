@@ -397,6 +397,14 @@ class ConvertToCsvTask(object):
         # Conversion must have failed
         return None, 0
 
+def convert_regexp_replace(replace):
+    ''' Convert regular expression replace string from $ syntax to slash-syntax.
+    '''
+    if re.search(r'\$\d\b', replace):
+        return re.sub(r'\$(\d)\b', r'\\1', replace)
+    
+    return replace    
+
 def ogr_source_to_csv(source_definition, source_path, dest_path):
     "Convert a single shapefile or GeoJSON in source_path and put it in dest_path"
     in_datasource = ogr.Open(source_path, 0)

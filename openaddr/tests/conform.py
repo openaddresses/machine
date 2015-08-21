@@ -16,7 +16,7 @@ from ..conform import (
     row_fxn_regexp, row_smash_case, row_round_lat_lon, row_merge,
     row_extract_and_reproject, row_convert_to_out, row_fxn_join,
     row_canonicalize_street_and_number, conform_smash_case, conform_cli,
-    csvopen, csvDictReader
+    csvopen, csvDictReader, convert_regexp_replace
     )
 
 class TestConformTransforms (unittest.TestCase):
@@ -440,6 +440,12 @@ class TestConformCli (unittest.TestCase):
 
 
 class TestConformMisc(unittest.TestCase):
+
+    def test_convert_regexp_replace(self):
+        '''
+        '''
+        self.assertEqual(convert_regexp_replace('$1'), r'\1')
+
     def test_find_shapefile_source_path(self):
         shp_conform = {"conform": { "type": "shapefile" } }
         self.assertEqual("foo.shp", find_source_path(shp_conform, ["foo.shp"]))
