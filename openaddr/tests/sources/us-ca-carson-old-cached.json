@@ -11,8 +11,6 @@
     "website": "http://ci.carson.ca.us/",
     "type": "ESRI",
     "conform": {
-        "lon": "x",
-        "lat": "y",
         "number": "SITENUMBER",
         "street": "SITESTREET",
         "type": "geojson",

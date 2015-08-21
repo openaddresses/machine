@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function
 import os
 import copy
 import json
+import re
 
 import unittest
 import tempfile
@@ -13,10 +14,10 @@ import shutil
 from ..conform import (
     GEOM_FIELDNAME, X_FIELDNAME, Y_FIELDNAME,
     csv_source_to_csv, find_source_path, row_transform_and_convert,
-    row_split_address, row_smash_case, row_round_lat_lon, row_merge_street,
-    row_extract_and_reproject, row_convert_to_out, row_advanced_merge,
+    row_fxn_regexp, row_smash_case, row_round_lat_lon, row_merge,
+    row_extract_and_reproject, row_convert_to_out, row_fxn_join,
     row_canonicalize_street_and_number, conform_smash_case, conform_cli,
-    csvopen, csvDictReader
+    csvopen, csvDictReader, convert_regexp_replace
     )
 
 class TestConformTransforms (unittest.TestCase):
@@ -27,19 +28,14 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual({"upper": "foo", "lower": "bar", "mixed": "mixed"}, r)
 
     def test_conform_smash_case(self):
-        d = { "conform": { "street": "MiXeD", "number": "U", "split": "U", "lat": "Y", "lon": "x",
-                           "merge": [ "U", "l", "MiXeD" ],
-                           "advanced_merge": { "auto_street": { "fields": ["MiXeD", "UPPER"] } } } }
-        r = conform_smash_case(d)
-        self.assertEqual({ "conform": { "street": "mixed", "number": "u", "split": "u", "lat": "y", "lon": "x",
-                           "merge": [ "u", "l", "mixed" ],
-                           "advanced_merge": { "auto_street": { "fields": ["mixed", "upper"] } } } },
-                         r)
-
         d = { "conform": { "street": [ "U", "l", "MiXeD" ], "number": "U", "split": "U", "lat": "Y", "lon": "x",
+                           "city": { "function": "join", "fields": ["ThIs","FiELd"], "separator": "-" },
+                           "district": { "function": "regexp", "field": "ThaT", "pattern": ""},
                            "advanced_merge": { "auto_street": { "fields": ["MiXeD", "UPPER"] } } } }
         r = conform_smash_case(d)
         self.assertEqual({ "conform": { "street": [ "u", "l", "mixed" ], "number": "u", "split": "u", "lat": "y", "lon": "x",
+                           "city": {"fields": ["this", "field"], "function": "join", "separator": "-"},
+                           "district": { "field": "that", "function": "regexp", "pattern": ""},
                            "advanced_merge": { "auto_street": { "fields": ["mixed", "upper"] } } } },
                          r)
 
@@ -49,39 +45,125 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual({"LON": "-119.2", "LAT": "39.3", "NUMBER": "123", "STREET": "MAPLE LN",
                           "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None}, r)
 
-    def test_row_merge_street(self):
-        d = { "conform": { "merge": [ "n", "t" ] } }
-        r = row_merge_street(d, {"n": "MAPLE", "t": "ST", "x": "foo"})
-        self.assertEqual({"auto_street": "MAPLE ST", "x": "foo", "t": "ST", "n": "MAPLE"}, r)
-
+    def test_row_merge(self):
         d = { "conform": { "street": [ "n", "t" ] } }
-        r = row_merge_street(d, {"n": "MAPLE", "t": "ST", "x": "foo"})
+        r = row_merge(d, {"n": "MAPLE", "t": "ST", "x": "foo"}, 'street')
         self.assertEqual({"OA:street": "MAPLE ST", "x": "foo", "t": "ST", "n": "MAPLE"}, r)
 
-    def test_row_advanced_merge(self):
+        d = { "conform": { "city": [ "n", "t" ] } }
+        r = row_merge(d, {"n": "Village of", "t": "Stanley", "x": "foo"}, 'city')
+        self.assertEqual({"OA:city": "Village of Stanley", "x": "foo", "t": "Stanley", "n": "Village of"}, r)
+    
+    def test_row_fxn_join(self):
+        "Deprecated advanced_merge"
         c = { "conform": { "advanced_merge": {
                 "new_a": { "fields": ["a1"] },
                 "new_b": { "fields": ["b1", "b2"] },
                 "new_c": { "separator": "-", "fields": ["c1", "c2"] } } } }
         d = { "a1": "va1", "b1": "vb1", "b2": "vb2", "c1": "vc1", "c2": "vc2" }
-        r = row_advanced_merge(c, d)
         e = copy.deepcopy(d)
         e.update({ "new_a": "va1", "new_b": "vb1 vb2", "new_c": "vc1-vc2"})
+        r = row_fxn_join(c, d, False)
+        self.assertEqual(e, r)
+
+        "New fxn join"
+        c = { "conform": {
+            "number": {
+                "function": "join",
+                "fields": ["a1"]
+            },
+            "street": {
+                "function": "join",
+                "fields": ["b1","b2"],
+                "separator": "-"
+            }
+        } }
+        d = { "a1": "va1", "b1": "vb1", "b2": "vb2" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "va1", "OA:street": "vb1-vb2" })
+        d = row_fxn_join(c, d, "number")
+        d = row_fxn_join(c, d, "street")
         self.assertEqual(e, d)
 
-    def test_split_address(self):
+    def test_row_fxn_regexp(self):
+        "Deprecated split"
         d = { "conform": { "split": "ADDRESS" } }
-        r = row_split_address(d, { "ADDRESS": "123 MAPLE ST" })
+        r = row_fxn_regexp(d, { "ADDRESS": "123 MAPLE ST" }, False)
         self.assertEqual({"ADDRESS": "123 MAPLE ST", "auto_street": "MAPLE ST", "auto_number": "123"}, r)
-        r = row_split_address(d, { "ADDRESS": "265" })
+        r = row_fxn_regexp(d, { "ADDRESS": "265" }, False)
         self.assertEqual(r["auto_number"], "265")
         self.assertEqual(r["auto_street"], "")
-        r = row_split_address(d, { "ADDRESS": "" })
+        r = row_fxn_regexp(d, { "ADDRESS": "" }, False)
         self.assertEqual(r["auto_number"], "")
         self.assertEqual(r["auto_street"], "")
 
+        "Regex split - replace"
+        c = { "conform": {
+            "number": {
+                "function": "regexp",
+                "field": "ADDRESS",
+                "pattern": "^([0-9]+)(?:.*)",
+                "replace": "$1"
+            },
+            "street": {
+                "function": "regexp",
+                "field": "ADDRESS",
+                "pattern": "(?:[0-9]+ )(.*)",
+                "replace": "$1"
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123", "OA:street": "MAPLE ST" })
+        
+        d = row_fxn_regexp(c, d, "number")
+        d = row_fxn_regexp(c, d, "street")
+        self.assertEqual(e, d)
+        
+        "Regex split - no replace - good match"
+        c = { "conform": {
+            "number": {
+                "function": "regexp",
+                "field": "ADDRESS",
+                "pattern": "^([0-9]+)"
+            },
+            "street": {
+                "function": "regexp",
+                "field": "ADDRESS",
+                "pattern": "(?:[0-9]+ )(.*)"
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123", "OA:street": "MAPLE ST" })
+        
+        d = row_fxn_regexp(c, d, "number")
+        d = row_fxn_regexp(c, d, "street")
+        self.assertEqual(e, d)
+
+        "regex split - no replace - bad match"
+        c = { "conform": { 
+            "number": {
+                "function": "regexp",
+                "field": "ADDRESS",
+                "pattern": "^([0-9]+)"
+            },
+            "street": {
+                "function": "regexp",
+                "field": "ADDRESS",
+                "pattern": "(fake)"
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123", "OA:street": "" })
+        
+        d = row_fxn_regexp(c, d, "number")
+        d = row_fxn_regexp(c, d, "street")
+        self.assertEqual(e, d)
+        
     def test_transform_and_convert(self):
-        d = { "conform": { "street": "auto_street", "number": "n", "merge": ["s1", "s2"], "lon": "y", "lat": "x" } }
+        d = { "conform": { "street": ["s1", "s2"], "number": "n", "lon": "y", "lat": "x" } }
         r = row_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
         self.assertEqual({"STREET": "Maple Street", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3",
                           "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None}, r)
@@ -141,28 +223,23 @@ class TestConformTransforms (unittest.TestCase):
 
     def test_row_extract_and_reproject(self):
         # CSV lat/lon column names
-        d = { "conform" : { "lon": "longitude", "lat": "latitude", "type": "csv" }, 'type': 'test' }
+        d = { "conform" : { "lon": "longitude", "lat": "latitude" }, 'type': 'test' }
         r = row_extract_and_reproject(d, {"longitude": "-122.3", "latitude": "39.1"})
         self.assertEqual({Y_FIELDNAME: "39.1", X_FIELDNAME: "-122.3"}, r)
 
-        # non-CSV lat/lon column names
-        d = { "conform" : { "lon": "x", "lat": "y", "type": "" }, 'type': 'test' }
-        r = row_extract_and_reproject(d, {X_FIELDNAME: "-122.3", Y_FIELDNAME: "39.1" })
-        self.assertEqual({X_FIELDNAME: "-122.3", Y_FIELDNAME: "39.1"}, r)
-
         # reprojection
-        d = { "conform" : { "srs": "EPSG:2913", "type": "" }, 'type': 'test' }
+        d = { "conform" : { "srs": "EPSG:2913" }, 'type': 'test' }
         r = row_extract_and_reproject(d, {X_FIELDNAME: "7655634.924", Y_FIELDNAME: "668868.414"})
         self.assertAlmostEqual(-122.630842186650796, float(r[X_FIELDNAME]))
         self.assertAlmostEqual(45.481554393851063, float(r[Y_FIELDNAME]))
 
-        d = { "conform" : { "lon": "X", "lat": "Y", "srs": "EPSG:2913", "type": "" }, 'type': 'test' }
+        d = { "conform" : { "srs": "EPSG:2913" }, 'type': 'test' }
         r = row_extract_and_reproject(d, {X_FIELDNAME: "", Y_FIELDNAME: ""})
         self.assertEqual("", r[X_FIELDNAME])
         self.assertEqual("", r[Y_FIELDNAME])
 
         # commas in lat/lon columns (eg Iceland)
-        d = { "conform" : { "lon": "LONG_WGS84", "lat": "LAT_WGS84", "type": "csv" }, 'type': 'test' }
+        d = { "conform" : { "lon": "LONG_WGS84", "lat": "LAT_WGS84" }, 'type': 'test' }
         r = row_extract_and_reproject(d, {"LONG_WGS84": "-21,77", "LAT_WGS84": "64,11"})
         self.assertEqual({Y_FIELDNAME: "64.11", X_FIELDNAME: "-21.77"}, r)
 
@@ -359,55 +436,104 @@ class TestConformCli (unittest.TestCase):
 
 
 class TestConformMisc(unittest.TestCase):
+
+    def test_convert_regexp_replace(self):
+        '''
+        '''
+        crr = convert_regexp_replace
+        
+        self.assertEqual(crr('$1'), r'\1')
+        self.assertEqual(crr('$9'), r'\9')
+        self.assertEqual(crr('$b'), '$b')
+        self.assertEqual(crr('$1yo$1'), r'\1yo\1')
+        self.assertEqual(crr('$9yo$9'), r'\9yo\9')
+        self.assertEqual(crr('$byo$b'), '$byo$b')
+        self.assertEqual(crr('$1 yo $1'), r'\1 yo \1')
+        self.assertEqual(crr('$9 yo $9'), r'\9 yo \9')
+        self.assertEqual(crr('$b yo $b'), '$b yo $b')
+
+        self.assertEqual(crr('$11'), r'\11')
+        self.assertEqual(crr('$99'), r'\99')
+        self.assertEqual(crr('$bb'), '$bb')
+        self.assertEqual(crr('$11yo$11'), r'\11yo\11')
+        self.assertEqual(crr('$99yo$99'), r'\99yo\99')
+        self.assertEqual(crr('$bbyo$bb'), '$bbyo$bb')
+        self.assertEqual(crr('$11 yo $11'), r'\11 yo \11')
+        self.assertEqual(crr('$99 yo $99'), r'\99 yo \99')
+        self.assertEqual(crr('$bb yo $bb'), '$bb yo $bb')
+
+        self.assertEqual(crr('${1}1'), r'\g<1>1')
+        self.assertEqual(crr('${9}9'), r'\g<9>9')
+        self.assertEqual(crr('${9}b'), r'\g<9>b')
+        self.assertEqual(crr('${b}b'), '${b}b')
+        self.assertEqual(crr('${1}1yo${1}1'), r'\g<1>1yo\g<1>1')
+        self.assertEqual(crr('${9}9yo${9}9'), r'\g<9>9yo\g<9>9')
+        self.assertEqual(crr('${9}byo${9}b'), r'\g<9>byo\g<9>b')
+        self.assertEqual(crr('${b}byo${b}b'), '${b}byo${b}b')
+        self.assertEqual(crr('${1}1 yo ${1}1'), r'\g<1>1 yo \g<1>1')
+        self.assertEqual(crr('${9}9 yo ${9}9'), r'\g<9>9 yo \g<9>9')
+        self.assertEqual(crr('${9}b yo ${9}b'), r'\g<9>b yo \g<9>b')
+        self.assertEqual(crr('${b}b yo ${b}b'), '${b}b yo ${b}b')
+
+        self.assertEqual(crr('${11}1'), r'\g<11>1')
+        self.assertEqual(crr('${99}9'), r'\g<99>9')
+        self.assertEqual(crr('${99}b'), r'\g<99>b')
+        self.assertEqual(crr('${bb}b'), '${bb}b')
+        self.assertEqual(crr('${11}1yo${11}1'), r'\g<11>1yo\g<11>1')
+        self.assertEqual(crr('${99}9yo${99}9'), r'\g<99>9yo\g<99>9')
+        self.assertEqual(crr('${99}byo${99}b'), r'\g<99>byo\g<99>b')
+        self.assertEqual(crr('${bb}byo${bb}b'), '${bb}byo${bb}b')
+        self.assertEqual(crr('${11}1yo${11}1'), r'\g<11>1yo\g<11>1')
+        self.assertEqual(crr('${99}9 yo ${99}9'), r'\g<99>9 yo \g<99>9')
+        self.assertEqual(crr('${99}b yo ${99}b'), r'\g<99>b yo \g<99>b')
+        self.assertEqual(crr('${bb}b yo ${bb}b'), '${bb}b yo ${bb}b')
+        
+        self.assertEqual(re.sub(r'hello (world)', crr('goodbye $1'), 'hello world'), 'goodbye world')
+        self.assertEqual(re.sub(r'(hello) (world)', crr('goodbye $2'), 'hello world'), 'goodbye world')
+        self.assertEqual(re.sub(r'he(ll)o', crr('he$1$1o'), 'hello'), 'hellllo')
+
     def test_find_shapefile_source_path(self):
-        shp_conform = {"conform": { "type": "shapefile" } }
+        shp_conform = {"conform": { } }
         self.assertEqual("foo.shp", find_source_path(shp_conform, ["foo.shp"]))
         self.assertEqual("FOO.SHP", find_source_path(shp_conform, ["FOO.SHP"]))
         self.assertEqual("xyzzy/FOO.SHP", find_source_path(shp_conform, ["xyzzy/FOO.SHP"]))
         self.assertEqual("foo.shp", find_source_path(shp_conform, ["foo.shp", "foo.prj", "foo.shx"]))
-        self.assertEqual(None, find_source_path(shp_conform, ["nope.txt"]))
-        self.assertEqual(None, find_source_path(shp_conform, ["foo.shp", "bar.shp"]))
 
-        shp_file_conform = {"conform": { "type": "shapefile", "file": "foo.shp" } }
+        shp_file_conform = {"conform": { "file": "foo.shp" } }
         self.assertEqual("foo.shp", find_source_path(shp_file_conform, ["foo.shp"]))
         self.assertEqual("foo.shp", find_source_path(shp_file_conform, ["foo.shp", "bar.shp"]))
         self.assertEqual("xyzzy/foo.shp", find_source_path(shp_file_conform, ["xyzzy/foo.shp", "xyzzy/bar.shp"]))
 
-        shp_poly_conform = {"conform": { "type": "shapefile-polygon" } }
+        shp_poly_conform = {"conform": { } }
         self.assertEqual("foo.shp", find_source_path(shp_poly_conform, ["foo.shp"]))
 
-        broken_conform = {"conform": { "type": "broken" }}
-        self.assertEqual(None, find_source_path(broken_conform, ["foo.shp"]))
-
     def test_find_geojson_source_path(self):
-        geojson_conform = {"type": "notESRI", "conform": {"type": "geojson"}}
+        geojson_conform = {"conform": { }}
         self.assertEqual("foo.json", find_source_path(geojson_conform, ["foo.json"]))
         self.assertEqual("FOO.JSON", find_source_path(geojson_conform, ["FOO.JSON"]))
         self.assertEqual("xyzzy/FOO.JSON", find_source_path(geojson_conform, ["xyzzy/FOO.JSON"]))
         self.assertEqual("foo.json", find_source_path(geojson_conform, ["foo.json", "foo.prj", "foo.shx"]))
-        self.assertEqual(None, find_source_path(geojson_conform, ["nope.txt"]))
-        self.assertEqual(None, find_source_path(geojson_conform, ["foo.json", "bar.json"]))
 
     def test_find_esri_source_path(self):
         # test that the legacy ESRI/GeoJSON style works
-        old_conform = {"type": "ESRI", "conform": {"type": "geojson"}}
+        old_conform = {"conform": { }}
         self.assertEqual("foo.csv", find_source_path(old_conform, ["foo.csv"]))
         # test that the new ESRI/CSV style works
-        new_conform = {"type": "ESRI", "conform": {"type": "csv"}}
+        new_conform = {"conform": { }}
         self.assertEqual("foo.csv", find_source_path(new_conform, ["foo.csv"]))
 
     def test_find_csv_source_path(self):
-        csv_conform = {"conform": {"type": "csv"}}
+        csv_conform = {"conform": { }}
         self.assertEqual("foo.csv", find_source_path(csv_conform, ["foo.csv"]))
-        csv_file_conform = {"conform": {"type": "csv", "file":"bar.txt"}}
+        csv_file_conform = {"conform": { "file":"bar.txt" }}
         self.assertEqual("bar.txt", find_source_path(csv_file_conform, ["license.pdf", "bar.txt"]))
         self.assertEqual("aa/bar.txt", find_source_path(csv_file_conform, ["license.pdf", "aa/bar.txt"]))
         self.assertEqual(None, find_source_path(csv_file_conform, ["foo.txt"]))
 
     def test_find_xml_source_path(self):
-        c = {"conform": {"type": "xml"}}
+        c = {"conform": { }}
         self.assertEqual("foo.gml", find_source_path(c, ["foo.gml"]))
-        c = {"conform": {"type": "xml", "file": "xyzzy/foo.gml"}}
+        c = {"conform": {"file": "xyzzy/foo.gml"}}
         self.assertEqual("xyzzy/foo.gml", find_source_path(c, ["xyzzy/foo.gml", "bar.gml", "foo.gml"]))
         self.assertEqual("/tmp/foo/xyzzy/foo.gml", find_source_path(c, ["/tmp/foo/xyzzy/foo.gml"]))
 
@@ -447,7 +573,7 @@ class TestConformCsv(unittest.TestCase):
             return [s.decode('utf-8').strip() for s in file]
 
     def test_simple(self):
-        c = { "conform": { "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" }, 'type': 'test' }
+        c = { "conform": { "lat": "LATITUDE", "lon": "LONGITUDE" }, 'type': 'test' }
         d = (self._ascii_header_in.encode('ascii'),
              self._ascii_row_in.encode('ascii'))
         r = self._convert(c, d)
@@ -455,7 +581,7 @@ class TestConformCsv(unittest.TestCase):
         self.assertEqual(self._ascii_row_out, r[1])
 
     def test_utf8(self):
-        c = { "conform": { "type": "csv", "lat": u"\u7def\u5ea6", "lon": u"LONGITUDE" }, 'type': 'test' }
+        c = { "conform": { "lat": u"\u7def\u5ea6", "lon": u"LONGITUDE" }, 'type': 'test' }
         d = (self._unicode_header_in.encode('utf-8'),
              self._unicode_row_in.encode('utf-8'))
         r = self._convert(c, d)
@@ -463,7 +589,7 @@ class TestConformCsv(unittest.TestCase):
         self.assertEqual(self._unicode_row_out, r[1])
 
     def test_csvsplit(self):
-        c = { "conform": { "csvsplit": ";", "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" }, 'type': 'test' }
+        c = { "conform": { "csvsplit": ";", "lat": "LATITUDE", "lon": "LONGITUDE" }, 'type': 'test' }
         d = (self._ascii_header_in.replace(',', ';').encode('ascii'),
              self._ascii_row_in.replace(',', ';').encode('ascii'))
         r = self._convert(c, d)
@@ -471,12 +597,12 @@ class TestConformCsv(unittest.TestCase):
         self.assertEqual(self._ascii_row_out, r[1])
 
         # unicodecsv freaked out about unicode strings for delimiter
-        unicode_conform = { "conform": { "csvsplit": u";", "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" }, 'type': 'test' }
+        unicode_conform = { "conform": { "csvsplit": u";", "lat": "LATITUDE", "lon": "LONGITUDE" }, 'type': 'test' }
         r = self._convert(unicode_conform, d)
         self.assertEqual(self._ascii_row_out, r[1])
 
     def test_csvencoded_utf8(self):
-        c = { "conform": { "encoding": "utf-8", "type": "csv", "lat": u"\u7def\u5ea6", "lon": u"LONGITUDE" }, 'type': 'test' }
+        c = { "conform": { "encoding": "utf-8", "lat": u"\u7def\u5ea6", "lon": u"LONGITUDE" }, 'type': 'test' }
         d = (self._unicode_header_in.encode('utf-8'),
              self._unicode_row_in.encode('utf-8'))
         r = self._convert(c, d)
@@ -484,7 +610,7 @@ class TestConformCsv(unittest.TestCase):
         self.assertEqual(self._unicode_row_out, r[1])
 
     def test_csvencoded_shift_jis(self):
-        c = { "conform": { "encoding": "shift-jis", "type": "csv", "lat": u"\u7def\u5ea6", "lon": u"LONGITUDE" }, 'type': 'test' }
+        c = { "conform": { "encoding": "shift-jis", "lat": u"\u7def\u5ea6", "lon": u"LONGITUDE" }, 'type': 'test' }
         d = (u'\u5927\u5b57\u30fb\u753a\u4e01\u76ee\u540d,NUMBER,\u7def\u5ea6,LONGITUDE'.encode('shift-jis'),
              u'\u6771 ST,123,39.3,-121.2'.encode('shift-jis'))
         r = self._convert(c, d)
@@ -492,14 +618,14 @@ class TestConformCsv(unittest.TestCase):
         self.assertEqual(r[1], u'\u6771 ST,123,-121.2,39.3')
 
     def test_headers_minus_one(self):
-        c = { "conform": { "headers": -1, "type": "csv", "lon": "COLUMN4", "lat": "COLUMN3" }, 'type': 'test' }
+        c = { "conform": { "headers": -1, "lon": "COLUMN4", "lat": "COLUMN3" }, 'type': 'test' }
         d = (u'MAPLE ST,123,39.3,-121.2'.encode('ascii'),)
         r = self._convert(c, d)
         self.assertEqual(r[0], u'COLUMN1,COLUMN2,{X_FIELDNAME},{Y_FIELDNAME}'.format(**globals()))
         self.assertEqual(r[1], u'MAPLE ST,123,-121.2,39.3')
 
     def test_headers_and_skiplines(self):
-        c = {"conform": { "headers": 2, "skiplines": 2, "type": "csv", "lon": "LONGITUDE", "lat": "LATITUDE" }, 'type': 'test' }
+        c = {"conform": { "headers": 2, "skiplines": 2, "lon": "LONGITUDE", "lat": "LATITUDE" }, 'type': 'test' }
         d = (u'HAHA,THIS,HEADER,IS,FAKE'.encode('ascii'),
              self._ascii_header_in.encode('ascii'),
              self._ascii_row_in.encode('ascii')) 
@@ -511,7 +637,7 @@ class TestConformCsv(unittest.TestCase):
         # This is an example inspired by the hipsters in us-or-portland
         # Conform says lowercase but the actual header is uppercase.
         # Also the columns are named X and Y in the input
-        c = {"conform": {"lon": "x", "lat": "y", "number": "n", "street": "s", "type": "csv"}, 'type': 'test'}
+        c = {"conform": {"lon": "x", "lat": "y", "number": "n", "street": "s" }, 'type': 'test'}
         d = (u'n,s,X,Y'.encode('ascii'),
              u'3203,SE WOODSTOCK BLVD,-122.629314,45.479425'.encode('ascii'))
         r = self._convert(c, d)
@@ -520,7 +646,7 @@ class TestConformCsv(unittest.TestCase):
 
     def test_srs(self):
         # This is an example inspired by the hipsters in us-or-portland
-        c = {"conform": {"lon": "x", "lat": "y", "srs": "EPSG:2913", "number": "n", "street": "s", "type": "csv"}, 'type': 'test'}
+        c = {"conform": {"lon": "x", "lat": "y", "srs": "EPSG:2913", "number": "n", "street": "s" }, 'type': 'test'}
         d = (u'n,s,X,Y'.encode('ascii'),
              u'3203,SE WOODSTOCK BLVD,7655634.924,668868.414'.encode('ascii'))
         r = self._convert(c, d)
@@ -529,7 +655,7 @@ class TestConformCsv(unittest.TestCase):
 
     def test_too_many_columns(self):
         "Check that we don't barf on input with too many columns in some rows"
-        c = { "conform": { "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" }, 'type': 'test' }
+        c = { "conform": { "lat": "LATITUDE", "lon": "LONGITUDE" }, 'type': 'test' }
         d = (self._ascii_header_in.encode('ascii'),
              self._ascii_row_in.encode('ascii'),
              u'MAPLE ST,123,39.3,-121.2,EXTRY'.encode('ascii'))
@@ -540,7 +666,7 @@ class TestConformCsv(unittest.TestCase):
 
     def test_esri_csv(self):
         # Test that our ESRI-emitted CSV is converted correctly.
-        c = { "type": "ESRI", "conform": { "type": "geojson", "lat": "theseare", "lon": "ignored" } }
+        c = { "type": "ESRI", "conform": { } }
         d = (u'STREETNAME,NUMBER,OA:x,OA:y'.encode('ascii'),
              u'MAPLE ST,123,-121.2,39.3'.encode('ascii'))
         r = self._convert(c, d)
@@ -549,7 +675,7 @@ class TestConformCsv(unittest.TestCase):
 
     def test_esri_csv_no_lat_lon(self):
         # Test that the ESRI path works even without lat/lon tags. See issue #91
-        c = { "type": "ESRI", "conform": { "type": "geojson" } }
+        c = { "type": "ESRI", "conform": { } }
         d = (u'STREETNAME,NUMBER,OA:x,OA:y'.encode('ascii'),
              u'MAPLE ST,123,-121.2,39.3'.encode('ascii'))
         r = self._convert(c, d)

@@ -11,6 +11,7 @@ import tempfile
 import json
 import copy
 import sys
+import re
 
 from zipfile import ZipFile
 from argparse import ArgumentParser
@@ -27,7 +28,15 @@ ogr.UseExceptions()
 # Field names for use in cached CSV files.
 # We add columns to the extracted CSV with our own data with these names.
 GEOM_FIELDNAME = 'OA:geom'
-X_FIELDNAME, Y_FIELDNAME, STREET_FIELDNAME = 'OA:x', 'OA:y', 'OA:street'
+X_FIELDNAME, Y_FIELDNAME = 'OA:x', 'OA:y'
+attrib_types = { 
+    'street':   'OA:street',
+    'number':   'OA:number',
+    'city':     'OA:city',
+    'postcode': 'OA:postcode',
+    'district': 'OA:district',
+    'region':   'OA:region'
+}
 
 geometry_types = {
     ogr.wkbPoint: 'Point',
@@ -84,7 +93,6 @@ class ConformResult:
 
 class DecompressionError(Exception):
     pass
-
 
 class DecompressionTask(object):
     @classmethod
@@ -283,82 +291,34 @@ def guess_source_encoding(datasource, layer):
 def find_source_path(source_definition, source_paths):
     "Figure out which of the possible paths is the actual source"
     conform = source_definition["conform"]
-    if conform["type"] in ("shapefile", "shapefile-polygon"):
-        # TODO this code is too complicated; see XML variant below for simpler option
-        # Shapefiles are named *.shp
-        candidates = []
-        for fn in source_paths:
-            basename, ext = os.path.splitext(fn)
-            if ext.lower() == ".shp":
-                candidates.append(fn)
-        if len(candidates) == 0:
-            _L.warning("No shapefiles found in %s", source_paths)
-            return None
-        elif len(candidates) == 1:
-            _L.debug("Selected %s for source", candidates[0])
-            return candidates[0]
-        else:
-            # Multiple candidates; look for the one named by the file attribute
-            if "file" not in conform:
-                _L.warning("Multiple shapefiles found, but source has no file attribute.")
-                return None
-            source_file_name = conform["file"]
-            for c in candidates:
-                if source_file_name == os.path.basename(c):
-                    return c
-            _L.warning("Source names file %s but could not find it", source_file_name)
-            return None
-    elif conform["type"] == "geojson" and source_definition["type"] != "ESRI":
-        candidates = []
-        for fn in source_paths:
-            basename, ext = os.path.splitext(fn)
-            if ext.lower() == ".json":
-                candidates.append(fn)
-        if len(candidates) == 0:
-            _L.warning("No JSON found in %s", source_paths)
-            return None
-        elif len(candidates) == 1:
-            _L.debug("Selected %s for source", candidates[0])
-            return candidates[0]
-        else:
-            _L.warning("Found more than one JSON file in source, can't pick one")
-            # geojson spec currently doesn't include a file attribute. Maybe it should?
-            return None
-    elif conform["type"] == "geojson" and source_definition["type"] == "ESRI":
-        # Old style ESRI conform: ESRI downloader should only give us a single cache.csv file
-        return source_paths[0]
-    elif conform["type"] == "csv":
-        # Return file if it's specified, else return the first file we find
-        if "file" in conform:
-            for fn in source_paths:
-                # Consider it a match if the basename matches; directory names are a mess
-                if os.path.basename(conform["file"]) == os.path.basename(fn):
-                    return fn
-            _L.warning("Conform named %s as file but we could not find it." % conform["file"])
-            return None
-        else:
-            return source_paths[0]
-
-    elif conform["type"] == "xml":
-        # Return file if it's specified, else return the first .gml file we find
-        if "file" in conform:
-            for fn in source_paths:
-                # Consider it a match if the basename matches; directory names are a mess
-                if os.path.basename(conform["file"]) == os.path.basename(fn):
-                    return fn
-            _L.warning("Conform named %s as file but we could not find it." % conform["file"])
-            return None
-        else:
-            for fn in source_paths:
-                _, ext = os.path.splitext(fn)
-                if ext == ".gml":
-                    return fn
-            _L.warning("Could not find a .gml file")
-            return None
-
-
+   
+    # Determine possible inputs
+    candidates = []
+    for fn in source_paths:
+        basename, ext = os.path.splitext(fn)
+        if ext.lower() in ['.shp', '.json', '.geojson', '.csv', '.gml', '.txt']:
+            candidates.append(fn)
+    if len(candidates) == 0:
+        _L.warning("No geometry sources found %s", source_paths)
+        return None
+    elif len(candidates) == 1 and "file" not in conform:
+        _L.debug("Selected %s for source", candidates[0])
+        return candidates[0]
     else:
-        _L.warning("Unknown source type %s", conform["type"])
+        # Multiple candidates; look for the one named by the file attribute
+        if "file" not in conform:
+            _L.warning("Multiple geometry sources found, but source has no file attribute.")
+            return None
+        source_file_name = conform["file"]
+        # Looks for file with exact path & name
+        for c in candidates:
+            if source_file_name == c:
+                return c
+        # Looks for file with similiar name
+        for c in candidates:
+            if c.find(source_file_name) != -1:
+                return c
+        _L.warning("Source names file %s but could not find it", source_file_name)
         return None
 
 class ConvertToCsvTask(object):
@@ -388,6 +348,25 @@ class ConvertToCsvTask(object):
 
         # Conversion must have failed
         return None, 0
+
+def convert_regexp_replace(replace):
+    ''' Convert regular expression replace string from $ syntax to slash-syntax.
+        
+        Replace one kind of replacement, then call self recursively to find others.
+    '''
+    if re.search(r'\$\d+\b', replace):
+        # $dd* back-reference followed by a word break.
+        return convert_regexp_replace(re.sub(r'\$(\d+)\b', r'\\\g<1>', replace))
+    
+    if re.search(r'\$\d+\D', replace):
+        # $dd* back-reference followed by an non-digit character.
+        return convert_regexp_replace(re.sub(r'\$(\d+)(\D)', r'\\\g<1>\g<2>', replace))
+    
+    if re.search(r'\$\{\d+\}', replace):
+        # ${dd*} back-reference.
+        return convert_regexp_replace(re.sub(r'\$\{(\d+)\}', r'\\g<\g<1>>', replace))
+    
+    return replace    
 
 def ogr_source_to_csv(source_definition, source_path, dest_path):
     "Convert a single shapefile or GeoJSON in source_path and put it in dest_path"
@@ -562,31 +541,17 @@ def _transform_to_4326(srs):
 def row_extract_and_reproject(source_definition, source_row):
     ''' Find lat/lon in source CSV data and store it in ESPG:4326 in X/Y in the row
     '''
-    # Ignore any lat/lon names for natively geographic sources.
-    ignore_conform_names = bool(source_definition['conform']['type'] != 'csv')
-
-    # ESRI-derived source CSV is synthetic; we should ignore any lat/lon names.
-    ignore_conform_names |= bool(source_definition['type'] == 'ESRI')
-
     # Set local variables lon_name, source_x, lat_name, source_y
-    if ignore_conform_names:
-        # Use our own X_FIELDNAME convention
-        lat_name = Y_FIELDNAME
-        lon_name = X_FIELDNAME
+    lat_name = source_definition["conform"]["lat"] if source_definition["conform"].get('lat', False) else Y_FIELDNAME
+    lon_name = source_definition["conform"]["lon"] if source_definition["conform"].get('lon', False) else X_FIELDNAME
+    if lon_name in source_row:
         source_x = source_row[lon_name]
+    else:
+        source_x = source_row[lon_name.upper()]
+    if lat_name in source_row:
         source_y = source_row[lat_name]
     else:
-        # Conforms can name the lat/lon columns from the original source data
-        lat_name = source_definition["conform"]["lat"]
-        lon_name = source_definition["conform"]["lon"]
-        if lon_name in source_row:
-            source_x = source_row[lon_name]
-        else:
-            source_x = source_row[lon_name.upper()]
-        if lat_name in source_row:
-            source_y = source_row[lat_name]
-        else:
-            source_y = source_row[lat_name.upper()]
+        source_y = source_row[lat_name.upper()]
 
     # Prepare an output row with the source lat and lon columns deleted
     out_row = copy.deepcopy(source_row)
@@ -633,12 +598,26 @@ def row_transform_and_convert(sd, row):
     row = row_smash_case(sd, row)
 
     c = sd["conform"]
-    if "merge" in c or type(c["street"]) is list:
-        row = row_merge_street(sd, row)
+    
+    "Attribute tags can utilize processing fxns"
+    for k, v in c.items():
+        if k in attrib_types and type(c[k]) is list:
+            "Lists are a concat shortcut to concat fields with spaces"
+            row = row_merge(sd, row, k)
+        if k in attrib_types and type(c[k]) is dict:
+            "Dicts are custom processing functions"
+            if c[k]["function"] == "join":
+                row = row_fxn_join(sd, row, k) 
+            elif c[k]["function"] == "regexp":
+                row = row_fxn_regexp(sd, row, k)
+
+    ### Deprecated ###
     if "advanced_merge" in c:
-        row = row_advanced_merge(sd, row)
+        row = row_fxn_join(sd, row, False)
     if "split" in c:
-        row = row_split_address(sd, row)
+        row = row_fxn_regexp(sd, row, False)
+    ##################
+    
     row2 = row_convert_to_out(sd, row)
     row3 = row_canonicalize_street_and_number(sd, row2)
     row4 = row_round_lat_lon(sd, row3)
@@ -651,10 +630,14 @@ def conform_smash_case(source_definition):
     for k, v in conform.items():
         if v not in (X_FIELDNAME, Y_FIELDNAME) and getattr(v, 'lower', None):
             conform[k] = v.lower()
-    if type(conform["street"]) is list:
-        conform["street"] = [s.lower() for s in conform["street"]]
-    if "merge" in conform:
-        conform["merge"] = [s.lower() for s in conform["merge"]]
+        if type(conform[k]) is list:
+           conform[k] = [s.lower() for s in conform[k]] 
+        if type(conform[k]) is dict:
+            if "field" in conform[k]:
+                conform[k]["field"] = conform[k]["field"].lower()
+            elif "fields" in conform[k]:
+                conform[k]["fields"] = [s.lower() for s in conform[k]["fields"]]
+    
     if "advanced_merge" in conform:
         for new_col, spec in conform["advanced_merge"].items():
             spec["fields"] = [s.lower() for s in spec["fields"]]
@@ -665,32 +648,47 @@ def row_smash_case(sd, input):
     output = { k if k in (X_FIELDNAME, Y_FIELDNAME) else k.lower() : v for (k, v) in input.items() }
     return output
 
-def row_merge_street(sd, row):
+def row_merge(sd, row, key):
     "Merge multiple columns like 'Maple','St' to 'Maple St'"
-    if "merge" in sd["conform"]:
-        merge_data = [row[field] for field in sd["conform"]["merge"]]
-        row['auto_street'] = ' '.join(merge_data)
-    else:
-        merge_data = [row[field] for field in sd["conform"]["street"]]
-        row[STREET_FIELDNAME] = ' '.join(merge_data)
+    merge_data = [row[field] for field in sd["conform"][key]]
+    row[attrib_types[key]] = ' '.join(merge_data)
     return row
 
-def row_advanced_merge(sd, row):
+def row_fxn_join(sd, row, key):
     "Create new columns by merging arbitrary other columns with a separator"
-    advanced_merge = sd["conform"]["advanced_merge"]
-    for new_field_name, merge_spec in advanced_merge.items():
-        separator = merge_spec.get("separator", " ")
+    if not key: ## Deprecated Behavior
+        advanced_merge = sd["conform"]["advanced_merge"]
+        for new_field_name, merge_spec in advanced_merge.items():
+            separator = merge_spec.get("separator", " ")
+            try:
+                row[new_field_name] = separator.join([row[n] for n in merge_spec["fields"]])
+            except Exception as e:
+                _L.debug("Failure to merge row %r %s", e, row)
+    else: ## New behavior
+        fxn = sd["conform"][key]
+        separator = fxn.get("separator", " ")
         try:
-            row[new_field_name] = separator.join([row[n] for n in merge_spec["fields"]])
+            row[attrib_types[key]] = separator.join([row[n] for n in fxn["fields"]])
         except Exception as e:
             _L.debug("Failure to merge row %r %s", e, row)
     return row
 
-def row_split_address(sd, row):
+def row_fxn_regexp(sd, row, key):
     "Split addresses like '123 Maple St' into '123' and 'Maple St'"
-    cols = row[sd["conform"]["split"]].split(' ', 1)  # maxsplit
-    row['auto_number'] = cols[0]
-    row['auto_street'] = cols[1] if len(cols) > 1 else ''
+    if not key: ## Deprecated Behavior
+        cols = row[sd["conform"]["split"]].split(' ', 1)  # maxsplit
+        row['auto_number'] = cols[0]
+        row['auto_street'] = cols[1] if len(cols) > 1 else ''
+    else: ## New Behavior
+        fxn = sd["conform"][key]
+        pattern = re.compile(fxn.get("pattern", False))
+        replace = fxn.get('replace', False)
+        if replace:
+            match = re.sub(pattern, convert_regexp_replace(replace), row[fxn["field"]])
+            row[attrib_types[key]] = match;
+        else:
+            match = pattern.search(row[fxn["field"]])
+            row[attrib_types[key]] = ''.join(match.groups()) if match else '';
     return row
 
 def row_canonicalize_street_and_number(sd, row):
@@ -716,24 +714,23 @@ def row_round_lat_lon(sd, row):
 def row_convert_to_out(sd, row):
     "Convert a row from the source schema to OpenAddresses output schema"
     # note: sd["conform"]["lat"] and lon were already applied in the extraction from source
-    if type(sd['conform']["street"]) is list:
-        street_key = STREET_FIELDNAME
-    else:
-        street_key = sd['conform']["street"]
-    city_key = sd['conform'].get('city', False)
-    district_key = sd['conform'].get('district', False)
-    region_key = sd['conform'].get('region', False)
-    postcode_key = sd['conform'].get('postcode', False)
     
+    keys = {}
+    for k, v in attrib_types.items():
+        if attrib_types[k] in row:
+            keys[k] = attrib_types[k]
+        else:
+            keys[k] = sd['conform'].get(k, False)
+
     return {
         "LON": row.get(X_FIELDNAME, None),
         "LAT": row.get(Y_FIELDNAME, None),
-        "NUMBER": row.get(sd["conform"]["number"], None),
-        "STREET": row.get(street_key, None) if street_key else None,
-        "CITY": row.get(city_key, None) if city_key else None,
-        "DISTRICT": row.get(district_key, None) if district_key else None,
-        "REGION": row.get(region_key, None) if region_key else None,
-        "POSTCODE": row.get(postcode_key, None) if postcode_key else None,
+        "NUMBER": row.get(keys['number'], None) if keys['number'] else None,
+        "STREET": row.get(keys['street'], None) if keys['street'] else None,
+        "CITY": row.get(keys['city'], None) if keys['city'] else None,
+        "DISTRICT": row.get(keys['district'], None) if keys['district'] else None,
+        "REGION": row.get(keys['region'], None) if keys['region'] else None,
+        "POSTCODE": row.get(keys['postcode'], None) if keys['postcode'] else None,
     }
 
 ### File-level conform code. Inputs and outputs are filenames.
@@ -746,11 +743,12 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     The extracted file will be in UTF-8 and will have X and Y columns corresponding
     to longitude and latitude in EPSG:4326.
     """
-    if source_definition["conform"]["type"] in ("shapefile", "shapefile-polygon", "xml"):
+    _, ext = os.path.splitext(source_path.lower())
+    if ext in ['.shp', '.gml']:
         ogr_source_to_csv(source_definition, source_path, extract_path)
-    elif source_definition["conform"]["type"] == "csv":
+    elif ext in ['.csv', '.txt']:
         csv_source_to_csv(source_definition, source_path, extract_path)
-    elif source_definition["conform"]["type"] == "geojson":
+    elif ext in ['.geojson', '.json']:
         # GeoJSON sources have some awkward legacy with ESRI, see issue #34
         if source_definition["type"] == "ESRI":
             _L.info("ESRI GeoJSON source found; treating it as CSV")
