@@ -1,3 +1,6 @@
+2015-08-20: 1.21.1
+- Fixed urlretrieve bug in future.backports.http.client.
+
 2015-08-20: 1.21.0
 - Added openaddr-collect-extracts script for assembling zip archive.
 
