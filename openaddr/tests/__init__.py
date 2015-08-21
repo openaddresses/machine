@@ -433,6 +433,14 @@ class TestOA (unittest.TestCase):
         self.assertTrue('pad_numer_porzadkowy' in sample_data[0])
         self.assertTrue(u'Gliwice' in sample_data[1])
         self.assertTrue(u'Ulica Dworcowa ' in sample_data[1])
+        
+        output_path = join(dirname(state_path), state['processed'])
+        
+        with csvopen(output_path, encoding='utf8') as input:
+            rows = list(csvDictReader(input, encoding='utf8'))
+            self.assertEqual(rows[1]['STREET'], u'Ulica Dolnych Wa\u0142\xf3w  Gliwice')
+            self.assertEqual(rows[10]['STREET'], u'Ulica Dolnych Wa\u0142\xf3w  Gliwice')
+            self.assertEqual(rows[100]['STREET'], u'Plac Place Inwalid\xf3w Wojennych  Gliwice')
 
     def test_single_jp_f(self):
         ''' Test complete process_one.process on Japanese sample data.
