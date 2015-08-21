@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function
 import os
 import copy
 import json
+import re
 
 import unittest
 import tempfile
@@ -444,7 +445,57 @@ class TestConformMisc(unittest.TestCase):
     def test_convert_regexp_replace(self):
         '''
         '''
-        self.assertEqual(convert_regexp_replace('$1'), r'\1')
+        crr = convert_regexp_replace
+        
+        self.assertEqual(crr('$1'), r'\1')
+        self.assertEqual(crr('$9'), r'\9')
+        self.assertEqual(crr('$b'), '$b')
+        self.assertEqual(crr('$1yo$1'), r'\1yo\1')
+        self.assertEqual(crr('$9yo$9'), r'\9yo\9')
+        self.assertEqual(crr('$byo$b'), '$byo$b')
+        self.assertEqual(crr('$1 yo $1'), r'\1 yo \1')
+        self.assertEqual(crr('$9 yo $9'), r'\9 yo \9')
+        self.assertEqual(crr('$b yo $b'), '$b yo $b')
+
+        self.assertEqual(crr('$11'), r'\11')
+        self.assertEqual(crr('$99'), r'\99')
+        self.assertEqual(crr('$bb'), '$bb')
+        self.assertEqual(crr('$11yo$11'), r'\11yo\11')
+        self.assertEqual(crr('$99yo$99'), r'\99yo\99')
+        self.assertEqual(crr('$bbyo$bb'), '$bbyo$bb')
+        self.assertEqual(crr('$11 yo $11'), r'\11 yo \11')
+        self.assertEqual(crr('$99 yo $99'), r'\99 yo \99')
+        self.assertEqual(crr('$bb yo $bb'), '$bb yo $bb')
+
+        self.assertEqual(crr('${1}1'), r'\g<1>1')
+        self.assertEqual(crr('${9}9'), r'\g<9>9')
+        self.assertEqual(crr('${9}b'), r'\g<9>b')
+        self.assertEqual(crr('${b}b'), '${b}b')
+        self.assertEqual(crr('${1}1yo${1}1'), r'\g<1>1yo\g<1>1')
+        self.assertEqual(crr('${9}9yo${9}9'), r'\g<9>9yo\g<9>9')
+        self.assertEqual(crr('${9}byo${9}b'), r'\g<9>byo\g<9>b')
+        self.assertEqual(crr('${b}byo${b}b'), '${b}byo${b}b')
+        self.assertEqual(crr('${1}1 yo ${1}1'), r'\g<1>1 yo \g<1>1')
+        self.assertEqual(crr('${9}9 yo ${9}9'), r'\g<9>9 yo \g<9>9')
+        self.assertEqual(crr('${9}b yo ${9}b'), r'\g<9>b yo \g<9>b')
+        self.assertEqual(crr('${b}b yo ${b}b'), '${b}b yo ${b}b')
+
+        self.assertEqual(crr('${11}1'), r'\g<11>1')
+        self.assertEqual(crr('${99}9'), r'\g<99>9')
+        self.assertEqual(crr('${99}b'), r'\g<99>b')
+        self.assertEqual(crr('${bb}b'), '${bb}b')
+        self.assertEqual(crr('${11}1yo${11}1'), r'\g<11>1yo\g<11>1')
+        self.assertEqual(crr('${99}9yo${99}9'), r'\g<99>9yo\g<99>9')
+        self.assertEqual(crr('${99}byo${99}b'), r'\g<99>byo\g<99>b')
+        self.assertEqual(crr('${bb}byo${bb}b'), '${bb}byo${bb}b')
+        self.assertEqual(crr('${11}1yo${11}1'), r'\g<11>1yo\g<11>1')
+        self.assertEqual(crr('${99}9 yo ${99}9'), r'\g<99>9 yo \g<99>9')
+        self.assertEqual(crr('${99}b yo ${99}b'), r'\g<99>b yo \g<99>b')
+        self.assertEqual(crr('${bb}b yo ${bb}b'), '${bb}b yo ${bb}b')
+        
+        self.assertEqual(re.sub(r'hello (world)', crr('goodbye $1'), 'hello world'), 'goodbye world')
+        self.assertEqual(re.sub(r'(hello) (world)', crr('goodbye $2'), 'hello world'), 'goodbye world')
+        self.assertEqual(re.sub(r'he(ll)o', crr('he$1$1o'), 'hello'), 'hellllo')
 
     def test_find_shapefile_source_path(self):
         shp_conform = {"conform": { "type": "shapefile" } }
