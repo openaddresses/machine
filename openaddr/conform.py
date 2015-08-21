@@ -542,11 +542,12 @@ def row_extract_and_reproject(source_definition, source_row):
     ''' Find lat/lon in source CSV data and store it in ESPG:4326 in X/Y in the row
     '''
     # Set local variables lon_name, source_x, lat_name, source_y
-    lat_name = source_definition["conform"]["lat"] if source_definition["conform"]["lat"] else Y_FIELDNAME
-    lon_name = source_definition["conform"]["lon"] if source_definition["conform"]["lon"] else X_FIELDNAME
+    lat_name = source_definition["conform"]["lat"] if source_definition["conform"].get('lat', False) else Y_FIELDNAME
+    lon_name = source_definition["conform"]["lon"] if source_definition["conform"].get('lon', False) else X_FIELDNAME
     if lon_name in source_row:
         source_x = source_row[lon_name]
     else:
+        print(lon_name)
         source_x = source_row[lon_name.upper()]
     if lat_name in source_row:
         source_y = source_row[lat_name]
@@ -743,7 +744,7 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     The extracted file will be in UTF-8 and will have X and Y columns corresponding
     to longitude and latitude in EPSG:4326.
     """
-    _, ext = os.path.splitext(data_path.lower())
+    _, ext = os.path.splitext(source_path.lower())
     if ext in ['.shp', '.gml']:
         ogr_source_to_csv(source_definition, source_path, extract_path)
     elif ext in ['.csv', '.txt']:
