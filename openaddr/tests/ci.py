@@ -1815,28 +1815,24 @@ class TestCollect (unittest.TestCase):
             self.assertEqual(next(local_processed_files), ('123', 'nonexistent file'))
             self.assertEqual(next(local_processed_files), ('7/9', 'nonexistent file'))
 
-    @staticmethod
-    def urlretrieve(url, filename):
+    def response_content(self, url, request):
         '''
         '''
-        with open(filename, 'w') as file:
-            file.write('dummy content')
+        MHP = request.method, url.hostname, url.path
         
-        if url == 'http://s3.amazonaws.com/openaddresses/us-oh-clinton.csv':
-            return filename, {'Last-Modified': 'Wed, 30 Apr 2014 17:42:10 GMT'}
+        if MHP == ('GET', 's3.amazonaws.com', '/openaddresses/us-oh-clinton.csv'):
+            return response(200, b'...', headers={'Last-Modified': 'Wed, 30 Apr 2014 17:42:10 GMT'})
         
-        if url == 'http://data.openaddresses.io.s3.amazonaws.com/runs/11170/ca-ab-strathcona-county.zip':
-            return filename, {'Last-Modified': 'Tue, 18 Aug 2015 07:10:32 GMT'}
+        if MHP == ('GET', 'data.openaddresses.io.s3.amazonaws.com', '/runs/11170/ca-ab-strathcona-county.zip'):
+            return response(200, b'...', headers={'Last-Modified': 'Tue, 18 Aug 2015 07:10:32 GMT'})
         
-        if url == 'http://data.openaddresses.io.s3.amazonaws.com/runs/13616/fr/vaucluse.zip':
-            return filename, {'Last-Modified': 'Wed, 19 Aug 2015 10:35:44 GMT'}
-        
-        print('Unknowable URL "{}"'.format(url), file=sys.stderr)
-        raise ValueError('Unknowable URL "{}"'.format(url))
+        if MHP == ('GET', 'data.openaddresses.io.s3.amazonaws.com', '/runs/13616/fr/vaucluse.zip'):
+            return response(200, b'...', headers={'Last-Modified': 'Wed, 19 Aug 2015 10:35:44 GMT'})
+
+        raise ValueError(url.geturl())
         
     def test_download_processed_file_csv(self):
-        with patch('urllib.request.urlretrieve') as urlretrieve:
-            urlretrieve.side_effect = TestCollect.urlretrieve
+        with HTTMock(self.response_content):
             filename = download_processed_file('http://s3.amazonaws.com/openaddresses/us-oh-clinton.csv')
 
         self.assertEqual(splitext(filename)[1], '.csv')
@@ -1844,8 +1840,7 @@ class TestCollect (unittest.TestCase):
         remove(filename)
 
     def test_download_processed_file_zip(self):
-        with patch('urllib.request.urlretrieve') as urlretrieve:
-            urlretrieve.side_effect = TestCollect.urlretrieve
+        with HTTMock(self.response_content):
             filename = download_processed_file('http://data.openaddresses.io.s3.amazonaws.com/runs/11170/ca-ab-strathcona-county.zip')
 
         self.assertEqual(splitext(filename)[1], '.zip')
@@ -1853,8 +1848,7 @@ class TestCollect (unittest.TestCase):
         remove(filename)
 
     def test_download_processed_file_nested_zip(self):
-        with patch('urllib.request.urlretrieve') as urlretrieve:
-            urlretrieve.side_effect = TestCollect.urlretrieve
+        with HTTMock(self.response_content):
             filename = download_processed_file('http://data.openaddresses.io.s3.amazonaws.com/runs/13616/fr/vaucluse.zip')
 
         self.assertEqual(splitext(filename)[1], '.zip')

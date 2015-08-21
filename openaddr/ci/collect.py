@@ -6,12 +6,12 @@ from argparse import ArgumentParser
 from os import close, remove, utime, environ
 from zipfile import ZipFile, ZIP_DEFLATED
 from os.path import relpath, splitext, exists
+from urllib.parse import urlparse
 from tempfile import mkstemp
 from calendar import timegm
-import urllib.request
-import urllib.parse
 
 from dateutil.parser import parse
+from requests import get
 
 from .objects import read_latest_set, read_completed_runs_to_date
 from . import db_connect, db_cursor, setup_logger
@@ -97,12 +97,18 @@ def download_processed_file(url):
     
         Local file will have an appropriate timestamp and extension.
     '''
-    _, ext = splitext(urllib.parse.urlparse(url).path)
+    _, ext = splitext(urlparse(url).path)
     handle, filename = mkstemp(prefix='processed-', suffix=ext)
     close(handle)
     
-    _, head = urllib.request.urlretrieve(url, filename)
-    timestamp = timegm(parse(head.get('Last-Modified')).utctimetuple())
+    response = get(url, stream=True)
+    
+    with open(filename, 'wb') as file:
+        for chunk in response.iter_content():
+            file.write(chunk)
+    
+    last_modified = response.headers.get('Last-Modified')
+    timestamp = timegm(parse(last_modified).utctimetuple())
     utime(filename, (timestamp, timestamp))
     
     return filename
