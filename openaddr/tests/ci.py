@@ -3,10 +3,10 @@ from __future__ import print_function
 
 from .. import __version__
 
-from os import environ, remove
-from os.path import join
+from os import environ, remove, stat, close, utime
+from os.path import join, splitext
 from shutil import rmtree
-from tempfile import mkdtemp
+from tempfile import mkdtemp, mkstemp
 from urllib.parse import parse_qsl, urlparse, urljoin
 from base64 import b64decode, b64encode
 from datetime import timedelta, datetime
@@ -35,7 +35,11 @@ from ..ci.objects import (
     Set, add_set, complete_set, update_set_renders, read_set, read_sets,
     add_run, set_run, copy_run, get_completed_file_run, get_completed_run,
     read_completed_set_runs, new_read_completed_set_runs, read_latest_set,
-    read_run, read_completed_runs_to_date
+    read_run, read_completed_runs_to_date, Run
+    )
+
+from ..ci.collect import (
+    download_processed_file, iterate_local_processed_files, add_source_to_zipfile
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -1753,6 +1757,109 @@ class TestBatch (unittest.TestCase):
             self.assertEqual(get(the_set.render_usa).status_code, 200)
             self.assertEqual(get(the_set.render_europe).status_code, 200)
             self.assertEqual(get(the_set.render_world).status_code, 200)
+
+class TestCollect (unittest.TestCase):
+
+    def test_add_source_to_zipfile(self):
+        '''
+        '''
+        handle, filename1 = mkstemp(suffix='.zip')
+        close(handle)
+        
+        handle, filename2 = mkstemp(suffix='.csv')
+        utime(filename2, (1234567890, 1234567890))
+        close(handle)
+        
+        handle, filename3 = mkstemp(suffix='.zip')
+        zipfile3 = ZipFile(filename3, 'w')
+        zipfile3.writestr('foo/thing.vrt', b'stuff')
+        zipfile3.writestr('foo/thing.csv', b'stuff')
+        zipfile3.close()
+        utime(filename3, (987654321, 987654321))
+        close(handle)
+
+        output = ZipFile(filename1, 'w')
+        
+        add_source_to_zipfile(output, 'foobar', 'temp')
+        add_source_to_zipfile(output, 'foobar', filename2)
+        add_source_to_zipfile(output, 'foobar', filename3)
+        output.close()
+        
+        result = ZipFile(filename1, 'r')
+        name1, name2, name3 = result.namelist()
+        self.assertEqual(name1, 'foobar.csv')
+        self.assertEqual(name2, 'foo/thing.vrt')
+        self.assertEqual(name3, 'foo/thing.csv')
+        
+        remove(filename1)
+        remove(filename2)
+        remove(filename3)
+
+    def test_iterate_local_processed_files(self):
+        runs = [
+            Run(123, 'sources/123.json', 'abc', b'', None,
+                {'processed': 'http://s3.amazonaws.com/openaddresses/123.csv'},
+                None, None, None, None, None, None, None),
+            Run(456, 'sources/456.json', 'def', b'', None,
+                {'processed': None},
+                None, None, None, None, None, None, None),
+            Run(789, 'sources/7/9.json', 'ghi', b'', None,
+                {'processed': 'http://s3.amazonaws.com/openaddresses/789.csv'},
+                None, None, None, None, None, None, None),
+            ]
+        
+        with patch('openaddr.ci.collect.download_processed_file') as download_processed_file:
+            download_processed_file.return_value = 'nonexistent file'
+            local_processed_files = iterate_local_processed_files(runs)
+            
+            self.assertEqual(next(local_processed_files), ('123', 'nonexistent file'))
+            self.assertEqual(next(local_processed_files), ('7/9', 'nonexistent file'))
+
+    @staticmethod
+    def urlretrieve(url, filename):
+        '''
+        '''
+        with open(filename, 'w') as file:
+            file.write('dummy content')
+        
+        if url == 'http://s3.amazonaws.com/openaddresses/us-oh-clinton.csv':
+            return filename, {'Last-Modified': 'Wed, 30 Apr 2014 17:42:10 GMT'}
+        
+        if url == 'http://data.openaddresses.io.s3.amazonaws.com/runs/11170/ca-ab-strathcona-county.zip':
+            return filename, {'Last-Modified': 'Tue, 18 Aug 2015 07:10:32 GMT'}
+        
+        if url == 'http://data.openaddresses.io.s3.amazonaws.com/runs/13616/fr/vaucluse.zip':
+            return filename, {'Last-Modified': 'Wed, 19 Aug 2015 10:35:44 GMT'}
+        
+        print('Unknowable URL "{}"'.format(url), file=sys.stderr)
+        raise ValueError('Unknowable URL "{}"'.format(url))
+        
+    def test_download_processed_file_csv(self):
+        with patch('urllib.request.urlretrieve') as urlretrieve:
+            urlretrieve.side_effect = TestCollect.urlretrieve
+            filename = download_processed_file('http://s3.amazonaws.com/openaddresses/us-oh-clinton.csv')
+
+        self.assertEqual(splitext(filename)[1], '.csv')
+        self.assertEqual(os.stat(filename).st_mtime, 1398879730)
+        remove(filename)
+
+    def test_download_processed_file_zip(self):
+        with patch('urllib.request.urlretrieve') as urlretrieve:
+            urlretrieve.side_effect = TestCollect.urlretrieve
+            filename = download_processed_file('http://data.openaddresses.io.s3.amazonaws.com/runs/11170/ca-ab-strathcona-county.zip')
+
+        self.assertEqual(splitext(filename)[1], '.zip')
+        self.assertEqual(os.stat(filename).st_mtime, 1439881832)
+        remove(filename)
+
+    def test_download_processed_file_nested_zip(self):
+        with patch('urllib.request.urlretrieve') as urlretrieve:
+            urlretrieve.side_effect = TestCollect.urlretrieve
+            filename = download_processed_file('http://data.openaddresses.io.s3.amazonaws.com/runs/13616/fr/vaucluse.zip')
+
+        self.assertEqual(splitext(filename)[1], '.zip')
+        self.assertEqual(os.stat(filename).st_mtime, 1439980544)
+        remove(filename)
 
 if __name__ == '__main__':
     unittest.main()
