@@ -541,31 +541,17 @@ def _transform_to_4326(srs):
 def row_extract_and_reproject(source_definition, source_row):
     ''' Find lat/lon in source CSV data and store it in ESPG:4326 in X/Y in the row
     '''
-    # Ignore any lat/lon names for natively geographic sources.
-    ignore_conform_names = bool(source_definition['conform']['type'] != 'csv')
-
-    # ESRI-derived source CSV is synthetic; we should ignore any lat/lon names.
-    ignore_conform_names |= bool(source_definition['type'] == 'ESRI')
-
     # Set local variables lon_name, source_x, lat_name, source_y
-    if ignore_conform_names:
-        # Use our own X_FIELDNAME convention
-        lat_name = Y_FIELDNAME
-        lon_name = X_FIELDNAME
+    lat_name = source_definition["conform"]["lat"] if source_definition["conform"]["lat"] else Y_FIELDNAME
+    lon_name = source_definition["conform"]["lon"] if source_definition["conform"]["lon"] else X_FIELDNAME
+    if lon_name in source_row:
         source_x = source_row[lon_name]
+    else:
+        source_x = source_row[lon_name.upper()]
+    if lat_name in source_row:
         source_y = source_row[lat_name]
     else:
-        # Conforms can name the lat/lon columns from the original source data
-        lat_name = source_definition["conform"]["lat"]
-        lon_name = source_definition["conform"]["lon"]
-        if lon_name in source_row:
-            source_x = source_row[lon_name]
-        else:
-            source_x = source_row[lon_name.upper()]
-        if lat_name in source_row:
-            source_y = source_row[lat_name]
-        else:
-            source_y = source_row[lat_name.upper()]
+        source_y = source_row[lat_name.upper()]
 
     # Prepare an output row with the source lat and lon columns deleted
     out_row = copy.deepcopy(source_row)
@@ -757,11 +743,12 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     The extracted file will be in UTF-8 and will have X and Y columns corresponding
     to longitude and latitude in EPSG:4326.
     """
-    if source_definition["conform"]["type"] in ("shapefile", "shapefile-polygon", "xml"):
+    _, ext = os.path.splitext(data_path.lower())
+    if ext in ['.shp', '.gml']:
         ogr_source_to_csv(source_definition, source_path, extract_path)
-    elif source_definition["conform"]["type"] == "csv":
+    elif ext in ['.csv', '.txt']:
         csv_source_to_csv(source_definition, source_path, extract_path)
-    elif source_definition["conform"]["type"] == "geojson":
+    elif ext in ['.geojson', '.json']:
         # GeoJSON sources have some awkward legacy with ESRI, see issue #34
         if source_definition["type"] == "ESRI":
             _L.info("ESRI GeoJSON source found; treating it as CSV")
