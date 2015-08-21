@@ -46,7 +46,7 @@ def main():
         handle, filename = mkstemp(prefix='collected-', suffix='.zip')
         close(handle)
     
-        collected_zip = ZipFile(filename, 'w', ZIP_DEFLATED)
+        collected_zip = ZipFile(filename, 'w', ZIP_DEFLATED, allowZip64=True)
     
         for (source_base, filename) in iterate_local_processed_files(runs):
             add_source_to_zipfile(collected_zip, source_base, filename)
@@ -79,7 +79,7 @@ def iterate_local_processed_files(runs):
     '''
     for run in runs:
         source_base, _ = splitext(relpath(run.source_path, 'sources'))
-        processed_url = run.state.get('processed')
+        processed_url = run.state and run.state.get('processed')
     
         if not processed_url:
             continue
@@ -104,7 +104,7 @@ def download_processed_file(url):
     response = get(url, stream=True)
     
     with open(filename, 'wb') as file:
-        for chunk in response.iter_content():
+        for chunk in response.iter_content(chunk_size=8192):
             file.write(chunk)
     
     last_modified = response.headers.get('Last-Modified')
