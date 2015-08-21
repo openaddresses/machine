@@ -223,28 +223,28 @@ class TestConformTransforms (unittest.TestCase):
 
     def test_row_extract_and_reproject(self):
         # CSV lat/lon column names
-        d = { "conform" : { "lon": "longitude", "lat": "latitude", "type": "csv" }, 'type': 'test' }
+        d = { "conform" : { "lon": "longitude", "lat": "latitude" }, 'type': 'test' }
         r = row_extract_and_reproject(d, {"longitude": "-122.3", "latitude": "39.1"})
         self.assertEqual({Y_FIELDNAME: "39.1", X_FIELDNAME: "-122.3"}, r)
 
         # non-CSV lat/lon column names
-        d = { "conform" : { "lon": "x", "lat": "y", "type": "" }, 'type': 'test' }
+        d = { "conform" : { "lon": "x", "lat": "y" }, 'type': 'test' }
         r = row_extract_and_reproject(d, {X_FIELDNAME: "-122.3", Y_FIELDNAME: "39.1" })
         self.assertEqual({X_FIELDNAME: "-122.3", Y_FIELDNAME: "39.1"}, r)
 
         # reprojection
-        d = { "conform" : { "srs": "EPSG:2913", "type": "" }, 'type': 'test' }
+        d = { "conform" : { "srs": "EPSG:2913" }, 'type': 'test' }
         r = row_extract_and_reproject(d, {X_FIELDNAME: "7655634.924", Y_FIELDNAME: "668868.414"})
         self.assertAlmostEqual(-122.630842186650796, float(r[X_FIELDNAME]))
         self.assertAlmostEqual(45.481554393851063, float(r[Y_FIELDNAME]))
 
-        d = { "conform" : { "lon": "X", "lat": "Y", "srs": "EPSG:2913", "type": "" }, 'type': 'test' }
+        d = { "conform" : { "lon": "X", "lat": "Y", "srs": "EPSG:2913" }, 'type': 'test' }
         r = row_extract_and_reproject(d, {X_FIELDNAME: "", Y_FIELDNAME: ""})
         self.assertEqual("", r[X_FIELDNAME])
         self.assertEqual("", r[Y_FIELDNAME])
 
         # commas in lat/lon columns (eg Iceland)
-        d = { "conform" : { "lon": "LONG_WGS84", "lat": "LAT_WGS84", "type": "csv" }, 'type': 'test' }
+        d = { "conform" : { "lon": "LONG_WGS84", "lat": "LAT_WGS84" }, 'type': 'test' }
         r = row_extract_and_reproject(d, {"LONG_WGS84": "-21,77", "LAT_WGS84": "64,11"})
         self.assertEqual({Y_FIELDNAME: "64.11", X_FIELDNAME: "-21.77"}, r)
 
@@ -578,7 +578,7 @@ class TestConformCsv(unittest.TestCase):
             return [s.decode('utf-8').strip() for s in file]
 
     def test_simple(self):
-        c = { "conform": { "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" }, 'type': 'test' }
+        c = { "conform": { "lat": "LATITUDE", "lon": "LONGITUDE" }, 'type': 'test' }
         d = (self._ascii_header_in.encode('ascii'),
              self._ascii_row_in.encode('ascii'))
         r = self._convert(c, d)
@@ -586,7 +586,7 @@ class TestConformCsv(unittest.TestCase):
         self.assertEqual(self._ascii_row_out, r[1])
 
     def test_utf8(self):
-        c = { "conform": { "type": "csv", "lat": u"\u7def\u5ea6", "lon": u"LONGITUDE" }, 'type': 'test' }
+        c = { "conform": { "lat": u"\u7def\u5ea6", "lon": u"LONGITUDE" }, 'type': 'test' }
         d = (self._unicode_header_in.encode('utf-8'),
              self._unicode_row_in.encode('utf-8'))
         r = self._convert(c, d)
@@ -594,7 +594,7 @@ class TestConformCsv(unittest.TestCase):
         self.assertEqual(self._unicode_row_out, r[1])
 
     def test_csvsplit(self):
-        c = { "conform": { "csvsplit": ";", "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" }, 'type': 'test' }
+        c = { "conform": { "csvsplit": ";", "lat": "LATITUDE", "lon": "LONGITUDE" }, 'type': 'test' }
         d = (self._ascii_header_in.replace(',', ';').encode('ascii'),
              self._ascii_row_in.replace(',', ';').encode('ascii'))
         r = self._convert(c, d)
@@ -602,12 +602,12 @@ class TestConformCsv(unittest.TestCase):
         self.assertEqual(self._ascii_row_out, r[1])
 
         # unicodecsv freaked out about unicode strings for delimiter
-        unicode_conform = { "conform": { "csvsplit": u";", "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" }, 'type': 'test' }
+        unicode_conform = { "conform": { "csvsplit": u";", "lat": "LATITUDE", "lon": "LONGITUDE" }, 'type': 'test' }
         r = self._convert(unicode_conform, d)
         self.assertEqual(self._ascii_row_out, r[1])
 
     def test_csvencoded_utf8(self):
-        c = { "conform": { "encoding": "utf-8", "type": "csv", "lat": u"\u7def\u5ea6", "lon": u"LONGITUDE" }, 'type': 'test' }
+        c = { "conform": { "encoding": "utf-8", "lat": u"\u7def\u5ea6", "lon": u"LONGITUDE" }, 'type': 'test' }
         d = (self._unicode_header_in.encode('utf-8'),
              self._unicode_row_in.encode('utf-8'))
         r = self._convert(c, d)
@@ -615,7 +615,7 @@ class TestConformCsv(unittest.TestCase):
         self.assertEqual(self._unicode_row_out, r[1])
 
     def test_csvencoded_shift_jis(self):
-        c = { "conform": { "encoding": "shift-jis", "type": "csv", "lat": u"\u7def\u5ea6", "lon": u"LONGITUDE" }, 'type': 'test' }
+        c = { "conform": { "encoding": "shift-jis", "lat": u"\u7def\u5ea6", "lon": u"LONGITUDE" }, 'type': 'test' }
         d = (u'\u5927\u5b57\u30fb\u753a\u4e01\u76ee\u540d,NUMBER,\u7def\u5ea6,LONGITUDE'.encode('shift-jis'),
              u'\u6771 ST,123,39.3,-121.2'.encode('shift-jis'))
         r = self._convert(c, d)
@@ -623,14 +623,14 @@ class TestConformCsv(unittest.TestCase):
         self.assertEqual(r[1], u'\u6771 ST,123,-121.2,39.3')
 
     def test_headers_minus_one(self):
-        c = { "conform": { "headers": -1, "type": "csv", "lon": "COLUMN4", "lat": "COLUMN3" }, 'type': 'test' }
+        c = { "conform": { "headers": -1, "lon": "COLUMN4", "lat": "COLUMN3" }, 'type': 'test' }
         d = (u'MAPLE ST,123,39.3,-121.2'.encode('ascii'),)
         r = self._convert(c, d)
         self.assertEqual(r[0], u'COLUMN1,COLUMN2,{X_FIELDNAME},{Y_FIELDNAME}'.format(**globals()))
         self.assertEqual(r[1], u'MAPLE ST,123,-121.2,39.3')
 
     def test_headers_and_skiplines(self):
-        c = {"conform": { "headers": 2, "skiplines": 2, "type": "csv", "lon": "LONGITUDE", "lat": "LATITUDE" }, 'type': 'test' }
+        c = {"conform": { "headers": 2, "skiplines": 2, "lon": "LONGITUDE", "lat": "LATITUDE" }, 'type': 'test' }
         d = (u'HAHA,THIS,HEADER,IS,FAKE'.encode('ascii'),
              self._ascii_header_in.encode('ascii'),
              self._ascii_row_in.encode('ascii')) 
@@ -642,7 +642,7 @@ class TestConformCsv(unittest.TestCase):
         # This is an example inspired by the hipsters in us-or-portland
         # Conform says lowercase but the actual header is uppercase.
         # Also the columns are named X and Y in the input
-        c = {"conform": {"lon": "x", "lat": "y", "number": "n", "street": "s", "type": "csv"}, 'type': 'test'}
+        c = {"conform": {"lon": "x", "lat": "y", "number": "n", "street": "s" }, 'type': 'test'}
         d = (u'n,s,X,Y'.encode('ascii'),
              u'3203,SE WOODSTOCK BLVD,-122.629314,45.479425'.encode('ascii'))
         r = self._convert(c, d)
@@ -651,7 +651,7 @@ class TestConformCsv(unittest.TestCase):
 
     def test_srs(self):
         # This is an example inspired by the hipsters in us-or-portland
-        c = {"conform": {"lon": "x", "lat": "y", "srs": "EPSG:2913", "number": "n", "street": "s", "type": "csv"}, 'type': 'test'}
+        c = {"conform": {"lon": "x", "lat": "y", "srs": "EPSG:2913", "number": "n", "street": "s" }, 'type': 'test'}
         d = (u'n,s,X,Y'.encode('ascii'),
              u'3203,SE WOODSTOCK BLVD,7655634.924,668868.414'.encode('ascii'))
         r = self._convert(c, d)
@@ -660,7 +660,7 @@ class TestConformCsv(unittest.TestCase):
 
     def test_too_many_columns(self):
         "Check that we don't barf on input with too many columns in some rows"
-        c = { "conform": { "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" }, 'type': 'test' }
+        c = { "conform": { "lat": "LATITUDE", "lon": "LONGITUDE" }, 'type': 'test' }
         d = (self._ascii_header_in.encode('ascii'),
              self._ascii_row_in.encode('ascii'),
              u'MAPLE ST,123,39.3,-121.2,EXTRY'.encode('ascii'))
@@ -671,7 +671,7 @@ class TestConformCsv(unittest.TestCase):
 
     def test_esri_csv(self):
         # Test that our ESRI-emitted CSV is converted correctly.
-        c = { "type": "ESRI", "conform": { "type": "geojson", "lat": "theseare", "lon": "ignored" } }
+        c = { "type": "ESRI", "conform": { "lat": "theseare", "lon": "ignored" } }
         d = (u'STREETNAME,NUMBER,OA:x,OA:y'.encode('ascii'),
              u'MAPLE ST,123,-121.2,39.3'.encode('ascii'))
         r = self._convert(c, d)
@@ -680,7 +680,7 @@ class TestConformCsv(unittest.TestCase):
 
     def test_esri_csv_no_lat_lon(self):
         # Test that the ESRI path works even without lat/lon tags. See issue #91
-        c = { "type": "ESRI", "conform": { "type": "geojson" } }
+        c = { "type": "ESRI", "conform": { } }
         d = (u'STREETNAME,NUMBER,OA:x,OA:y'.encode('ascii'),
              u'MAPLE ST,123,-121.2,39.3'.encode('ascii'))
         r = self._convert(c, d)
