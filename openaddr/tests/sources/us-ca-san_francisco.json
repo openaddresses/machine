@@ -14,8 +14,6 @@
             "st_name",
             "st_type"
         ],
-        "lon": "x",
-        "lat": "y",
         "number": "address",
         "street": "auto_street",
         "type": "shapefile"
