@@ -227,18 +227,13 @@ class TestConformTransforms (unittest.TestCase):
         r = row_extract_and_reproject(d, {"longitude": "-122.3", "latitude": "39.1"})
         self.assertEqual({Y_FIELDNAME: "39.1", X_FIELDNAME: "-122.3"}, r)
 
-        # non-CSV lat/lon column names
-        d = { "conform" : { "lon": "x", "lat": "y" }, 'type': 'test' }
-        r = row_extract_and_reproject(d, {X_FIELDNAME: "-122.3", Y_FIELDNAME: "39.1" })
-        self.assertEqual({X_FIELDNAME: "-122.3", Y_FIELDNAME: "39.1"}, r)
-
         # reprojection
         d = { "conform" : { "srs": "EPSG:2913" }, 'type': 'test' }
         r = row_extract_and_reproject(d, {X_FIELDNAME: "7655634.924", Y_FIELDNAME: "668868.414"})
         self.assertAlmostEqual(-122.630842186650796, float(r[X_FIELDNAME]))
         self.assertAlmostEqual(45.481554393851063, float(r[Y_FIELDNAME]))
 
-        d = { "conform" : { "lon": "X", "lat": "Y", "srs": "EPSG:2913" }, 'type': 'test' }
+        d = { "conform" : { "srs": "EPSG:2913" }, 'type': 'test' }
         r = row_extract_and_reproject(d, {X_FIELDNAME: "", Y_FIELDNAME: ""})
         self.assertEqual("", r[X_FIELDNAME])
         self.assertEqual("", r[Y_FIELDNAME])
@@ -671,7 +666,7 @@ class TestConformCsv(unittest.TestCase):
 
     def test_esri_csv(self):
         # Test that our ESRI-emitted CSV is converted correctly.
-        c = { "type": "ESRI", "conform": { "lat": "theseare", "lon": "ignored" } }
+        c = { "type": "ESRI", "conform": { } }
         d = (u'STREETNAME,NUMBER,OA:x,OA:y'.encode('ascii'),
              u'MAPLE ST,123,-121.2,39.3'.encode('ascii'))
         r = self._convert(c, d)
