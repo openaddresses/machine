@@ -1,3 +1,6 @@
+2015-08-20: 1.21.0
+- Added openaddr-collect-extracts script for assembling zip archive.
+
 2015-08-17: 1.20.2
 - Replaced inline summary sample data with dynamic requests.
 - Replaced front page HTML with cumulative results.
