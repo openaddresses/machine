@@ -12,7 +12,7 @@ All logging is suppressed unless --logall or -l specified
 
 
 from __future__ import absolute_import, division, print_function
-from ..compat import standard_library, csvDictReader
+from ..compat import standard_library, csvopen, csvDictReader
 
 import unittest
 import shutil
@@ -222,6 +222,15 @@ class TestOA (unittest.TestCase):
         self.assertTrue('ZIPCODE' in sample_data[0])
         self.assertTrue('OAKLAND' in sample_data[1])
         self.assertTrue('94612' in sample_data[1])
+        
+        output_path = join(dirname(state_path), state['processed'])
+        
+        with csvopen(output_path, encoding='utf8') as input:
+            rows = list(csvDictReader(input, encoding='utf8'))
+            self.assertEqual(rows[1]['STREET'], 'Broadway')
+            self.assertEqual(rows[10]['STREET'], 'Hillsborough Street')
+            self.assertEqual(rows[100]['STREET'], '8th Street')
+            self.assertEqual(rows[1000]['STREET'], 'Hanover Avenue')
 
     def test_single_car(self):
         ''' Test complete process_one.process on Carson sample data.
