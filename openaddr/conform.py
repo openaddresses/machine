@@ -746,7 +746,7 @@ def row_fxn_regexp(sd, row, key):
         pattern = re.compile(fxn.get("pattern", False))
         replace = fxn.get('replace', False)
         if replace:
-            match = re.sub(pattern, replace, row[fxn["field"]])
+            match = re.sub(pattern, convert_regexp_replace(replace), row[fxn["field"]])
             row[attrib_types[key]] = match;
         else:
             match = pattern.search(row[fxn["field"]])
