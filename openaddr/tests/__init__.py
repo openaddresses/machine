@@ -232,6 +232,42 @@ class TestOA (unittest.TestCase):
             self.assertEqual(rows[100]['STREET'], '8th Street')
             self.assertEqual(rows[1000]['STREET'], 'Hanover Avenue')
 
+    def test_single_sf(self):
+        ''' Test complete process_one.process on San Francisco sample data.
+        '''
+        source = join(self.src_dir, 'us-ca-san_francisco.json')
+        
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+        
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        self.assertTrue(state['cache'] is not None)
+        self.assertTrue(state['processed'] is not None)
+        self.assertTrue(state['sample'] is not None)
+        self.assertEqual(state['geometry type'], 'Point')
+        
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('ZIPCODE' in sample_data[0])
+        self.assertTrue('94102' in sample_data[1])
+        
+        output_path = join(dirname(state_path), state['processed'])
+        
+        with csvopen(output_path, encoding='utf8') as input:
+            rows = list(csvDictReader(input, encoding='utf8'))
+            self.assertEqual(rows[1]['NUMBER'], '27')
+            self.assertEqual(rows[10]['NUMBER'], '42')
+            self.assertEqual(rows[100]['NUMBER'], '209')
+            self.assertEqual(rows[1000]['NUMBER'], '1415')
+            self.assertEqual(rows[1]['STREET'], 'Octavia Street')
+            self.assertEqual(rows[10]['STREET'], 'Golden Gate Avenue')
+            self.assertEqual(rows[100]['STREET'], 'Octavia Street')
+            self.assertEqual(rows[1000]['STREET'], 'Folsom Street')
+
     def test_single_car(self):
         ''' Test complete process_one.process on Carson sample data.
         '''

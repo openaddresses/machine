@@ -10,14 +10,11 @@
     "type": "http",
     "compression": "zip",
     "conform": {
-        "merge": [
-            "st_name",
-            "st_type"
-        ],
         "lon": "x",
         "lat": "y",
-        "number": "address",
-        "street": "auto_street",
+        "split": "address",
+        "number": "auto_number",
+        "street": ["st_name", "st_type"],
         "type": "shapefile"
     }
 }
