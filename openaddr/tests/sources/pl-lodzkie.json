@@ -12,12 +12,9 @@
     "compression": "zip",
     "conform": {
         "srs": "EPSG:2180",
-        "lon": "X",
         "street": ["ulc_nazwa", "mjs_nazwa"],
         "number": "pad_numer_porzadkowy",
-        "lat": "Y",
         "file": "punkty_adr_v2/lodzkie.gml",
-        "type": "xml",
         "headers": 1,
         "skiplines": 1
     },

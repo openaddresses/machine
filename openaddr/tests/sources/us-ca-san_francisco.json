@@ -10,11 +10,8 @@
     "type": "http",
     "compression": "zip",
     "conform": {
-        "lon": "x",
-        "lat": "y",
         "split": "address",
         "number": "auto_number",
-        "street": ["st_name", "st_type"],
-        "type": "shapefile"
+        "street": ["st_name", "st_type"]
     }
 }

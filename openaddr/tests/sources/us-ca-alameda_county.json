@@ -15,10 +15,7 @@
     "type": "http",
     "compression": "zip",
     "conform": {
-        "lon": "X",
-        "lat": "Y",
         "number": "ST_NUM",
-        "street": ["FEANME", "FEATYP"],
-        "type": "shapefile"
+        "street": ["FEANME", "FEATYP"]
     }
 }
