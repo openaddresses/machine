@@ -103,13 +103,13 @@ class TestConformTransforms (unittest.TestCase):
                 "function": "regexp",
                 "field": "ADDRESS",
                 "pattern": "^([0-9]+)(?:.*)",
-                "replace": "\\1"
+                "replace": "$1"
             },
             "street": {
                 "function": "regexp",
                 "field": "ADDRESS",
                 "pattern": "(?:[0-9]+ )(.*)",
-                "replace": "\\1"
+                "replace": "$1"
             }
         } }
         d = { "ADDRESS": "123 MAPLE ST" }
