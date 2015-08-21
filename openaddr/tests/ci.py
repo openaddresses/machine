@@ -3,10 +3,10 @@ from __future__ import print_function
 
 from .. import __version__
 
-from os import environ, remove, stat
+from os import environ, remove, stat, close
 from os.path import join, splitext
 from shutil import rmtree
-from tempfile import mkdtemp
+from tempfile import mkdtemp, mkstemp
 from urllib.parse import parse_qsl, urlparse, urljoin
 from base64 import b64decode, b64encode
 from datetime import timedelta, datetime
@@ -38,7 +38,10 @@ from ..ci.objects import (
     read_run, read_completed_runs_to_date, Run
     )
 
-from ..ci.collect import download_processed_file, iterate_local_processed_files
+from ..ci.collect import (
+    download_processed_file, iterate_local_processed_files, add_source_to_zipfile
+    )
+
 from ..jobs import JOB_TIMEOUT
 from .. import compat
 from . import FakeS3
@@ -1756,6 +1759,18 @@ class TestBatch (unittest.TestCase):
             self.assertEqual(get(the_set.render_world).status_code, 200)
 
 class TestCollect (unittest.TestCase):
+
+    def test_add_source_to_zipfile(self):
+    
+        handle, filename = mkstemp(suffix='.zip')
+        close(handle)
+        
+        output = ZipFile(filename, 'w')
+        add_source_to_zipfile(output, 'foobar', 'blah')
+        output.close()
+        
+        result = ZipFile(filename, 'r')
+        self.assertEqual(len(result.namelist()), 0)
 
     def test_iterate_local_processed_files(self):
         runs = [

@@ -48,6 +48,7 @@ setup(
             'openaddr-ci-run-dequeue = openaddr.ci.run_dequeue:main',
             'openaddr-ci-worker = openaddr.ci.worker:main',
             'openaddr-enqueue-sources = openaddr.ci.enqueue:main',
+            'openaddr-collect-extracts = openaddr.ci.collect:main',
             
             # Deprecated.
             'openaddr-ci-enqueue = openaddr.ci.enqueue:main',

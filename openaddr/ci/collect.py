@@ -40,23 +40,37 @@ def main():
             set = read_latest_set(db, args.owner, args.repository)
             runs = read_completed_runs_to_date(db, set.id)
     
-    runs = [runs[i] for i in range(0, len(runs), len(runs) / 5)]
+    try:
+        handle, filename = mkstemp(prefix='collected-', suffix='.zip')
+        close(handle)
     
-    output = ZipFile('everything.zip', 'w', ZIP_DEFLATED)
+        collected_zip = ZipFile(filename, 'w', ZIP_DEFLATED)
     
-    for (source_base, filename) in iterate_local_processed_files(runs):
-        _, ext = splitext(filename)
-
-        if ext == '.csv':
-            output.write(filename, source_base + ext)
+        for (source_base, filename) in iterate_local_processed_files(runs):
+            add_source_to_zipfile(collected_zip, source_base, filename)
+    
+        collected_zip.close()
         
-        elif ext == '.zip':
-            input = ZipFile(filename, 'r')
-            for zipinfo in input.infolist():
-                output.writestr(zipinfo, input.read(zipinfo.filename))
-            input.close()
+        zip_key = s3.new_key('openaddresses-collected.zip')
+        zip_args = dict(policy='public-read', headers={'Content-Type': 'application/zip'})
+        zip_key.set_contents_from_filename(collected_zip.filename, **zip_args)
+        
+    finally:
+        remove(collected_zip.filename)
+
+def add_source_to_zipfile(zip_out, source_base, filename):
+    '''
+    '''
+    _, ext = splitext(filename)
+
+    if ext == '.csv':
+        zip_out.write(filename, source_base + ext)
     
-    output.close()
+    elif ext == '.zip':
+        zip_in = ZipFile(filename, 'r')
+        for zipinfo in zip_in.infolist():
+            zip_out.writestr(zipinfo, zip_in.read(zipinfo.filename))
+        zip_in.close()
 
 def iterate_local_processed_files(runs):
     ''' Yield a stream of local processed result files for a list of runs.
@@ -65,9 +79,6 @@ def iterate_local_processed_files(runs):
         source_base, _ = splitext(relpath(run.source_path, 'sources'))
         processed_url = run.state.get('processed')
     
-        print source_base
-        print processed_url
-        
         if not processed_url:
             continue
         
@@ -77,7 +88,6 @@ def iterate_local_processed_files(runs):
         
         finally:
             if exists(filename):
-                print 'rm', filename
                 remove(filename)
 
 def download_processed_file(url):
