@@ -547,7 +547,6 @@ def row_extract_and_reproject(source_definition, source_row):
     if lon_name in source_row:
         source_x = source_row[lon_name]
     else:
-        print(lon_name)
         source_x = source_row[lon_name.upper()]
     if lat_name in source_row:
         source_y = source_row[lat_name]
