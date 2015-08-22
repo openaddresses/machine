@@ -48,9 +48,6 @@ setup(
             'openaddr-ci-worker = openaddr.ci.worker:main',
             'openaddr-enqueue-sources = openaddr.ci.enqueue:main',
             'openaddr-collect-extracts = openaddr.ci.collect:main',
-            
-            # Deprecated.
-            'openaddr-ci-enqueue = openaddr.ci.enqueue:main',
         ]
     ),
     package_data = {
