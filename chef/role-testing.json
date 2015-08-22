@@ -10,7 +10,6 @@
         "openaddr",
         "database",
         "account",
-        "webhooks",
-        "sources"
+        "webhooks"
     ]
 }

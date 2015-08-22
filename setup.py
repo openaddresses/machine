@@ -39,7 +39,6 @@ setup(
         console_scripts = [
             'openaddr-render-us = openaddr.render:main',
             'openaddr-summarize = openaddr.summarize:main',
-            'openaddr-process = openaddr.process_all:main',
             'openaddr-process-one = openaddr.process_one:main',
             'openaddr-esri2geojson = openaddr.util.esri2geojson:main',
             'openaddr-ci-recreate-db = openaddr.ci.recreate_db:main',
