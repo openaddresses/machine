@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function
 import os
 import copy
 import json
+import re
 
 import unittest
 import tempfile
@@ -13,10 +14,10 @@ import shutil
 from ..conform import (
     GEOM_FIELDNAME, X_FIELDNAME, Y_FIELDNAME,
     csv_source_to_csv, find_source_path, row_transform_and_convert,
-    row_split_address, row_smash_case, row_round_lat_lon, row_merge_street,
-    row_extract_and_reproject, row_convert_to_out, row_advanced_merge,
+    row_fxn_regexp, row_smash_case, row_round_lat_lon, row_merge,
+    row_extract_and_reproject, row_convert_to_out, row_fxn_join,
     row_canonicalize_street_and_number, conform_smash_case, conform_cli,
-    csvopen, csvDictReader
+    csvopen, csvDictReader, convert_regexp_replace
     )
 
 class TestConformTransforms (unittest.TestCase):
@@ -27,19 +28,14 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual({"upper": "foo", "lower": "bar", "mixed": "mixed"}, r)
 
     def test_conform_smash_case(self):
-        d = { "conform": { "street": "MiXeD", "number": "U", "split": "U", "lat": "Y", "lon": "x",
-                           "merge": [ "U", "l", "MiXeD" ],
-                           "advanced_merge": { "auto_street": { "fields": ["MiXeD", "UPPER"] } } } }
-        r = conform_smash_case(d)
-        self.assertEqual({ "conform": { "street": "mixed", "number": "u", "split": "u", "lat": "y", "lon": "x",
-                           "merge": [ "u", "l", "mixed" ],
-                           "advanced_merge": { "auto_street": { "fields": ["mixed", "upper"] } } } },
-                         r)
-
         d = { "conform": { "street": [ "U", "l", "MiXeD" ], "number": "U", "split": "U", "lat": "Y", "lon": "x",
+                           "city": { "function": "join", "fields": ["ThIs","FiELd"], "separator": "-" },
+                           "district": { "function": "regexp", "field": "ThaT", "pattern": ""},
                            "advanced_merge": { "auto_street": { "fields": ["MiXeD", "UPPER"] } } } }
         r = conform_smash_case(d)
         self.assertEqual({ "conform": { "street": [ "u", "l", "mixed" ], "number": "u", "split": "u", "lat": "y", "lon": "x",
+                           "city": {"fields": ["this", "field"], "function": "join", "separator": "-"},
+                           "district": { "field": "that", "function": "regexp", "pattern": ""},
                            "advanced_merge": { "auto_street": { "fields": ["mixed", "upper"] } } } },
                          r)
 
@@ -49,39 +45,125 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual({"LON": "-119.2", "LAT": "39.3", "NUMBER": "123", "STREET": "MAPLE LN",
                           "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None}, r)
 
-    def test_row_merge_street(self):
-        d = { "conform": { "merge": [ "n", "t" ] } }
-        r = row_merge_street(d, {"n": "MAPLE", "t": "ST", "x": "foo"})
-        self.assertEqual({"auto_street": "MAPLE ST", "x": "foo", "t": "ST", "n": "MAPLE"}, r)
-
+    def test_row_merge(self):
         d = { "conform": { "street": [ "n", "t" ] } }
-        r = row_merge_street(d, {"n": "MAPLE", "t": "ST", "x": "foo"})
+        r = row_merge(d, {"n": "MAPLE", "t": "ST", "x": "foo"}, 'street')
         self.assertEqual({"OA:street": "MAPLE ST", "x": "foo", "t": "ST", "n": "MAPLE"}, r)
 
-    def test_row_advanced_merge(self):
+        d = { "conform": { "city": [ "n", "t" ] } }
+        r = row_merge(d, {"n": "Village of", "t": "Stanley", "x": "foo"}, 'city')
+        self.assertEqual({"OA:city": "Village of Stanley", "x": "foo", "t": "Stanley", "n": "Village of"}, r)
+    
+    def test_row_fxn_join(self):
+        "Deprecated advanced_merge"
         c = { "conform": { "advanced_merge": {
                 "new_a": { "fields": ["a1"] },
                 "new_b": { "fields": ["b1", "b2"] },
                 "new_c": { "separator": "-", "fields": ["c1", "c2"] } } } }
         d = { "a1": "va1", "b1": "vb1", "b2": "vb2", "c1": "vc1", "c2": "vc2" }
-        r = row_advanced_merge(c, d)
         e = copy.deepcopy(d)
         e.update({ "new_a": "va1", "new_b": "vb1 vb2", "new_c": "vc1-vc2"})
+        r = row_fxn_join(c, d, False)
+        self.assertEqual(e, r)
+
+        "New fxn join"
+        c = { "conform": {
+            "number": {
+                "function": "join",
+                "fields": ["a1"]
+            },
+            "street": {
+                "function": "join",
+                "fields": ["b1","b2"],
+                "separator": "-"
+            }
+        } }
+        d = { "a1": "va1", "b1": "vb1", "b2": "vb2" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "va1", "OA:street": "vb1-vb2" })
+        d = row_fxn_join(c, d, "number")
+        d = row_fxn_join(c, d, "street")
         self.assertEqual(e, d)
 
-    def test_split_address(self):
+    def test_row_fxn_regexp(self):
+        "Deprecated split"
         d = { "conform": { "split": "ADDRESS" } }
-        r = row_split_address(d, { "ADDRESS": "123 MAPLE ST" })
+        r = row_fxn_regexp(d, { "ADDRESS": "123 MAPLE ST" }, False)
         self.assertEqual({"ADDRESS": "123 MAPLE ST", "auto_street": "MAPLE ST", "auto_number": "123"}, r)
-        r = row_split_address(d, { "ADDRESS": "265" })
+        r = row_fxn_regexp(d, { "ADDRESS": "265" }, False)
         self.assertEqual(r["auto_number"], "265")
         self.assertEqual(r["auto_street"], "")
-        r = row_split_address(d, { "ADDRESS": "" })
+        r = row_fxn_regexp(d, { "ADDRESS": "" }, False)
         self.assertEqual(r["auto_number"], "")
         self.assertEqual(r["auto_street"], "")
 
+        "Regex split - replace"
+        c = { "conform": {
+            "number": {
+                "function": "regexp",
+                "field": "ADDRESS",
+                "pattern": "^([0-9]+)(?:.*)",
+                "replace": "$1"
+            },
+            "street": {
+                "function": "regexp",
+                "field": "ADDRESS",
+                "pattern": "(?:[0-9]+ )(.*)",
+                "replace": "$1"
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123", "OA:street": "MAPLE ST" })
+        
+        d = row_fxn_regexp(c, d, "number")
+        d = row_fxn_regexp(c, d, "street")
+        self.assertEqual(e, d)
+        
+        "Regex split - no replace - good match"
+        c = { "conform": {
+            "number": {
+                "function": "regexp",
+                "field": "ADDRESS",
+                "pattern": "^([0-9]+)"
+            },
+            "street": {
+                "function": "regexp",
+                "field": "ADDRESS",
+                "pattern": "(?:[0-9]+ )(.*)"
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123", "OA:street": "MAPLE ST" })
+        
+        d = row_fxn_regexp(c, d, "number")
+        d = row_fxn_regexp(c, d, "street")
+        self.assertEqual(e, d)
+
+        "regex split - no replace - bad match"
+        c = { "conform": { 
+            "number": {
+                "function": "regexp",
+                "field": "ADDRESS",
+                "pattern": "^([0-9]+)"
+            },
+            "street": {
+                "function": "regexp",
+                "field": "ADDRESS",
+                "pattern": "(fake)"
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123", "OA:street": "" })
+        
+        d = row_fxn_regexp(c, d, "number")
+        d = row_fxn_regexp(c, d, "street")
+        self.assertEqual(e, d)
+        
     def test_transform_and_convert(self):
-        d = { "conform": { "street": "auto_street", "number": "n", "merge": ["s1", "s2"], "lon": "y", "lat": "x" } }
+        d = { "conform": { "street": ["s1", "s2"], "number": "n", "lon": "y", "lat": "x" } }
         r = row_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
         self.assertEqual({"STREET": "Maple Street", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3",
                           "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None}, r)
@@ -359,6 +441,62 @@ class TestConformCli (unittest.TestCase):
 
 
 class TestConformMisc(unittest.TestCase):
+
+    def test_convert_regexp_replace(self):
+        '''
+        '''
+        crr = convert_regexp_replace
+        
+        self.assertEqual(crr('$1'), r'\1')
+        self.assertEqual(crr('$9'), r'\9')
+        self.assertEqual(crr('$b'), '$b')
+        self.assertEqual(crr('$1yo$1'), r'\1yo\1')
+        self.assertEqual(crr('$9yo$9'), r'\9yo\9')
+        self.assertEqual(crr('$byo$b'), '$byo$b')
+        self.assertEqual(crr('$1 yo $1'), r'\1 yo \1')
+        self.assertEqual(crr('$9 yo $9'), r'\9 yo \9')
+        self.assertEqual(crr('$b yo $b'), '$b yo $b')
+
+        self.assertEqual(crr('$11'), r'\11')
+        self.assertEqual(crr('$99'), r'\99')
+        self.assertEqual(crr('$bb'), '$bb')
+        self.assertEqual(crr('$11yo$11'), r'\11yo\11')
+        self.assertEqual(crr('$99yo$99'), r'\99yo\99')
+        self.assertEqual(crr('$bbyo$bb'), '$bbyo$bb')
+        self.assertEqual(crr('$11 yo $11'), r'\11 yo \11')
+        self.assertEqual(crr('$99 yo $99'), r'\99 yo \99')
+        self.assertEqual(crr('$bb yo $bb'), '$bb yo $bb')
+
+        self.assertEqual(crr('${1}1'), r'\g<1>1')
+        self.assertEqual(crr('${9}9'), r'\g<9>9')
+        self.assertEqual(crr('${9}b'), r'\g<9>b')
+        self.assertEqual(crr('${b}b'), '${b}b')
+        self.assertEqual(crr('${1}1yo${1}1'), r'\g<1>1yo\g<1>1')
+        self.assertEqual(crr('${9}9yo${9}9'), r'\g<9>9yo\g<9>9')
+        self.assertEqual(crr('${9}byo${9}b'), r'\g<9>byo\g<9>b')
+        self.assertEqual(crr('${b}byo${b}b'), '${b}byo${b}b')
+        self.assertEqual(crr('${1}1 yo ${1}1'), r'\g<1>1 yo \g<1>1')
+        self.assertEqual(crr('${9}9 yo ${9}9'), r'\g<9>9 yo \g<9>9')
+        self.assertEqual(crr('${9}b yo ${9}b'), r'\g<9>b yo \g<9>b')
+        self.assertEqual(crr('${b}b yo ${b}b'), '${b}b yo ${b}b')
+
+        self.assertEqual(crr('${11}1'), r'\g<11>1')
+        self.assertEqual(crr('${99}9'), r'\g<99>9')
+        self.assertEqual(crr('${99}b'), r'\g<99>b')
+        self.assertEqual(crr('${bb}b'), '${bb}b')
+        self.assertEqual(crr('${11}1yo${11}1'), r'\g<11>1yo\g<11>1')
+        self.assertEqual(crr('${99}9yo${99}9'), r'\g<99>9yo\g<99>9')
+        self.assertEqual(crr('${99}byo${99}b'), r'\g<99>byo\g<99>b')
+        self.assertEqual(crr('${bb}byo${bb}b'), '${bb}byo${bb}b')
+        self.assertEqual(crr('${11}1yo${11}1'), r'\g<11>1yo\g<11>1')
+        self.assertEqual(crr('${99}9 yo ${99}9'), r'\g<99>9 yo \g<99>9')
+        self.assertEqual(crr('${99}b yo ${99}b'), r'\g<99>b yo \g<99>b')
+        self.assertEqual(crr('${bb}b yo ${bb}b'), '${bb}b yo ${bb}b')
+        
+        self.assertEqual(re.sub(r'hello (world)', crr('goodbye $1'), 'hello world'), 'goodbye world')
+        self.assertEqual(re.sub(r'(hello) (world)', crr('goodbye $2'), 'hello world'), 'goodbye world')
+        self.assertEqual(re.sub(r'he(ll)o', crr('he$1$1o'), 'hello'), 'hellllo')
+
     def test_find_shapefile_source_path(self):
         shp_conform = {"conform": { "type": "shapefile" } }
         self.assertEqual("foo.shp", find_source_path(shp_conform, ["foo.shp"]))
