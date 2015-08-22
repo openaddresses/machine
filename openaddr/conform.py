@@ -867,27 +867,3 @@ def conform_cli(source_definition, source_path, dest_path):
         os.remove(extract_path)
 
     return 0
-
-def main():
-    "Main entry point for openaddr-pyconform command line tool. (See setup.py)"
-
-    parser = ArgumentParser(description='Conform a downloaded source file.')
-    parser.add_argument('source_json', help='Required source JSON file name.')
-    parser.add_argument('source_path', help='Required pathname to the actual source data file')
-    parser.add_argument('dest_path', help='Required pathname, output file written here.')
-    parser.add_argument('-l', '--logfile', help='Optional log file name.')
-    parser.add_argument('-v', '--verbose', help='Turn on verbose logging', action="store_true")
-    args = parser.parse_args()
-
-    from .jobs import setup_logger
-    setup_logger(logfile = args.logfile, log_level = logging.DEBUG if args.verbose else logging.WARNING)
-
-    with open(args.source_json) as file:
-        source_definition = json.load(file)
-    rc = conform_cli(source_definition, args.source_path, args.dest_path)
-    return rc
-
-if __name__ == '__main__':
-    exit(main())
-
-

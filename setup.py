@@ -42,7 +42,6 @@ setup(
             'openaddr-process = openaddr.process_all:main',
             'openaddr-process-one = openaddr.process_one:main',
             'openaddr-ec2-run = openaddr.run:main',
-            'openaddr-pyconform = openaddr.conform:main',
             'openaddr-esri2geojson = openaddr.util.esri2geojson:main',
             'openaddr-ci-recreate-db = openaddr.ci.recreate_db:main',
             'openaddr-ci-run-dequeue = openaddr.ci.run_dequeue:main',
