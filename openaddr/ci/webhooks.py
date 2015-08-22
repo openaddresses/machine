@@ -96,7 +96,7 @@ def app_index():
 
     mc = memcache.Client([current_app.config['MEMCACHE_SERVER']])
     summary_data = summarize_runs(mc, runs, set.datetime_end, set.owner, set.repository)
-    return render_template('set.html', set=None, **summary_data)
+    return render_template('index.html', set=None, **summary_data)
 
 @webhooks.route('/state.txt', methods=['GET'])
 @log_application_errors

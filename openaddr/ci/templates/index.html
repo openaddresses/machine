@@ -1,0 +1,32 @@
+<html>
+
+<head>
+<meta charset=utf-8 />
+<title>OpenAddresses</title>
+{% include "head.html" %}
+</head>
+
+<body>
+<p>
+    This is a summary view of <a href="http://openaddresses.io">OpenAddresses data</a>.
+    <a href="http://data.openaddresses.io/openaddresses-collected.zip" class="stat">{{ counts.addresses|nice_integer }} addresses</a>
+    have been processed as of <span class="stat">{{ last_modified.strftime('%A, %b %d, %Y') }}</span>.
+    Out of <span class="stat">{{ counts.sources }} total sources</span>,
+    <a href="#first-processed" class="stat">{{ counts.processed }} have completed</a>.
+    <span class="stat">{{ counts.sources - counts.cached }} sources failed cache</span>,
+    <span class="stat">{{ counts.cached - counts.processed }} cached but not processed</span>.
+    To help complete more sources, look for “missing conform” below and add a
+    <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#conform-object">conform object</a>
+    based on the included sample data.
+</p>
+<p>
+    The latest summary can always be found at
+    <a href="http://data.openaddresses.io">data.openaddresses.io</a>.<br>
+    A plain text version of data on this page can be found at
+    <a href="state.txt">state.txt</a>.
+</p>
+
+{% include "runs-table.html" %}
+
+</body>
+</html>
