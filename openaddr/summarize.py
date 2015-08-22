@@ -16,7 +16,7 @@ import json, pickle
 from jinja2 import Environment, FileSystemLoader
 import requests
 
-from . import S3, paths, __version__
+from . import S3, SOURCES_DIR, __version__
 from .compat import expand_uri
 
 def _get_cached(memcache, key):
@@ -201,7 +201,7 @@ def nice_integer(number):
 
 def main():
     s3 = S3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'data-test.openaddresses.io')
-    print(summarize(s3, paths.sources).encode('utf8'))
+    print(summarize(s3, SOURCES_DIR).encode('utf8'))
 
 def summarize_runs(memcache, runs, datetime, owner, repository):
     ''' Return summary data for set.html template.

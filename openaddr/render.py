@@ -11,10 +11,9 @@ from urllib.parse import urljoin
 import json
 
 from .compat import cairo
+from . import SOURCES_DIR
 from osgeo import ogr, osr
 import requests
-
-from . import paths
 
 # Areas
 WORLD, USA, EUROPE = 54029, 2163, 'Europe'
@@ -259,8 +258,8 @@ parser.add_argument('--europe', dest='area', action='store_const', const=EUROPE,
 
 def main():
     args = parser.parse_args()
-    good_sources = load_live_state() if args.use_state else load_fake_state(paths.sources)
-    return render(paths.sources, good_sources, args.width, args.resolution,
+    good_sources = load_live_state() if args.use_state else load_fake_state(SOURCES_DIR)
+    return render(SOURCES_DIR, good_sources, args.width, args.resolution,
                   args.filename, args.area)
 
 def render(sources_dir, good_sources, width, resolution, filename=None, area=WORLD):

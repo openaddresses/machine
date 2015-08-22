@@ -35,7 +35,7 @@ from threading import Lock
 from requests import get
 from httmock import response, HTTMock
         
-from .. import paths, cache, conform, S3, process_one
+from .. import cache, conform, S3, process_one
 
 class TestOA (unittest.TestCase):
     
