@@ -1,3 +1,9 @@
+2015-08-22: 2.0.0
+- Dropped support for deprecated merge conform tag.
+- Removed code and scripts related to old-style batch processing.
+- Added support for new join and regexp conform tags.
+- Differentiated index HTML template from set pages.
+
 2015-08-20: 1.21.1
 - Fixed urlretrieve bug in future.backports.http.client.
 
