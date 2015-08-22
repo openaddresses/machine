@@ -83,9 +83,6 @@ setup(
         # http://initd.org/psycopg/
         'psycopg2 == 2.6',
         
-        # http://www.paramiko.org
-        'paramiko == 1.15.2',
-        
         # https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1306991/comments/10
         'requests == 2.2.1',
 
@@ -94,9 +91,6 @@ setup(
 
         # https://github.com/patrys/httmock
         'httmock >= 1.2',
-
-        # https://pypi.python.org/pypi/setproctitle/
-        'setproctitle >= 1.1.8',
 
         ] + conditional_requirements
 )
