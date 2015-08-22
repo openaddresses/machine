@@ -38,7 +38,6 @@ setup(
     entry_points = dict(
         console_scripts = [
             'openaddr-render-us = openaddr.render:main',
-            'openaddr-summarize = openaddr.summarize:main',
             'openaddr-process-one = openaddr.process_one:main',
             'openaddr-esri2geojson = openaddr.util.esri2geojson:main',
             'openaddr-ci-recreate-db = openaddr.ci.recreate_db:main',
