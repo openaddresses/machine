@@ -790,9 +790,6 @@ def conform_cli(source_definition, source_path, dest_path):
 
     if "conform" not in source_definition:
         return 1
-    if not source_definition["conform"].get("type", None) in ["shapefile", "shapefile-polygon", "geojson", "csv", "xml"]:
-        _L.warning("Skipping file with unknown conform: %s", source_path)
-        return 1
 
     # Create a temporary filename for the intermediate extracted source CSV
     fd, extract_path = tempfile.mkstemp(prefix='openaddr-extracted-', suffix='.csv')
