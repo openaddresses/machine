@@ -25,20 +25,3 @@ class TestRender (unittest.TestCase):
             self.assertTrue('8-bit/color RGBA' in info)
         finally:
             os.remove(filename)
-
-    def test_render_old(self):
-        ''' Make sure the deprecated function signature for render() still works.
-        '''
-        sources = join(dirname(__file__), 'sources')
-        handle, filename = tempfile.mkstemp(prefix='render-', suffix='.png')
-        os.close(handle)
-        
-        try:
-            render(sources, 512, 1, filename)
-            info = str(subprocess.check_output(('file', filename)))
-
-            self.assertTrue('PNG image data' in info)
-            self.assertTrue('512 x 294' in info)
-            self.assertTrue('8-bit/color RGBA' in info)
-        finally:
-            os.remove(filename)

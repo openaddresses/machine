@@ -38,20 +38,13 @@ setup(
     entry_points = dict(
         console_scripts = [
             'openaddr-render-us = openaddr.render:main',
-            'openaddr-summarize = openaddr.summarize:main',
-            'openaddr-process = openaddr.process_all:main',
             'openaddr-process-one = openaddr.process_one:main',
-            'openaddr-ec2-run = openaddr.run:main',
-            'openaddr-pyconform = openaddr.conform:main',
             'openaddr-esri2geojson = openaddr.util.esri2geojson:main',
             'openaddr-ci-recreate-db = openaddr.ci.recreate_db:main',
             'openaddr-ci-run-dequeue = openaddr.ci.run_dequeue:main',
             'openaddr-ci-worker = openaddr.ci.worker:main',
             'openaddr-enqueue-sources = openaddr.ci.enqueue:main',
             'openaddr-collect-extracts = openaddr.ci.collect:main',
-            
-            # Deprecated.
-            'openaddr-ci-enqueue = openaddr.ci.enqueue:main',
         ]
     ),
     package_data = {
@@ -89,9 +82,6 @@ setup(
         # http://initd.org/psycopg/
         'psycopg2 == 2.6',
         
-        # http://www.paramiko.org
-        'paramiko == 1.15.2',
-        
         # https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1306991/comments/10
         'requests == 2.2.1',
 
@@ -100,9 +90,6 @@ setup(
 
         # https://github.com/patrys/httmock
         'httmock >= 1.2',
-
-        # https://pypi.python.org/pypi/setproctitle/
-        'setproctitle >= 1.1.8',
 
         ] + conditional_requirements
 )
