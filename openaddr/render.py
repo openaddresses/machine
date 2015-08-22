@@ -262,26 +262,12 @@ def main():
     return render(SOURCES_DIR, good_sources, args.width, args.resolution,
                   args.filename, args.area)
 
-def render(sources_dir, good_sources, width, resolution, filename=None, area=WORLD):
-    ''' Resolution: 1 for 100%, 2 for 200%, etc.
-    '''
-    if filename is None:
-        _L.warning('Using deprecated arguments for openaddr.render.render()')
-    
-        # Adapt to old arguments: (sources_dir, width, resolution, filename)
-        width, resolution, filename = good_sources, width, resolution
-    
-        # Use fake sources
-        good_sources = load_fake_state(sources_dir)
-    
-    return _render_state(sources_dir, good_sources, width, resolution, filename, area)
-
 def first_layer_list(datasource):
     ''' Return features as a list, or an empty list.
     '''
     return list(datasource.GetLayer(0) if hasattr(datasource, 'GetLayer') else [])
 
-def _render_state(sources_dir, good_sources, width, resolution, filename, area):
+def render(sources_dir, good_sources, width, resolution, filename, area=WORLD):
     ''' Resolution: 1 for 100%, 2 for 200%, etc.
     '''
     # Prepare output surface
