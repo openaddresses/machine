@@ -64,9 +64,6 @@ Run the webhook server, queue listener, and worker processes:
     
     python -m openaddr.ci.worker
 
-Modify the contents of [`openaddr/paths.py`](openaddr/paths.py) with locations
-of your local [openaddresses](https://github.com/openaddresses/openaddresses).
-
 Extras
 ------
 
