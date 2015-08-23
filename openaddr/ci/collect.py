@@ -46,23 +46,49 @@ def main():
     try:
         handle, filename = mkstemp(prefix='collected-', suffix='.zip')
         close(handle)
-    
+
         collected_zip = ZipFile(filename, 'w', ZIP_DEFLATED, allowZip64=True)
-    
-        for (source_base, filename) in iterate_local_processed_files(runs):
-            _L.info(u'Adding {} from {}'.format(source_base, filename))
-            add_source_to_zipfile(collected_zip, source_base, filename)
-    
-        collected_zip.close()
-        _L.info(u'Finished {}'.format(collected_zip.filename))
+        collector = collect_and_publish(s3, collected_zip, 'openaddresses-collected.zip')
+
+        for file in iterate_local_processed_files(runs):
+            collector.send(file)
         
-        zip_key = s3.new_key('openaddresses-collected.zip')
-        zip_args = dict(policy='public-read', headers={'Content-Type': 'application/zip'})
-        zip_key.set_contents_from_filename(collected_zip.filename, **zip_args)
-        _L.info(u'Uploaded {} to openaddresses-collected.zip'.format(collected_zip.filename))
+        collector.close()
         
     finally:
         remove(collected_zip.filename)
+    
+def collect_and_publish(s3, collection_zip, public_name):
+    ''' Returns a primed generator-iterator to accept sent source/filename tuples.
+    
+        Each is added to the passed ZipFile. On completion, a new S3 object
+        is created with public_name and the collection is closed and uploaded.
+    '''
+    def get_collector_publisher():
+        while True:
+            try:
+                (source_base, filename) = yield
+            except GeneratorExit:
+                break
+            else:
+                _L.info(u'Adding {} to {}'.format(source_base, collection_zip.filename))
+                add_source_to_zipfile(collection_zip, source_base, filename)
+
+        collection_zip.close()
+        _L.info(u'Finished {}'.format(collection_zip.filename))
+
+        zip_key = s3.new_key(public_name)
+        zip_args = dict(policy='public-read', headers={'Content-Type': 'application/zip'})
+        zip_key.set_contents_from_filename(collection_zip.filename, **zip_args)
+        _L.info(u'Uploaded {} to {}'.format(collection_zip.filename, public_name))
+  
+    collector_publisher = get_collector_publisher()
+
+    # Generator-iterator must be primed:
+    # https://docs.python.org/2.7/reference/expressions.html#generator.next
+    collector_publisher.next()
+
+    return collector_publisher
 
 def add_source_to_zipfile(zip_out, source_base, filename):
     '''

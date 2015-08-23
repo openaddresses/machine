@@ -39,7 +39,8 @@ from ..ci.objects import (
     )
 
 from ..ci.collect import (
-    download_processed_file, iterate_local_processed_files, add_source_to_zipfile
+    download_processed_file, iterate_local_processed_files,
+    add_source_to_zipfile, collect_and_publish
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -1759,6 +1760,33 @@ class TestBatch (unittest.TestCase):
             self.assertEqual(get(the_set.render_world).status_code, 200)
 
 class TestCollect (unittest.TestCase):
+
+    def test_collect_and_publish(self):
+        '''
+        '''
+        s3, collected_zip = mock.Mock(), mock.Mock()
+        collected_zip.filename = 'collected-local.zip'
+        
+        with patch('openaddr.ci.collect.add_source_to_zipfile') as add_source_to_zipfile:
+            generator_iterator = collect_and_publish(s3, collected_zip, 'collected-public.zip')
+            
+            for file in [('abc', 'abc.zip'), ('def', 'def.zip')]:
+                generator_iterator.send(file)
+            
+            generator_iterator.close()
+
+            add_source_to_zipfile.assert_has_calls([
+                mock.call(collected_zip, 'abc', 'abc.zip'),
+                mock.call(collected_zip, 'def', 'def.zip')
+                ])
+        
+        collected_zip.close.assert_called_once_with()
+
+        s3.new_key.assert_called_once_with('collected-public.zip')
+
+        s3.new_key.return_value.set_contents_from_filename.assert_called_once_with(
+            'collected-local.zip', policy='public-read',
+            headers={'Content-Type': 'application/zip'})
 
     def test_add_source_to_zipfile(self):
         '''
