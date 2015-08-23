@@ -7,6 +7,7 @@ from os import close, remove, utime, environ
 from zipfile import ZipFile, ZIP_DEFLATED
 from os.path import relpath, splitext, exists
 from urllib.parse import urlparse
+from operator import attrgetter
 from tempfile import mkstemp
 from calendar import timegm
 
@@ -49,13 +50,16 @@ def main():
         collected_zip = ZipFile(filename, 'w', ZIP_DEFLATED, allowZip64=True)
     
         for (source_base, filename) in iterate_local_processed_files(runs):
+            _L.info(u'Adding {} from {}'.format(source_base, filename))
             add_source_to_zipfile(collected_zip, source_base, filename)
     
         collected_zip.close()
+        _L.info(u'Finished {}'.format(collected_zip.filename))
         
         zip_key = s3.new_key('openaddresses-collected.zip')
         zip_args = dict(policy='public-read', headers={'Content-Type': 'application/zip'})
         zip_key.set_contents_from_filename(collected_zip.filename, **zip_args)
+        _L.info(u'Uploaded {} to openaddresses-collected.zip'.format(collected_zip.filename))
         
     finally:
         remove(collected_zip.filename)
@@ -77,7 +81,7 @@ def add_source_to_zipfile(zip_out, source_base, filename):
 def iterate_local_processed_files(runs):
     ''' Yield a stream of local processed result files for a list of runs.
     '''
-    for run in runs:
+    for run in sorted(runs, key=attrgetter('source_path')):
         source_base, _ = splitext(relpath(run.source_path, 'sources'))
         processed_url = run.state and run.state.get('processed')
     
@@ -87,6 +91,9 @@ def iterate_local_processed_files(runs):
         try:
             filename = download_processed_file(processed_url)
             yield (source_base, filename)
+        
+        except:
+            _L.error('Failed to download {}'.format(processed_url))
         
         finally:
             if exists(filename):
