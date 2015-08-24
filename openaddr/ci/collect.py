@@ -125,6 +125,86 @@ def iterate_local_processed_files(runs):
             if exists(filename):
                 remove(filename)
 
+def _is_us_state(abbr, source_base, filename):
+    for sep in ('/', '-'):
+        if source_base == 'us{sep}{abbr}'.format(**locals()):
+            return True
+
+        if source_base.startswith('us{sep}{abbr}.'.format(**locals())):
+            return True
+
+        if source_base.startswith('us{sep}{abbr}{sep}'.format(**locals())):
+            return True
+
+    return False
+
+def is_us_northeast((source_base, filename)):
+    for abbr in ('ct', 'me', 'ma', 'nh', 'ri', 'vt', 'nj', 'ny', 'pa'):
+        if _is_us_state(abbr, source_base, filename):
+            return True
+
+    return False
+    
+def is_us_midwest((source_base, filename)):
+    for abbr in ('il', 'in', 'mi', 'oh', 'wi', 'ia', 'ks', 'mn', 'mo', 'ne', 'nd', 'sd'):
+        if _is_us_state(abbr, source_base, filename):
+            return True
+
+    return False
+    
+def is_us_south((source_base, filename)):
+    for abbr in ('de', 'fl', 'ga', 'md', 'nc', 'sc', 'va', 'dc', 'wv', 'al',
+                 'ky', 'ms', 'ar', 'la', 'ok', 'tx'):
+        if _is_us_state(abbr, source_base, filename):
+            return True
+
+    return False
+    
+def is_us_west((source_base, filename)):
+    for abbr in ('az', 'co', 'id', 'mt', 'nv', 'nm', 'ut', 'wy', 'ak', 'ca', 'hi', 'or', 'wa'):
+        if _is_us_state(abbr, source_base, filename):
+            return True
+
+    return False
+    
+def _is_country(iso, source_base, filename):
+    for sep in ('/', '-'):
+        if source_base == iso:
+            return True
+
+        if source_base.startswith('{iso}.'.format(**locals())):
+            return True
+
+        if source_base.startswith('{iso}{sep}'.format(**locals())):
+            return True
+
+    return False
+
+def is_europe((source_base, filename)):
+    for iso in ('be', 'bg', 'cz', 'dk', 'de', 'ee', 'ie', 'el', 'es', 'fr',
+                'hr', 'it', 'cy', 'lv', 'lt', 'lu', 'hu', 'mt', 'nl', 'at',
+                'pl', 'pt', 'ro', 'si', 'sk', 'fi', 'se', 'uk', 'gr', 'gb'  ):
+        if _is_country(iso, source_base, filename):
+            return True
+
+    return False
+    
+def is_asia((source_base, filename)):
+    for iso in ('af', 'am', 'az', 'bh', 'bd', 'bt', 'bn', 'kh', 'cn', 'cx',
+                'cc', 'io', 'ge', 'hk', 'in', 'id', 'ir', 'iq', 'il', 'jp',
+                'jo', 'kz', 'kp', 'kr', 'kw', 'kg', 'la', 'lb', 'mo', 'my',
+                'mv', 'mn', 'mm', 'np', 'om', 'pk', 'ph', 'qa', 'sa', 'sg',
+                'lk', 'sy', 'tw', 'tj', 'th', 'tr', 'tm', 'ae', 'uz', 'vn',
+                'ye', 'ps',
+                
+                'as', 'au', 'nz', 'ck', 'fj', 'pf', 'gu', 'ki', 'mp', 'mh',
+                'fm', 'um', 'nr', 'nc', 'nz', 'nu', 'nf', 'pw', 'pg', 'mp',
+                'sb', 'tk', 'to', 'tv', 'vu', 'um', 'wf', 'ws', 'is'):
+        if _is_country(iso, source_base, filename):
+            return True
+
+    return False
+    
 def download_processed_file(url):
     ''' Download a URL to a local temporary file, return its path.
     
