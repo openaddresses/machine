@@ -5,11 +5,13 @@ from ..compat import standard_library
 from argparse import ArgumentParser
 from os import close, remove, utime, environ
 from zipfile import ZipFile, ZIP_DEFLATED
-from os.path import relpath, splitext, exists
+from os.path import relpath, splitext, exists, basename, join
 from urllib.parse import urlparse
 from operator import attrgetter
-from tempfile import mkstemp
+from tempfile import mkstemp, mkdtemp
 from calendar import timegm
+from datetime import date
+from shutil import rmtree
 
 from dateutil.parser import parse
 from requests import get
@@ -43,26 +45,59 @@ def main():
             set = read_latest_set(db, args.owner, args.repository)
             runs = read_completed_runs_to_date(db, set.id)
     
-    try:
-        handle, filename = mkstemp(prefix='collected-', suffix='.zip')
-        close(handle)
-
-        collected_zip = ZipFile(filename, 'w', ZIP_DEFLATED, allowZip64=True)
-        collector = collect_and_publish(s3, collected_zip, 'openaddresses-collected.zip')
-
-        for file in iterate_local_processed_files(runs):
-            collector.send(file)
-        
-        collector.close()
-        
-    finally:
-        remove(collected_zip.filename)
+    dir = mkdtemp(prefix='collected-')
     
-def collect_and_publish(s3, collection_zip, public_name):
+    everything = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-collected.zip')))
+    us_northeast = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-us_northeast.zip')))
+    us_midwest = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-us_midwest.zip')))
+    us_south = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-us_south.zip')))
+    us_west = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-us_west.zip')))
+    europe = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-europe.zip')))
+    asia = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-asia.zip')))
+
+    for file in iterate_local_processed_files(runs):
+        everything.send(file)
+        if is_us_northeast(file): us_northeast.send(file)
+        if is_us_midwest(file): us_midwest.send(file)
+        if is_us_south(file): us_south.send(file)
+        if is_us_west(file): us_west.send(file)
+        if is_europe(file): europe.send(file)
+        if is_asia(file): asia.send(file)
+    
+    everything.close()
+    us_northeast.close()
+    us_midwest.close()
+    us_south.close()
+    us_west.close()
+    europe.close()
+    asia.close()
+    
+    rmtree(dir)
+
+def _prepare_zip(set, filename):
+    '''
+    '''
+    zipfile = ZipFile(filename, 'w', ZIP_DEFLATED, allowZip64=True)
+    
+    sources_tpl = 'https://github.com/{owner}/{repository}/tree/{commit_sha}/sources'
+    sources_url = sources_tpl.format(**set.__dict__)
+    zipfile.writestr('README.txt', '''Data collected around {date} by OpenAddresses (http://openaddresses.io).
+
+Address data is essential infrastructure. Street names, house numbers and
+postal codes, when combined with geographic coordinates, are the hub that
+connects digital to physical places.
+
+Data source information and respective licenses can be found at
+{url}
+'''.format(url=sources_url, date=date.today()))
+    
+    return zipfile
+
+def collect_and_publish(s3, collection_zip):
     ''' Returns a primed generator-iterator to accept sent source/filename tuples.
     
         Each is added to the passed ZipFile. On completion, a new S3 object
-        is created with public_name and the collection is closed and uploaded.
+        is created with zipfile name and the collection is closed and uploaded.
     '''
     def get_collector_publisher():
         while True:
@@ -77,10 +112,10 @@ def collect_and_publish(s3, collection_zip, public_name):
         collection_zip.close()
         _L.info(u'Finished {}'.format(collection_zip.filename))
 
-        zip_key = s3.new_key(public_name)
+        zip_key = s3.new_key(basename(collection_zip.filename))
         zip_args = dict(policy='public-read', headers={'Content-Type': 'application/zip'})
         zip_key.set_contents_from_filename(collection_zip.filename, **zip_args)
-        _L.info(u'Uploaded {} to {}'.format(collection_zip.filename, public_name))
+        _L.info(u'Uploaded {} to {}'.format(collection_zip.filename, zip_key.name))
   
     collector_publisher = get_collector_publisher()
 

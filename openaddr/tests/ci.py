@@ -1769,7 +1769,7 @@ class TestCollect (unittest.TestCase):
         collected_zip.filename = 'collected-local.zip'
         
         with patch('openaddr.ci.collect.add_source_to_zipfile') as add_source_to_zipfile:
-            generator_iterator = collect_and_publish(s3, collected_zip, 'collected-public.zip')
+            generator_iterator = collect_and_publish(s3, collected_zip)
             
             for file in [('abc', 'abc.zip'), ('def', 'def.zip')]:
                 generator_iterator.send(file)
@@ -1783,7 +1783,7 @@ class TestCollect (unittest.TestCase):
         
         collected_zip.close.assert_called_once_with()
 
-        s3.new_key.assert_called_once_with('collected-public.zip')
+        s3.new_key.assert_called_once_with('collected-local.zip')
 
         s3.new_key.return_value.set_contents_from_filename.assert_called_once_with(
             'collected-local.zip', policy='public-read',
@@ -1857,37 +1857,32 @@ class TestCollect (unittest.TestCase):
     def test_add_source_to_zipfile(self):
         '''
         '''
-        handle, filename1 = mkstemp(suffix='.zip')
+        handle, filename1 = mkstemp(suffix='.csv')
+        utime(filename1, (1234567890, 1234567890))
         close(handle)
         
-        handle, filename2 = mkstemp(suffix='.csv')
-        utime(filename2, (1234567890, 1234567890))
-        close(handle)
-        
-        handle, filename3 = mkstemp(suffix='.zip')
-        zipfile3 = ZipFile(filename3, 'w')
-        zipfile3.writestr('foo/thing.vrt', b'stuff')
-        zipfile3.writestr('foo/thing.csv', b'stuff')
+        handle, filename2 = mkstemp(suffix='.zip')
+        zipfile3 = ZipFile(filename2, 'w')
+        zipfile3.writestr('foo/thing.vrt', b'vrt data')
+        zipfile3.writestr('foo/thing.csv', b'csv data')
         zipfile3.close()
-        utime(filename3, (987654321, 987654321))
+        utime(filename2, (987654321, 987654321))
         close(handle)
 
-        output = ZipFile(filename1, 'w')
+        output = mock.Mock()
         
         add_source_to_zipfile(output, 'foobar', 'temp')
+        add_source_to_zipfile(output, 'foobar', filename1)
         add_source_to_zipfile(output, 'foobar', filename2)
-        add_source_to_zipfile(output, 'foobar', filename3)
-        output.close()
         
-        result = ZipFile(filename1, 'r')
-        name1, name2, name3 = result.namelist()
-        self.assertEqual(name1, 'foobar.csv')
-        self.assertEqual(name2, 'foo/thing.vrt')
-        self.assertEqual(name3, 'foo/thing.csv')
+        output.write.assert_called_once_with(filename1, 'foobar.csv')
+        self.assertEqual(output.writestr.mock_calls[0][1][0].filename, 'foo/thing.vrt')
+        self.assertEqual(output.writestr.mock_calls[1][1][0].filename, 'foo/thing.csv')
+        self.assertEqual(output.writestr.mock_calls[0][1][1], b'vrt data')
+        self.assertEqual(output.writestr.mock_calls[1][1][1], b'csv data')
         
         remove(filename1)
         remove(filename2)
-        remove(filename3)
 
     def test_iterate_local_processed_files(self):
         runs = [
