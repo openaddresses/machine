@@ -1,3 +1,6 @@
+2015-08-24: 2.1.0
+- Added regional extracts to openaddr-collect-extracts script.
+
 2015-08-22: 2.0.0
 - Dropped support for deprecated merge conform tag.
 - Removed code and scripts related to old-style batch processing.
