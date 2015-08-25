@@ -28,7 +28,7 @@ from .objects import (
     )
 
 from ..compat import expand_uri, csvIO, csvDictWriter
-from ..summarize import summarize_runs, nice_integer
+from ..summarize import summarize_runs, GLASS_HALF_FULL, GLASS_HALF_EMPTY, nice_integer
 
 CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
              'version', 'fingerprint', 'cache time', 'processed', 'process time', \
@@ -95,7 +95,9 @@ def app_index():
             runs = read_completed_runs_to_date(db, set.id)
 
     mc = memcache.Client([current_app.config['MEMCACHE_SERVER']])
-    summary_data = summarize_runs(mc, runs, set.datetime_end, set.owner, set.repository)
+    summary_data = summarize_runs(mc, runs, set.datetime_end, set.owner,
+                                  set.repository, GLASS_HALF_FULL)
+
     return render_template('index.html', set=None, **summary_data)
 
 @webhooks.route('/state.txt', methods=['GET'])
@@ -250,7 +252,9 @@ def app_get_set(set_id):
         return Response('Set {} not found'.format(set_id), 404)
     
     mc = memcache.Client([current_app.config['MEMCACHE_SERVER']])
-    summary_data = summarize_runs(mc, runs, set.datetime_end, set.owner, set.repository)
+    summary_data = summarize_runs(mc, runs, set.datetime_end, set.owner,
+                                  set.repository, GLASS_HALF_EMPTY)
+
     return render_template('set.html', set=set, **summary_data)
 
 @webhooks.route('/sets/<set_id>/state.txt', methods=['GET'])

@@ -39,7 +39,9 @@ from ..ci.objects import (
     )
 
 from ..ci.collect import (
-    download_processed_file, iterate_local_processed_files, add_source_to_zipfile
+    is_us_northeast, is_us_midwest, is_us_south, is_us_west, is_europe, is_asia,
+    download_processed_file, iterate_local_processed_files,
+    add_source_to_zipfile, collect_and_publish
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -1760,40 +1762,127 @@ class TestBatch (unittest.TestCase):
 
 class TestCollect (unittest.TestCase):
 
+    def test_collect_and_publish(self):
+        '''
+        '''
+        s3, collected_zip = mock.Mock(), mock.Mock()
+        collected_zip.filename = 'collected-local.zip'
+        
+        with patch('openaddr.ci.collect.add_source_to_zipfile') as add_source_to_zipfile:
+            generator_iterator = collect_and_publish(s3, collected_zip)
+            
+            for file in [('abc', 'abc.zip'), ('def', 'def.zip')]:
+                generator_iterator.send(file)
+            
+            generator_iterator.close()
+
+            add_source_to_zipfile.assert_has_calls([
+                mock.call(collected_zip, 'abc', 'abc.zip'),
+                mock.call(collected_zip, 'def', 'def.zip')
+                ])
+        
+        collected_zip.close.assert_called_once_with()
+
+        s3.new_key.assert_called_once_with('collected-local.zip')
+
+        s3.new_key.return_value.set_contents_from_filename.assert_called_once_with(
+            'collected-local.zip', policy='public-read',
+            headers={'Content-Type': 'application/zip'})
+    
+    def test_collection_checks(self):
+        '''
+        '''
+        test_funcs = is_us_northeast, is_us_midwest, is_us_south, is_us_west, is_europe, is_asia
+        
+        for abbr in ('ct', 'me', 'ma', 'nh', 'ri', 'vt', 'nj', 'ny', 'pa'):
+            for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
+                self.assertTrue(is_us_northeast(source_base, None), 'is_us_northeast("{}") should be true'.format(source_base))
+            
+                for test_func in test_funcs:
+                    if test_func is not is_us_northeast:
+                        self.assertFalse(test_func(source_base, None), '{}("{}") should be false'.format(test_func.__name__, source_base))
+
+        for abbr in ('il', 'in', 'mi', 'oh', 'wi', 'ia', 'ks', 'mn', 'mo', 'ne', 'nd', 'sd'):
+            for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
+                self.assertTrue(is_us_midwest(source_base, None), 'is_us_midwest("{}") should be true'.format(source_base))
+            
+                for test_func in test_funcs:
+                    if test_func is not is_us_midwest:
+                        self.assertFalse(test_func(source_base, None), '{}("{}") should be false'.format(test_func.__name__, source_base))
+
+        for abbr in ('de', 'fl', 'ga', 'md', 'nc', 'sc', 'va', 'dc', 'wv', 'al',
+                     'ky', 'ms', 'ar', 'la', 'ok', 'tx'):
+            for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
+                self.assertTrue(is_us_south(source_base, None), 'is_us_south("{}") should be true'.format(source_base))
+            
+                for test_func in test_funcs:
+                    if test_func is not is_us_south:
+                        self.assertFalse(test_func(source_base, None), '{}("{}") should be false'.format(test_func.__name__, source_base))
+
+        for abbr in ('az', 'co', 'id', 'mt', 'nv', 'nm', 'ut', 'wy', 'ak', 'ca', 'hi', 'or', 'wa'):
+            for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
+                self.assertTrue(is_us_west(source_base, None), 'is_us_west("{}") should be true'.format(source_base))
+            
+                for test_func in test_funcs:
+                    if test_func is not is_us_west:
+                        self.assertFalse(test_func(source_base, None), '{}("{}") should be false'.format(test_func.__name__, source_base))
+
+        for iso in ('be', 'bg', 'cz', 'dk', 'de', 'ee', 'ie', 'el', 'es', 'fr',
+                    'hr', 'it', 'cy', 'lv', 'lt', 'lu', 'hu', 'mt', 'nl', 'at',
+                    'pl', 'pt', 'ro', 'si', 'sk', 'fi', 'se', 'uk', 'gr', 'gb'):
+            for source_base in (iso, '{}.---'.format(iso), '{}/---'.format(iso)):
+                self.assertTrue(is_europe(source_base, None), 'is_europe("{}") should be true'.format(source_base))
+            
+                for test_func in test_funcs:
+                    if test_func is not is_europe:
+                        self.assertFalse(test_func(source_base, None), '{}("{}") should be false'.format(test_func.__name__, source_base))
+
+        for iso in ('af', 'am', 'az', 'bh', 'bd', 'bt', 'bn', 'kh', 'cn', 'cx',
+                    'cc', 'io', 'ge', 'hk', 'in', 'id', 'ir', 'iq', 'il', 'jp',
+                    'jo', 'kz', 'kp', 'kr', 'kw', 'kg', 'la', 'lb', 'mo', 'my',
+                    'mv', 'mn', 'mm', 'np', 'om', 'pk', 'ph', 'qa', 'sa', 'sg',
+                    'lk', 'sy', 'tw', 'tj', 'th', 'tr', 'tm', 'ae', 'uz', 'vn',
+                    'ye', 'ps',
+                    
+                    'as', 'au', 'nz', 'ck', 'fj', 'pf', 'gu', 'ki', 'mp', 'mh',
+                    'fm', 'um', 'nr', 'nc', 'nz', 'nu', 'nf', 'pw', 'pg', 'mp',
+                    'sb', 'tk', 'to', 'tv', 'vu', 'um', 'wf', 'ws', 'is'):
+            for source_base in (iso, '{}.---'.format(iso), '{}/---'.format(iso)):
+                self.assertTrue(is_asia(source_base, None), 'is_asia("{}") should be true'.format(source_base))
+            
+                for test_func in test_funcs:
+                    if test_func is not is_asia:
+                        self.assertFalse(test_func(source_base, None), '{}("{}") should be false'.format(test_func.__name__, source_base))
+
     def test_add_source_to_zipfile(self):
         '''
         '''
-        handle, filename1 = mkstemp(suffix='.zip')
+        handle, filename1 = mkstemp(suffix='.csv')
+        utime(filename1, (1234567890, 1234567890))
         close(handle)
         
-        handle, filename2 = mkstemp(suffix='.csv')
-        utime(filename2, (1234567890, 1234567890))
-        close(handle)
-        
-        handle, filename3 = mkstemp(suffix='.zip')
-        zipfile3 = ZipFile(filename3, 'w')
-        zipfile3.writestr('foo/thing.vrt', b'stuff')
-        zipfile3.writestr('foo/thing.csv', b'stuff')
+        handle, filename2 = mkstemp(suffix='.zip')
+        zipfile3 = ZipFile(filename2, 'w')
+        zipfile3.writestr('foo/thing.vrt', b'vrt data')
+        zipfile3.writestr('foo/thing.csv', b'csv data')
         zipfile3.close()
-        utime(filename3, (987654321, 987654321))
+        utime(filename2, (987654321, 987654321))
         close(handle)
 
-        output = ZipFile(filename1, 'w')
+        output = mock.Mock()
         
         add_source_to_zipfile(output, 'foobar', 'temp')
+        add_source_to_zipfile(output, 'foobar', filename1)
         add_source_to_zipfile(output, 'foobar', filename2)
-        add_source_to_zipfile(output, 'foobar', filename3)
-        output.close()
         
-        result = ZipFile(filename1, 'r')
-        name1, name2, name3 = result.namelist()
-        self.assertEqual(name1, 'foobar.csv')
-        self.assertEqual(name2, 'foo/thing.vrt')
-        self.assertEqual(name3, 'foo/thing.csv')
+        output.write.assert_called_once_with(filename1, 'foobar.csv')
+        self.assertEqual(output.writestr.mock_calls[0][1][0].filename, 'foo/thing.vrt')
+        self.assertEqual(output.writestr.mock_calls[1][1][0].filename, 'foo/thing.csv')
+        self.assertEqual(output.writestr.mock_calls[0][1][1], b'vrt data')
+        self.assertEqual(output.writestr.mock_calls[1][1][1], b'csv data')
         
         remove(filename1)
         remove(filename2)
-        remove(filename3)
 
     def test_iterate_local_processed_files(self):
         runs = [

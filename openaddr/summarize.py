@@ -18,6 +18,10 @@ import requests
 from . import S3, __version__
 from .compat import expand_uri
 
+# Sort constants for summarize_runs()
+GLASS_HALF_FULL = 1
+GLASS_HALF_EMPTY = 2
+
 def _get_cached(memcache, key):
     ''' Get a thing from the cache, or None.
     '''
@@ -129,10 +133,21 @@ def run_counts(runs):
         'addresses': sum([int(state.get('address count') or 0) for state in states])
         }
 
-def sort_run_dicts(dicts):
+def sort_run_dicts(dicts, sort_order):
     '''
     '''
-    dicts.sort(key=lambda d: (bool(d['cache']), bool(d['processed']), d['source']))
+    if sort_order is GLASS_HALF_FULL:
+        # Put the happy, successful stuff up front.
+        key = lambda d: (not bool(d['processed']), not bool(d['cache']), d['source'])
+    
+    elif sort_order is GLASS_HALF_EMPTY:
+        # Put the stuff that needs help up front.
+        key = lambda d: (bool(d['cache']), bool(d['processed']), d['source'])
+    
+    else:
+        raise ValueError('Unknown sort order "{}"'.format(sort_order))
+
+    dicts.sort(key=key)
 
 def nice_integer(number):
     ''' Format a number like '999,999,999'
@@ -145,7 +160,7 @@ def nice_integer(number):
     
     return string
 
-def summarize_runs(memcache, runs, datetime, owner, repository):
+def summarize_runs(memcache, runs, datetime, owner, repository, sort_order):
     ''' Return summary data for set.html template.
     '''
     base_url = expand_uri(u'https://github.com/{owner}/{repository}/',
@@ -154,6 +169,6 @@ def summarize_runs(memcache, runs, datetime, owner, repository):
 
     states = [convert_run(memcache, run, url_template) for run in runs]
     counts = run_counts(runs)
-    sort_run_dicts(states)
+    sort_run_dicts(states, sort_order)
     
     return dict(states=states, last_modified=datetime, counts=counts)
