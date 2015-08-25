@@ -55,14 +55,14 @@ def main():
     europe = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-europe.zip')))
     asia = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-asia.zip')))
 
-    for file in iterate_local_processed_files(runs):
-        everything.send(file)
-        if is_us_northeast(file): us_northeast.send(file)
-        if is_us_midwest(file): us_midwest.send(file)
-        if is_us_south(file): us_south.send(file)
-        if is_us_west(file): us_west.send(file)
-        if is_europe(file): europe.send(file)
-        if is_asia(file): asia.send(file)
+    for (sb, fn) in iterate_local_processed_files(runs):
+        everything.send((sb, fn))
+        if is_us_northeast(sb, fn): us_northeast.send((sb, fn))
+        if is_us_midwest(sb, fn): us_midwest.send((sb, fn))
+        if is_us_south(sb, fn): us_south.send((sb, fn))
+        if is_us_west(sb, fn): us_west.send((sb, fn))
+        if is_europe(sb, fn): europe.send((sb, fn))
+        if is_asia(sb, fn): asia.send((sb, fn))
     
     everything.close()
     us_northeast.close()
@@ -121,7 +121,7 @@ def collect_and_publish(s3, collection_zip):
 
     # Generator-iterator must be primed:
     # https://docs.python.org/2.7/reference/expressions.html#generator.next
-    collector_publisher.next()
+    next(collector_publisher)
 
     return collector_publisher
 
@@ -173,21 +173,21 @@ def _is_us_state(abbr, source_base, filename):
 
     return False
 
-def is_us_northeast((source_base, filename)):
+def is_us_northeast(source_base, filename):
     for abbr in ('ct', 'me', 'ma', 'nh', 'ri', 'vt', 'nj', 'ny', 'pa'):
         if _is_us_state(abbr, source_base, filename):
             return True
 
     return False
     
-def is_us_midwest((source_base, filename)):
+def is_us_midwest(source_base, filename):
     for abbr in ('il', 'in', 'mi', 'oh', 'wi', 'ia', 'ks', 'mn', 'mo', 'ne', 'nd', 'sd'):
         if _is_us_state(abbr, source_base, filename):
             return True
 
     return False
     
-def is_us_south((source_base, filename)):
+def is_us_south(source_base, filename):
     for abbr in ('de', 'fl', 'ga', 'md', 'nc', 'sc', 'va', 'dc', 'wv', 'al',
                  'ky', 'ms', 'ar', 'la', 'ok', 'tx'):
         if _is_us_state(abbr, source_base, filename):
@@ -195,7 +195,7 @@ def is_us_south((source_base, filename)):
 
     return False
     
-def is_us_west((source_base, filename)):
+def is_us_west(source_base, filename):
     for abbr in ('az', 'co', 'id', 'mt', 'nv', 'nm', 'ut', 'wy', 'ak', 'ca', 'hi', 'or', 'wa'):
         if _is_us_state(abbr, source_base, filename):
             return True
@@ -215,7 +215,7 @@ def _is_country(iso, source_base, filename):
 
     return False
 
-def is_europe((source_base, filename)):
+def is_europe(source_base, filename):
     for iso in ('be', 'bg', 'cz', 'dk', 'de', 'ee', 'ie', 'el', 'es', 'fr',
                 'hr', 'it', 'cy', 'lv', 'lt', 'lu', 'hu', 'mt', 'nl', 'at',
                 'pl', 'pt', 'ro', 'si', 'sk', 'fi', 'se', 'uk', 'gr', 'gb'  ):
@@ -224,7 +224,7 @@ def is_europe((source_base, filename)):
 
     return False
     
-def is_asia((source_base, filename)):
+def is_asia(source_base, filename):
     for iso in ('af', 'am', 'az', 'bh', 'bd', 'bt', 'bn', 'kh', 'cn', 'cx',
                 'cc', 'io', 'ge', 'hk', 'in', 'id', 'ir', 'iq', 'il', 'jp',
                 'jo', 'kz', 'kp', 'kr', 'kw', 'kg', 'la', 'lb', 'mo', 'my',
