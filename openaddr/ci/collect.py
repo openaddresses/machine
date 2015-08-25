@@ -142,7 +142,7 @@ def add_source_to_zipfile(zip_out, source_base, filename):
 def iterate_local_processed_files(runs):
     ''' Yield a stream of local processed result files for a list of runs.
     '''
-    for run in sorted(runs, key=attrgetter('source_path')):
+    for run in sorted(runs, key=attrgetter('datetime_tz'), reverse=True):
         source_base, _ = splitext(relpath(run.source_path, 'sources'))
         processed_url = run.state and run.state.get('processed')
     
@@ -151,13 +151,14 @@ def iterate_local_processed_files(runs):
         
         try:
             filename = download_processed_file(processed_url)
-            yield (source_base, filename)
         
         except:
-            filename = None
             _L.error('Failed to download {}'.format(processed_url))
+            continue
         
-        finally:
+        else:
+            yield (source_base, filename)
+
             if filename and exists(filename):
                 remove(filename)
 
