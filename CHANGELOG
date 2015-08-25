@@ -1,3 +1,6 @@
+2015-08-24: 2.1.1
+- Fixed a bug in ci.collect.
+
 2015-08-24: 2.1.0
 - Added regional extracts to openaddr-collect-extracts script.
 

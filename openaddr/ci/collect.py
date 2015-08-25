@@ -154,10 +154,11 @@ def iterate_local_processed_files(runs):
             yield (source_base, filename)
         
         except:
+            filename = None
             _L.error('Failed to download {}'.format(processed_url))
         
         finally:
-            if exists(filename):
+            if filename and exists(filename):
                 remove(filename)
 
 def _is_us_state(abbr, source_base, filename):
@@ -249,7 +250,7 @@ def download_processed_file(url):
     handle, filename = mkstemp(prefix='processed-', suffix=ext)
     close(handle)
     
-    response = get(url, stream=True)
+    response = get(url, stream=True, timeout=5)
     
     with open(filename, 'wb') as file:
         for chunk in response.iter_content(chunk_size=8192):
