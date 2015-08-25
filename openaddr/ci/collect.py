@@ -142,7 +142,9 @@ def add_source_to_zipfile(zip_out, source_base, filename):
 def iterate_local_processed_files(runs):
     ''' Yield a stream of local processed result files for a list of runs.
     '''
-    for run in sorted(runs, key=attrgetter('datetime_tz'), reverse=True):
+    key = lambda run: run.datetime_tz or date(1970, 1, 1)
+    
+    for run in sorted(runs, key=key, reverse=True):
         source_base, _ = splitext(relpath(run.source_path, 'sources'))
         processed_url = run.state and run.state.get('processed')
     
