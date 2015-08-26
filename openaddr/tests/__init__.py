@@ -20,6 +20,7 @@ import tempfile
 import json
 import re
 import pickle
+import sys
 from os import close, environ, mkdir, remove
 from io import BytesIO
 from csv import DictReader
@@ -27,7 +28,8 @@ from zipfile import ZipFile
 from mimetypes import guess_type
 from urllib.parse import urlparse, parse_qs
 from os.path import dirname, join, basename, exists, splitext
-from fcntl import lockf, LOCK_EX, LOCK_UN
+if sys.platform !="win32":
+    from fcntl import lockf, LOCK_EX, LOCK_UN
 from contextlib import contextmanager
 from subprocess import Popen, PIPE
 from threading import Lock
@@ -497,6 +499,8 @@ def locked_open(filename):
     ''' Open and lock a file, for use with threads and processes.
     '''
     with open(filename, 'r+b') as file:
+        if sys.platform == "win32":
+            yield file
         lockf(file, LOCK_EX)
         yield file
         lockf(file, LOCK_UN)
