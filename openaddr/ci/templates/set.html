@@ -9,15 +9,19 @@
 <body>
 <p>
     This is a summary view of <a href="http://openaddresses.io">OpenAddresses data</a>.
-    {{ counts.addresses|nice_integer }} addresses were processed
-    <span class="stat">{{ last_modified.strftime('%A, %b %d, %Y') }}</span>.
-    Out of <span class="stat">{{ counts.sources }} total sources</span>,
-    <a href="#first-processed" class="stat">{{ counts.processed }} were completed</a>.
-    <span class="stat">{{ counts.sources - counts.cached }} sources failed cache</span>,
-    <span class="stat">{{ counts.cached - counts.processed }} cached but not processed</span>.
-    To help complete more sources, look for “missing conform” below and add a
-    <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#conform-object">conform object</a>
-    based on the included sample data.
+    {% if last_modified %}
+        {{ counts.addresses|nice_integer }} addresses were processed
+        <span class="stat">{{ last_modified.strftime('%A, %b %d, %Y') }}</span>.
+        Out of <span class="stat">{{ counts.sources }} total sources</span>,
+        <a href="#first-processed" class="stat">{{ counts.processed }} were completed</a>.
+        <span class="stat">{{ counts.sources - counts.cached }} sources failed cache</span>,
+        <span class="stat">{{ counts.cached - counts.processed }} cached but not processed</span>.
+        To help complete more sources, look for “missing conform” below and add a
+        <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#conform-object">conform object</a>
+        based on the included sample data.
+    {% else %}
+        This set is incomplete.
+    {% endif %}
 </p>
 <p>
     The latest summary can always be found at
