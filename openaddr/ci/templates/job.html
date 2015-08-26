@@ -34,17 +34,17 @@
         {{ path }}
         </td>
         <td>
-        {% if file_result.output and file_result.output['output'] %}
+        {% if file_result and file_result.output and file_result.output['output'] %}
             <a href="{{ file_result.output['output'] }}">log</a>
         {% endif %}
         </td>
         <td>
-        {% if file_result.output and file_result.output['sample'] %}
+        {% if file_result and file_result.output and file_result.output['sample'] %}
             <a href="{{ file_result.output['sample'] }}">sample</a>
         {% endif %}
         </td>
         <td>
-        {% if file_result.output and file_result.output['processed'] %}
+        {% if file_result and file_result.output and file_result.output['processed'] %}
             <a href="{{ file_result.output['processed'] }}">data</a>
         {% endif %}
         </td>
