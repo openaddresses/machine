@@ -320,7 +320,7 @@ def find_source_path(source_definition, source_paths):
         candidates = []
         for fn in source_paths:
             basename, ext = os.path.splitext(fn)
-            if ext.lower() == ".json":
+            if ext.lower() in (".json", ".geojson"):
                 candidates.append(fn)
         if len(candidates) == 0:
             _L.warning("No JSON found in %s", source_paths)
