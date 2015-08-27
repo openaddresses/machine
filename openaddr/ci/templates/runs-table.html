@@ -214,13 +214,13 @@
             {% if state.skip %}
             <a href="{{ state.href }}">source</a> says to skip
             {% elif not state.cache %}
-            cache failed ( <a href="{{ state.output }}">log</a> )
+            cache failed {% if state.output %}( <a href="{{ state.output }}">log</a> ){% endif %}
             {% elif not state.conform %}
             <a href="{{ state.href }}">source</a> is
             <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#conform-object">missing conform</a>
             {% set suggest_conform = True %}
             {% else %}
-            unknown ( <a href="{{ state.output }}">log</a> )
+            unknown {% if state.output %}( <a href="{{ state.output }}">log</a> ){% endif %}
             {% endif %}
           {% elif not state['coverage complete'] %}
             <a href="{{ state.href }}">source</a> has
@@ -231,7 +231,7 @@
           {% if state.sample and state.sample_link %}
             <button onclick="return showhide(this, '{{ state.shortname|element_id }}-sample-data', '{{ state.shortname|element_id }}-sample-link')">Show sample data</button>
           {% else %}
-            No sample data ( <a href="{{ state.output }}">log</a> )
+            No sample data {% if state.output %}( <a href="{{ state.output }}">log</a> ){% endif %}
           {% endif %}
         </td>
       </tr>
