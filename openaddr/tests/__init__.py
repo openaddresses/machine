@@ -28,11 +28,14 @@ from zipfile import ZipFile
 from mimetypes import guess_type
 from urllib.parse import urlparse, parse_qs
 from os.path import dirname, join, basename, exists, splitext
-if sys.platform !="win32":
-    from fcntl import lockf, LOCK_EX, LOCK_UN
 from contextlib import contextmanager
 from subprocess import Popen, PIPE
 from threading import Lock
+
+if sys.platform != 'win32':
+    from fcntl import lockf, LOCK_EX, LOCK_UN
+else:
+    lockf, LOCK_EX, LOCK_UN = None, None, None
 
 from requests import get
 from httmock import response, HTTMock
@@ -499,11 +502,11 @@ def locked_open(filename):
     ''' Open and lock a file, for use with threads and processes.
     '''
     with open(filename, 'r+b') as file:
-        if sys.platform == "win32":
-            yield file
-        lockf(file, LOCK_EX)
+        if lockf:
+            lockf(file, LOCK_EX)
         yield file
-        lockf(file, LOCK_UN)
+        if lockf:
+            lockf(file, LOCK_UN)
 
 class FakeS3 (S3):
     ''' Just enough S3 to work for tests.
