@@ -1458,7 +1458,7 @@ class TestWorker (unittest.TestCase):
             os.makedirs(index_dirname)
             
             with open(index_filename, 'w') as file:
-                file.write('''[ ["source", "cache", "sample", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], ["user_input.txt", "cache.zip", "sample.json", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "output.txt"] ]''')
+                file.write('''[ ["skipped", "source", "cache", "sample", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], [false, "user_input.txt", "cache.zip", "sample.json", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "output.txt"] ]''')
             
             for name in ('cache.zip', 'sample.json', 'out.csv', 'output.txt'):
                 with open(os.path.join(index_dirname, name), 'w') as file:
@@ -1488,6 +1488,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(result['message'], MAGIC_OK_MESSAGE)
         self.assertEqual(result['result_code'], 0)
 
+        self.assertFalse(result['output']['skipped'])
         self.assertTrue(result['output']['cache'].endswith('/cache.zip'))
         self.assertTrue(result['output']['sample'].endswith('/sample.json'))
         self.assertTrue(result['output']['output'].endswith('/output.txt'))
@@ -1533,6 +1534,52 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(result['message'], 'Something went wrong in openaddr-process-one')
         self.assertEqual(result['result_stdout'], 'Everything is ruined.\n')
         self.assertEqual(result['result_code'], 1)
+
+    @patch('tempfile.mkdtemp')
+    @patch('openaddr.compat.check_output')
+    def test_skippy_worker(self, check_output, mkdtemp):
+        '''
+        '''
+        def does_what_its_told(cmd, timeout=None):
+            index_path = '{id}/out/user_input/index.json'.format(**task_data)
+            index_filename = os.path.join(self.output_dir, index_path)
+            index_dirname = os.path.dirname(index_filename)
+            os.makedirs(index_dirname)
+            
+            with open(index_filename, 'w') as file:
+                file.write('''[ ["skipped", "source", "cache", "sample", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], [true, "user_input.txt", null, null, null, null, null, null, null, null, null, "output.txt"] ]''')
+            
+            with open(os.path.join(index_dirname, 'output.txt'), 'w') as file:
+                file.write('Yo')
+            
+            return index_filename
+        
+        def same_tempdir_every_time(prefix, dir):
+            os.mkdir(join(dir, 'work'))
+            return join(dir, 'work')
+        
+        task_data = dict(id='0xDEADBEEF', content='{ }', name='Dead Beef', url=None)
+        check_output.side_effect = does_what_its_told
+        mkdtemp.side_effect = same_tempdir_every_time
+        
+        job_id, content = task_data['id'], task_data['content']
+        result = worker.do_work(self.s3, -1, u'so/exalté', content, self.output_dir)
+        
+        check_output.assert_called_with((
+            'openaddr-process-one', '-l',
+            os.path.join(self.output_dir, 'work/logfile.txt'),
+            os.path.join(self.output_dir, 'work/user_input.txt'),
+            os.path.join(self.output_dir, 'work/out')
+            ),
+            timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
+        
+        self.assertEqual(result['message'], MAGIC_OK_MESSAGE)
+        self.assertEqual(result['result_code'], 0)
+
+        self.assertTrue(result['output']['skipped'])
+        self.assertIsNone(result['output']['cache'])
+        self.assertIsNone(result['output']['sample'])
+        self.assertIsNone(result['output']['processed'])
 
 class TestBatch (unittest.TestCase):
 

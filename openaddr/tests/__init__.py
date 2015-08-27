@@ -295,9 +295,10 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
-        self.assertTrue(state['cache'] is not None)
+        self.assertFalse(state['skipped'])
+        self.assertIsNotNone(state['cache'])
         # This test data does not contain a working conform object
-        self.assertTrue(state['processed'] is None)
+        self.assertIsNone(state['processed'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -315,9 +316,10 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
-        self.assertTrue(state['cache'] is None)
-        # This test data does not contain a working conform object
-        self.assertTrue(state['processed'] is None)
+        # This test data says "skip": True
+        self.assertTrue(state['skipped'])
+        self.assertIsNone(state['cache'])
+        self.assertIsNone(state['processed'])
 
     def test_single_berk(self):
         ''' Test complete process_one.process on Berkeley sample data.

@@ -14,6 +14,8 @@ import tempfile, json, csv
 from . import cache, conform, CacheResult, ConformResult
 from .compat import csvopen, csvwriter
 
+class SourceSaysSkip(RuntimeError): pass
+
 def process(source, destination, extras=dict()):
     ''' Process a single source and destination, return path to JSON state file.
     
@@ -27,11 +29,12 @@ def process(source, destination, extras=dict()):
     logging.getLogger('openaddr').addHandler(log_handler)
     
     cache_result, conform_result = CacheResult.empty(), ConformResult.empty()
+    skipped_source = False
 
     try:
         with open(temp_src) as file:
             if json.load(file).get('skip', None):
-                raise ValueError('Source says to skip')
+                raise SourceSaysSkip()
     
         # Cache source data.
         cache_result = cache(temp_src, temp_dir, extras)
@@ -49,6 +52,10 @@ def process(source, destination, extras=dict()):
             else:
                 _L.info('Processed data in {}'.format(conform_result.path))
     
+    except SourceSaysSkip as e:
+        _L.info('Source says to skip in process_one.process()')
+        skipped_source = True
+
     except Exception:
         _L.warning('Error in process_one.process()', exc_info=True)
     
@@ -57,7 +64,7 @@ def process(source, destination, extras=dict()):
         logging.getLogger('openaddr').removeHandler(log_handler)
 
     # Write output
-    state_path = write_state(source, destination, log_handler,
+    state_path = write_state(source, skipped_source, destination, log_handler,
                              cache_result, conform_result, temp_dir)
 
     log_handler.close()
@@ -88,7 +95,8 @@ def get_log_handler(directory):
     
     return handler
 
-def write_state(source, destination, log_handler, cache_result, conform_result, temp_dir):
+def write_state(source, skipped, destination, log_handler, cache_result,
+                conform_result, temp_dir):
     '''
     '''
     source_id, _ = splitext(basename(source))
@@ -125,6 +133,7 @@ def write_state(source, destination, log_handler, cache_result, conform_result, 
 
     state = [
         ('source', basename(source)),
+        ('skipped', bool(skipped)),
         ('cache', state_cache),
         ('sample', conform_result.sample and relpath(sample_path, statedir)),
         ('geometry type', conform_result.geometry_type),
