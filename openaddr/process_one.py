@@ -29,14 +29,13 @@ def process(source, destination, extras=dict()):
     logging.getLogger('openaddr').addHandler(log_handler)
     
     cache_result, conform_result = CacheResult.empty(), ConformResult.empty()
+    skipped_source = False
 
     try:
         with open(temp_src) as file:
             if json.load(file).get('skip', None):
                 raise SourceSaysSkip()
     
-        skipped_source = False
-        
         # Cache source data.
         cache_result = cache(temp_src, temp_dir, extras)
     
