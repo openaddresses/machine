@@ -1859,7 +1859,7 @@ class TestCollect (unittest.TestCase):
                         self.assertFalse(test_func(source_base, _, _), '{}("{}") should be false'.format(test_func.__name__, source_base))
 
         for abbr in ('de', 'fl', 'ga', 'md', 'nc', 'sc', 'va', 'dc', 'wv', 'al',
-                     'ky', 'ms', 'ar', 'la', 'ok', 'tx'):
+                     'ky', 'ms', 'ar', 'la', 'ok', 'tx', 'tn'):
             for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
                 self.assertTrue(is_us_south(source_base, _, _), 'is_us_south("{}") should be true'.format(source_base))
             

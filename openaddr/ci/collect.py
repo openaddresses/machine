@@ -193,7 +193,7 @@ def is_us_midwest(source_base, filename, source_dict):
     
 def is_us_south(source_base, filename, source_dict):
     for abbr in ('de', 'fl', 'ga', 'md', 'nc', 'sc', 'va', 'dc', 'wv', 'al',
-                 'ky', 'ms', 'ar', 'la', 'ok', 'tx'):
+                 'ky', 'ms', 'ar', 'la', 'ok', 'tx', 'tn'):
         if _is_us_state(abbr, source_base, filename, source_dict):
             return True
 
