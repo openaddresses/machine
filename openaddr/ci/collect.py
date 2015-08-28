@@ -55,14 +55,14 @@ def main():
     europe = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-europe.zip')))
     asia = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-asia.zip')))
 
-    for (sb, fn) in iterate_local_processed_files(runs):
-        everything.send((sb, fn))
-        if is_us_northeast(sb, fn): us_northeast.send((sb, fn))
-        if is_us_midwest(sb, fn): us_midwest.send((sb, fn))
-        if is_us_south(sb, fn): us_south.send((sb, fn))
-        if is_us_west(sb, fn): us_west.send((sb, fn))
-        if is_europe(sb, fn): europe.send((sb, fn))
-        if is_asia(sb, fn): asia.send((sb, fn))
+    for (sb, fn, sd) in iterate_local_processed_files(runs):
+        everything.send((sb, fn, sd))
+        if is_us_northeast(sb, fn, sd): us_northeast.send((sb, fn, sd))
+        if is_us_midwest(sb, fn, sd): us_midwest.send((sb, fn, sd))
+        if is_us_south(sb, fn, sd): us_south.send((sb, fn, sd))
+        if is_us_west(sb, fn, sd): us_west.send((sb, fn, sd))
+        if is_europe(sb, fn, sd): europe.send((sb, fn, sd))
+        if is_asia(sb, fn, sd): asia.send((sb, fn, sd))
     
     everything.close()
     us_northeast.close()
@@ -102,7 +102,7 @@ def collect_and_publish(s3, collection_zip):
     def get_collector_publisher():
         while True:
             try:
-                (source_base, filename) = yield
+                (source_base, filename, source_dict) = yield
             except GeneratorExit:
                 break
             else:
@@ -159,12 +159,12 @@ def iterate_local_processed_files(runs):
             continue
         
         else:
-            yield (source_base, filename)
+            yield (source_base, filename, None)
 
             if filename and exists(filename):
                 remove(filename)
 
-def _is_us_state(abbr, source_base, filename):
+def _is_us_state(abbr, source_base, filename, source_dict):
     for sep in ('/', '-'):
         if source_base == 'us{sep}{abbr}'.format(**locals()):
             return True
@@ -177,36 +177,36 @@ def _is_us_state(abbr, source_base, filename):
 
     return False
 
-def is_us_northeast(source_base, filename):
+def is_us_northeast(source_base, filename, source_dict):
     for abbr in ('ct', 'me', 'ma', 'nh', 'ri', 'vt', 'nj', 'ny', 'pa'):
-        if _is_us_state(abbr, source_base, filename):
+        if _is_us_state(abbr, source_base, filename, source_dict):
             return True
 
     return False
     
-def is_us_midwest(source_base, filename):
+def is_us_midwest(source_base, filename, source_dict):
     for abbr in ('il', 'in', 'mi', 'oh', 'wi', 'ia', 'ks', 'mn', 'mo', 'ne', 'nd', 'sd'):
-        if _is_us_state(abbr, source_base, filename):
+        if _is_us_state(abbr, source_base, filename, source_dict):
             return True
 
     return False
     
-def is_us_south(source_base, filename):
+def is_us_south(source_base, filename, source_dict):
     for abbr in ('de', 'fl', 'ga', 'md', 'nc', 'sc', 'va', 'dc', 'wv', 'al',
                  'ky', 'ms', 'ar', 'la', 'ok', 'tx'):
-        if _is_us_state(abbr, source_base, filename):
+        if _is_us_state(abbr, source_base, filename, source_dict):
             return True
 
     return False
     
-def is_us_west(source_base, filename):
+def is_us_west(source_base, filename, source_dict):
     for abbr in ('az', 'co', 'id', 'mt', 'nv', 'nm', 'ut', 'wy', 'ak', 'ca', 'hi', 'or', 'wa'):
-        if _is_us_state(abbr, source_base, filename):
+        if _is_us_state(abbr, source_base, filename, source_dict):
             return True
 
     return False
     
-def _is_country(iso, source_base, filename):
+def _is_country(iso, source_base, filename, source_dict):
     for sep in ('/', '-'):
         if source_base == iso:
             return True
@@ -219,16 +219,16 @@ def _is_country(iso, source_base, filename):
 
     return False
 
-def is_europe(source_base, filename):
+def is_europe(source_base, filename, source_dict):
     for iso in ('be', 'bg', 'cz', 'dk', 'de', 'ee', 'ie', 'el', 'es', 'fr',
                 'hr', 'it', 'cy', 'lv', 'lt', 'lu', 'hu', 'mt', 'nl', 'at',
                 'pl', 'pt', 'ro', 'si', 'sk', 'fi', 'se', 'uk', 'gr', 'gb'  ):
-        if _is_country(iso, source_base, filename):
+        if _is_country(iso, source_base, filename, source_dict):
             return True
 
     return False
     
-def is_asia(source_base, filename):
+def is_asia(source_base, filename, source_dict):
     for iso in ('af', 'am', 'az', 'bh', 'bd', 'bt', 'bn', 'kh', 'cn', 'cx',
                 'cc', 'io', 'ge', 'hk', 'in', 'id', 'ir', 'iq', 'il', 'jp',
                 'jo', 'kz', 'kp', 'kr', 'kw', 'kg', 'la', 'lb', 'mo', 'my',
@@ -239,7 +239,7 @@ def is_asia(source_base, filename):
                 'as', 'au', 'nz', 'ck', 'fj', 'pf', 'gu', 'ki', 'mp', 'mh',
                 'fm', 'um', 'nr', 'nc', 'nz', 'nu', 'nf', 'pw', 'pg', 'mp',
                 'sb', 'tk', 'to', 'tv', 'vu', 'um', 'wf', 'ws', 'is'):
-        if _is_country(iso, source_base, filename):
+        if _is_country(iso, source_base, filename, source_dict):
             return True
 
     return False
