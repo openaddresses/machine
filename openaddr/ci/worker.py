@@ -70,7 +70,7 @@ def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
         index = dict(zip(*json.load(file)))
         
         for key in ('processed', 'sample', 'cache'):
-            if not index[key]:
+            if not index[key] and not index.get('skipped'):
                 result.update(result_code=-1, message='Failed to produce {} data'.format(key))
         
         index_dirname = os.path.dirname(state_fullpath)

@@ -1,3 +1,22 @@
+2015-08-27: 2.1.3
+- Fixed a bunch of long-standing bugs in templates.
+- Upgraded psycopg2 to 2.6.1 for Windows compatibility.
+
+2015-08-24: 2.1.2
+- Linked to collected extracts from front page.
+
+2015-08-24: 2.1.1
+- Fixed a bug in ci.collect.
+
+2015-08-24: 2.1.0
+- Added regional extracts to openaddr-collect-extracts script.
+
+2015-08-22: 2.0.0
+- Dropped support for deprecated merge conform tag.
+- Removed code and scripts related to old-style batch processing.
+- Added support for new join and regexp conform tags.
+- Differentiated index HTML template from set pages.
+
 2015-08-20: 1.21.1
 - Fixed urlretrieve bug in future.backports.http.client.
 

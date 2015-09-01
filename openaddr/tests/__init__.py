@@ -20,6 +20,7 @@ import tempfile
 import json
 import re
 import pickle
+import sys
 from os import close, environ, mkdir, remove
 from io import BytesIO
 from csv import DictReader
@@ -27,15 +28,19 @@ from zipfile import ZipFile
 from mimetypes import guess_type
 from urllib.parse import urlparse, parse_qs
 from os.path import dirname, join, basename, exists, splitext
-from fcntl import lockf, LOCK_EX, LOCK_UN
 from contextlib import contextmanager
 from subprocess import Popen, PIPE
 from threading import Lock
 
+if sys.platform != 'win32':
+    from fcntl import lockf, LOCK_EX, LOCK_UN
+else:
+    lockf, LOCK_EX, LOCK_UN = None, None, None
+
 from requests import get
 from httmock import response, HTTMock
         
-from .. import paths, cache, conform, S3, process_all, process_one
+from .. import cache, conform, S3, process_one
 
 class TestOA (unittest.TestCase):
     
@@ -121,84 +126,6 @@ class TestOA (unittest.TestCase):
         
         raise NotImplementedError(url.geturl())
     
-    def test_process_all(self):
-        ''' Test process_all.process(), with complete threaded behavior.
-        '''
-        with HTTMock(self.response_content):
-            process_all.process(self.s3, self.src_dir, 'test')
-        
-        # Go looking for state.txt in fake S3.
-        buffer = BytesIO(self.s3._read_fake_key('runs/test/state.txt'))
-        states = dict([(row['source'], row) for row
-                       in csvDictReader(buffer, dialect='excel-tab')])
-        
-        for (source, state) in states.items():
-            if 'berkeley-404' in source or 'oakland-skip' in source:
-                self.assertFalse(bool(state['cache']), 'Checking for cache in {}'.format(source))
-                self.assertFalse(bool(state['version']), 'Checking for version in {}'.format(source))
-                self.assertFalse(bool(state['fingerprint']), 'Checking for fingerprint in {}'.format(source))
-            else:
-                self.assertTrue(bool(state['cache']), 'Checking for cache in {}'.format(source))
-                self.assertTrue(bool(state['version']), 'Checking for version in {}'.format(source))
-                self.assertTrue(bool(state['fingerprint']), 'Checking for fingerprint in {}'.format(source))
-            
-                self.assertTrue(bool(state['sample']), 'Checking for sample in {}'.format(source))
-
-            if 'san_francisco' in source or 'alameda_county' in source or 'carson' in source \
-            or 'pl-' in source or 'us-ut' in source or 'fr-paris' in source:
-                self.assertTrue(bool(state['processed']), "Checking for processed in {}".format(source))
-                
-                with HTTMock(self.response_content):
-                    got = get(state['processed'])
-                    zip_file = ZipFile(BytesIO(got.content), mode='r')
-                
-                source_base, _ = splitext(source)
-                self.assertTrue(source_base + '.csv' in zip_file.namelist())
-                self.assertTrue(source_base + '.vrt' in zip_file.namelist())
-                
-            else:
-                self.assertFalse(bool(state['processed']), "Checking for processed in {}".format(source))
-            
-            if 'berkeley-404' in source or 'oakland-skip' in source:
-                self.assertFalse(bool(state['geometry type']))
-            elif 'berkeley' in source or 'oakland' in source:
-                self.assertEqual(state['geometry type'], 'Polygon')
-            elif 'san_francisco' in source or 'alameda_county' in source:
-                self.assertEqual(state['geometry type'], 'Point')
-            elif 'carson' in source:
-                self.assertEqual(state['geometry type'], 'Point 2.5D')
-
-        #
-        # Check the JSON version of the data.
-        #
-        data = json.loads(self.s3._read_fake_key('state.json'))
-        self.assertEqual(data, 'runs/test/state.json')
-        
-        data = json.loads(self.s3._read_fake_key(data))
-        rows = [dict(zip(data[0], row)) for row in data[1:]]
-        
-        for state in rows:
-            if 'berkeley-404' in state['source'] or 'oakland-skip' in state['source']:
-                self.assertFalse(bool(state['cache']))
-                self.assertFalse(bool(state['version']))
-                self.assertFalse(bool(state['fingerprint']))
-            else:
-                self.assertTrue(bool(state['cache']))
-                self.assertTrue(bool(state['version']))
-                self.assertTrue(bool(state['fingerprint']))
-        
-        #
-        # Check for a zip with everything.
-        #
-        bytes = BytesIO(self.s3._read_fake_key('openaddresses-complete.zip'))
-        names = ZipFile(bytes).namelist()
-        
-        for state in rows:
-            source = state['source']
-            if 'san_francisco' in source or 'alameda_county' in source or 'carson' in source:
-                name = '{0}.csv'.format(*splitext(state['source']))
-                self.assertTrue(name in names, 'Looking for {} in zip'.format(name))
-        
     def test_single_ac(self):
         ''' Test complete process_one.process on Alameda County sample data.
         '''
@@ -368,9 +295,10 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
-        self.assertTrue(state['cache'] is not None)
+        self.assertFalse(state['skipped'])
+        self.assertIsNotNone(state['cache'])
         # This test data does not contain a working conform object
-        self.assertTrue(state['processed'] is None)
+        self.assertIsNone(state['processed'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -388,9 +316,10 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
-        self.assertTrue(state['cache'] is None)
-        # This test data does not contain a working conform object
-        self.assertTrue(state['processed'] is None)
+        # This test data says "skip": True
+        self.assertTrue(state['skipped'])
+        self.assertIsNone(state['cache'])
+        self.assertIsNone(state['processed'])
 
     def test_single_berk(self):
         ''' Test complete process_one.process on Berkeley sample data.
@@ -575,9 +504,11 @@ def locked_open(filename):
     ''' Open and lock a file, for use with threads and processes.
     '''
     with open(filename, 'r+b') as file:
-        lockf(file, LOCK_EX)
+        if lockf:
+            lockf(file, LOCK_EX)
         yield file
-        lockf(file, LOCK_UN)
+        if lockf:
+            lockf(file, LOCK_UN)
 
 class FakeS3 (S3):
     ''' Just enough S3 to work for tests.

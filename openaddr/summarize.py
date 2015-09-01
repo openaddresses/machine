@@ -13,11 +13,14 @@ from os import environ
 from re import compile
 import json, pickle
 
-from jinja2 import Environment, FileSystemLoader
 import requests
 
-from . import S3, paths, __version__
+from . import S3, __version__
 from .compat import expand_uri
+
+# Sort constants for summarize_runs()
+GLASS_HALF_FULL = 1
+GLASS_HALF_EMPTY = 2
 
 def _get_cached(memcache, key):
     ''' Get a thing from the cache, or None.
@@ -130,63 +133,21 @@ def run_counts(runs):
         'addresses': sum([int(state.get('address count') or 0) for state in states])
         }
 
-def sort_run_dicts(dicts):
+def sort_run_dicts(dicts, sort_order):
     '''
     '''
-    dicts.sort(key=lambda d: (bool(d['cache']), bool(d['processed']), d['source']))
-
-def load_states(s3, source_dir):
-    # Find existing cache information
-    state_key = s3.get_key('state.txt')
-    states, counts = list(), dict(processed=0, cached=0, sources=0, addresses=0)
-
-    if state_key:
-        state_link = state_key.get_contents_as_string()
-        if b'\t' not in state_link:
-            # it's probably a link to someplace else.
-            state_key = s3.get_key(state_link.strip())
+    if sort_order is GLASS_HALF_FULL:
+        # Put the happy, successful stuff up front.
+        key = lambda d: (not bool(d['processed']), not bool(d['cache']), d['source'])
     
-    if state_key:
-        last_modified = parse_datetime(state_key.last_modified)
-        state_file = StringIO(state_key.get_contents_as_string().decode('utf8'))
-        
-        for row in DictReader(state_file, dialect='excel-tab'):
-            row['shortname'], _ = splitext(row['source'])
-            row['href'] = row['processed'] or row['cache'] or None
-            row['href'] = 'https://github.com/openaddresses/openaddresses/blob/master/sources/' + row['source']
-            
-            if row.get('version', False):
-                v = row['version']
-                row['cache_date'] = '{}-{}-{}'.format(v[0:4], v[4:6], v[6:8])
-            else:
-                row['cache_date'] = None
-
-            counts['sources'] += 1
-            counts['cached'] += 1 if row['cache'] else 0
-            counts['processed'] += 1 if row['processed'] else 0
-            counts['addresses'] += int(row['address count'] or 0)
-
-            with open(join(source_dir, row['source'])) as file:
-                data = json.load(file)
-            
-                row['type'] = data.get('type', '').lower()
-                row['conform'] = bool(data.get('conform', False))
-                row['skip'] = bool(data.get('skip', False))
-            
-            if row.get('sample', False):
-                row['sample_data'] = get(row['sample']).json()
-            
-            if not row.get('sample_data', False):
-                row['sample_data'] = list()
-            
-            row['conform type'] = state_conform_type(row)
-            row['coverage complete'] = is_coverage_complete(data)
-            
-            states.append(row)
+    elif sort_order is GLASS_HALF_EMPTY:
+        # Put the stuff that needs help up front.
+        key = lambda d: (bool(d['cache']), bool(d['processed']), d['source'])
     
-    sort_run_dicts(states)
-    
-    return last_modified, states, counts
+    else:
+        raise ValueError('Unknown sort order "{}"'.format(sort_order))
+
+    dicts.sort(key=key)
 
 def nice_integer(number):
     ''' Format a number like '999,999,999'
@@ -199,11 +160,7 @@ def nice_integer(number):
     
     return string
 
-def main():
-    s3 = S3(environ['AWS_ACCESS_KEY_ID'], environ['AWS_SECRET_ACCESS_KEY'], 'data-test.openaddresses.io')
-    print(summarize(s3, paths.sources).encode('utf8'))
-
-def summarize_runs(memcache, runs, datetime, owner, repository):
+def summarize_runs(memcache, runs, datetime, owner, repository, sort_order):
     ''' Return summary data for set.html template.
     '''
     base_url = expand_uri(u'https://github.com/{owner}/{repository}/',
@@ -212,20 +169,6 @@ def summarize_runs(memcache, runs, datetime, owner, repository):
 
     states = [convert_run(memcache, run, url_template) for run in runs]
     counts = run_counts(runs)
-    sort_run_dicts(states)
+    sort_run_dicts(states, sort_order)
     
     return dict(states=states, last_modified=datetime, counts=counts)
-
-def summarize(s3, source_dir):
-    ''' Return summary HTML.
-    '''
-    env = Environment(loader=FileSystemLoader(join(dirname(__file__), 'templates')))
-    env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
-    env.filters['nice_integer'] = nice_integer
-    template = env.get_template('state.html')
-
-    last_modified, states, counts = load_states(s3, source_dir)
-    return template.render(states=states, last_modified=last_modified, counts=counts)
-
-if __name__ == '__main__':
-    exit(main())

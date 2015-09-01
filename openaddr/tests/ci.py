@@ -39,7 +39,9 @@ from ..ci.objects import (
     )
 
 from ..ci.collect import (
-    download_processed_file, iterate_local_processed_files, add_source_to_zipfile
+    is_us_northeast, is_us_midwest, is_us_south, is_us_west, is_europe, is_asia,
+    download_processed_file, iterate_local_processed_files,
+    add_source_to_zipfile, collect_and_publish
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -1456,7 +1458,7 @@ class TestWorker (unittest.TestCase):
             os.makedirs(index_dirname)
             
             with open(index_filename, 'w') as file:
-                file.write('''[ ["source", "cache", "sample", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], ["user_input.txt", "cache.zip", "sample.json", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "output.txt"] ]''')
+                file.write('''[ ["skipped", "source", "cache", "sample", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], [false, "user_input.txt", "cache.zip", "sample.json", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "output.txt"] ]''')
             
             for name in ('cache.zip', 'sample.json', 'out.csv', 'output.txt'):
                 with open(os.path.join(index_dirname, name), 'w') as file:
@@ -1486,6 +1488,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(result['message'], MAGIC_OK_MESSAGE)
         self.assertEqual(result['result_code'], 0)
 
+        self.assertFalse(result['output']['skipped'])
         self.assertTrue(result['output']['cache'].endswith('/cache.zip'))
         self.assertTrue(result['output']['sample'].endswith('/sample.json'))
         self.assertTrue(result['output']['output'].endswith('/output.txt'))
@@ -1531,6 +1534,52 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(result['message'], 'Something went wrong in openaddr-process-one')
         self.assertEqual(result['result_stdout'], 'Everything is ruined.\n')
         self.assertEqual(result['result_code'], 1)
+
+    @patch('tempfile.mkdtemp')
+    @patch('openaddr.compat.check_output')
+    def test_skippy_worker(self, check_output, mkdtemp):
+        '''
+        '''
+        def does_what_its_told(cmd, timeout=None):
+            index_path = '{id}/out/user_input/index.json'.format(**task_data)
+            index_filename = os.path.join(self.output_dir, index_path)
+            index_dirname = os.path.dirname(index_filename)
+            os.makedirs(index_dirname)
+            
+            with open(index_filename, 'w') as file:
+                file.write('''[ ["skipped", "source", "cache", "sample", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], [true, "user_input.txt", null, null, null, null, null, null, null, null, null, "output.txt"] ]''')
+            
+            with open(os.path.join(index_dirname, 'output.txt'), 'w') as file:
+                file.write('Yo')
+            
+            return index_filename
+        
+        def same_tempdir_every_time(prefix, dir):
+            os.mkdir(join(dir, 'work'))
+            return join(dir, 'work')
+        
+        task_data = dict(id='0xDEADBEEF', content='{ }', name='Dead Beef', url=None)
+        check_output.side_effect = does_what_its_told
+        mkdtemp.side_effect = same_tempdir_every_time
+        
+        job_id, content = task_data['id'], task_data['content']
+        result = worker.do_work(self.s3, -1, u'so/exalté', content, self.output_dir)
+        
+        check_output.assert_called_with((
+            'openaddr-process-one', '-l',
+            os.path.join(self.output_dir, 'work/logfile.txt'),
+            os.path.join(self.output_dir, 'work/user_input.txt'),
+            os.path.join(self.output_dir, 'work/out')
+            ),
+            timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
+        
+        self.assertEqual(result['message'], MAGIC_OK_MESSAGE)
+        self.assertEqual(result['result_code'], 0)
+
+        self.assertTrue(result['output']['skipped'])
+        self.assertIsNone(result['output']['cache'])
+        self.assertIsNone(result['output']['sample'])
+        self.assertIsNone(result['output']['processed'])
 
 class TestBatch (unittest.TestCase):
 
@@ -1760,40 +1809,128 @@ class TestBatch (unittest.TestCase):
 
 class TestCollect (unittest.TestCase):
 
+    def test_collect_and_publish(self):
+        '''
+        '''
+        s3, collected_zip = mock.Mock(), mock.Mock()
+        collected_zip.filename = 'collected-local.zip'
+        
+        with patch('openaddr.ci.collect.add_source_to_zipfile') as add_source_to_zipfile:
+            generator_iterator = collect_and_publish(s3, collected_zip)
+            
+            for file in [('abc', 'abc.zip', {}), ('def', 'def.zip', {})]:
+                generator_iterator.send(file)
+            
+            generator_iterator.close()
+
+            add_source_to_zipfile.assert_has_calls([
+                mock.call(collected_zip, 'abc', 'abc.zip'),
+                mock.call(collected_zip, 'def', 'def.zip')
+                ])
+        
+        collected_zip.close.assert_called_once_with()
+
+        s3.new_key.assert_called_once_with('collected-local.zip')
+
+        s3.new_key.return_value.set_contents_from_filename.assert_called_once_with(
+            'collected-local.zip', policy='public-read',
+            headers={'Content-Type': 'application/zip'})
+    
+    def test_collection_checks(self):
+        '''
+        '''
+        _ = None
+        test_funcs = is_us_northeast, is_us_midwest, is_us_south, is_us_west, is_europe, is_asia
+        
+        for abbr in ('ct', 'me', 'ma', 'nh', 'ri', 'vt', 'nj', 'ny', 'pa'):
+            for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
+                self.assertTrue(is_us_northeast(source_base, _, _), 'is_us_northeast("{}") should be true'.format(source_base))
+            
+                for test_func in test_funcs:
+                    if test_func is not is_us_northeast:
+                        self.assertFalse(test_func(source_base, _, _), '{}("{}") should be false'.format(test_func.__name__, source_base))
+
+        for abbr in ('il', 'in', 'mi', 'oh', 'wi', 'ia', 'ks', 'mn', 'mo', 'ne', 'nd', 'sd'):
+            for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
+                self.assertTrue(is_us_midwest(source_base, _, _), 'is_us_midwest("{}") should be true'.format(source_base))
+            
+                for test_func in test_funcs:
+                    if test_func is not is_us_midwest:
+                        self.assertFalse(test_func(source_base, _, _), '{}("{}") should be false'.format(test_func.__name__, source_base))
+
+        for abbr in ('de', 'fl', 'ga', 'md', 'nc', 'sc', 'va', 'dc', 'wv', 'al',
+                     'ky', 'ms', 'ar', 'la', 'ok', 'tx'):
+            for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
+                self.assertTrue(is_us_south(source_base, _, _), 'is_us_south("{}") should be true'.format(source_base))
+            
+                for test_func in test_funcs:
+                    if test_func is not is_us_south:
+                        self.assertFalse(test_func(source_base, _, _), '{}("{}") should be false'.format(test_func.__name__, source_base))
+
+        for abbr in ('az', 'co', 'id', 'mt', 'nv', 'nm', 'ut', 'wy', 'ak', 'ca', 'hi', 'or', 'wa'):
+            for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
+                self.assertTrue(is_us_west(source_base, _, _), 'is_us_west("{}") should be true'.format(source_base))
+            
+                for test_func in test_funcs:
+                    if test_func is not is_us_west:
+                        self.assertFalse(test_func(source_base, _, _), '{}("{}") should be false'.format(test_func.__name__, source_base))
+
+        for iso in ('be', 'bg', 'cz', 'dk', 'de', 'ee', 'ie', 'el', 'es', 'fr',
+                    'hr', 'it', 'cy', 'lv', 'lt', 'lu', 'hu', 'mt', 'nl', 'at',
+                    'pl', 'pt', 'ro', 'si', 'sk', 'fi', 'se', 'uk', 'gr', 'gb'):
+            for source_base in (iso, '{}.---'.format(iso), '{}/---'.format(iso)):
+                self.assertTrue(is_europe(source_base, _, _), 'is_europe("{}") should be true'.format(source_base))
+            
+                for test_func in test_funcs:
+                    if test_func is not is_europe:
+                        self.assertFalse(test_func(source_base, _, _), '{}("{}") should be false'.format(test_func.__name__, source_base))
+
+        for iso in ('af', 'am', 'az', 'bh', 'bd', 'bt', 'bn', 'kh', 'cn', 'cx',
+                    'cc', 'io', 'ge', 'hk', 'in', 'id', 'ir', 'iq', 'il', 'jp',
+                    'jo', 'kz', 'kp', 'kr', 'kw', 'kg', 'la', 'lb', 'mo', 'my',
+                    'mv', 'mn', 'mm', 'np', 'om', 'pk', 'ph', 'qa', 'sa', 'sg',
+                    'lk', 'sy', 'tw', 'tj', 'th', 'tr', 'tm', 'ae', 'uz', 'vn',
+                    'ye', 'ps',
+                    
+                    'as', 'au', 'nz', 'ck', 'fj', 'pf', 'gu', 'ki', 'mp', 'mh',
+                    'fm', 'um', 'nr', 'nc', 'nz', 'nu', 'nf', 'pw', 'pg', 'mp',
+                    'sb', 'tk', 'to', 'tv', 'vu', 'um', 'wf', 'ws', 'is'):
+            for source_base in (iso, '{}.---'.format(iso), '{}/---'.format(iso)):
+                self.assertTrue(is_asia(source_base, _, _), 'is_asia("{}") should be true'.format(source_base))
+            
+                for test_func in test_funcs:
+                    if test_func is not is_asia:
+                        self.assertFalse(test_func(source_base, _, _), '{}("{}") should be false'.format(test_func.__name__, source_base))
+
     def test_add_source_to_zipfile(self):
         '''
         '''
-        handle, filename1 = mkstemp(suffix='.zip')
+        handle, filename1 = mkstemp(suffix='.csv')
+        utime(filename1, (1234567890, 1234567890))
         close(handle)
         
-        handle, filename2 = mkstemp(suffix='.csv')
-        utime(filename2, (1234567890, 1234567890))
-        close(handle)
-        
-        handle, filename3 = mkstemp(suffix='.zip')
-        zipfile3 = ZipFile(filename3, 'w')
-        zipfile3.writestr('foo/thing.vrt', b'stuff')
-        zipfile3.writestr('foo/thing.csv', b'stuff')
+        handle, filename2 = mkstemp(suffix='.zip')
+        zipfile3 = ZipFile(filename2, 'w')
+        zipfile3.writestr('foo/thing.vrt', b'vrt data')
+        zipfile3.writestr('foo/thing.csv', b'csv data')
         zipfile3.close()
-        utime(filename3, (987654321, 987654321))
+        utime(filename2, (987654321, 987654321))
         close(handle)
 
-        output = ZipFile(filename1, 'w')
+        output = mock.Mock()
         
         add_source_to_zipfile(output, 'foobar', 'temp')
+        add_source_to_zipfile(output, 'foobar', filename1)
         add_source_to_zipfile(output, 'foobar', filename2)
-        add_source_to_zipfile(output, 'foobar', filename3)
-        output.close()
         
-        result = ZipFile(filename1, 'r')
-        name1, name2, name3 = result.namelist()
-        self.assertEqual(name1, 'foobar.csv')
-        self.assertEqual(name2, 'foo/thing.vrt')
-        self.assertEqual(name3, 'foo/thing.csv')
+        output.write.assert_called_once_with(filename1, 'foobar.csv')
+        self.assertEqual(output.writestr.mock_calls[0][1][0].filename, 'foo/thing.vrt')
+        self.assertEqual(output.writestr.mock_calls[1][1][0].filename, 'foo/thing.csv')
+        self.assertEqual(output.writestr.mock_calls[0][1][1], b'vrt data')
+        self.assertEqual(output.writestr.mock_calls[1][1][1], b'csv data')
         
         remove(filename1)
         remove(filename2)
-        remove(filename3)
 
     def test_iterate_local_processed_files(self):
         runs = [
@@ -1812,8 +1949,8 @@ class TestCollect (unittest.TestCase):
             download_processed_file.return_value = 'nonexistent file'
             local_processed_files = iterate_local_processed_files(runs)
             
-            self.assertEqual(next(local_processed_files), ('123', 'nonexistent file'))
-            self.assertEqual(next(local_processed_files), ('7/9', 'nonexistent file'))
+            self.assertEqual(next(local_processed_files), ('123', 'nonexistent file', None))
+            self.assertEqual(next(local_processed_files), ('7/9', 'nonexistent file', None))
 
     def response_content(self, url, request):
         '''

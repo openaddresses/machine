@@ -1,7 +1,0 @@
-{
-    "run_list":
-    [
-        "openaddr",
-        "sources"
-    ]
-}

@@ -20,7 +20,6 @@ fi
 # Use role JSON file from first argument name, but check if it exists.
 #
 if [ $# == 1 ]; then ROLE=$1;
-elif [ $# == 0 ]; then ROLE='batchmode';
 else echo "Usage: $0 <role name>"; exit 1;
 fi
 

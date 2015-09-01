@@ -11,14 +11,37 @@
     This is a summary view of <a href="http://openaddresses.io">OpenAddresses data</a>.
     <a href="http://data.openaddresses.io/openaddresses-collected.zip" class="stat">{{ counts.addresses|nice_integer }} addresses</a>
     have been processed as of <span class="stat">{{ last_modified.strftime('%A, %b %d, %Y') }}</span>.
-    Out of <span class="stat">{{ counts.sources }} total sources</span>,
+    Out of <span class="stat">{{ counts.sources|nice_integer }} total sources</span>,
     <a href="#first-processed" class="stat">{{ counts.processed }} have completed</a>.
     <span class="stat">{{ counts.sources - counts.cached }} sources failed cache</span>,
     <span class="stat">{{ counts.cached - counts.processed }} cached but not processed</span>.
-    To help complete more sources, look for “missing conform” below and add a
-    <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#conform-object">conform object</a>
-    based on the included sample data.
+    See the <a href="/latest/set">latest results with status maps</a>.
 </p>
+<p>
+    We update these zipped global and regional address collections regularly:
+</p>
+<ul>
+    <li><a href="http://data.openaddresses.io/openaddresses-collected.zip">Global collection</a></li>
+    <li>
+        U.S. addresses
+        (<a href="http://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf">list of states by region</a>):
+        <ul>
+            <li><a href="http://data.openaddresses.io/openaddresses-us_northeast.zip">U.S. Northeast collection</a></li>
+            <li><a href="http://data.openaddresses.io/openaddresses-us_midwest.zip">U.S. Midwest collection</a></li>
+            <li><a href="http://data.openaddresses.io/openaddresses-us_south.zip">U.S. South collection</a></li>
+            <li><a href="http://data.openaddresses.io/openaddresses-us_west.zip">U.S. West collection</a></li>
+        </ul>
+    </li>
+    <li>
+        <a href="http://data.openaddresses.io/openaddresses-europe.zip">Europe collection</a>
+        (<a href="http://publications.europa.eu/code/pdf/370000en.htm">list of European countries</a>)
+    </li>
+    <li>
+        <a href="http://data.openaddresses.io/openaddresses-asia.zip">Asia/Oceania collection</a>
+        (<a href="http://www.countrycallingcodes.com/iso-country-codes/asia-codes.php">list of Asian</a>,
+        <a href="http://www.countrycallingcodes.com/iso-country-codes/australia-codes.php">Oceania countries</a>)
+    </li>
+</ul>
 <p>
     The latest summary can always be found at
     <a href="http://data.openaddresses.io">data.openaddresses.io</a>.<br>

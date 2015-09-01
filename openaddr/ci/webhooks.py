@@ -28,7 +28,7 @@ from .objects import (
     )
 
 from ..compat import expand_uri, csvIO, csvDictWriter
-from ..summarize import summarize_runs, nice_integer
+from ..summarize import summarize_runs, GLASS_HALF_FULL, GLASS_HALF_EMPTY, nice_integer
 
 CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
              'version', 'fingerprint', 'cache time', 'processed', 'process time', \
@@ -86,6 +86,14 @@ def enforce_signature(route_function):
 
     return decorated_function
 
+def get_memcache_client(config):
+    '''
+    '''
+    if 'MEMCACHE_SERVER' not in config or not config['MEMCACHE_SERVER']:
+        return None
+
+    return memcache.Client([config['MEMCACHE_SERVER']])
+
 @webhooks.route('/')
 @log_application_errors
 def app_index():
@@ -94,8 +102,10 @@ def app_index():
             set = read_latest_set(db, 'openaddresses', 'openaddresses')
             runs = read_completed_runs_to_date(db, set.id)
 
-    mc = memcache.Client([current_app.config['MEMCACHE_SERVER']])
-    summary_data = summarize_runs(mc, runs, set.datetime_end, set.owner, set.repository)
+    mc = get_memcache_client(current_app.config)
+    summary_data = summarize_runs(mc, runs, set.datetime_end, set.owner,
+                                  set.repository, GLASS_HALF_FULL)
+
     return render_template('index.html', set=None, **summary_data)
 
 @webhooks.route('/state.txt', methods=['GET'])
@@ -249,8 +259,10 @@ def app_get_set(set_id):
     if set is None:
         return Response('Set {} not found'.format(set_id), 404)
     
-    mc = memcache.Client([current_app.config['MEMCACHE_SERVER']])
-    summary_data = summarize_runs(mc, runs, set.datetime_end, set.owner, set.repository)
+    mc = get_memcache_client(current_app.config)
+    summary_data = summarize_runs(mc, runs, set.datetime_end, set.owner,
+                                  set.repository, GLASS_HALF_EMPTY)
+
     return render_template('set.html', set=set, **summary_data)
 
 @webhooks.route('/sets/<set_id>/state.txt', methods=['GET'])

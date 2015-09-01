@@ -291,7 +291,7 @@ def guess_source_encoding(datasource, layer):
 def find_source_path(source_definition, source_paths):
     "Figure out which of the possible paths is the actual source"
     conform = source_definition["conform"]
-   
+    
     # Determine possible inputs
     candidates = []
     for fn in source_paths:
@@ -757,8 +757,7 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
             _L.info("Non-ESRI GeoJSON source found; this code is not well tested.")
             ogr_source_to_csv(source_definition, source_path, extract_path)
     else:
-        raise Exception("Unsupported source type %s" % source_definition["conform"]["type"])
-
+        raise Exception("Unsupported source type %s" % source_path)
 # The canonical output schema for conform
 _openaddr_csv_schema = ["LON", "LAT", "NUMBER", "STREET", "CITY", "DISTRICT", "REGION", "POSTCODE"]
 
@@ -803,27 +802,3 @@ def conform_cli(source_definition, source_path, dest_path):
         os.remove(extract_path)
 
     return 0
-
-def main():
-    "Main entry point for openaddr-pyconform command line tool. (See setup.py)"
-
-    parser = ArgumentParser(description='Conform a downloaded source file.')
-    parser.add_argument('source_json', help='Required source JSON file name.')
-    parser.add_argument('source_path', help='Required pathname to the actual source data file')
-    parser.add_argument('dest_path', help='Required pathname, output file written here.')
-    parser.add_argument('-l', '--logfile', help='Optional log file name.')
-    parser.add_argument('-v', '--verbose', help='Turn on verbose logging', action="store_true")
-    args = parser.parse_args()
-
-    from .jobs import setup_logger
-    setup_logger(logfile = args.logfile, log_level = logging.DEBUG if args.verbose else logging.WARNING)
-
-    with open(args.source_json) as file:
-        source_definition = json.load(file)
-    rc = conform_cli(source_definition, args.source_path, args.dest_path)
-    return rc
-
-if __name__ == '__main__':
-    exit(main())
-
-

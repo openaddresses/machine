@@ -43,32 +43,6 @@ Run a single source locally with `openaddr-process-one`:
 
     openaddr-process-one -l <log> <path to source JSON> <output directory>
 
-### Batch Mode
-
-Installation scripts for preparing a fresh install of Ubuntu 14.04 can be found
-in `chef`. Run them from a Git checkout like this:
-
-    sudo apt-get update
-    sudo chef/run.sh batchmode
-
-Complete sources will be checked out to `/var/opt/openaddresses/sources`.
-
-Run a single source locally with `openaddr-process-one`:
-
-    openaddr-process-one -l <log> <path to source JSON> <output directory>
-
-For more than one source file, OpenAddresses requires Amazon S3 to work.
-You can set the environment variables `AWS_ACCESS_KEY_ID` and
-`AWS_SECRET_ACCESS_KEY` or provide values as arguments to `openaddr-process`.
-
-Run the complete process with `openaddr-process`:
-
-    openaddr-process -a <AWS key> -s <AWS secret> -l <log> <path to sources dir> data.openaddresses.io
-
-Run it on an Amazon EC2 spot instance with `openaddr-ec2-run`:
-
-    openaddr-ec2-run -a <AWS key> -s <AWS secret> data.openaddresses.io
-
 ### Batch Mode & CI Workers
 
 To run batch mode with existing CI workers and queue, prepare a complete set of
@@ -89,13 +63,6 @@ Run the webhook server, queue listener, and worker processes:
     python -m openaddr.ci.run_dequeue
     
     python -m openaddr.ci.worker
-
-Modify the contents of [`openaddr/paths.py`](openaddr/paths.py) with locations
-of your local [openaddresses](https://github.com/openaddresses/openaddresses).
-
-Run the complete batch process from the `openaddr` module:
-
-    python -m openaddr.process_all -a <AWS key> -s <AWS secret> -l <log> data.openaddresses.io
 
 Extras
 ------
