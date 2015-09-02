@@ -1458,7 +1458,7 @@ class TestWorker (unittest.TestCase):
             os.makedirs(index_dirname)
             
             with open(index_filename, 'w') as file:
-                file.write('''[ ["skipped", "source", "cache", "sample", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], [false, "user_input.txt", "cache.zip", "sample.json", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "output.txt"] ]''')
+                file.write('''[ ["skipped", "source", "cache", "sample", "license", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], [false, "user_input.txt", "cache.zip", "sample.json", "GPL", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "output.txt"] ]''')
             
             for name in ('cache.zip', 'sample.json', 'out.csv', 'output.txt'):
                 with open(os.path.join(index_dirname, name), 'w') as file:
@@ -1493,6 +1493,7 @@ class TestWorker (unittest.TestCase):
         self.assertTrue(result['output']['sample'].endswith('/sample.json'))
         self.assertTrue(result['output']['output'].endswith('/output.txt'))
         self.assertTrue(result['output']['processed'].endswith(u'/so/exalté.zip'))
+        self.assertEqual(result['output']['license'], 'GPL')
         
         zip_path = urlparse(result['output']['processed']).path
         zip_bytes = self.s3._read_fake_key(zip_path)
@@ -1547,7 +1548,7 @@ class TestWorker (unittest.TestCase):
             os.makedirs(index_dirname)
             
             with open(index_filename, 'w') as file:
-                file.write('''[ ["skipped", "source", "cache", "sample", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], [true, "user_input.txt", null, null, null, null, null, null, null, null, null, "output.txt"] ]''')
+                file.write('''[ ["skipped", "source", "cache", "sample", "license", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], [true, "user_input.txt", null, null, null, null, null, null, null, null, null, null, "output.txt"] ]''')
             
             with open(os.path.join(index_dirname, 'output.txt'), 'w') as file:
                 file.write('Yo')
@@ -1579,6 +1580,7 @@ class TestWorker (unittest.TestCase):
         self.assertTrue(result['output']['skipped'])
         self.assertIsNone(result['output']['cache'])
         self.assertIsNone(result['output']['sample'])
+        self.assertIsNone(result['output']['license'])
         self.assertIsNone(result['output']['processed'])
 
 class TestBatch (unittest.TestCase):

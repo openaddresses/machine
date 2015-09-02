@@ -141,6 +141,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point')
+        self.assertEqual(state['license'], 'http://www.acgov.org/acdata/terms.htm')
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -178,6 +179,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point')
+        self.assertEqual(state['license'], '')
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -215,6 +217,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point 2.5D')
+        self.assertIsNone(state['license'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -299,6 +302,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state['cache'])
         # This test data does not contain a working conform object
         self.assertIsNone(state['processed'])
+        self.assertIsNone(state['license'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -335,6 +339,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['cache'] is not None)
         # This test data does not contain a conform object at all
         self.assertTrue(state['processed'] is None)
+        self.assertIsNone(state['license'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -370,6 +375,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point')
+        self.assertEqual(state['license'][:21], 'Polish Law on Geodesy')
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -394,6 +400,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point')
+        self.assertEqual(state['license'][:21], 'Polish Law on Geodesy')
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -426,6 +433,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['sample'] is not None)
+        self.assertEqual(state['license'], 'http://nlftp.mlit.go.jp/ksj/other/yakkan.html')
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -448,6 +456,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
 
         self.assertTrue(state['sample'] is not None)
+        self.assertIsNone(state['license'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -466,6 +475,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
 
         self.assertTrue(state['sample'] is not None)
+        self.assertIsNone(state['license'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -489,6 +499,7 @@ class TestOA (unittest.TestCase):
             print(state_path, state)
 
         self.assertTrue(state['sample'] is not None)
+        self.assertIsNone(state['license'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
