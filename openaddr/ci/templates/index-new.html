@@ -41,14 +41,6 @@
         a, .stat { white-space: nowrap }
     }
     
-    ul { padding-left: 1.5em }
-
-    li
-    {
-        display: list-item;
-        list-style-type: disc;
-    }
-    
     @media (max-width: 640px)
     {
         button .words { display: none }
@@ -188,33 +180,24 @@
     1. name, 2. type, 3. cached, 4. processed, 5. problems, 6. sample
     */
 
-    table tr th:nth-child(1),
-    table tr th.processed,
-    table tr th.sample,
-    table tr td:nth-child(1),
-    table tr td.processed,
-    table tr td.sample,
+    table tr th:nth-child(1), /* name + data sample */
+    table tr th:nth-child(4), /* processed */
+    table tr th:nth-child(6), /* sample */
+    table tr td:nth-child(1), /* name + data sample */
+    table tr td:nth-child(4), /* processed */
+    table tr td:nth-child(6), /* sample */
     table tr td table tr th:nth-child(1),
     table tr td table tr th:nth-child(2),
+    table tr td table tr th:nth-child(3),
     table tr td table tr td:nth-child(1),
-    table tr td table tr td:nth-child(2)
+    table tr td table tr td:nth-child(2),
+    table tr td table tr td:nth-child(3)
     {
         display: table-cell
     }
 
     @media (min-width: 400px)
     {
-        table tr td table tr th:nth-child(3),
-        table tr td table tr td:nth-child(3)
-        {
-            display: table-cell
-        }
-    }
-    
-    @media (min-width: 640px)
-    {
-        table tr th.cached,
-        table tr td.cached,
         table tr td table tr th:nth-child(4),
         table tr td table tr td:nth-child(4)
         {
@@ -222,15 +205,24 @@
         }
     }
     
+    @media (min-width: 640px)
+    {
+        table tr th:nth-child(3), /* cached */
+        table tr td:nth-child(3), /* cached */
+        table tr td table tr th:nth-child(5),
+        table tr td table tr td:nth-child(5)
+        {
+            display: table-cell
+        }
+    }
+    
     @media (min-width: 960px)
     {
-        table tr th.type,
-        table tr th.problems,
-        table tr td.type,
-        table tr td.problems,
-        table tr td table tr th:nth-child(5),
+        table tr th:nth-child(2), /* type */
+        table tr th:nth-child(5), /* problems */
+        table tr td:nth-child(2), /* type */
+        table tr td:nth-child(5), /* problems */
         table tr td table tr th:nth-child(6),
-        table tr td table tr td:nth-child(5),
         table tr td table tr td:nth-child(6)
         {
             display: table-cell
