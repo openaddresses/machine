@@ -141,6 +141,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point')
+        self.assertIsNone(state['website'])
         self.assertEqual(state['license'], 'http://www.acgov.org/acdata/terms.htm')
         
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -179,6 +180,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point')
+        self.assertIsNone(state['website'])
         self.assertEqual(state['license'], '')
         
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -217,6 +219,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point 2.5D')
+        self.assertEqual(state['website'], 'http://ci.carson.ca.us/')
         self.assertIsNone(state['license'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -302,6 +305,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state['cache'])
         # This test data does not contain a working conform object
         self.assertIsNone(state['processed'])
+        self.assertEqual(state['website'], 'http://data.openoakland.org/dataset/property-parcels/resource/df20b818-0d16-4da8-a9c1-a7b8b720ff49')
         self.assertIsNone(state['license'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -339,6 +343,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['cache'] is not None)
         # This test data does not contain a conform object at all
         self.assertTrue(state['processed'] is None)
+        self.assertEqual(state['website'], 'http://www.ci.berkeley.ca.us/datacatalog/')
         self.assertIsNone(state['license'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -375,6 +380,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point')
+        self.assertIsNone(state['website'])
         self.assertEqual(state['license'][:21], 'Polish Law on Geodesy')
         
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -400,6 +406,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point')
+        self.assertIsNone(state['website'])
         self.assertEqual(state['license'][:21], 'Polish Law on Geodesy')
         
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -433,6 +440,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['sample'] is not None)
+        self.assertEqual(state['website'], 'http://nlftp.mlit.go.jp/isj/index.html')
         self.assertEqual(state['license'], 'http://nlftp.mlit.go.jp/ksj/other/yakkan.html')
         
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -456,6 +464,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
 
         self.assertTrue(state['sample'] is not None)
+        self.assertIsNone(state['website'])
         self.assertIsNone(state['license'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -475,6 +484,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
 
         self.assertTrue(state['sample'] is not None)
+        self.assertEqual(state['website'], 'http://adresse.data.gouv.fr/download/')
         self.assertIsNone(state['license'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -499,6 +509,7 @@ class TestOA (unittest.TestCase):
             print(state_path, state)
 
         self.assertTrue(state['sample'] is not None)
+        self.assertEqual(state['website'], 'http://adresse.data.gouv.fr/download/')
         self.assertIsNone(state['license'])
 
         with open(join(dirname(state_path), state['sample'])) as file:

@@ -177,6 +177,7 @@ def conform(srcjson, destdir, extras):
 
     return ConformResult(data.get('processed', None),
                          data_sample,
+                         data.get('website'),
                          data.get('license'),
                          geometry_type,
                          addr_count,
