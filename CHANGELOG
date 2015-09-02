@@ -1,3 +1,6 @@
+2015-09-02: 2.1.5
+- Fixed bug in ci.collect.iterate_local_processed_files().
+
 2015-09-01: 2.1.4
 - Added website and license information to data downloads.
 

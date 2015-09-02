@@ -160,6 +160,7 @@ def iterate_local_processed_files(runs):
     for run in sorted(runs, key=key, reverse=True):
         source_base, _ = splitext(relpath(run.source_path, 'sources'))
         processed_url = run.state and run.state.get('processed')
+        run_state = run.state
     
         if not processed_url:
             continue
@@ -172,7 +173,7 @@ def iterate_local_processed_files(runs):
             continue
         
         else:
-            yield (source_base, filename, None)
+            yield (source_base, filename, run_state)
 
             if filename and exists(filename):
                 remove(filename)

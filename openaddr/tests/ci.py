@@ -1947,24 +1947,24 @@ class TestCollect (unittest.TestCase):
         remove(filename2)
 
     def test_iterate_local_processed_files(self):
+        state1 = {'processed': 'http://s3.amazonaws.com/openaddresses/123.csv', 'website': 'http://example.com'}
+        state3 = {'processed': 'http://s3.amazonaws.com/openaddresses/789.csv', 'license': 'ODbL'}
+    
         runs = [
             Run(123, 'sources/123.json', 'abc', b'', None,
-                {'processed': 'http://s3.amazonaws.com/openaddresses/123.csv'},
-                None, None, None, None, None, None, None),
+                state1, None, None, None, None, None, None, None),
             Run(456, 'sources/456.json', 'def', b'', None,
-                {'processed': None},
-                None, None, None, None, None, None, None),
+                {'processed': None}, None, None, None, None, None, None, None),
             Run(789, 'sources/7/9.json', 'ghi', b'', None,
-                {'processed': 'http://s3.amazonaws.com/openaddresses/789.csv'},
-                None, None, None, None, None, None, None),
+                state3, None, None, None, None, None, None, None),
             ]
         
         with patch('openaddr.ci.collect.download_processed_file') as download_processed_file:
             download_processed_file.return_value = 'nonexistent file'
             local_processed_files = iterate_local_processed_files(runs)
             
-            self.assertEqual(next(local_processed_files), ('123', 'nonexistent file', None))
-            self.assertEqual(next(local_processed_files), ('7/9', 'nonexistent file', None))
+            self.assertEqual(next(local_processed_files), ('123', 'nonexistent file', state1))
+            self.assertEqual(next(local_processed_files), ('7/9', 'nonexistent file', state3))
 
     def response_content(self, url, request):
         '''
