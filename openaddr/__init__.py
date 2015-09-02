@@ -9,7 +9,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 from shutil import copy, move, rmtree
 from os import mkdir, environ, close
 from urllib.parse import urlparse
-from datetime import datetime
+from datetime import datetime, date
 import json, io
 
 from osgeo import ogr
@@ -183,7 +183,7 @@ def conform(srcjson, destdir, extras):
                          out_path,
                          datetime.now() - start)
 
-def package_output(source, processed_path):
+def package_output(source, processed_path, license):
     ''' Write a zip archive to temp dir with processed data and optional .vrt.
     '''
     _, ext = splitext(processed_path)
@@ -191,6 +191,11 @@ def package_output(source, processed_path):
     close(handle)
     
     zip_file = ZipFile(zip_path, mode='w', compression=ZIP_DEFLATED)
+    
+    template = join(dirname(__file__), 'templates', 'README.txt')
+    with io.open(template, encoding='utf8') as file:
+        content = file.read().format(license=license, date=date.today())
+        zip_file.writestr('README.txt', content.encode('utf8'))
 
     if ext == '.csv':
         # Add virtual format to make CSV readable by QGIS, OGR, etc.

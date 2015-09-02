@@ -1498,12 +1498,16 @@ class TestWorker (unittest.TestCase):
         zip_path = urlparse(result['output']['processed']).path
         zip_bytes = self.s3._read_fake_key(zip_path)
         zip_file = ZipFile(BytesIO(zip_bytes), mode='r')
+        self.assertTrue(u'README.txt' in zip_file.namelist())
         self.assertTrue(u'so/exalté.csv' in zip_file.namelist())
         self.assertTrue(u'so/exalté.vrt' in zip_file.namelist())
         
         vrt_content = zip_file.open(u'so/exalté.vrt').read().decode('utf8')
         self.assertTrue(u'<OGRVRTLayer name="exalté">' in vrt_content)
         self.assertTrue(u'<SrcDataSource relativeToVRT="1">exalté.csv' in vrt_content)
+        
+        readme_content = zip_file.open(u'README.txt').read().decode('utf8')
+        self.assertTrue(u'GPL' in readme_content)
     
     @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')
