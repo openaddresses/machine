@@ -1458,7 +1458,7 @@ class TestWorker (unittest.TestCase):
             os.makedirs(index_dirname)
             
             with open(index_filename, 'w') as file:
-                file.write('''[ ["skipped", "source", "cache", "sample", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], [false, "user_input.txt", "cache.zip", "sample.json", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "output.txt"] ]''')
+                file.write('''[ ["skipped", "source", "cache", "sample", "website", "license", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], [false, "user_input.txt", "cache.zip", "sample.json", "http://example.com", "GPL", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "output.txt"] ]''')
             
             for name in ('cache.zip', 'sample.json', 'out.csv', 'output.txt'):
                 with open(os.path.join(index_dirname, name), 'w') as file:
@@ -1493,16 +1493,23 @@ class TestWorker (unittest.TestCase):
         self.assertTrue(result['output']['sample'].endswith('/sample.json'))
         self.assertTrue(result['output']['output'].endswith('/output.txt'))
         self.assertTrue(result['output']['processed'].endswith(u'/so/exalté.zip'))
+        self.assertEqual(result['output']['website'], 'http://example.com')
+        self.assertEqual(result['output']['license'], 'GPL')
         
         zip_path = urlparse(result['output']['processed']).path
         zip_bytes = self.s3._read_fake_key(zip_path)
         zip_file = ZipFile(BytesIO(zip_bytes), mode='r')
+        self.assertTrue(u'README.txt' in zip_file.namelist())
         self.assertTrue(u'so/exalté.csv' in zip_file.namelist())
         self.assertTrue(u'so/exalté.vrt' in zip_file.namelist())
         
         vrt_content = zip_file.open(u'so/exalté.vrt').read().decode('utf8')
         self.assertTrue(u'<OGRVRTLayer name="exalté">' in vrt_content)
         self.assertTrue(u'<SrcDataSource relativeToVRT="1">exalté.csv' in vrt_content)
+        
+        readme_content = zip_file.open(u'README.txt').read().decode('utf8')
+        self.assertTrue(u'Website: http://example.com\n' in readme_content)
+        self.assertTrue(u'License: GPL\n' in readme_content)
     
     @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')
@@ -1547,7 +1554,7 @@ class TestWorker (unittest.TestCase):
             os.makedirs(index_dirname)
             
             with open(index_filename, 'w') as file:
-                file.write('''[ ["skipped", "source", "cache", "sample", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], [true, "user_input.txt", null, null, null, null, null, null, null, null, null, "output.txt"] ]''')
+                file.write('''[ ["skipped", "source", "cache", "sample", "website", "license", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], [true, "user_input.txt", null, null, null, null, null, null, null, null, null, null, null, "output.txt"] ]''')
             
             with open(os.path.join(index_dirname, 'output.txt'), 'w') as file:
                 file.write('Yo')
@@ -1579,6 +1586,7 @@ class TestWorker (unittest.TestCase):
         self.assertTrue(result['output']['skipped'])
         self.assertIsNone(result['output']['cache'])
         self.assertIsNone(result['output']['sample'])
+        self.assertIsNone(result['output']['license'])
         self.assertIsNone(result['output']['processed'])
 
 class TestBatch (unittest.TestCase):
@@ -1818,7 +1826,7 @@ class TestCollect (unittest.TestCase):
         with patch('openaddr.ci.collect.add_source_to_zipfile') as add_source_to_zipfile:
             generator_iterator = collect_and_publish(s3, collected_zip)
             
-            for file in [('abc', 'abc.zip', {}), ('def', 'def.zip', {})]:
+            for file in [('abc', 'abc.zip', dict(license='ODbL')), ('def', 'def.zip', dict(website='http://example.com'))]:
                 generator_iterator.send(file)
             
             generator_iterator.close()
@@ -1827,6 +1835,12 @@ class TestCollect (unittest.TestCase):
                 mock.call(collected_zip, 'abc', 'abc.zip'),
                 mock.call(collected_zip, 'def', 'def.zip')
                 ])
+        
+        self.assertEqual(len(collected_zip.writestr.mock_calls), 1)
+        filename, content = collected_zip.writestr.mock_calls[0][1]
+        self.assertEqual(filename, 'README.txt')
+        self.assertTrue('abc\nWebsite: Unknown\nLicense: ODbL\n' in content.decode('utf8'))
+        self.assertTrue('def\nWebsite: http://example.com\nLicense: Unknown\n' in content.decode('utf8'))
         
         collected_zip.close.assert_called_once_with()
 

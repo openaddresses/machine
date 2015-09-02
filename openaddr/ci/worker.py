@@ -92,7 +92,8 @@ def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
         if index['processed']:
             # e.g. /runs/0/fr/paris.zip
             processed_path = os.path.join(index_dirname, index['processed'])
-            archive_path = package_output(source_name, processed_path)
+            package_args = index.get('website') or 'Unknown', index.get('license') or 'Unknown'
+            archive_path = package_output(source_name, processed_path, *package_args)
             key_name = u'/runs/{run}/{name}.zip'.format(run=run_id, name=source_name)
             url, _ = upload_file(s3, key_name, archive_path)
             index['processed'] = url
