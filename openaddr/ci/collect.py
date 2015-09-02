@@ -28,6 +28,9 @@ parser.add_argument('-o', '--owner', default='openaddresses',
 parser.add_argument('-r', '--repository', default='openaddresses',
                     help='Github repository name. Defaults to "openaddresses".')
 
+parser.add_argument('-b', '--bucket', default='data.openaddresses.io',
+                    help='S3 bucket name. Defaults to "data.openaddresses.io".')
+
 parser.add_argument('-d', '--database-url', default=environ.get('DATABASE_URL', None),
                     help='Optional connection string for database. Defaults to value of DATABASE_URL environment variable.')
 
@@ -38,7 +41,7 @@ def main():
     setup_logger(environ.get('AWS_SNS_ARN'))
 
     # Rely on boto AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY variables.
-    s3 = S3(None, None, environ.get('AWS_S3_BUCKET', 'data.openaddresses.io'))
+    s3 = S3(None, None, environ.get('AWS_S3_BUCKET', args.bucket))
     
     with db_connect(args.database_url) as conn:
         with db_cursor(conn) as db:
