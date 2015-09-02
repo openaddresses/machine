@@ -184,7 +184,7 @@ def conform(srcjson, destdir, extras):
                          out_path,
                          datetime.now() - start)
 
-def package_output(source, processed_path, license):
+def package_output(source, processed_path, website, license):
     ''' Write a zip archive to temp dir with processed data and optional .vrt.
     '''
     _, ext = splitext(processed_path)
@@ -195,7 +195,7 @@ def package_output(source, processed_path, license):
     
     template = join(dirname(__file__), 'templates', 'README.txt')
     with io.open(template, encoding='utf8') as file:
-        content = file.read().format(license=license, date=date.today())
+        content = file.read().format(website=website, license=license, date=date.today())
         zip_file.writestr('README.txt', content.encode('utf8'))
 
     if ext == '.csv':

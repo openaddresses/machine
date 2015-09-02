@@ -1508,7 +1508,8 @@ class TestWorker (unittest.TestCase):
         self.assertTrue(u'<SrcDataSource relativeToVRT="1">exalté.csv' in vrt_content)
         
         readme_content = zip_file.open(u'README.txt').read().decode('utf8')
-        self.assertTrue(u'GPL' in readme_content)
+        self.assertTrue(u'Website: http://example.com\n' in readme_content)
+        self.assertTrue(u'License: GPL\n' in readme_content)
     
     @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')
