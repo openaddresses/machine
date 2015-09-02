@@ -1826,7 +1826,7 @@ class TestCollect (unittest.TestCase):
         with patch('openaddr.ci.collect.add_source_to_zipfile') as add_source_to_zipfile:
             generator_iterator = collect_and_publish(s3, collected_zip)
             
-            for file in [('abc', 'abc.zip', dict(license='ODbL')), ('def', 'def.zip', {})]:
+            for file in [('abc', 'abc.zip', dict(license='ODbL')), ('def', 'def.zip', dict(website='http://example.com'))]:
                 generator_iterator.send(file)
             
             generator_iterator.close()
@@ -1839,8 +1839,8 @@ class TestCollect (unittest.TestCase):
         self.assertEqual(len(collected_zip.writestr.mock_calls), 1)
         filename, content = collected_zip.writestr.mock_calls[0][1]
         self.assertEqual(filename, 'README.txt')
-        self.assertTrue('abc\nLicense: ODbL\n' in content.decode('utf8'))
-        self.assertTrue('def\nLicense: Unknown\n' in content.decode('utf8'))
+        self.assertTrue('abc\nWebsite: Unknown\nLicense: ODbL\n' in content.decode('utf8'))
+        self.assertTrue('def\nWebsite: http://example.com\nLicense: Unknown\n' in content.decode('utf8'))
         
         collected_zip.close.assert_called_once_with()
 
