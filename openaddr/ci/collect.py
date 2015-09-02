@@ -100,6 +100,8 @@ def collect_and_publish(s3, collection_zip):
         is created with zipfile name and the collection is closed and uploaded.
     '''
     def get_collector_publisher():
+        source_dicts = dict()
+    
         while True:
             try:
                 (source_base, filename, source_dict) = yield
@@ -108,6 +110,14 @@ def collect_and_publish(s3, collection_zip):
             else:
                 _L.info(u'Adding {} to {}'.format(source_base, collection_zip.filename))
                 add_source_to_zipfile(collection_zip, source_base, filename)
+                source_dicts[source_base] = {'license': source_dict.get('license') or 'Unknown'}
+        
+        # Write a short README with source details.
+        template = u'{source}\nLicense: {license}\n'
+        source_bits = [(k, v['license']) for (k, v) in sorted(source_dicts.items())]
+        source_lines = [u'Data collected by OpenAddresses (http://openaddresses.io).\n']
+        source_lines += [template.format(source=s, license=l) for (s, l) in source_bits]
+        collection_zip.writestr('README.txt', u'\n'.join(source_lines).encode('utf8'))
 
         collection_zip.close()
         _L.info(u'Finished {}'.format(collection_zip.filename))
