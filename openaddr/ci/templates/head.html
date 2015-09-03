@@ -1,8 +1,5 @@
-<link href="http://fonts.googleapis.com/css?family=Titillium+Web" rel="stylesheet" type="text/css">
-<link href="http://fonts.googleapis.com/css?family=Raleway" rel="stylesheet" type="text/css">
+<link rel="stylesheet" href="//cmcenroe.me/writ/0.2.1/writ.min.css">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<link href="https://raw.githubusercontent.com/openaddresses/openaddresses.io/805f02d1e/site.css" rel="stylesheet" />
-<link href="https://raw.githubusercontent.com/openaddresses/openaddresses.io/805f02d1e/style.css" rel="stylesheet" />
 <link rel="shortcut icon" href="https://raw.githubusercontent.com/openaddresses/openaddresses.io/805f02d1e/17.png">
 <link rel="apple-touch-icon-precomposed" href="https://raw.githubusercontent.com/openaddresses/openaddresses.io/805f02d1e/17.png">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -34,14 +31,14 @@
         body>* { width: 96% }
     }
     
-    a, .stat { white-space: nowrap }
-    
-    ul { padding-left: 1.5em }
-
-    li
+    @media (min-width: 960px)
     {
-        display: list-item;
-        list-style-type: disc;
+        a, .stat { white-space: nowrap }
+    }
+    
+    @media (max-width: 640px)
+    {
+        button .words { display: none }
     }
 
 </style>

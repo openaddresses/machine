@@ -16,6 +16,7 @@
     {
         text-align: left;
         padding: 3px 10px;
+        border: none;
     }
     
     table tr td>a
@@ -59,30 +60,34 @@
     * Progressively show additional sample data columns.
     */
 
-    table tr td table tr th,
-    table tr td table tr td
+    table tr th,
+    table tr td
     {
         display: none
     }
 
+    /*
+    Column classes:
+    1. name, 2. type, 3. cached, 4. processed, 5. problems, 6. sample
+    */
+
+    table tr th:nth-child(1), /* name + data sample */
+    table tr td:nth-child(1), /* name + data sample */
+    table tr.init th.processed,
+    table tr.init th.sample,
+    table tr.init td.processed,
+    table tr.init td.sample,
     table tr td table tr th:nth-child(1),
     table tr td table tr th:nth-child(2),
+    table tr td table tr th:nth-child(3),
     table tr td table tr td:nth-child(1),
-    table tr td table tr td:nth-child(2)
+    table tr td table tr td:nth-child(2),
+    table tr td table tr td:nth-child(3)
     {
         display: table-cell
     }
 
     @media (min-width: 400px)
-    {
-        table tr td table tr th:nth-child(3),
-        table tr td table tr td:nth-child(3)
-        {
-            display: table-cell
-        }
-    }
-    
-    @media (min-width: 640px)
     {
         table tr td table tr th:nth-child(4),
         table tr td table tr td:nth-child(4)
@@ -91,11 +96,24 @@
         }
     }
     
+    @media (min-width: 640px)
+    {
+        table tr.init th.cached,
+        table tr.init td.cached,
+        table tr td table tr th:nth-child(5),
+        table tr td table tr td:nth-child(5)
+        {
+            display: table-cell
+        }
+    }
+    
     @media (min-width: 960px)
     {
-        table tr td table tr th:nth-child(5),
+        table tr.init th.type,
+        table tr.init th.problems,
+        table tr.init td.type,
+        table tr.init td.problems,
         table tr td table tr th:nth-child(6),
-        table tr td table tr td:nth-child(5),
         table tr td table tr td:nth-child(6)
         {
             display: table-cell
@@ -113,12 +131,12 @@
     
         if(row && style.display == 'none') {
             row.style.display = 'table-row';
-            button.innerText = 'Hide sample data';
+            button.innerHTML = 'Hide <span class="words">sample data</span>';
             if(link) { populatesample(link) }
 
         } else if(row) {
             row.style.display = 'none';
-            button.innerText = 'Show sample data';
+            button.innerHTML = 'Show <span class="words">sample data</span>';
         }
 
         return false;
@@ -170,7 +188,7 @@
 
 </script>
 <table>
-    <tr>
+    <tr class="init">
         <th class="name">Name</th>
         <th class="type">Type</th>
         <th class="cached">Cached?</th>
@@ -185,7 +203,7 @@
       {% elif first_processed %}
         {% set first_processed = False %}
       {% endif %}
-      <tr>
+      <tr class="init">
         <td class="name">
             <a href="{{ state.href }}" name="{% if first_processed %}first-processed{% endif %}">{{ state.shortname }}</a>
         </td>
@@ -229,7 +247,7 @@
         </td>
         <td class="sample">
           {% if state.sample and state.sample_link %}
-            <button onclick="return showhide(this, '{{ state.shortname|element_id }}-sample-data', '{{ state.shortname|element_id }}-sample-link')">Show sample data</button>
+            <button onclick="return showhide(this, '{{ state.shortname|element_id }}-sample-data', '{{ state.shortname|element_id }}-sample-link')">Show <span class="words">sample data</span></button>
           {% else %}
             No sample data {% if state.output %}( <a href="{{ state.output }}">log</a> ){% endif %}
           {% endif %}
