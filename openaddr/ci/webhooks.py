@@ -28,7 +28,7 @@ from .objects import (
     )
 
 from ..compat import expand_uri, csvIO, csvDictWriter
-from ..summarize import summarize_runs, GLASS_HALF_FULL, GLASS_HALF_EMPTY, nice_integer
+from ..summarize import summarize_runs, GLASS_HALF_FULL, GLASS_HALF_EMPTY, nice_integer, break_state
 
 CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
              'version', 'fingerprint', 'cache time', 'processed', 'process time', \
@@ -310,6 +310,7 @@ app.register_blueprint(webhooks)
 app.jinja_env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
 app.jinja_env.filters['element_id'] = lambda value: value.replace("'", '-')
 app.jinja_env.filters['nice_integer'] = nice_integer
+app.jinja_env.filters['breakstate'] = break_state
 
 @app.before_first_request
 def app_prepare():

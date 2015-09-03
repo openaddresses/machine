@@ -13,7 +13,7 @@ from ..compat import expand_uri
 from ..ci.objects import Run
 from ..summarize import (
     state_conform_type, is_coverage_complete, run_counts, convert_run,
-    summarize_runs, GLASS_HALF_EMPTY
+    summarize_runs, GLASS_HALF_EMPTY, break_state, nice_integer
     )
 
 class TestSummarizeFunctions (unittest.TestCase):
@@ -184,3 +184,24 @@ class TestSummarizeFunctions (unittest.TestCase):
         
             summary_data = summarize_runs(memcache, [run], set.datetime_end,
                                           set.owner, set.repository, GLASS_HALF_EMPTY)
+    
+    def test_nice_integer(self):
+        '''
+        '''
+        self.assertEqual(nice_integer('9'), '9')
+        self.assertEqual(nice_integer('999'), '999')
+        self.assertEqual(nice_integer('9999'), '9,999')
+        self.assertEqual(nice_integer('999999'), '999,999')
+        self.assertEqual(nice_integer('9999999'), '9,999,999')
+        self.assertEqual(nice_integer('999999999'), '999,999,999')
+        self.assertEqual(nice_integer('9999999999'), '9,999,999,999')
+    
+    def test_break_state(self):
+        '''
+        '''
+        self.assertEqual(break_state('foo'), 'foo')
+        self.assertEqual(break_state('foo/bar'), 'foo/<wbr>bar')
+        self.assertEqual(break_state('foo/bar/baz'), 'foo/bar/<wbr>baz')
+        self.assertEqual(break_state('foo&bar'), 'foo&amp;bar')
+        self.assertEqual(break_state('foo/bar<baz'), 'foo/<wbr>bar&lt;baz')
+        self.assertEqual(break_state('foo>bar/baz'), 'foo&gt;bar/<wbr>baz')
