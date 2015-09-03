@@ -12,7 +12,7 @@
     <a href="http://data.openaddresses.io/openaddresses-collected.zip" class="stat">{{ counts.addresses|nice_integer }} addresses</a>
     have been processed as of <span class="stat">{{ last_modified.strftime('%A, %b %d, %Y') }}</span>.
     Out of <span class="stat">{{ counts.sources|nice_integer }} total sources</span>,
-    <a href="#first-processed" class="stat">{{ counts.processed }} have completed</a>.
+    <a href="#first-processed" class="stat">{{ counts.processed|nice_integer }} have completed</a>.
     <span class="stat">{{ counts.sources - counts.cached }} sources failed cache</span>,
     <span class="stat">{{ counts.cached - counts.processed }} cached but not processed</span>.
     See the <a href="/latest/set">latest results with status maps</a>.

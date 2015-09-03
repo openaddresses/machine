@@ -160,6 +160,17 @@ def nice_integer(number):
     
     return string
 
+def break_state(string):
+    ''' Adds <wbr> tag and returns an HTML-safe string.
+    '''
+    pattern = compile(r'^(.+)/([^/]+)$')
+    string = string.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    
+    if pattern.match(string):
+        string = pattern.sub(r'\1/<wbr>\2', string)
+    
+    return string
+
 def summarize_runs(memcache, runs, datetime, owner, repository, sort_order):
     ''' Return summary data for set.html template.
     '''
