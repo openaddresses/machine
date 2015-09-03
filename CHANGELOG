@@ -1,3 +1,7 @@
+2015-09-02: 2.1.6
+- Updated HTML in set and index views.
+- Moved bucket name to configurable option in openaddr-collect-extracts.
+
 2015-09-02: 2.1.5
 - Fixed bug in ci.collect.iterate_local_processed_files().
 
