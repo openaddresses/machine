@@ -50,11 +50,10 @@ setup(
     package_data = {
         'openaddr': [
             'geodata/*.shp', 'geodata/*.shx', 'geodata/*.prj', 'geodata/*.dbf',
-            'geodata/*.cpg', 'templates/*.html', 'templates/*.sh', 'VERSION',
-            'templates/*.vrt'
+            'geodata/*.cpg', 'templates/*.*', 'VERSION',
         ],
         'openaddr.ci': [
-            'schema.pgsql', 'templates/*.html'
+            'schema.pgsql', 'templates/*.*'
         ],
         'openaddr.tests': [
             'data/*.*', 'sources/*.*', 'sources/fr/*.*', 'conforms/*.*'
