@@ -5,12 +5,11 @@ from .compat import standard_library
 
 from tempfile import mkdtemp, mkstemp
 from os.path import realpath, join, basename, splitext, exists, dirname, abspath
-from zipfile import ZipFile, ZIP_DEFLATED
 from shutil import copy, move, rmtree
 from os import mkdir, environ, close
 from urllib.parse import urlparse
 from datetime import datetime, date
-import json, io
+import json, io, zipfile
 
 from osgeo import ogr
 from boto import connect_s3
@@ -191,7 +190,7 @@ def package_output(source, processed_path, website, license):
     handle, zip_path = mkstemp(suffix='.zip')
     close(handle)
     
-    zip_file = ZipFile(zip_path, mode='w', compression=ZIP_DEFLATED)
+    zip_file = zipfile.ZipFile(zip_path, mode='w', compression=zipfile.ZIP_DEFLATED)
     
     template = join(dirname(__file__), 'templates', 'README.txt')
     with io.open(template, encoding='utf8') as file:
