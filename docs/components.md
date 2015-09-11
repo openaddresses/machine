@@ -60,8 +60,12 @@ This Python script is meant to be run about once per day. It downloads all curre
 * Resulting collections are linked from [results.openaddresses.io](http://results.openaddresses.io).
 * A nightly cron task for this script lives on the same EC2 instance as _Webhook_.
 
-<a name="db">Database</a>
---------
+Persistent Data
+---------------
+
+We store persistent data in two locations: a PostgreSQL database and Amazon S3.
+
+### <a name="db">Database</a>
 
 The Machine database is a simple [PostgreSQL](http://www.postgresql.org) instance storing metadata about sources runs over time, such as timing, status, connection to batches, and links to results files on [S3](#s3).
 
@@ -77,10 +81,22 @@ Other information:
 * Public URL at [`machine-db.openaddresses.io`](postgres://machine-db.openaddresses.io).
 * Lives on an [RDS `db.t2.micro` instance](https://console.aws.amazon.com/rds/home?region=us-east-1#dbinstances:id=machine;sf=all).
 
-<a name="q">Queue</a>
------
+### <a name="q">Queue</a>
 
+The queue is used to schedule runs for [_Worker_ instances](#worker), and its size is used to grow and shrink the _Worker_ pool. We use [PQ](https://github.com/malthe/pq) to run the queue. Data is stored in the one PostgreSQL database but treated as separate.
 
+There are three queues:
 
-<a name="s3">S3</a>
------
+1. `tasks` queue contains new runs to be handled.
+2. `done` queue contains complete runs to be recognized.
+3. `due` queue contains delayed runs that may have gone overtime.
+
+Other information:
+
+* Database [details are re-used](#db), with identical `machine-db.openaddresses.io` public URL.
+* Queue [metrics in Cloudwatch](https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#metrics:metricFilter=Pattern%253Dopenaddr.ci) are kept up-to-date by [dequeuer](#dequeue).
+* Queue length [Cloudwatch alarms](https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#alarm:alarmFilter=ANY) determine [size of _Worker_ pool](#worker).
+
+### <a name="s3">S3</a>
+
+We use the S3 bucket `data.openaddresses.io` to store new and historical data.
