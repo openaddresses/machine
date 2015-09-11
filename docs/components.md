@@ -4,7 +4,7 @@ Components
 <a name="webhook">Webhook</a>
 -------
 
-This [Python + Flask](http://flask.pocoo.org) application is the center of the OpenAddresses Machine. _Webhook_ maintains a connection to the [database](#db) and [queue](#q), listens for new CI jobs from [Github event hooks](https://developer.github.com/webhooks/#events) on the [OpenAddresses repository](https://github.com/openaddresses/openaddresses), queues new source runs, and displays results of batch sets over time.
+This [Python + Flask](http://flask.pocoo.org) application is the center of the OpenAddresses Machine. _Webhook_ maintains a connection to the [database](persistence.md#db) and [queue](#q), listens for new CI jobs from [Github event hooks](https://developer.github.com/webhooks/#events) on the [OpenAddresses repository](https://github.com/openaddresses/openaddresses), queues new source runs, and displays results of batch sets over time.
 
 * Run [from a Procfile using gunicorn](https://github.com/openaddresses/machine/blob/2.1.8/chef/Procfile-webhook#L1).
 * Triggered from a [Github event hook on the OpenAddresses repository](https://github.com/openaddresses/openaddresses/settings/hooks/5060155).
@@ -15,7 +15,7 @@ This [Python + Flask](http://flask.pocoo.org) application is the center of the O
 <a name="worker">Worker</a>
 ------
 
-This Python script accepts new source runs from the [`tasks` queue](#queue), converts them into output Zip archives with CSV files, uploads those to [S3](#s3), and notifies the [dequeuer](#dequeuer) via the [`due` and `done` queues](#queue). _Worker_ is intended to be run in parallel, and uses EC2 auto-scaling to respond to increased demand by launching new instances. One worker is kept alive at all times on the same EC2 instance as _Webhook_.
+This Python script accepts new source runs from the [`tasks` queue](persistence.md#queue), converts them into output Zip archives with CSV files, uploads those to [S3](persistence.md#s3), and notifies the [dequeuer](#dequeuer) via the [`due` and `done` queues](persistence.md#queue). _Worker_ is intended to be run in parallel, and uses EC2 auto-scaling to respond to increased demand by launching new instances. One worker is kept alive at all times on the same EC2 instance as _Webhook_.
 
 The actual work is done a separate sub-process, [using the `openaddr-process-one` script](https://github.com/openaddresses/machine/blob/2.1.8/setup.py#L41).
 
@@ -29,7 +29,7 @@ The actual work is done a separate sub-process, [using the `openaddr-process-one
 <a name="dequeue">Dequeuer</a>
 --------
 
-This Python script watches the [`done` and `due` queues](#queue). Run status is updated based on the contents of those queues: if a run appears in the `due` queue first, it will be marked as failed and any subsequent `done` queue item will be ignored. If a run appears in the `done` queue first, it will be marked as successful. Statuses are [posted to the Github status API](https://developer.github.com/v3/repos/statuses/) for runs connected to a CI job initiated by _Webhook_ and [to the `runs` table](#db) with links.
+This Python script watches the [`done` and `due` queues](persistence.md#queue). Run status is updated based on the contents of those queues: if a run appears in the `due` queue first, it will be marked as failed and any subsequent `done` queue item will be ignored. If a run appears in the `done` queue first, it will be marked as successful. Statuses are [posted to the Github status API](https://developer.github.com/v3/repos/statuses/) for runs connected to a CI job initiated by _Webhook_ and [to the `runs` table](persistence.md#db) with links.
 
 This script also watches the overall size of the queue, and [updates Cloudwatch metrics](https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#metrics:metricFilter=Pattern%253Dopenaddr.ci) to determine when [the _Worker_ pool](#worker) needs to grow or shrink.
 
@@ -44,7 +44,7 @@ Large tasks that use the entire OpenAddresses dataset are [scheduled with `cron`
 
 ### <a name="enqueue">Batch Enqueue</a>
 
-This Python script is meant to be run about once per week. It retrieves a current list of all sources on the master branch of the [OpenAddresses repository](https://github.com/openaddresses/openaddresses), generates a set of runs, and slowly dribbles them into the [`tasks` queue](#queue) over the course of a few days. It’s designed to be slow, and always pre-emptible by [jobs from Github CI via _Webhook_](#webhook). After a successful set of runs, the script generates new coverage maps.
+This Python script is meant to be run about once per week. It retrieves a current list of all sources on the master branch of the [OpenAddresses repository](https://github.com/openaddresses/openaddresses), generates a set of runs, and slowly dribbles them into the [`tasks` queue](persistence.md#queue) over the course of a few days. It’s designed to be slow, and always pre-emptible by [jobs from Github CI via _Webhook_](#webhook). After a successful set of runs, the script generates new coverage maps.
 
 * Run via the [script `openaddr-enqueue-sources`](https://github.com/openaddresses/machine/blob/2.1.8/setup.py#L46).
 * Code can be found [in `openaddr/ci/enqueue.py`](https://github.com/openaddresses/machine/blob/2.1.8/openaddr/ci/enqueue.py).
@@ -54,53 +54,9 @@ This Python script is meant to be run about once per week. It retrieves a curren
 
 ### <a name="collect">Collect</a>
 
-This Python script is meant to be run about once per day. It downloads all current processed data, generates a series of collection Zip archives for different regions of the world, and uploads them to [S3](#s3).
+This Python script is meant to be run about once per day. It downloads all current processed data, generates a series of collection Zip archives for different regions of the world, and uploads them to [S3](persistence.md#s3).
 
 * Run via the [script `openaddr-collect-extracts`](https://github.com/openaddresses/machine/blob/2.1.8/setup.py#L47).
 * Code can be found [in `openaddr/ci/collect.py`](https://github.com/openaddresses/machine/blob/2.1.8/openaddr/ci/collect.py).
 * Resulting collections are linked from [results.openaddresses.io](http://results.openaddresses.io).
 * A nightly cron task for this script lives on the same EC2 instance as _Webhook_.
-
-Persistent Data
----------------
-
-We store persistent data in two locations: a PostgreSQL database and Amazon S3.
-
-### <a name="db">Database</a>
-
-The Machine database is a simple [PostgreSQL](http://www.postgresql.org) instance storing metadata about sources runs over time, such as timing, status, connection to batches, and links to results files on [S3](#s3).
-
-Database tables:
-
-1. Processing results of single sources, including sample data and output CSV’s, are added to the `runs` table.
-2. Groups of `runs` resulting from Github events sent to [Webhook](#webhook) are added to the `jobs` table.
-3. Groups of `runs` periodically [enqueued as a batch](#enqueue) are added to the `sets` table.
-
-Other information:
-
-* Complete schema can be [found in `openaddr/ci/schema.pgsql`](https://github.com/openaddresses/machine/blob/2.1.8/openaddr/ci/schema.pgsql).
-* Public URL at [`machine-db.openaddresses.io`](postgres://machine-db.openaddresses.io).
-* Lives on an [RDS `db.t2.micro` instance](https://console.aws.amazon.com/rds/home?region=us-east-1#dbinstances:id=machine;sf=all).
-
-### <a name="q">Queue</a>
-
-The queue is used to schedule runs for [_Worker_ instances](#worker), and its size is used to grow and shrink the _Worker_ pool. We use [PQ](https://github.com/malthe/pq) to run the queue. Data is stored in the one PostgreSQL database but treated as separate.
-
-There are three queues:
-
-1. `tasks` queue contains new runs to be handled.
-2. `done` queue contains complete runs to be recognized.
-3. `due` queue contains delayed runs that may have gone overtime.
-
-Other information:
-
-* Database [details are re-used](#db), with identical `machine-db.openaddresses.io` public URL.
-* Queue [metrics in Cloudwatch](https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#metrics:metricFilter=Pattern%253Dopenaddr.ci) are kept up-to-date by [dequeuer](#dequeue).
-* Queue length [Cloudwatch alarms](https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#alarm:alarmFilter=ANY) determine [size of _Worker_ pool](#worker).
-
-### <a name="s3">S3</a>
-
-We use the S3 bucket `data.openaddresses.io` to store new and historical data.
-
-* S3 access is handled via [the Boto library](http://docs.pythonboto.org/en/latest/).
-* Boto expects current AWS credentials in the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables.
