@@ -1,3 +1,7 @@
+2015-09-11: 2.1.8
+- Skipping README files when building collections.
+- Added tests for openaddr.package_output.
+
 2015-09-05: 2.1.7
 - Fixed missing templates/* in setup.py.
 
