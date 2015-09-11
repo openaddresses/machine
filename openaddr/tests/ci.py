@@ -1925,6 +1925,7 @@ class TestCollect (unittest.TestCase):
         
         handle, filename2 = mkstemp(suffix='.zip')
         zipfile3 = ZipFile(filename2, 'w')
+        zipfile3.writestr('README.txt', b'hello world')
         zipfile3.writestr('foo/thing.vrt', b'vrt data')
         zipfile3.writestr('foo/thing.csv', b'csv data')
         zipfile3.close()

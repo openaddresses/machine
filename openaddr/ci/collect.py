@@ -152,6 +152,9 @@ def add_source_to_zipfile(zip_out, source_base, filename):
     elif ext == '.zip':
         zip_in = ZipFile(filename, 'r')
         for zipinfo in zip_in.infolist():
+            if zipinfo.filename == 'README.txt':
+                # Skip README files when building collection.
+                continue
             zip_out.writestr(zipinfo, zip_in.read(zipinfo.filename))
         zip_in.close()
 
