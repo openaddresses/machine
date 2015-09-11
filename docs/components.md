@@ -7,6 +7,7 @@ Components
 This [Python + Flask](http://flask.pocoo.org) application is the center of the OpenAddresses Machine. _Webhook_ maintains a connection to the [database](#db) and [queue](#q), listens for new CI jobs from [Github event hooks](https://developer.github.com/webhooks/#events) on the [OpenAddresses repository](https://github.com/openaddresses/openaddresses), queues new source runs, and displays results of batch sets over time.
 
 * Run [from a Procfile using gunicorn](https://github.com/openaddresses/machine/blob/2.1.8/chef/Procfile-webhook#L1).
+* Triggered from a [Github event hook on the OpenAddresses repository](https://github.com/openaddresses/openaddresses/settings/hooks/5060155).
 * Flask code can be [found in `openaddr/ci/webhooks.py`](https://github.com/openaddresses/machine/blob/2.1.8/openaddr/ci/webhooks.py).
 * Public URL at [`results.openaddresses.io`](http://results.openaddresses.io).
 * Lives on a long-running, 24×7 [EC2 `t2.small` instance](https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#Instances:instanceId=i-bdacc315;sort=Name).
@@ -51,7 +52,7 @@ This Python script is meant to be run about once per week. It retrieves a curren
 * Resulting sets can be found at [`results.openaddresses.io/sets`](http://results.openaddresses.io/sets/) and [`results.openaddresses.io/latest/set`](http://results.openaddresses.io/latest/set).
 * A weekly cron task for this script lives on the same EC2 instance as _Webhook_.
 
-### Collect
+### <a name="collect">Collect</a>
 
 This Python script is meant to be run about once per day. It downloads all current processed data, generates a series of collection Zip archives for different regions of the world, and uploads them to [S3](#s3).
 
@@ -100,3 +101,6 @@ Other information:
 ### <a name="s3">S3</a>
 
 We use the S3 bucket `data.openaddresses.io` to store new and historical data.
+
+* S3 access is handled via [the Boto library](http://docs.pythonboto.org/en/latest/).
+* Boto expects current AWS credentials in the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables.
