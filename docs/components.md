@@ -39,13 +39,26 @@ This script also watches the overall size of the queue, and [updates Cloudwatch 
 Scheduled Tasks
 ---------------
 
+Large tasks that use the entire OpenAddresses dataset are [scheduled with `cron`](https://help.ubuntu.com/community/CronHowto).
+
 ### <a name="enqueue">Batch Enqueue</a>
 
+This Python script is meant to be run about once per week. It retrieves a current list of all sources on the master branch of the [OpenAddresses repository](https://github.com/openaddresses/openaddresses), generates a set of runs, and slowly dribbles them into the [`tasks` queue](#queue) over the course of a few days. It’s designed to be slow, and always pre-emptible by [jobs from Github CI via _Webhook_](#webhook). After a successful set of runs, the script generates new coverage maps.
 
+* Run via the [script `openaddr-enqueue-sources`](https://github.com/openaddresses/machine/blob/2.1.8/setup.py#L46).
+* Code can be found [in `openaddr/ci/enqueue.py`](https://github.com/openaddresses/machine/blob/2.1.8/openaddr/ci/enqueue.py).
+* Coverage maps are rendered [from `openaddr/render.py`](https://github.com/openaddresses/machine/blob/2.1.8/openaddr/render.py).
+* Resulting sets can be found at [`results.openaddresses.io/sets`](http://results.openaddresses.io/sets/) and [`results.openaddresses.io/latest/set`](http://results.openaddresses.io/latest/set).
+* A weekly cron task for this script lives on the same EC2 instance as _Webhook_.
 
 ### Collect
 
+This Python script is meant to be run about once per day. It downloads all current processed data, generates a series of collection Zip archives for different regions of the world, and uploads them to [S3](#s3).
 
+* Run via the [script `openaddr-collect-extracts`](https://github.com/openaddresses/machine/blob/2.1.8/setup.py#L47).
+* Code can be found [in `openaddr/ci/collect.py`](https://github.com/openaddresses/machine/blob/2.1.8/openaddr/ci/collect.py).
+* Resulting collections are linked from [results.openaddresses.io](http://results.openaddresses.io).
+* A nightly cron task for this script lives on the same EC2 instance as _Webhook_.
 
 <a name="db">Database</a>
 --------
