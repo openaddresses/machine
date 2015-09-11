@@ -1,7 +1,7 @@
 Persistent Data
 ===============
 
-We store persistent data in two locations: a PostgreSQL database and Amazon S3.
+Locations where we store data.
 
 <a name="db">Database</a>
 --------

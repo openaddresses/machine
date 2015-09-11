@@ -1,6 +1,8 @@
 Components
 ==========
 
+Basic moving parts including web application, worker pool, and scheduled tasks.
+
 <a name="webhook">Webhook</a>
 -------
 

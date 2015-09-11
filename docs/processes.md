@@ -1,6 +1,8 @@
 Processes
 =========
 
+Periodic and event-driven processes paths through components and persistent data stores.
+
 <a name="set">Batch Set</a>
 ---------
 
