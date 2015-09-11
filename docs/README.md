@@ -1,8 +1,6 @@
 Machine Internals
 =================
 
-This documentation is current as-of [Machine 2.1.8](https://github.com/openaddresses/machine/releases/tag/2.1.8).
-
 *   **[Components](components.md)**
     
     Basic moving parts including web application, worker pool, and scheduled
@@ -16,3 +14,9 @@ This documentation is current as-of [Machine 2.1.8](https://github.com/openaddre
     
     Periodic and event-driven processes paths through components and persistent
     data stores.
+
+For database, EC2, or AWS credentials and other privileged access to the
+internals documented here, contact [Ian Dees](https://github.com/iandees)
+or [Michal Migurski](https://github.com/migurski).
+
+This documentation is current as-of [Machine 2.1.8](https://github.com/openaddresses/machine/releases/tag/2.1.8).
