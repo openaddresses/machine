@@ -157,6 +157,10 @@ class TestOA (unittest.TestCase):
         
         with csvopen(output_path, encoding='utf8') as input:
             rows = list(csvDictReader(input, encoding='utf8'))
+            self.assertEqual(rows[1]['ID'], '')
+            self.assertEqual(rows[10]['ID'], '')
+            self.assertEqual(rows[100]['ID'], '')
+            self.assertEqual(rows[1000]['ID'], '')
             self.assertEqual(rows[1]['NUMBER'], '2147')
             self.assertEqual(rows[10]['NUMBER'], '605')
             self.assertEqual(rows[100]['NUMBER'], '167')
@@ -195,6 +199,10 @@ class TestOA (unittest.TestCase):
         
         with csvopen(output_path, encoding='utf8') as input:
             rows = list(csvDictReader(input, encoding='utf8'))
+            self.assertEqual(rows[1]['ID'], '')
+            self.assertEqual(rows[10]['ID'], '')
+            self.assertEqual(rows[100]['ID'], '')
+            self.assertEqual(rows[1000]['ID'], '')
             self.assertEqual(rows[1]['NUMBER'], '27')
             self.assertEqual(rows[10]['NUMBER'], '42')
             self.assertEqual(rows[100]['NUMBER'], '209')
@@ -238,6 +246,7 @@ class TestOA (unittest.TestCase):
             self.assertEqual(rows[0]['POSTCODE'], '90745')
             self.assertEqual(rows[0]['DISTRICT'], '')
             self.assertEqual(rows[0]['REGION'], '')
+            self.assertEqual(rows[0]['ID'], '')
 
     def test_single_car_cached(self):
         ''' Test complete process_one.process on Carson sample data.
@@ -386,6 +395,9 @@ class TestOA (unittest.TestCase):
         
         with csvopen(output_path, encoding='utf8') as input:
             rows = list(csvDictReader(input, encoding='utf8'))
+            self.assertEqual(rows[1]['ID'], '055 188300600')
+            self.assertEqual(rows[10]['ID'], '055 189504000')
+            self.assertEqual(rows[100]['ID'], '055 188700100')
             self.assertEqual(rows[1]['NUMBER'], '2418')
             self.assertEqual(rows[10]['NUMBER'], '2029')
             self.assertEqual(rows[100]['NUMBER'], '2298')
