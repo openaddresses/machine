@@ -6,7 +6,7 @@ Periodic and event-driven processes paths through components and persistent data
 <a name="set">Batch Set</a>
 ---------
 
-Batch sets are used approximately once per week.
+Batch sets are used approximately once per week, scheduled with `cron`.
 
 1.  Run the [batch enqueue with the script `openaddr-enqueue-sources`](components.md#enqueue).
     This will require a current [Github access token](https://help.github.com/articles/creating-an-access-token-for-command-line-use/)
@@ -69,7 +69,7 @@ with a pull request.
 Collection
 ----------
 
-New Zip collections are generated nightly.
+New Zip collections are generated nightly, scheduled with `cron`.
 
 1.  Run the [collection with the script `openaddr-collect-extracts`](components.md#collect).
     This will require a connection to [the machine database](persistence.md#db)

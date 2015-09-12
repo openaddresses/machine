@@ -19,11 +19,12 @@ Other information:
 * Complete schema can be [found in `openaddr/ci/schema.pgsql`](https://github.com/openaddresses/machine/blob/2.1.8/openaddr/ci/schema.pgsql).
 * Public URL at [`machine-db.openaddresses.io`](postgres://machine-db.openaddresses.io).
 * Lives on an [RDS `db.t2.micro` instance](https://console.aws.amazon.com/rds/home?region=us-east-1#dbinstances:id=machine;sf=all).
+* Two weeks of nightly backups are kept.
 
 <a name="q">Queue</a>
 -----
 
-The queue is used to schedule runs for [_Worker_ instances](components.md#worker), and its size is used to grow and shrink the _Worker_ pool. We use [PQ](https://github.com/malthe/pq) to run the queue. Data is stored in the one PostgreSQL database but treated as separate.
+The queue is used to schedule runs for [_Worker_ instances](components.md#worker), and its size is used to grow and shrink the _Worker_ pool. The queue is generally empty, and used only to store temporary data for scheduling runs. We use [PQ](https://github.com/malthe/pq) to implement the queue in Python. Data is stored in the one PostgreSQL database but treated as separate.
 
 There are three queues:
 
