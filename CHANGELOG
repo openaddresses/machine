@@ -1,3 +1,7 @@
+2015-09-13: 2.2.0
+- Added conform "id" attribute for record identifiers like parcel APNs.
+- Documented internals and processes.
+
 2015-09-11: 2.1.8
 - Skipping README files when building collections.
 - Added tests for openaddr.package_output.
