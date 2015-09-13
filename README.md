@@ -53,6 +53,9 @@ sources from master branch with `openaddr-enqueue-sources`:
 Development
 -----------
 
+[Documentation for machine internals](docs/README.md) can help point you in the
+right direction for development.
+
 Test the OpenAddresses machine with `test.py`:
 
     python test.py
