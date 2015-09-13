@@ -35,7 +35,8 @@ attrib_types = {
     'city':     'OA:city',
     'postcode': 'OA:postcode',
     'district': 'OA:district',
-    'region':   'OA:region'
+    'region':   'OA:region',
+    'id':       'OA:id'
 }
 
 geometry_types = {
@@ -796,6 +797,7 @@ def row_convert_to_out(sd, row):
         "DISTRICT": row.get(keys['district'], None) if keys['district'] else None,
         "REGION": row.get(keys['region'], None) if keys['region'] else None,
         "POSTCODE": row.get(keys['postcode'], None) if keys['postcode'] else None,
+        "ID": row.get(keys['id'], None) if keys['id'] else None,
     }
 
 ### File-level conform code. Inputs and outputs are filenames.
@@ -824,7 +826,7 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
         raise Exception("Unsupported source type %s" % source_definition["conform"]["type"])
 
 # The canonical output schema for conform
-_openaddr_csv_schema = ["LON", "LAT", "NUMBER", "STREET", "CITY", "DISTRICT", "REGION", "POSTCODE"]
+_openaddr_csv_schema = ["LON", "LAT", "NUMBER", "STREET", "CITY", "DISTRICT", "REGION", "POSTCODE", "ID"]
 
 def transform_to_out_csv(source_definition, extract_path, dest_path):
     ''' Transform an extracted source CSV to the OpenAddresses output CSV by applying conform rules.
