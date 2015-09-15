@@ -1,7 +1,7 @@
 import logging; _L = logging.getLogger('openaddr.ci.webhooks')
 
 from functools import wraps
-from operator import itemgetter
+from operator import itemgetter, attrgetter
 from urllib.parse import urljoin
 from collections import OrderedDict
 from csv import DictWriter
@@ -101,9 +101,12 @@ def app_index():
         with db_cursor(conn) as db:
             set = read_latest_set(db, 'openaddresses', 'openaddresses')
             runs = read_completed_runs_to_date(db, set.id)
+    
+    good_runs = [run for run in runs if (run.state or {}).get('processed')]
+    last_modified = sorted(good_runs, key=attrgetter('datetime_tz'))[-1].datetime_tz
 
     mc = get_memcache_client(current_app.config)
-    summary_data = summarize_runs(mc, runs, set.datetime_end, set.owner,
+    summary_data = summarize_runs(mc, good_runs, last_modified, set.owner,
                                   set.repository, GLASS_HALF_FULL)
 
     return render_template('index.html', set=None, **summary_data)
