@@ -7,15 +7,13 @@
 </head>
 
 <body>
+{% include "nav.html" %}
 <p>
     This is a summary view of <a href="http://openaddresses.io">OpenAddresses data</a>.
     <a href="http://data.openaddresses.io/openaddresses-collected.zip" class="stat">{{ counts.addresses|nice_integer }} addresses</a>
     have been processed as of <span class="stat">{{ last_modified.strftime('%A, %b %d, %Y') }}</span>.
-    Out of <span class="stat">{{ counts.sources|nice_integer }} total sources</span>,
+    Out of <a href="https://github.com/openaddresses/openaddresses/tree/master/sources">all sources</a>,
     <a href="#first-processed" class="stat">{{ counts.processed|nice_integer }} have completed</a>.
-    <span class="stat">{{ counts.sources - counts.cached }} sources failed cache</span>,
-    <span class="stat">{{ counts.cached - counts.processed }} cached but not processed</span>.
-    See the <a href="/latest/set">latest results with status maps</a>.
 </p>
 <p>
     We update these zipped global and regional address collections regularly:
