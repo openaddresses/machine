@@ -402,28 +402,34 @@ def render_set_maps(s3, db, the_set):
     dirname = mkdtemp(prefix='set-maps-')
 
     try:
+        s3_prefix = join('/sets', str(the_set.id))
         good_sources = _prepare_render_sources(db, the_set, dirname)
-
-        urls = dict()
-        areas = (render.WORLD, 'world'), (render.USA, 'usa'), (render.EUROPE, 'europe')
-        key_kwargs = dict(policy='public-read', headers={'Content-Type': 'image/png'})
-        url_kwargs = dict(expires_in=0, query_auth=False, force_http=True)
-
-        for (area, area_name) in areas:
-            png_basename = 'render-{}.png'.format(area_name)
-            png_filename = join(dirname, png_basename)
-            render.render(dirname, good_sources, 960, 2, png_filename, area)
-
-            with open(png_filename, 'rb') as file:
-                render_path = 'render-{}.png'.format(area_name)
-                render_key = s3.new_key(join('/sets', str(the_set.id), png_basename))
-                render_key.set_contents_from_string(file.read(), **key_kwargs)
-    
-            urls[area_name] = render_key.generate_url(**url_kwargs)
-
-        update_set_renders(db, the_set.id, urls['world'], urls['usa'], urls['europe'])
+        s3_urls = _render_and_upload_maps(s3, good_sources, s3_prefix, dirname)
+        update_set_renders(db, the_set.id, *s3_urls)
     finally:
         rmtree(dirname)
+
+def _render_and_upload_maps(s3, good_sources, s3_prefix, dirname):
+    ''' Render set maps, upload them to S3 and return their URLs.
+    '''
+    urls = dict()
+    areas = (render.WORLD, 'world'), (render.USA, 'usa'), (render.EUROPE, 'europe')
+    key_kwargs = dict(policy='public-read', headers={'Content-Type': 'image/png'})
+    url_kwargs = dict(expires_in=0, query_auth=False, force_http=True)
+
+    for (area, area_name) in areas:
+        png_basename = 'render-{}.png'.format(area_name)
+        png_filename = join(dirname, png_basename)
+        render.render(dirname, good_sources, 960, 2, png_filename, area)
+
+        with open(png_filename, 'rb') as file:
+            render_path = 'render-{}.png'.format(area_name)
+            render_key = s3.new_key(join(s3_prefix, png_basename))
+            render_key.set_contents_from_string(file.read(), **key_kwargs)
+
+        urls[area_name] = render_key.generate_url(**url_kwargs)
+    
+    return urls['world'], urls['usa'], urls['europe']
 
 def _prepare_render_sources(db, the_set, dirname):
     ''' Dump all non-null set runs into a directory for rendering.
