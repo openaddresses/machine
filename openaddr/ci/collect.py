@@ -17,7 +17,7 @@ from dateutil.parser import parse
 from requests import get
 
 from .objects import read_latest_set, read_completed_runs_to_date
-from . import db_connect, db_cursor, setup_logger
+from . import db_connect, db_cursor, setup_logger, render_index_maps
 from .. import S3
 
 parser = ArgumentParser(description='Run some source files.')
