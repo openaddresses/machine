@@ -350,6 +350,9 @@ def read_completed_runs_to_date(db, starting_set_id):
             run_path_ids[source_path] = run_id
     
     run_ids = tuple(sorted(run_path_ids.values()))
+    
+    if not run_ids:
+        return []
 
     # Get Run instance for each of the returned run IDs.
     db.execute('''SELECT id, source_path, source_id, source_data, datetime_tz,

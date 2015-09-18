@@ -396,6 +396,18 @@ def _update_expected_paths(db, expected_paths, the_set):
         _L.debug(u'Discarding {}'.format(source_path))
         expected_paths.discard(source_path)
 
+def render_index_maps(s3, runs):
+    ''' Render index maps and upload them to S3.
+    '''
+    dirname = mkdtemp(prefix='index-maps-')
+
+    try:
+        good_runs = [run for run in runs if (run.state or {}).get('processed')]
+        good_sources = _prepare_render_sources(good_runs, dirname)
+        _render_and_upload_maps(s3, good_sources, '/', dirname)
+    finally:
+        rmtree(dirname)
+
 def render_set_maps(s3, db, the_set):
     ''' Render set maps, upload them to S3 and add to the database.
     '''

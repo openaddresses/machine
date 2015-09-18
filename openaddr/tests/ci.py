@@ -27,7 +27,7 @@ from ..ci import (
     db_connect, db_cursor, db_queue, recreate_db, worker,
     pop_task_from_donequeue, pop_task_from_taskqueue, pop_task_from_duequeue,
     create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE,
-    enqueue_sources, find_batch_sources, render_set_maps
+    enqueue_sources, find_batch_sources, render_set_maps, render_index_maps
     )
 
 from ..ci.objects import (
@@ -1814,6 +1814,16 @@ class TestBatch (unittest.TestCase):
             self.assertEqual(get(the_set.render_usa).status_code, 200)
             self.assertEqual(get(the_set.render_europe).status_code, 200)
             self.assertEqual(get(the_set.render_world).status_code, 200)
+    
+    def test_render_index_maps(self):
+        ''' Show that front page maps get rendered correctly.
+        '''
+        with HTTMock(self.response_content):
+            render_index_maps(self.s3, [])
+
+            self.assertEqual(get('http://fake-s3.local/render-usa.png').status_code, 200)
+            self.assertEqual(get('http://fake-s3.local/render-europe.png').status_code, 200)
+            self.assertEqual(get('http://fake-s3.local/render-world.png').status_code, 200)
 
 class TestCollect (unittest.TestCase):
 
