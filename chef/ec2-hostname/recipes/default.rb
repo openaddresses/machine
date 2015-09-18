@@ -2,6 +2,9 @@ package 'curl'
 
 bash 'hostname' do
   code <<-CODE
+    # Can we even do this?
+    curl -s http://169.254.169.254/latest/meta-data/public-hostname --connect-timeout 5 || exit 0
+  
     # What is our public DNS name?
     ipaddr=$(ifconfig eth0 | grep 'inet addr:'| grep -v '127.0.0.1' | cut -d: -f2 | awk '{{ print $1}}')
     fullname=`curl -s http://169.254.169.254/latest/meta-data/public-hostname --connect-timeout 5`
