@@ -1,3 +1,6 @@
+2015-09-17: 2.2.1
+- Improved HTML and front page.
+
 2015-09-13: 2.2.0
 - Added conform "id" attribute for record identifiers like parcel APNs.
 - Documented internals and processes.
