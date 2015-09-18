@@ -11,6 +11,7 @@
     "aws_s3_bucket": "{Amazon S3 Bucket Name}",
     "github_token": "{Github Token}",
     "gag_github_status": "No",
+    "slack_url": "https://hooks.slack.com/services/{etc.}",
     "run_list":
     [
         "openaddr",
