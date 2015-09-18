@@ -53,7 +53,7 @@ setup(
             'geodata/*.cpg', 'templates/*.*', 'VERSION',
         ],
         'openaddr.ci': [
-            'schema.pgsql', 'templates/*.*'
+            'schema.pgsql', 'templates/*.*', 'static/*.*'
         ],
         'openaddr.tests': [
             'data/*.*', 'sources/*.*', 'sources/fr/*.*', 'conforms/*.*'
