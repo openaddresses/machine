@@ -6,7 +6,7 @@ from .. import jobs, render
 from .objects import (
     add_job, write_job, read_job, complete_set, update_set_renders,
     add_run, set_run, copy_run, read_completed_set_runs,
-    get_completed_file_run, get_completed_run
+    get_completed_file_run, get_completed_run, new_read_completed_set_runs
     )
 
 from os.path import relpath, splitext, join, basename
@@ -403,7 +403,8 @@ def render_set_maps(s3, db, the_set):
 
     try:
         s3_prefix = join('/sets', str(the_set.id))
-        good_sources = _prepare_render_sources(db, the_set, dirname)
+        runs = new_read_completed_set_runs(db, the_set.id)
+        good_sources = _prepare_render_sources(runs, dirname)
         s3_urls = _render_and_upload_maps(s3, good_sources, s3_prefix, dirname)
         update_set_renders(db, the_set.id, *s3_urls)
     finally:
@@ -431,18 +432,18 @@ def _render_and_upload_maps(s3, good_sources, s3_prefix, dirname):
     
     return urls['world'], urls['usa'], urls['europe']
 
-def _prepare_render_sources(db, the_set, dirname):
+def _prepare_render_sources(runs, dirname):
     ''' Dump all non-null set runs into a directory for rendering.
     '''
     good_sources = set()
     
-    for (source_id, _, source_data, status) in read_completed_set_runs(db, the_set.id):
-        filename = '{source_id}.json'.format(**locals())
+    for run in runs:
+        filename = '{source_id}.json'.format(**run.__dict__)
         with open(join(dirname, filename), 'w+b') as file:
-            content = b64decode(bytes(source_data))
+            content = b64decode(run.source_data)
             file.write(content)
         
-        if status is True:
+        if run.status is True:
             good_sources.add(filename)
     
     return good_sources
