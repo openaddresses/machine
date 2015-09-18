@@ -47,6 +47,8 @@ def main():
         with db_cursor(conn) as db:
             set = read_latest_set(db, args.owner, args.repository)
             runs = read_completed_runs_to_date(db, set.id)
+
+    render_index_maps(s3, runs)
     
     dir = mkdtemp(prefix='collected-')
     

@@ -6,7 +6,7 @@ from .. import jobs, render
 from .objects import (
     add_job, write_job, read_job, complete_set, update_set_renders,
     add_run, set_run, copy_run, read_completed_set_runs,
-    get_completed_file_run, get_completed_run
+    get_completed_file_run, get_completed_run, new_read_completed_set_runs
     )
 
 from os.path import relpath, splitext, join, basename
@@ -396,47 +396,66 @@ def _update_expected_paths(db, expected_paths, the_set):
         _L.debug(u'Discarding {}'.format(source_path))
         expected_paths.discard(source_path)
 
+def render_index_maps(s3, runs):
+    ''' Render index maps and upload them to S3.
+    '''
+    dirname = mkdtemp(prefix='index-maps-')
+
+    try:
+        good_runs = [run for run in runs if (run.state or {}).get('processed')]
+        good_sources = _prepare_render_sources(good_runs, dirname)
+        _render_and_upload_maps(s3, good_sources, '/', dirname)
+    finally:
+        rmtree(dirname)
+
 def render_set_maps(s3, db, the_set):
     ''' Render set maps, upload them to S3 and add to the database.
     '''
     dirname = mkdtemp(prefix='set-maps-')
 
     try:
-        good_sources = _prepare_render_sources(db, the_set, dirname)
-
-        urls = dict()
-        areas = (render.WORLD, 'world'), (render.USA, 'usa'), (render.EUROPE, 'europe')
-        key_kwargs = dict(policy='public-read', headers={'Content-Type': 'image/png'})
-        url_kwargs = dict(expires_in=0, query_auth=False, force_http=True)
-
-        for (area, area_name) in areas:
-            png_basename = 'render-{}.png'.format(area_name)
-            png_filename = join(dirname, png_basename)
-            render.render(dirname, good_sources, 960, 2, png_filename, area)
-
-            with open(png_filename, 'rb') as file:
-                render_path = 'render-{}.png'.format(area_name)
-                render_key = s3.new_key(join('/sets', str(the_set.id), png_basename))
-                render_key.set_contents_from_string(file.read(), **key_kwargs)
-    
-            urls[area_name] = render_key.generate_url(**url_kwargs)
-
-        update_set_renders(db, the_set.id, urls['world'], urls['usa'], urls['europe'])
+        s3_prefix = join('/sets', str(the_set.id))
+        runs = new_read_completed_set_runs(db, the_set.id)
+        good_sources = _prepare_render_sources(runs, dirname)
+        s3_urls = _render_and_upload_maps(s3, good_sources, s3_prefix, dirname)
+        update_set_renders(db, the_set.id, *s3_urls)
     finally:
         rmtree(dirname)
 
-def _prepare_render_sources(db, the_set, dirname):
+def _render_and_upload_maps(s3, good_sources, s3_prefix, dirname):
+    ''' Render set maps, upload them to S3 and return their URLs.
+    '''
+    urls = dict()
+    areas = (render.WORLD, 'world'), (render.USA, 'usa'), (render.EUROPE, 'europe')
+    key_kwargs = dict(policy='public-read', headers={'Content-Type': 'image/png'})
+    url_kwargs = dict(expires_in=0, query_auth=False, force_http=True)
+
+    for (area, area_name) in areas:
+        png_basename = 'render-{}.png'.format(area_name)
+        png_filename = join(dirname, png_basename)
+        render.render(dirname, good_sources, 960, 2, png_filename, area)
+
+        with open(png_filename, 'rb') as file:
+            render_path = 'render-{}.png'.format(area_name)
+            render_key = s3.new_key(join(s3_prefix, png_basename))
+            render_key.set_contents_from_string(file.read(), **key_kwargs)
+
+        urls[area_name] = render_key.generate_url(**url_kwargs)
+    
+    return urls['world'], urls['usa'], urls['europe']
+
+def _prepare_render_sources(runs, dirname):
     ''' Dump all non-null set runs into a directory for rendering.
     '''
     good_sources = set()
     
-    for (source_id, _, source_data, status) in read_completed_set_runs(db, the_set.id):
-        filename = '{source_id}.json'.format(**locals())
+    for run in runs:
+        filename = '{source_id}.json'.format(**run.__dict__)
         with open(join(dirname, filename), 'w+b') as file:
-            content = b64decode(bytes(source_data))
+            content = b64decode(run.source_data)
             file.write(content)
         
-        if status is True:
+        if run.status is True:
             good_sources.add(filename)
     
     return good_sources
