@@ -3,22 +3,18 @@ import logging; _L = logging.getLogger('openaddr.ci.collect')
 from ..compat import standard_library
 
 from argparse import ArgumentParser
-from os import close, remove, utime, environ
+from os import environ
 from zipfile import ZipFile, ZIP_DEFLATED
-from os.path import relpath, splitext, exists, basename, join
+from os.path import splitext, exists, basename, join
 from urllib.parse import urlparse
 from operator import attrgetter
 from tempfile import mkstemp, mkdtemp
-from calendar import timegm
 from datetime import date
 from shutil import rmtree
 
-from dateutil.parser import parse
-from requests import get
-
 from .objects import read_latest_set, read_completed_runs_to_date
 from . import db_connect, db_cursor, setup_logger, render_index_maps
-from .. import S3
+from .. import S3, iterate_local_processed_files
 
 parser = ArgumentParser(description='Run some source files.')
 
@@ -162,33 +158,6 @@ def add_source_to_zipfile(zip_out, source_base, filename):
             zip_out.writestr(zipinfo, zip_in.read(zipinfo.filename))
         zip_in.close()
 
-def iterate_local_processed_files(runs):
-    ''' Yield a stream of local processed result files for a list of runs.
-    '''
-    raise NotImplementedError('nope')
-    key = lambda run: run.datetime_tz or date(1970, 1, 1)
-    
-    for run in sorted(runs, key=key, reverse=True):
-        source_base, _ = splitext(relpath(run.source_path, 'sources'))
-        processed_url = run.state and run.state.get('processed')
-        run_state = run.state
-    
-        if not processed_url:
-            continue
-        
-        try:
-            filename = download_processed_file(processed_url)
-        
-        except:
-            _L.error('Failed to download {}'.format(processed_url))
-            continue
-        
-        else:
-            yield (source_base, filename, run_state)
-
-            if filename and exists(filename):
-                remove(filename)
-
 def _is_us_state(abbr, source_base, filename, source_dict):
     for sep in ('/', '-'):
         if source_base == 'us{sep}{abbr}'.format(**locals()):
@@ -268,28 +237,6 @@ def is_asia(source_base, filename, source_dict):
             return True
 
     return False
-    
-def download_processed_file(url):
-    ''' Download a URL to a local temporary file, return its path.
-    
-        Local file will have an appropriate timestamp and extension.
-    '''
-    raise NotImplementedError('nope')
-    _, ext = splitext(urlparse(url).path)
-    handle, filename = mkstemp(prefix='processed-', suffix=ext)
-    close(handle)
-    
-    response = get(url, stream=True, timeout=5)
-    
-    with open(filename, 'wb') as file:
-        for chunk in response.iter_content(chunk_size=8192):
-            file.write(chunk)
-    
-    last_modified = response.headers.get('Last-Modified')
-    timestamp = timegm(parse(last_modified).utctimetuple())
-    utime(filename, (timestamp, timestamp))
-    
-    return filename
 
 if __name__ == '__main__':
     exit(main())

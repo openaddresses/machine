@@ -40,7 +40,6 @@ from ..ci.objects import (
 
 from ..ci.collect import (
     is_us_northeast, is_us_midwest, is_us_south, is_us_west, is_europe, is_asia,
-    download_processed_file, iterate_local_processed_files,
     add_source_to_zipfile, collect_and_publish
     )
 
