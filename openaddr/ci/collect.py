@@ -92,7 +92,9 @@ Address data is essential infrastructure. Street names, house numbers and
 postal codes, when combined with geographic coordinates, are the hub that
 connects digital to physical places.
 
-Data source information and respective licenses can be found at
+Data licenses can be found in LICENSE.txt.
+
+Data source information can be found at
 {url}
 '''.format(url=sources_url, date=date.today()))
     
@@ -120,12 +122,12 @@ def collect_and_publish(s3, collection_zip):
                     'license': source_dict.get('license') or 'Unknown'
                     }
         
-        # Write a short README with source details.
+        # Write a short file with source licenses.
         template = u'{source}\nWebsite: {website}\nLicense: {license}\n'
-        readme_bits = [(k, v['website'], v['license']) for (k, v) in sorted(source_dicts.items())]
-        readme_lines = [u'Data collected by OpenAddresses (http://openaddresses.io).\n']
-        readme_lines += [template.format(source=s, website=w, license=l) for (s, w, l) in readme_bits]
-        collection_zip.writestr('README.txt', u'\n'.join(readme_lines).encode('utf8'))
+        license_bits = [(k, v['website'], v['license']) for (k, v) in sorted(source_dicts.items())]
+        license_lines = [u'Data collected by OpenAddresses (http://openaddresses.io).\n']
+        license_lines += [template.format(source=s, website=w, license=l) for (s, w, l) in license_bits]
+        collection_zip.writestr('LICENSE.txt', u'\n'.join(license_lines).encode('utf8'))
 
         collection_zip.close()
         _L.info(u'Finished {}'.format(collection_zip.filename))
