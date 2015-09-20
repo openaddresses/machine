@@ -6,7 +6,7 @@ from .compat import standard_library
 from tempfile import mkdtemp, mkstemp
 from os.path import realpath, join, basename, splitext, exists, dirname, abspath, relpath
 from shutil import copy, move, rmtree
-from os import mkdir, environ, close, utime
+from os import mkdir, environ, close, utime, remove
 from urllib.parse import urlparse
 from datetime import datetime, date
 from calendar import timegm
