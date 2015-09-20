@@ -314,7 +314,7 @@ class EsriRestDownloadTask(DownloadTask):
         # With no source prefix like "us-ca-oakland" use the host as a hint.
         name_base = '{}-{}'.format(self.source_prefix or host, hash.hexdigest()[:8])
 
-        _L.debug('Downloading {} to {}{}'.format(path, name_base, path_ext))
+        _L.debug('Downloading {} to {}{}'.format(url, name_base, path_ext))
 
         return os.path.join(dir_path, name_base + path_ext)
 
