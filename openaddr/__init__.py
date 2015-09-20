@@ -4,15 +4,18 @@ import logging; _L = logging.getLogger('openaddr')
 from .compat import standard_library
 
 from tempfile import mkdtemp, mkstemp
-from os.path import realpath, join, basename, splitext, exists, dirname, abspath
+from os.path import realpath, join, basename, splitext, exists, dirname, abspath, relpath
 from shutil import copy, move, rmtree
-from os import mkdir, environ, close
+from os import mkdir, environ, close, utime
 from urllib.parse import urlparse
 from datetime import datetime, date
+from calendar import timegm
 import json, io, zipfile
 
 from osgeo import ogr
+from requests import get
 from boto import connect_s3
+from dateutil.parser import parse
 from .sample import sample_geojson
 
 from .cache import (
@@ -209,3 +212,50 @@ def package_output(source, processed_path, website, license):
     zip_file.close()
     
     return zip_path
+
+def iterate_local_processed_files(runs):
+    ''' Yield a stream of local processed result files for a list of runs.
+    '''
+    key = lambda run: run.datetime_tz or date(1970, 1, 1)
+    
+    for run in sorted(runs, key=key, reverse=True):
+        source_base, _ = splitext(relpath(run.source_path, 'sources'))
+        processed_url = run.state and run.state.get('processed')
+        run_state = run.state
+    
+        if not processed_url:
+            continue
+        
+        try:
+            filename = download_processed_file(processed_url)
+        
+        except:
+            _L.error('Failed to download {}'.format(processed_url))
+            continue
+        
+        else:
+            yield (source_base, filename, run_state)
+
+            if filename and exists(filename):
+                remove(filename)
+    
+def download_processed_file(url):
+    ''' Download a URL to a local temporary file, return its path.
+    
+        Local file will have an appropriate timestamp and extension.
+    '''
+    _, ext = splitext(urlparse(url).path)
+    handle, filename = mkstemp(prefix='processed-', suffix=ext)
+    close(handle)
+    
+    response = get(url, stream=True, timeout=5)
+    
+    with open(filename, 'wb') as file:
+        for chunk in response.iter_content(chunk_size=8192):
+            file.write(chunk)
+    
+    last_modified = response.headers.get('Last-Modified')
+    timestamp = timegm(parse(last_modified).utctimetuple())
+    utime(filename, (timestamp, timestamp))
+    
+    return filename

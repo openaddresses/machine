@@ -165,6 +165,7 @@ def add_source_to_zipfile(zip_out, source_base, filename):
 def iterate_local_processed_files(runs):
     ''' Yield a stream of local processed result files for a list of runs.
     '''
+    raise NotImplementedError('nope')
     key = lambda run: run.datetime_tz or date(1970, 1, 1)
     
     for run in sorted(runs, key=key, reverse=True):
@@ -273,6 +274,7 @@ def download_processed_file(url):
     
         Local file will have an appropriate timestamp and extension.
     '''
+    raise NotImplementedError('nope')
     _, ext = splitext(urlparse(url).path)
     handle, filename = mkstemp(prefix='processed-', suffix=ext)
     close(handle)
