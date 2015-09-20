@@ -384,7 +384,14 @@ class EsriRestDownloadTask(DownloadTask):
                     response.text
                 ))
 
-            oids = response.json().get('objectIds', [])
+            try:
+                oids = response.json().get('objectIds', [])
+            except:
+                _L.error("Could not parse response from {} as JSON:\n\n{}".format(
+                    response.request.url,
+                    response.text,
+                ))
+                raise
 
             with csvopen(file_path, 'w', encoding='utf-8') as f:
                 writer = csvDictWriter(f, fieldnames=field_names, encoding='utf-8')
