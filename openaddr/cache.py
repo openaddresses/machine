@@ -346,7 +346,14 @@ class EsriRestDownloadTask(DownloadTask):
                     response.text
                 ))
 
-            metadata = response.json()
+            try:
+                metadata = response.json()
+            except:
+                _L.error("Could not parse response from {} as JSON:\n\n{}".format(
+                    response.request.url,
+                    response.text,
+                ))
+                raise
 
             error = metadata.get('error')
             if error:
