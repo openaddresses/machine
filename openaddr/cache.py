@@ -314,7 +314,7 @@ class EsriRestDownloadTask(DownloadTask):
         # With no source prefix like "us-ca-oakland" use the host as a hint.
         name_base = '{}-{}'.format(self.source_prefix or host, hash.hexdigest()[:8])
 
-        _L.debug('Downloading {} to {}{}'.format(path, name_base, path_ext))
+        _L.debug('Downloading {} to {}{}'.format(url, name_base, path_ext))
 
         return os.path.join(dir_path, name_base + path_ext)
 
@@ -346,7 +346,14 @@ class EsriRestDownloadTask(DownloadTask):
                     response.text
                 ))
 
-            metadata = response.json()
+            try:
+                metadata = response.json()
+            except:
+                _L.error("Could not parse response from {} as JSON:\n\n{}".format(
+                    response.request.url,
+                    response.text,
+                ))
+                raise
 
             error = metadata.get('error')
             if error:
@@ -377,7 +384,14 @@ class EsriRestDownloadTask(DownloadTask):
                     response.text
                 ))
 
-            oids = response.json().get('objectIds', [])
+            try:
+                oids = response.json().get('objectIds', [])
+            except:
+                _L.error("Could not parse response from {} as JSON:\n\n{}".format(
+                    response.request.url,
+                    response.text,
+                ))
+                raise
 
             with csvopen(file_path, 'w', encoding='utf-8') as f:
                 writer = csvDictWriter(f, fieldnames=field_names, encoding='utf-8')
