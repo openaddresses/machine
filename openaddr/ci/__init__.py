@@ -714,6 +714,10 @@ class SnsHandler(logging.Handler):
 
     def emit(self, record):
         subject = u'OpenAddr: {}: {}'.format(record.levelname, record.name)
+        
+        if hasattr(record, 'request_info'):
+            subject = '{} - {}'.format(subject, record.request_info)
+        
         self.sns.publish(self.arn, self.format(record), subject[:79])
 
 def setup_logger(sns_arn, log_level=logging.DEBUG):

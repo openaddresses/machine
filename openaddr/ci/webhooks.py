@@ -46,7 +46,8 @@ def log_application_errors(route_function):
         try:
             return route_function(*args, **kwargs)
         except Exception as e:
-            _L.error(e, exc_info=True)
+            request_info = ' '.join([request.method, request.path])
+            _L.error(e, extra={'request_info': request_info}, exc_info=True)
             raise
 
     return decorated_function
