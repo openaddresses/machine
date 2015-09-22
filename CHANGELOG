@@ -1,3 +1,6 @@
+2015-09-22: 2.2.5
+- Improved error logging.
+
 2015-09-18: 2.2.4
 - Added worker state announcement to Slack.
 
