@@ -21,17 +21,18 @@ def main():
           '-X', '-n', 'OpenAddresses YYYY-MM-DD', '-f', '-o', '/tmp/openaddresses.mbtiles'
     
     tippecanoe = Popen(cmd, stdin=PIPE, bufsize=1)
+    zip_filenames = (fn for (_, fn, _) in iterate_local_processed_files(runs))
     
-    for feature in get_all_features(runs):
+    for feature in get_all_features(zip_filenames):
         print(json.dumps(feature), file=tippecanoe.stdin)
     
     tippecanoe.stdin.close()
     tippecanoe.wait()
 
-def get_all_features(runs):
+def get_all_features(zip_filenames):
     ''' Generate a stream of all locations as GeoJSON features.
     '''
-    for (_, fn, _) in iterate_local_processed_files(runs):
+    for fn in zip_filenames:
         print(fn, file=stderr)
         zipfile = ZipFile(fn, mode='r')
         for filename in zipfile.namelist():
