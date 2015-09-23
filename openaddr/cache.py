@@ -4,18 +4,17 @@ import logging; _L = logging.getLogger('openaddr.cache')
 from .compat import standard_library
 
 import ogr
-import sys
 import os
 import errno
 import socket
 import mimetypes
 import shutil
-import itertools
 import re
+import simplejson as json
 
 from os import mkdir
 from hashlib import md5
-from os.path import join, basename, exists, abspath, dirname, splitext
+from os.path import join, basename, exists, abspath, splitext
 from urllib.parse import urlparse
 from subprocess import check_output
 from tempfile import mkstemp
@@ -44,6 +43,7 @@ def mkdirsp(path):
 
 def request(method, url, **kwargs):
     try:
+        _L.debug("Requesting %s with args %s", url, kwargs.get('params') or kwargs.get('data'))
         return requests.request(method, url, timeout=_http_timeout, **kwargs)
     except requests.exceptions.SSLError as e:
         _L.warning("Retrying %s without SSL verification", url)
@@ -369,53 +369,150 @@ class EsriRestDownloadTask(DownloadTask):
             if GEOM_FIELDNAME not in field_names:
                 field_names.append(GEOM_FIELDNAME)
 
-            # Get all the OIDs
             query_url = source_url + '/query'
+
+            # Get the count of rows in the layer
             query_args = {
-                'where': '1=1', # So we get everything
-                'returnIdsOnly': 'true',
+                'where': '1=1',
+                'returnCountOnly': 'true',
                 'f': 'json',
             }
             response = request('GET', query_url, params=query_args, headers=headers)
 
             if response.status_code != 200:
-                raise DownloadError('Could not retrieve object IDs from ESRI source: HTTP {} {}'.format(
+                raise DownloadError('Could not retrieve row count from ESRI source: HTTP {} {}'.format(
                     response.status_code,
                     response.text
                 ))
 
-            try:
-                oids = response.json().get('objectIds', [])
-            except:
-                _L.error("Could not parse response from {} as JSON:\n\n{}".format(
-                    response.request.url,
-                    response.text,
-                ))
-                raise
+            row_count = response.json().get('count')
+            page_size = metadata.get('maxRecordCount', 500)
+            if page_size > 1000:
+                page_size = 1000
 
-            with csvopen(file_path, 'w', encoding='utf-8') as f:
-                writer = csvDictWriter(f, fieldnames=field_names, encoding='utf-8')
-                writer.writeheader()
+            _L.info("Source has {} rows".format(row_count))
 
-                oid_iter = iter(oids)
-                due = time() + 7200
-                while True:
-                    oid_chunk = tuple(itertools.islice(oid_iter, 100))
+            page_args = []
 
-                    if not oid_chunk:
-                        break
-                    
-                    if time() > due:
-                        raise RuntimeError('Ran out of time caching Esri features')
-
-                    query_args = {
-                        'objectIds': ','.join(map(str, oid_chunk)),
+            if metadata.get('supportsPagination'):
+                # If the layer supports pagination, we can use resultOffset/resultRecordCount to paginate
+                for offset in xrange(0, row_count, page_size):
+                    page_args.append({
+                        'resultOffset': offset,
+                        'resultRecordCount': page_size,
+                        'where': '1=1',
                         'geometryPrecision': 7,
                         'returnGeometry': 'true',
                         'outSR': 4326,
                         'outFields': '*',
                         'f': 'json',
+                    })
+                _L.info("Built {} requests using resultOffset method".format(len(page_args)))
+            else:
+                # If not, we can still use the `where` argument to paginate
+
+                if metadata.get('supportsStatistics'):
+                    # If the layer supports statistics, we can request maximum and minimum object ID
+                    # to help build the pages
+
+                    # Find the OID field
+                    oid_field_name = metadata.get('objectIdField')
+                    if not oid_field_name:
+                        for f in metadata['fields']:
+                            if f['type'] == 'esriFieldTypeOID':
+                                oid_field_name = f['name']
+                                break
+
+                    if not oid_field_name:
+                        raise DownloadError("Could not find object ID field name")
+
+                    # Find the min and max values for the OID field
+                    query_args = {
+                        'f': 'json',
+                        'outFields': '',
+                        'outStatistics': json.dumps([
+                            dict(statisticType='min', onStatisticField=oid_field_name, outStatisticFieldName='THE_MIN'),
+                            dict(statisticType='max', onStatisticField=oid_field_name, outStatisticFieldName='THE_MAX'),
+                        ])
                     }
+                    response = request('GET', query_url, params=query_args, headers=headers)
+
+                    if response.status_code != 200:
+                        raise DownloadError('Could not retrieve min/max oid values from ESRI source: HTTP {} {}'.format(
+                            response.status_code,
+                            response.text
+                        ))
+
+                    resp_attrs = response.json()['features'][0]['attributes']
+                    oid_min = resp_attrs['THE_MIN']
+                    oid_max = resp_attrs['THE_MAX']
+
+                    for page_min in xrange(oid_min - 1, oid_max, page_size):
+                        page_max = min(page_min + page_size, oid_max)
+                        page_args.append({
+                            'where': '{} > {} AND {} <= {}'.format(
+                                oid_field_name,
+                                page_min,
+                                oid_field_name,
+                                page_max,
+                            ),
+                            'geometryPrecision': 7,
+                            'returnGeometry': 'true',
+                            'outSR': 4326,
+                            'outFields': '*',
+                            'f': 'json',
+                        })
+                    _L.info("Built {} requests using OID where clause method".format(len(page_args)))
+
+                else:
+                    # If the layer does not support statistics, we can request
+                    # all the individual IDs and page through them one chunk at
+                    # a time.
+
+                    # Get all the OIDs
+                    query_args = {
+                        'where': '1=1', # So we get everything
+                        'returnIdsOnly': 'true',
+                        'f': 'json',
+                    }
+                    response = request('GET', query_url, params=query_args, headers=headers)
+
+                    if response.status_code != 200:
+                        raise DownloadError('Could not retrieve object IDs from ESRI source: HTTP {} {}'.format(
+                            response.status_code,
+                            response.text
+                        ))
+
+                    try:
+                        oids = response.json().get('objectIds', [])
+                    except:
+                        _L.error("Could not parse response from {} as JSON:\n\n{}".format(
+                            response.request.url,
+                            response.text,
+                        ))
+                        raise
+
+                    for i in xrange(0, len(oids), 100):
+                        oid_chunk = oids[i:i+100]
+                        page_args.append({
+                            'objectIds': ','.join(map(str, oid_chunk)),
+                            'geometryPrecision': 7,
+                            'returnGeometry': 'true',
+                            'outSR': 4326,
+                            'outFields': '*',
+                            'f': 'json',
+                        })
+                    _L.info("Built {} requests using OID enumeration method".format(len(page_args)))
+
+            with csvopen(file_path, 'w', encoding='utf-8') as f:
+                writer = csvDictWriter(f, fieldnames=field_names, encoding='utf-8')
+                writer.writeheader()
+
+                due = time() + 7200
+                for query_args in page_args:
+
+                    if time() > due:
+                        raise RuntimeError('Ran out of time caching Esri features')
 
                     try:
                         response = request('POST', query_url, headers=headers, data=query_args)
@@ -440,7 +537,7 @@ class EsriRestDownloadTask(DownloadTask):
 
                     error = data.get('error')
                     if error:
-                        raise DownloadError("Problem querying ESRI dataset: {}" .format(error['message']))
+                        raise DownloadError("Problem querying ESRI dataset with args {}. Server said: {}".format(query_args, error['message']))
 
                     geometry_type = data.get('geometryType')
                     features = data.get('features')
