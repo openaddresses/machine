@@ -79,6 +79,8 @@ class TestCacheEsriDownload (unittest.TestCase):
 
                 if qs.get('returnIdsOnly') == ['true']:
                     local_path = join(data_dirname, 'us-ca-carson-ids-only.json')
+                elif qs.get('returnCountOnly') == ['true']:
+                    local_path = join(data_dirname, 'us-ca-carson-count-only.json')
                 elif body_data.get('outSR') == ['4326']:
                     local_path = join(data_dirname, 'us-ca-carson-0.json')
             
@@ -94,6 +96,10 @@ class TestCacheEsriDownload (unittest.TestCase):
 
                 if qs.get('returnIdsOnly') == ['true']:
                     local_path = join(data_dirname, 'us-ms-madison-ids-only.json')
+                elif qs.get('returnCountOnly') == ['true']:
+                    local_path = join(data_dirname, 'us-ms-madison-count-only.json')
+                elif qs.get('outStatistics'):
+                    local_path = join(data_dirname, 'us-ms-madison-outStatistics.json')
                 elif body_data.get('outSR') == ['4326']:
                     local_path = join(data_dirname, 'us-ms-madison-0.json')
             

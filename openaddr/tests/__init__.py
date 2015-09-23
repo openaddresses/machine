@@ -99,7 +99,9 @@ class TestOA (unittest.TestCase):
 
             if qs.get('returnIdsOnly') == ['true']:
                 local_path = join(data_dirname, 'us-ca-carson-ids-only.json')
-            elif body_data.get('outSR') == ['4326']:
+            elif qs.get('returnCountOnly') == ['true']:
+                local_path = join(data_dirname, 'us-ca-carson-count-only.json')
+            elif qs.get('outSR') == ['4326']:
                 local_path = join(data_dirname, 'us-ca-carson-0.json')
 
         if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1'):
