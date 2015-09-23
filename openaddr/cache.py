@@ -396,7 +396,7 @@ class EsriRestDownloadTask(DownloadTask):
 
             if metadata.get('supportsPagination'):
                 # If the layer supports pagination, we can use resultOffset/resultRecordCount to paginate
-                for offset in xrange(0, row_count, page_size):
+                for offset in range(0, row_count, page_size):
                     page_args.append({
                         'resultOffset': offset,
                         'resultRecordCount': page_size,
@@ -447,7 +447,7 @@ class EsriRestDownloadTask(DownloadTask):
                     oid_min = resp_attrs['THE_MIN']
                     oid_max = resp_attrs['THE_MAX']
 
-                    for page_min in xrange(oid_min - 1, oid_max, page_size):
+                    for page_min in range(oid_min - 1, oid_max, page_size):
                         page_max = min(page_min + page_size, oid_max)
                         page_args.append({
                             'where': '{} > {} AND {} <= {}'.format(
@@ -492,7 +492,7 @@ class EsriRestDownloadTask(DownloadTask):
                         ))
                         raise
 
-                    for i in xrange(0, len(oids), 100):
+                    for i in range(0, len(oids), 100):
                         oid_chunk = oids[i:i+100]
                         page_args.append({
                             'objectIds': ','.join(map(str, oid_chunk)),
