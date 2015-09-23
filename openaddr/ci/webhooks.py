@@ -305,7 +305,7 @@ def app_get_run_sample(run_id):
     sample_url = run.state.get('sample')
     sample_data = requests.get(sample_url).json()
     
-    return render_template('run-sample.html', sample_data=sample_data)
+    return render_template('run-sample.html', sample_data=sample_data or [])
 
 app = Flask(__name__)
 app.config.update(load_config())
