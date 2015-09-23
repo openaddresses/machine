@@ -23,22 +23,22 @@ def main():
     tippecanoe = Popen(cmd, stdin=PIPE, bufsize=1)
     zip_filenames = (fn for (_, fn, _) in iterate_local_processed_files(runs))
     
-    for feature in get_all_features(zip_filenames):
+    for feature in stream_all_features(zip_filenames):
         print(json.dumps(feature), file=tippecanoe.stdin)
     
     tippecanoe.stdin.close()
     tippecanoe.wait()
 
-def get_all_features(zip_filenames):
+def stream_all_features(zip_filenames):
     ''' Generate a stream of all locations as GeoJSON features.
     '''
-    for fn in zip_filenames:
-        print(fn, file=stderr)
-        zipfile = ZipFile(fn, mode='r')
+    for zip_filename in zip_filenames:
+        zipfile = ZipFile(zip_filename, mode='r')
         for filename in zipfile.namelist():
+            # Look for the one expected .csv file in the zip archive.
             _, ext = splitext(filename)
             if ext == '.csv':
-                print(filename, file=stderr)
+                # Yield GeoJSON point objects with no properties.
                 buffer = csvIO(zipfile.read(filename))
                 for row in csvDictReader(buffer, encoding='utf8'):
                     try:
@@ -49,6 +49,8 @@ def get_all_features(zip_filenames):
                         pass
                     else:
                         yield feature
+
+                # Move on to the next zip archive.
                 break
 
 if __name__ == '__main__':
