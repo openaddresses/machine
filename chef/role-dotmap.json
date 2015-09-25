@@ -1,0 +1,8 @@
+{
+    "run_list":
+    [
+        "openaddr",
+        "tippecanoe",
+        "mapbox-upload"
+    ]
+}
