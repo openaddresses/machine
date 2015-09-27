@@ -1,8 +1,9 @@
-from __future__ import print_function
+from __future__ import print_function, division
 
 from sys import stderr
 from zipfile import ZipFile
 from os.path import splitext
+from tempfile import gettempdir
 from subprocess import Popen, PIPE
 import json
 
@@ -17,8 +18,9 @@ def main():
             set = read_latest_set(db, 'openaddresses', 'hooked-on-sources')
             runs = read_completed_runs_to_date(db, set.id)
     
-    cmd = '/home/migurski/tippecanoe/tippecanoe', '-r', '2', '-l', 'openaddresses', \
-          '-X', '-n', 'OpenAddresses YYYY-MM-DD', '-f', '-o', '/tmp/openaddresses.mbtiles'
+    cmd = '/home/migurski/tippecanoe/tippecanoe', '-r', '2', \
+          '-l', 'openaddresses', '-X', '-n', 'OpenAddresses YYYY-MM-DD', '-f', \
+          '-t', gettempdir(), '-o', '/tmp/openaddresses.mbtiles'
     
     tippecanoe = Popen(cmd, stdin=PIPE, bufsize=1)
     zip_filenames = (fn for (_, fn, _) in iterate_local_processed_files(runs))
@@ -51,6 +53,7 @@ def stream_all_features(zip_filenames):
                         yield feature
 
                 # Move on to the next zip archive.
+                zipfile.close()
                 break
 
 if __name__ == '__main__':
