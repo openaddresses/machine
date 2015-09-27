@@ -692,9 +692,14 @@ def pop_task_from_duequeue(queue, github_auth):
         if job_id:
             update_job_status(db, job_id, job_url, filename, run_status, False, github_auth)
 
-def db_connect(dsn):
-    ''' Connect to database using DSN string.
+def db_connect(dsn=None, user=None, password=None, host=None, database=None, sslmode=None):
+    ''' Connect to database.
+    
+        Use DSN string if given, but allow other calls for older systems.
     '''
+    if dsn is None:
+        return connect(user=user, password=password, host=host, database=database, sslmode=sslmode)
+
     return connect(dsn)
 
 def db_queue(conn, name):

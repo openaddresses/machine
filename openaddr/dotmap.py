@@ -1,10 +1,16 @@
 from __future__ import print_function, division
+import logging; _L = logging.getLogger('openaddr.dotmap')
+
+from .compat import standard_library
 
 from sys import stderr
+from os import environ
 from zipfile import ZipFile
 from os.path import splitext
 from tempfile import gettempdir
 from subprocess import Popen, PIPE
+from argparse import ArgumentParser
+from urllib.parse import urlparse, parse_qsl
 import json
 
 from .compat import csvIO, csvDictReader
@@ -12,10 +18,38 @@ from .ci import db_connect, db_cursor
 from .ci.objects import read_latest_set, read_completed_runs_to_date
 from . import iterate_local_processed_files
 
+def connect_db(dsn):
+    ''' Prepare old-style arguments to connect_db().
+    '''
+    p = urlparse(dsn)
+    q = dict(parse_qsl(p.query))
+    
+    assert p.scheme == 'postgres'
+    kwargs = dict(user=p.username, password=p.password, host=p.hostname)
+    kwargs.update(dict(database=p.path.lstrip('/')))
+
+    if 'sslmode' in q:
+        kwargs.update(dict(sslmode=q['sslmode']))
+
+    return db_connect(**kwargs)
+
+parser = ArgumentParser(description='Make a dot map.')
+
+parser.add_argument('-o', '--owner', default='openaddresses',
+                    help='Github repository owner. Defaults to "openaddresses".')
+
+parser.add_argument('-r', '--repository', default='openaddresses',
+                    help='Github repository name. Defaults to "openaddresses".')
+
+parser.add_argument('-d', '--database-url', default=environ.get('DATABASE_URL', None),
+                    help='Optional connection string for database. Defaults to value of DATABASE_URL environment variable.')
+
 def main():
-    with db_connect('postgres://xxx:xxxx@machine-db.openaddresses.io:5432/xxx?sslmode=require') as conn:
+    args = parser.parse_args()
+    
+    with connect_db(args.database_url) as conn:
         with db_cursor(conn) as db:
-            set = read_latest_set(db, 'openaddresses', 'hooked-on-sources')
+            set = read_latest_set(db, args.owner, args.repository)
             runs = read_completed_runs_to_date(db, set.id)
     
     cmd = '/home/migurski/tippecanoe/tippecanoe', '-r', '2', \
