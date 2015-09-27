@@ -89,6 +89,9 @@ setup(
 
         # https://github.com/patrys/httmock
         'httmock >= 1.2',
+        
+        # https://boto3.readthedocs.org
+        'boto3 == 1.1.4',
 
         ] + conditional_requirements
 )
