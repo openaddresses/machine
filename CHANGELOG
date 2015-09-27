@@ -1,3 +1,6 @@
+2015-09-26: 2.2.7
+- Switched to best paging methods depending on feature support in an ESRI server.
+
 2015-09-22: 2.2.6
 - Fixed error with missing sample data.
 
