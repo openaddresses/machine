@@ -79,6 +79,8 @@ class TestCacheEsriDownload (unittest.TestCase):
 
                 if qs.get('returnIdsOnly') == ['true']:
                     local_path = join(data_dirname, 'us-ca-carson-ids-only.json')
+                elif qs.get('returnCountOnly') == ['true']:
+                    local_path = join(data_dirname, 'us-ca-carson-count-only.json')
                 elif body_data.get('outSR') == ['4326']:
                     local_path = join(data_dirname, 'us-ca-carson-0.json')
             
@@ -94,12 +96,31 @@ class TestCacheEsriDownload (unittest.TestCase):
 
                 if qs.get('returnIdsOnly') == ['true']:
                     local_path = join(data_dirname, 'us-ms-madison-ids-only.json')
+                elif qs.get('returnCountOnly') == ['true']:
+                    local_path = join(data_dirname, 'us-ms-madison-count-only.json')
+                elif qs.get('outStatistics'):
+                    local_path = join(data_dirname, 'us-ms-madison-outStatistics.json')
                 elif body_data.get('outSR') == ['4326']:
                     local_path = join(data_dirname, 'us-ms-madison-0.json')
             
             elif path == '/arcgis/rest/services/Viewers/Madison/MapServer/13':
                 if qs.get('f') == ['json']:
                     local_path = join(data_dirname, 'us-ms-madison-metadata.json')
+
+        if host == 'sampleserver6.arcgisonline.com':
+            qs = parse_qs(query)
+
+            if path == '/arcgis/rest/services/Recreation/FeatureServer/0/query':
+                body_data = parse_qs(request.body) if request.body else {}
+
+                if qs.get('returnCountOnly') == ['true']:
+                    local_path = join(data_dirname, 'us-esri-test-count-only.json')
+                elif body_data.get('outSR') == ['4326']:
+                    local_path = join(data_dirname, 'us-esri-test-0.json')
+
+            elif path == '/arcgis/rest/services/Recreation/FeatureServer/0':
+                if qs.get('f') == ['json']:
+                    local_path = join(data_dirname, 'us-esri-test-metadata.json')
 
         if local_path:
             type, _ = mimetypes.guess_type(local_path)
@@ -109,11 +130,19 @@ class TestCacheEsriDownload (unittest.TestCase):
         raise NotImplementedError(url.geturl())
     
     def test_download_carson(self):
+        """ ESRI Caching Supports Object ID Enumeration """
         with httmock.HTTMock(self.response_content):
             task = EsriRestDownloadTask('us-ca-carson')
             task.download(['http://www.carsonproperty.info/ArcGIS/rest/services/basemap/MapServer/1'], self.workdir)
     
     def test_download_madison(self):
+        """ ESRI Caching Supports Statistics Pagination """
         with httmock.HTTMock(self.response_content):
             task = EsriRestDownloadTask('us-ms-madison')
             task.download(['http://gis.cmpdd.org/arcgis/rest/services/Viewers/Madison/MapServer/13'], self.workdir)
+
+    def test_download_esri_sample(self):
+        """ ESRI Caching Supports Advanced Query Pagination """
+        with httmock.HTTMock(self.response_content):
+            task = EsriRestDownloadTask('us-esri-test')
+            task.download(['https://sampleserver6.arcgisonline.com/arcgis/rest/services/Recreation/FeatureServer/0'], self.workdir)
