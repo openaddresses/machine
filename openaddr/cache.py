@@ -394,7 +394,8 @@ class EsriRestDownloadTask(DownloadTask):
 
             page_args = []
 
-            if metadata.get('supportsPagination'):
+            if metadata.get('supportsPagination') or \
+               (metadata.get('advancedQueryCapabilities') and metadata['advancedQueryCapabilities']['supportsPagination']):
                 # If the layer supports pagination, we can use resultOffset/resultRecordCount to paginate
                 for offset in range(0, row_count, page_size):
                     page_args.append({
