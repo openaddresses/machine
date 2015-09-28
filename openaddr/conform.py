@@ -336,7 +336,7 @@ def find_source_path(source_definition, source_paths):
             _L.warning("Found more than one JSON file in source, can't pick one")
             # geojson spec currently doesn't include a file attribute. Maybe it should?
             return None
-    elif conform["type"] == "geojson" and source_definition["type"].ower() == "esri":
+    elif conform["type"] == "geojson" and source_definition["type"].lower() == "esri":
         # Old style ESRI conform: ESRI downloader should only give us a single cache.csv file
         return source_paths[0]
     elif conform["type"] == "csv":
