@@ -99,13 +99,13 @@ def _upload_to_s3(mbtiles_path, session_token, access_id, secret_key, bucket, s3
         del environ['AWS_SECRET_ACCESS_KEY']
 
         if old_AWS_SESSION_TOKEN is not None:
-            environ['AWS_SESSION_TOKEN'] = AWS_SESSION_TOKEN
+            environ['AWS_SESSION_TOKEN'] = old_AWS_SESSION_TOKEN
 
         if old_AWS_ACCESS_KEY_ID is not None:
-            environ['AWS_ACCESS_KEY_ID'] = AWS_ACCESS_KEY_ID
+            environ['AWS_ACCESS_KEY_ID'] = old_AWS_ACCESS_KEY_ID
 
         if old_AWS_SECRET_ACCESS_KEY is not None:
-            environ['AWS_SECRET_ACCESS_KEY'] = AWS_SECRET_ACCESS_KEY
+            environ['AWS_SECRET_ACCESS_KEY'] = old_AWS_SECRET_ACCESS_KEY
 
 def _mapbox_create_upload(url, tileset, username, api_key):
     ''' Create Mapbox upload for credentials and S3 URL, wait for completion.
