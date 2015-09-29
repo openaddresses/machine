@@ -11,13 +11,14 @@ from argparse import ArgumentParser
 from urllib.parse import urlparse, parse_qsl, urljoin
 from tempfile import mkstemp, gettempdir
 from os import environ, close
+from io import StringIO
 from time import sleep
 import json
 
 from uritemplate import expand
 import requests, boto3
 
-from .compat import csvIO, csvDictReader
+from .compat import csvDictReader
 from .ci import db_connect, db_cursor, setup_logger
 from .ci.objects import read_latest_set, read_completed_runs_to_date
 from . import iterate_local_processed_files
@@ -204,7 +205,7 @@ def stream_all_features(zip_details):
             _, ext = splitext(filename)
             if ext == '.csv':
                 # Yield GeoJSON point objects with no properties.
-                buffer = csvIO(zipfile.read(filename))
+                buffer = StringIO(zipfile.read(filename).decode('utf8'))
                 for row in csvDictReader(buffer, encoding='utf8'):
                     try:
                         lon_lat = float(row['LON']), float(row['LAT'])
