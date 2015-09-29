@@ -4,16 +4,16 @@ import logging; _L = logging.getLogger('openaddr.dotmap')
 from .compat import standard_library
 
 from sys import stderr
+from datetime import date
 from zipfile import ZipFile
 from os.path import splitext, basename
-from subprocess import Popen, PIPE
 from argparse import ArgumentParser
 from urllib.parse import urlparse, parse_qsl, urljoin
 from tempfile import mkstemp, gettempdir
 from os import environ, close
 from io import StringIO
 from time import sleep
-import json
+import json, subprocess
 
 from uritemplate import expand
 import requests, boto3
@@ -39,6 +39,17 @@ def connect_db(dsn):
         kwargs.update(dict(sslmode=q['sslmode']))
 
     return db_connect(**kwargs)
+
+def call_tippecanoe(mbtiles_filename):
+    '''
+    '''
+    cmd = 'tippecanoe', '-r', '2', '-l', 'openaddresses', \
+          '-X', '-n', 'OpenAddresses {}'.format(str(date.today())), '-f', \
+          '-t', gettempdir(), '-o', mbtiles_filename
+    
+    _L.info('Running tippcanoe: {}'.format(' '.join(cmd)))
+    
+    return subprocess.Popen(cmd, stdin=subprocess.PIPE, bufsize=1)
 
 def mapbox_upload(mbtiles_path, tileset, username, api_key):
     ''' Upload MBTiles file to a tileset on Mapbox API.
@@ -141,7 +152,7 @@ def _mapbox_wait_for_upload(id, username, api_key):
         if got.json().get('complete') is True:
             break
         
-        sleep(3)
+        sleep(30)
 
 parser = ArgumentParser(description='Make a dot map.')
 
@@ -175,13 +186,7 @@ def main():
     handle, mbtiles_filename = mkstemp(prefix='oa-', suffix='.mbtiles')
     close(handle)
     
-    cmd = 'tippecanoe', '-r', '2', '-l', 'openaddresses', \
-          '-X', '-n', 'OpenAddresses YYYY-MM-DD', '-f', \
-          '-t', gettempdir(), '-o', mbtiles_filename
-    
-    _L.info('Running tippcanoe: {}'.format(' '.join(cmd)))
-    
-    tippecanoe = Popen(cmd, stdin=PIPE, bufsize=1)
+    tippecanoe = call_tippecanoe(mbtiles_filename)
     zip_details = ((source, filename) for (source, filename, _)
                    in iterate_local_processed_files(runs))
     

@@ -7,13 +7,15 @@ from os.path import join
 from tempfile import mkdtemp
 from urllib.parse import parse_qsl
 from zipfile import ZipFile
+from datetime import date
 import unittest
 
 import mock
 from httmock import HTTMock, response
 
 from ..dotmap import (
-    stream_all_features, _mapbox_get_credentials, _upload_to_s3, _mapbox_create_upload
+    stream_all_features, call_tippecanoe, _upload_to_s3,
+    _mapbox_get_credentials, _mapbox_create_upload
     )
 
 class TestDotmap (unittest.TestCase):
@@ -62,6 +64,20 @@ class TestDotmap (unittest.TestCase):
         self.assertAlmostEqual(p3[1],    0.0)
         self.assertAlmostEqual(p4[0], -122.413729)
         self.assertAlmostEqual(p4[1],   37.775641)
+    
+    def test_call_tippecanoe(self):
+        '''
+        '''
+        with mock.patch('subprocess.Popen') as Popen:
+            call_tippecanoe('oa.mbtiles')
+        
+        self.assertEqual(len(Popen.mock_calls), 1)
+        
+        cmd = Popen.mock_calls[0][1][0]
+        
+        self.assertEqual('tippecanoe', cmd[0])
+        self.assertEqual(('-o', 'oa.mbtiles'), cmd[-2:])
+        self.assertIn('OpenAddresses {}'.format(str(date.today())), cmd)
     
     def response_content(self, url, request):
         '''
