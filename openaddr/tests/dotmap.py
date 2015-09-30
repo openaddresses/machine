@@ -1,3 +1,4 @@
+# coding=utf8
 from __future__ import print_function
 
 from sys import stderr
@@ -26,14 +27,14 @@ class TestDotmap (unittest.TestCase):
         
         self.zipfiles.append(('us/anytown', join(self.test_dir, 'file1.zip')))
         zf = ZipFile(self.zipfiles[-1][1], 'w')
-        zf.writestr('README.txt', 'Good times')
-        zf.writestr('stuff.csv', 'LAT,LON\n0,0\n37.804319,-122.271210\n')
+        zf.writestr('README.txt', b'Good times')
+        zf.writestr('stuff.csv', u'LAT,LON\n0,0\n37.804319,-122.271210\n'.encode('utf8'))
         zf.close()
         
         self.zipfiles.append(('us/whoville', join(self.test_dir, 'file2.zip')))
         zf = ZipFile(self.zipfiles[-1][1], 'w')
-        zf.writestr('README.txt', 'Good times')
-        zf.writestr('stuff.csv', 'LON,LAT\n0,0\n-122.413729,37.775641\n')
+        zf.writestr('README.txt', b'Good times')
+        zf.writestr('stuff.csv', u'LON,LAT,CITY\n0,0,Womp\n-122.413729,37.775641,Wómp Wómp\n'.encode('utf8'))
         zf.close()
     
     def tearDown(self):
