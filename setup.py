@@ -45,6 +45,7 @@ setup(
             'openaddr-ci-worker = openaddr.ci.worker:main',
             'openaddr-enqueue-sources = openaddr.ci.enqueue:main',
             'openaddr-collect-extracts = openaddr.ci.collect:main',
+            'openaddr-update-dotmap = openaddr.dotmap:main',
         ]
     ),
     package_data = {
