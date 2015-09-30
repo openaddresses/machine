@@ -1,3 +1,6 @@
+2015-09-29: 2.3.0
+- Added code, tests, and documentation for regular updates to dot map.
+
 2015-09-26: 2.2.7
 - Switched to best paging methods depending on feature support in an ESRI server.
 
