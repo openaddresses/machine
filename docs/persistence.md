@@ -45,3 +45,10 @@ We use the S3 bucket `data.openaddresses.io` to store new and historical data.
 
 * S3 access is handled via [the Boto library](http://docs.pythonboto.org/en/latest/).
 * Boto expects current AWS credentials in the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables.
+
+<a name="mapbox">Mapbox</a>
+------
+
+We use the Mapbox API account `open-addresses` to store a tiled dot map with worldwide locations of address points.
+
+* Uploads are handled via [the Boto3 library](https://boto3.readthedocs.org), using credentials granted by the Mapbox API.

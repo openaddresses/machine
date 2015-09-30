@@ -68,3 +68,12 @@ This Python script is meant to be run about once per day. It downloads all curre
 * Code can be found [in `openaddr/ci/collect.py`](https://github.com/openaddresses/machine/blob/2.1.8/openaddr/ci/collect.py).
 * Resulting collections are linked from [results.openaddresses.io](http://results.openaddresses.io).
 * A nightly cron task for this script runs every evening from the same EC2 instance as _Webhook_.
+
+### <a name="dotmap">Dotmap</a>
+
+This Python script is meant to be run about once per week. It downloads all current processed data, generates an MBTiles file of worldwide address point coverage with [Tippecanoe](https://github.com/mapbox/tippecanoe), and uploads it to [Mpabox](persistence.md#mapbox).
+
+* Run via the [script `openaddr-update-dotmap`](https://github.com/openaddresses/machine/blob/update-dotmap-%23210/setup.py#L48).
+* Code can be found [in `openaddr/ci/collect.py`](https://github.com/openaddresses/machine/blob/update-dotmap-%23210/openaddr/dotmap.py).
+* Resulting map of dots is show at [openaddresses.io](http://openaddresses.io).
+* We plan to set up a weekly cron task for this script on the OpenStreetMap U.S. server.
