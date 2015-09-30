@@ -114,15 +114,16 @@ class TestDotmap (unittest.TestCase):
         environ['AWS_SESSION_TOKEN'] = 'Good Times'
         environ.pop('AWS_ACCESS_KEY_ID', None)
     
-        with mock.patch('boto3.resource') as resource:
+        with mock.patch('boto3.session.Session') as resource:
             _upload_to_s3('oa.mbtiles', 'xxx', 'yyy', 'zzz', 'bbb', 'kkk')
         
-        self.assertEqual(len(resource.mock_calls), 3)
-        self.assertEqual(resource.mock_calls[0][1], ('s3', ))
-        self.assertEqual(resource.mock_calls[1][0], '().Bucket')
-        self.assertEqual(resource.mock_calls[1][1], ('bbb', ))
-        self.assertEqual(resource.mock_calls[2][0], '().Bucket().upload_file')
-        self.assertEqual(resource.mock_calls[2][1], ('oa.mbtiles', 'kkk'))
+        self.assertEqual(len(resource.mock_calls), 4)
+        self.assertEqual(resource.mock_calls[0][1], ('yyy', 'zzz', 'xxx'))
+        self.assertEqual(resource.mock_calls[1][1], ('s3', ))
+        self.assertEqual(resource.mock_calls[2][0], '().resource().Bucket')
+        self.assertEqual(resource.mock_calls[2][1], ('bbb', ))
+        self.assertEqual(resource.mock_calls[3][0], '().resource().Bucket().upload_file')
+        self.assertEqual(resource.mock_calls[3][1], ('oa.mbtiles', 'kkk'))
             
         self.assertEqual(environ['AWS_SESSION_TOKEN'], 'Good Times')
         self.assertNotIn('AWS_ACCESS_KEY_ID', environ)

@@ -88,34 +88,12 @@ def _upload_to_s3(mbtiles_path, session_token, access_id, secret_key, bucket, s3
     
         https://www.mapbox.com/developers/api/uploads/#Stage.a.file.on.Amazon.S3
     '''
-    old_AWS_SESSION_TOKEN = environ.get('AWS_SESSION_TOKEN')
-    old_AWS_ACCESS_KEY_ID = environ.get('AWS_ACCESS_KEY_ID')
-    old_AWS_SECRET_ACCESS_KEY = environ.get('AWS_SECRET_ACCESS_KEY')
-    
-    environ['AWS_SESSION_TOKEN'] = session_token
-    environ['AWS_ACCESS_KEY_ID'] = access_id
-    environ['AWS_SECRET_ACCESS_KEY'] = secret_key
+    session = boto3.session.Session(access_id, secret_key, session_token)
+    s3 = session.resource('s3')
+    bucket = s3.Bucket(bucket)
 
-    try:
-        s3 = boto3.resource('s3')
-        bucket = s3.Bucket(bucket)
-
-        _L.debug('{} --> {}'.format(mbtiles_path, s3_key))
-        bucket.upload_file(mbtiles_path, s3_key)
-    
-    finally:
-        del environ['AWS_SESSION_TOKEN']
-        del environ['AWS_ACCESS_KEY_ID']
-        del environ['AWS_SECRET_ACCESS_KEY']
-
-        if old_AWS_SESSION_TOKEN is not None:
-            environ['AWS_SESSION_TOKEN'] = old_AWS_SESSION_TOKEN
-
-        if old_AWS_ACCESS_KEY_ID is not None:
-            environ['AWS_ACCESS_KEY_ID'] = old_AWS_ACCESS_KEY_ID
-
-        if old_AWS_SECRET_ACCESS_KEY is not None:
-            environ['AWS_SECRET_ACCESS_KEY'] = old_AWS_SECRET_ACCESS_KEY
+    _L.debug('{} --> {}'.format(mbtiles_path, s3_key))
+    bucket.upload_file(mbtiles_path, s3_key)
 
 def _mapbox_create_upload(url, tileset, username, api_key):
     ''' Create Mapbox upload for credentials and S3 URL, wait for completion.
