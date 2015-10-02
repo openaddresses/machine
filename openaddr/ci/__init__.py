@@ -14,6 +14,7 @@ from datetime import timedelta
 from uuid import uuid4, getnode
 from base64 import b64decode
 from tempfile import mkdtemp
+from functools import wraps
 from shutil import rmtree
 from time import sleep
 import json, os
@@ -752,6 +753,21 @@ def setup_logger(sns_arn, log_level=logging.DEBUG):
         handler2.setLevel(logging.ERROR)
         handler2.setFormatter(logging.Formatter(log_format))
         openaddr_logger.addHandler(handler2)
+
+def log_function_errors(route_function):
+    ''' Error-logging decorator for functions.
+    
+        Don't do much, but get an error out to the logger.
+    '''
+    @wraps(route_function)
+    def decorated_function(*args, **kwargs):
+        try:
+            return route_function(*args, **kwargs)
+        except Exception as e:
+            _L.error(e, exc_info=True)
+            raise
+
+    return decorated_function
 
 if __name__ == '__main__':
     app.run(debug=True)

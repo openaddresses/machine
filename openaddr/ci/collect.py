@@ -13,7 +13,7 @@ from datetime import date
 from shutil import rmtree
 
 from .objects import read_latest_set, read_completed_runs_to_date
-from . import db_connect, db_cursor, setup_logger, render_index_maps
+from . import db_connect, db_cursor, setup_logger, render_index_maps, log_function_errors
 from .. import S3, iterate_local_processed_files
 
 parser = ArgumentParser(description='Run some source files.')
