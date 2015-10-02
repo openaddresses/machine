@@ -11,12 +11,14 @@ import logging; _L = logging.getLogger('openaddr.ci.worker')
 from .. import compat, S3, package_output
 from ..jobs import JOB_TIMEOUT
 
+from argparse import ArgumentParser
 import time, os, psycopg2, json, tempfile, shutil, base64
 from urllib.parse import urlparse, urljoin
 
 from . import (
     db_connect, db_queue, db_queue, pop_task_from_taskqueue,
-    MAGIC_OK_MESSAGE, DONE_QUEUE, TASK_QUEUE, DUE_QUEUE, setup_logger
+    MAGIC_OK_MESSAGE, DONE_QUEUE, TASK_QUEUE, DUE_QUEUE, setup_logger,
+    log_function_errors
     )
 
 def upload_file(s3, keyname, filename):
@@ -111,18 +113,43 @@ def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
     shutil.rmtree(workdir)
     return result
 
+parser = ArgumentParser(description='Run some source files.')
+
+parser.add_argument('-b', '--bucket', default='data.openaddresses.io',
+                    help='S3 bucket name. Defaults to "data.openaddresses.io".')
+
+parser.add_argument('-d', '--database-url', default=os.environ.get('DATABASE_URL', None),
+                    help='Optional connection string for database. Defaults to value of DATABASE_URL environment variable.')
+
+parser.add_argument('-a', '--access-key', default=os.environ.get('AWS_ACCESS_KEY_ID', None),
+                    help='Optional AWS access key name. Defaults to value of AWS_ACCESS_KEY_ID environment variable.')
+
+parser.add_argument('-s', '--secret-key', default=os.environ.get('AWS_SECRET_ACCESS_KEY', None),
+                    help='Optional AWS secret key name. Defaults to value of AWS_SECRET_ACCESS_KEY environment variable.')
+
+parser.add_argument('--sns-arn', default=os.environ.get('AWS_SNS_ARN', None),
+                    help='Optional AWS Simple Notification Service (SNS) resource. Defaults to value of AWS_SNS_ARN environment variable.')
+
+parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
+                    action='store_const', dest='loglevel',
+                    const=logging.DEBUG, default=logging.INFO)
+
+parser.add_argument('-q', '--quiet', help='Turn off most logging',
+                    action='store_const', dest='loglevel',
+                    const=logging.WARNING, default=logging.INFO)
+
+@log_function_errors
 def main():
     ''' Single threaded worker to serve the job queue.
     '''
-    setup_logger(os.environ.get('AWS_SNS_ARN'))
-
-    # Rely on boto AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY variables.
-    s3 = S3(None, None, os.environ.get('AWS_S3_BUCKET', 'data.openaddresses.io'))
-
+    args = parser.parse_args()
+    setup_logger(args.sns_arn, log_level=args.loglevel)
+    s3 = S3(args.access_key, args.secret_key, args.bucket)
+    
     # Fetch and run jobs in a loop    
     while True:
         try:
-            with db_connect(os.environ['DATABASE_URL']) as conn:
+            with db_connect(args.database_url) as conn:
                 task_Q = db_queue(conn, TASK_QUEUE)
                 done_Q = db_queue(conn, DONE_QUEUE)
                 due_Q = db_queue(conn, DUE_QUEUE)
