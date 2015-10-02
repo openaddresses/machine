@@ -53,8 +53,6 @@ def main():
     '''
     args = parser.parse_args()
     setup_logger(args.sns_arn, log_level=args.loglevel)
-
-    # Rely on boto AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY variables.
     s3 = S3(args.access_key, args.secret_key, args.bucket)
     
     with db_connect(args.database_url) as conn:
