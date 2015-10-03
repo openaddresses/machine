@@ -10,7 +10,7 @@ from . import (
     )
 
 from .objects import add_set
-from . import render_set_maps
+from . import render_set_maps, log_function_errors
 from .. import S3
 
 parser = ArgumentParser(description='Run some source files.')
@@ -27,15 +27,34 @@ parser.add_argument('-t', '--github-token', default=environ.get('GITHUB_TOKEN', 
 parser.add_argument('-d', '--database-url', default=environ.get('DATABASE_URL', None),
                     help='Optional connection string for database. Defaults to value of DATABASE_URL environment variable.')
 
+parser.add_argument('-b', '--bucket', default='data.openaddresses.io',
+                    help='S3 bucket name. Defaults to "data.openaddresses.io".')
+
+parser.add_argument('-a', '--access-key', default=environ.get('AWS_ACCESS_KEY_ID', None),
+                    help='Optional AWS access key name. Defaults to value of AWS_ACCESS_KEY_ID environment variable.')
+
+parser.add_argument('-s', '--secret-key', default=environ.get('AWS_SECRET_ACCESS_KEY', None),
+                    help='Optional AWS secret key name. Defaults to value of AWS_SECRET_ACCESS_KEY environment variable.')
+
+parser.add_argument('--sns-arn', default=environ.get('AWS_SNS_ARN', None),
+                    help='Optional AWS Simple Notification Service (SNS) resource. Defaults to value of AWS_SNS_ARN environment variable.')
+
+parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
+                    action='store_const', dest='loglevel',
+                    const=logging.DEBUG, default=logging.INFO)
+
+parser.add_argument('-q', '--quiet', help='Turn off most logging',
+                    action='store_const', dest='loglevel',
+                    const=logging.WARNING, default=logging.INFO)
+
+@log_function_errors
 def main():
     ''' Single threaded worker to serve the job queue.
     '''
     args = parser.parse_args()
-    setup_logger(environ.get('AWS_SNS_ARN'))
+    setup_logger(args.sns_arn, log_level=args.loglevel)
+    s3 = S3(args.access_key, args.secret_key, args.bucket)
     github_auth = args.github_token, 'x-oauth-basic'
-
-    # Rely on boto AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY variables.
-    s3 = S3(None, None, environ.get('AWS_S3_BUCKET', 'data.openaddresses.io'))
 
     try:
         sources = find_batch_sources(args.owner, args.repository, github_auth)
