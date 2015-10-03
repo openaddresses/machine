@@ -64,30 +64,30 @@ def main():
     
     dir = mkdtemp(prefix='collected-')
     
-    everything = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-collected.zip')))
-    us_northeast = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-us_northeast.zip')))
-    us_midwest = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-us_midwest.zip')))
-    us_south = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-us_south.zip')))
-    us_west = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-us_west.zip')))
-    europe = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-europe.zip')))
-    asia = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-asia.zip')))
+    everything = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-collected.zip')))
+    us_northeast = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-us_northeast.zip')))
+    us_midwest = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-us_midwest.zip')))
+    us_south = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-us_south.zip')))
+    us_west = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-us_west.zip')))
+    europe = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-europe.zip')))
+    asia = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-asia.zip')))
 
     for (sb, fn, sd) in iterate_local_processed_files(runs):
-        everything.send((sb, fn, sd))
-        if is_us_northeast(sb, fn, sd): us_northeast.send((sb, fn, sd))
-        if is_us_midwest(sb, fn, sd): us_midwest.send((sb, fn, sd))
-        if is_us_south(sb, fn, sd): us_south.send((sb, fn, sd))
-        if is_us_west(sb, fn, sd): us_west.send((sb, fn, sd))
-        if is_europe(sb, fn, sd): europe.send((sb, fn, sd))
-        if is_asia(sb, fn, sd): asia.send((sb, fn, sd))
+        everything.collect((sb, fn, sd))
+        if is_us_northeast(sb, fn, sd): us_northeast.collect((sb, fn, sd))
+        if is_us_midwest(sb, fn, sd): us_midwest.collect((sb, fn, sd))
+        if is_us_south(sb, fn, sd): us_south.collect((sb, fn, sd))
+        if is_us_west(sb, fn, sd): us_west.collect((sb, fn, sd))
+        if is_europe(sb, fn, sd): europe.collect((sb, fn, sd))
+        if is_asia(sb, fn, sd): asia.collect((sb, fn, sd))
     
-    everything.close()
-    us_northeast.close()
-    us_midwest.close()
-    us_south.close()
-    us_west.close()
-    europe.close()
-    asia.close()
+    everything.publish()
+    us_northeast.publish()
+    us_midwest.publish()
+    us_south.publish()
+    us_west.publish()
+    europe.publish()
+    asia.publish()
     
     rmtree(dir)
 
@@ -112,50 +112,43 @@ Data source information can be found at
     
     return zipfile
 
-def collect_and_publish(s3, collection_zip):
-    ''' Returns a primed generator-iterator to accept sent source/filename tuples.
-    
-        Each is added to the passed ZipFile. On completion, a new S3 object
-        is created with zipfile name and the collection is closed and uploaded.
+class CollectorPublisher:
+    ''' 
     '''
-    def get_collector_publisher():
-        source_dicts = dict()
+    def __init__(self, s3, collection_zip):
+        self.s3 = s3
+        self.zip = collection_zip
+        self.sources = dict()
     
-        while True:
-            try:
-                (source_base, filename, source_dict) = yield
-            except GeneratorExit:
-                break
-            else:
-                _L.info(u'Adding {} to {}'.format(source_base, collection_zip.filename))
-                add_source_to_zipfile(collection_zip, source_base, filename)
-                source_dicts[source_base] = {
-                    'website': source_dict.get('website') or 'Unknown',
-                    'license': source_dict.get('license') or 'Unknown'
-                    }
-        
+    def collect(self, file_info):
+        ''' Add file info (source_base, filename, source_dict) to collection zip.
+        '''
+        source_base, filename, source_dict = file_info
+
+        _L.info(u'Adding {} to {}'.format(source_base, self.zip.filename))
+        add_source_to_zipfile(self.zip, source_base, filename)
+        self.sources[source_base] = {
+            'website': source_dict.get('website') or 'Unknown',
+            'license': source_dict.get('license') or 'Unknown'
+            }
+    
+    def publish(self):
+        ''' Create new S3 object with zipfile name and upload the collection.
+        '''
         # Write a short file with source licenses.
         template = u'{source}\nWebsite: {website}\nLicense: {license}\n'
-        license_bits = [(k, v['website'], v['license']) for (k, v) in sorted(source_dicts.items())]
+        license_bits = [(k, v['website'], v['license']) for (k, v) in sorted(self.sources.items())]
         license_lines = [u'Data collected by OpenAddresses (http://openaddresses.io).\n']
         license_lines += [template.format(source=s, website=w, license=l) for (s, w, l) in license_bits]
-        collection_zip.writestr('LICENSE.txt', u'\n'.join(license_lines).encode('utf8'))
+        self.zip.writestr('LICENSE.txt', u'\n'.join(license_lines).encode('utf8'))
 
-        collection_zip.close()
-        _L.info(u'Finished {}'.format(collection_zip.filename))
+        self.zip.close()
+        _L.info(u'Finished {}'.format(self.zip.filename))
 
-        zip_key = s3.new_key(basename(collection_zip.filename))
+        zip_key = self.s3.new_key(basename(self.zip.filename))
         zip_args = dict(policy='public-read', headers={'Content-Type': 'application/zip'})
-        zip_key.set_contents_from_filename(collection_zip.filename, **zip_args)
-        _L.info(u'Uploaded {} to {}'.format(collection_zip.filename, zip_key.name))
-  
-    collector_publisher = get_collector_publisher()
-
-    # Generator-iterator must be primed:
-    # https://docs.python.org/2.7/reference/expressions.html#generator.next
-    next(collector_publisher)
-
-    return collector_publisher
+        zip_key.set_contents_from_filename(self.zip.filename, **zip_args)
+        _L.info(u'Uploaded {} to {}'.format(self.zip.filename, zip_key.name))
 
 def add_source_to_zipfile(zip_out, source_base, filename):
     '''
