@@ -1,5 +1,10 @@
+2015-10-03: 2.5.0
+- Added AWS configuration details to openaddr-enqueue-sources command line.
+- Replaced generator-based ci.collect code with simpler class.
+
 2015-10-02: 2.4.0
 - Added AWS configuration details to openaddr-collect-extracts command line.
+- Added AWS configuration details to openaddr-ci-worker command line.
 
 2015-09-29: 2.3.0
 - Added code, tests, and documentation for regular updates to dot map.
