@@ -40,7 +40,7 @@ from ..ci.objects import (
 
 from ..ci.collect import (
     is_us_northeast, is_us_midwest, is_us_south, is_us_west, is_europe, is_asia,
-    add_source_to_zipfile, collect_and_publish
+    add_source_to_zipfile, CollectorPublisher
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -1826,19 +1826,19 @@ class TestBatch (unittest.TestCase):
 
 class TestCollect (unittest.TestCase):
 
-    def test_collect_and_publish(self):
+    def test_collector_publisher(self):
         '''
         '''
         s3, collected_zip = mock.Mock(), mock.Mock()
         collected_zip.filename = 'collected-local.zip'
         
         with patch('openaddr.ci.collect.add_source_to_zipfile') as add_source_to_zipfile:
-            generator_iterator = collect_and_publish(s3, collected_zip)
+            collector_publisher = CollectorPublisher(s3, collected_zip)
             
             for file in [('abc', 'abc.zip', dict(license='ODbL')), ('def', 'def.zip', dict(website='http://example.com'))]:
-                generator_iterator.send(file)
+                collector_publisher.collect(file)
             
-            generator_iterator.close()
+            collector_publisher.publish()
 
             add_source_to_zipfile.assert_has_calls([
                 mock.call(collected_zip, 'abc', 'abc.zip'),

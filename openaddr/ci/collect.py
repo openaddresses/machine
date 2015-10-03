@@ -64,30 +64,30 @@ def main():
     
     dir = mkdtemp(prefix='collected-')
     
-    everything = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-collected.zip')))
-    us_northeast = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-us_northeast.zip')))
-    us_midwest = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-us_midwest.zip')))
-    us_south = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-us_south.zip')))
-    us_west = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-us_west.zip')))
-    europe = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-europe.zip')))
-    asia = collect_and_publish(s3, _prepare_zip(set, join(dir, 'openaddresses-asia.zip')))
+    everything = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-collected.zip')))
+    us_northeast = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-us_northeast.zip')))
+    us_midwest = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-us_midwest.zip')))
+    us_south = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-us_south.zip')))
+    us_west = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-us_west.zip')))
+    europe = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-europe.zip')))
+    asia = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-asia.zip')))
 
     for (sb, fn, sd) in iterate_local_processed_files(runs):
-        everything.send((sb, fn, sd))
-        if is_us_northeast(sb, fn, sd): us_northeast.send((sb, fn, sd))
-        if is_us_midwest(sb, fn, sd): us_midwest.send((sb, fn, sd))
-        if is_us_south(sb, fn, sd): us_south.send((sb, fn, sd))
-        if is_us_west(sb, fn, sd): us_west.send((sb, fn, sd))
-        if is_europe(sb, fn, sd): europe.send((sb, fn, sd))
-        if is_asia(sb, fn, sd): asia.send((sb, fn, sd))
+        everything.collect((sb, fn, sd))
+        if is_us_northeast(sb, fn, sd): us_northeast.collect((sb, fn, sd))
+        if is_us_midwest(sb, fn, sd): us_midwest.collect((sb, fn, sd))
+        if is_us_south(sb, fn, sd): us_south.collect((sb, fn, sd))
+        if is_us_west(sb, fn, sd): us_west.collect((sb, fn, sd))
+        if is_europe(sb, fn, sd): europe.collect((sb, fn, sd))
+        if is_asia(sb, fn, sd): asia.collect((sb, fn, sd))
     
-    everything.close()
-    us_northeast.close()
-    us_midwest.close()
-    us_south.close()
-    us_west.close()
-    europe.close()
-    asia.close()
+    everything.publish()
+    us_northeast.publish()
+    us_midwest.publish()
+    us_south.publish()
+    us_west.publish()
+    europe.publish()
+    asia.publish()
     
     rmtree(dir)
 
@@ -112,7 +112,7 @@ Data source information can be found at
     
     return zipfile
 
-class collect_and_publish:
+class CollectorPublisher:
     ''' 
     '''
     def __init__(self, s3, collection_zip):
@@ -120,7 +120,7 @@ class collect_and_publish:
         self.zip = collection_zip
         self.sources = dict()
     
-    def send(self, file_info):
+    def collect(self, file_info):
         ''' Add file info (source_base, filename, source_dict) to collection zip.
         '''
         source_base, filename, source_dict = file_info
@@ -132,7 +132,7 @@ class collect_and_publish:
             'license': source_dict.get('license') or 'Unknown'
             }
     
-    def close(self):
+    def publish(self):
         ''' Create new S3 object with zipfile name and upload the collection.
         '''
         # Write a short file with source licenses.
