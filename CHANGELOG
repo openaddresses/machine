@@ -1,3 +1,6 @@
+2015-10-04: 2.6.0
+- Added support for new license dictionary values in data sources.
+
 2015-10-03: 2.5.0
 - Added AWS configuration details to openaddr-enqueue-sources command line.
 - Replaced generator-based ci.collect code with simpler class.
