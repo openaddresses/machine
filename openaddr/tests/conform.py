@@ -699,6 +699,17 @@ class TestConformLicense (unittest.TestCase):
     def test_license_string(self):
         ''' Test that simple license strings are converted correctly.
         '''
-        self.assertEqual(conform_license(None), None)
+        self.assertIsNone(conform_license(None))
         self.assertEqual(conform_license('CC-BY-SA'), 'CC-BY-SA')
         self.assertEqual(conform_license('http://example.com'), 'http://example.com')
+
+    def test_license_dictionary(self):
+        ''' Test that simple license strings are converted correctly.
+        '''
+        self.assertIsNone(conform_license({}))
+        self.assertEqual(conform_license({'text': 'CC-BY-SA'}), 'CC-BY-SA')
+        self.assertEqual(conform_license({'url': 'http://example.com'}), 'http://example.com')
+        
+        license = {'text': 'CC-BY-SA', 'url': 'http://example.com'}
+        self.assertIn(license['text'], conform_license(license))
+        self.assertIn(license['url'], conform_license(license))

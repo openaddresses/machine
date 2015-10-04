@@ -876,4 +876,20 @@ def conform_cli(source_definition, source_path, dest_path):
 def conform_license(license):
     ''' Convert optional license tag.
     '''
-    return license
+    if license is None:
+        return None
+    
+    if not hasattr(license, 'get'):
+        # Old behavior: treat it like a string instead of a dictionary
+        return str(license)
+    
+    if 'url' in license and 'text' in license:
+        return '{text} ({url})'.format(**license)
+    elif 'url' in license:
+        return str(license['url'])
+    elif 'text' in license:
+        return str(license['text'])
+    else:
+        return None
+    
+    raise ValueError('Unknown license format "{}"'.format(repr(license)))
