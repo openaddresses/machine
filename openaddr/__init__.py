@@ -31,6 +31,7 @@ from .conform import (
     ExcerptDataTask,
     ConvertToCsvTask,
     elaborate_filenames,
+    conform_license,
 )
 
 with open(join(dirname(__file__), 'VERSION')) as file:
@@ -180,7 +181,7 @@ def conform(srcjson, destdir, extras):
     return ConformResult(data.get('processed', None),
                          data_sample,
                          data.get('website'),
-                         data.get('license'),
+                         conform_license(data.get('license')),
                          geometry_type,
                          addr_count,
                          out_path,

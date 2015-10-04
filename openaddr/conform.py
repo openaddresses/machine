@@ -872,3 +872,8 @@ def conform_cli(source_definition, source_path, dest_path):
         os.remove(extract_path)
 
     return 0
+
+def conform_license(license):
+    ''' Convert optional license tag.
+    '''
+    return license

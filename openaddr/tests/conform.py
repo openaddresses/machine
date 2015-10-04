@@ -17,7 +17,7 @@ from ..conform import (
     row_fxn_regexp, row_smash_case, row_round_lat_lon, row_merge,
     row_extract_and_reproject, row_convert_to_out, row_fxn_join,
     row_canonicalize_street_and_number, conform_smash_case, conform_cli,
-    csvopen, csvDictReader, convert_regexp_replace
+    csvopen, csvDictReader, convert_regexp_replace, conform_license
     )
 
 class TestConformTransforms (unittest.TestCase):
@@ -693,3 +693,12 @@ class TestConformCsv(unittest.TestCase):
         r = self._convert(c, d)
         self.assertEqual(self._ascii_header_out, r[0])
         self.assertEqual(self._ascii_row_out, r[1])
+
+class TestConformLicense (unittest.TestCase):
+
+    def test_license_string(self):
+        ''' Test that simple license strings are converted correctly.
+        '''
+        self.assertEqual(conform_license(None), None)
+        self.assertEqual(conform_license('CC-BY-SA'), 'CC-BY-SA')
+        self.assertEqual(conform_license('http://example.com'), 'http://example.com')
