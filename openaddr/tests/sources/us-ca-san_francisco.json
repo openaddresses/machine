@@ -5,7 +5,7 @@
         "city": "San Francisco"
     },
     "data": "https://data.sfgov.org/download/kvej-w5kb/ZIPPED%20SHAPEFILE",
-    "license": "",
+    "license": { "text": "" },
     "year": "",
     "type": "http",
     "compression": "zip",

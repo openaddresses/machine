@@ -430,6 +430,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'][:21], 'Polish Law on Geodesy')
+        self.assertIn('issues/187#issuecomment-63327973', state['license'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -456,6 +457,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'][:21], 'Polish Law on Geodesy')
+        self.assertIn('issues/187#issuecomment-63327973', state['license'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
