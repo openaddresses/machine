@@ -538,6 +538,8 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['website'], 'http://adresse.data.gouv.fr/download/')
         self.assertIsNone(state['license'])
+        self.assertIs(state['attribution required'], True)
+        self.assertIn(u'Géographique et Forestière', state['attribution name'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -563,6 +565,8 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['website'], 'http://adresse.data.gouv.fr/download/')
         self.assertIsNone(state['license'])
+        self.assertIs(state['attribution required'], True)
+        self.assertIn(u'Géographique et Forestière', state['attribution name'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)

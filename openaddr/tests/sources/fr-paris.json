@@ -18,5 +18,10 @@
         "lat": "lat",
         "city": "nom_commune",
         "postcode": "code_post"
+    },
+    "license":
+    {
+        "attribution": true,
+        "attribution name": "Institut National de l'Information Géographique et Forestière"
     }
 }
