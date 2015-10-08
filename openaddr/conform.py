@@ -893,3 +893,30 @@ def conform_license(license):
         return None
     
     raise ValueError('Unknown license format "{}"'.format(repr(license)))
+
+def conform_attribution(license, attribution):
+    ''' Convert optional license and attribution tags.
+    
+        Return tuple with attribution-required flag and attribution name.
+    '''
+    # Initially guess based on old attribution tag.
+    if attribution in (None, False, ''):
+        attr_flag = False
+        attr_name = None
+    else:
+        attr_flag = True
+        attr_name = str(attribution)
+    
+    # Look for an explicit flag inside license dictionary.
+    if license is not None and hasattr(license, 'get') and 'attribution' in license:
+        attr_flag = license['attribution']
+    
+    # Override null flag if name has been defined.
+    if attr_flag is None and attr_name:
+        attr_flag = True
+    
+    # Blank name if flag is not true.
+    if not attr_flag:
+        attr_name = None
+    
+    return attr_flag, attr_name

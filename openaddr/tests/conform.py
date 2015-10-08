@@ -17,7 +17,8 @@ from ..conform import (
     row_fxn_regexp, row_smash_case, row_round_lat_lon, row_merge,
     row_extract_and_reproject, row_convert_to_out, row_fxn_join,
     row_canonicalize_street_and_number, conform_smash_case, conform_cli,
-    csvopen, csvDictReader, convert_regexp_replace, conform_license
+    csvopen, csvDictReader, convert_regexp_replace, conform_license,
+    conform_attribution
     )
 
 class TestConformTransforms (unittest.TestCase):
@@ -713,3 +714,42 @@ class TestConformLicense (unittest.TestCase):
         license = {'text': 'CC-BY-SA', 'url': 'http://example.com'}
         self.assertIn(license['text'], conform_license(license))
         self.assertIn(license['url'], conform_license(license))
+    
+    def test_attribution(self):
+        ''' Test combinations of attribution data.
+        '''
+        attr_flag1, attr_name1 = conform_attribution(None, None)
+        self.assertIs(attr_flag1, False)
+        self.assertIsNone(attr_name1)
+
+        attr_flag2, attr_name2 = conform_attribution({}, None)
+        self.assertIs(attr_flag2, False)
+        self.assertIsNone(attr_name2)
+
+        attr_flag3, attr_name3 = conform_attribution(None, '')
+        self.assertIs(attr_flag3, False)
+        self.assertIsNone(attr_name3)
+
+        attr_flag4, attr_name4 = conform_attribution({}, '')
+        self.assertIs(attr_flag4, False)
+        self.assertIsNone(attr_name4)
+
+        attr_flag5, attr_name5 = conform_attribution(None, 'Joe Blow')
+        self.assertIs(attr_flag5, True)
+        self.assertEqual(attr_name5, 'Joe Blow')
+
+        attr_flag6, attr_name6 = conform_attribution({}, 'Joe Blow')
+        self.assertIs(attr_flag6, True)
+        self.assertEqual(attr_name6, 'Joe Blow')
+
+        attr_flag7, attr_name7 = conform_attribution({'attribution': False}, 'Joe Blow')
+        self.assertIs(attr_flag7, False)
+        self.assertEqual(attr_name7, None)
+
+        attr_flag8, attr_name8 = conform_attribution({'attribution': True}, 'Joe Blow')
+        self.assertIs(attr_flag8, True)
+        self.assertEqual(attr_name8, 'Joe Blow')
+
+        attr_flag9, attr_name9 = conform_attribution({'attribution': None}, 'Joe Blow')
+        self.assertIs(attr_flag9, True)
+        self.assertEqual(attr_name9, 'Joe Blow')
