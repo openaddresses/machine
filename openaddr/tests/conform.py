@@ -769,3 +769,7 @@ class TestConformLicense (unittest.TestCase):
         attr_flag13, attr_name13 = conform_attribution({'attribution': None, 'attribution name': 'Joe Blow'}, 'Jon Snow')
         self.assertIs(attr_flag13, True)
         self.assertEqual(attr_name13, 'Joe Blow')
+
+        attr_flag14, attr_name14 = conform_attribution({'attribution': None, 'attribution name': False}, None)
+        self.assertIs(attr_flag14, True)
+        self.assertEqual(attr_name14, 'False')

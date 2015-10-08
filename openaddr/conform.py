@@ -908,17 +908,23 @@ def conform_attribution(license, attribution):
     if attribution in (None, False, ''):
         attr_flag = False
         attr_name = None
-    else:
+    elif not hasattr(attribution, 'encode'):
         attr_flag = True
         attr_name = str(attribution)
+    else:
+        attr_flag = True
+        attr_name = attribution
     
     is_dict = license is not None and hasattr(license, 'get')
     
     # Look for an attribution name inside license dictionary
     if is_dict and 'attribution name' in license:
-        if license['attribution name']:
+        if not hasattr(license['attribution name'], 'encode'):
             attr_flag = True
             attr_name = str(license['attribution name'])
+        elif license['attribution name']:
+            attr_flag = True
+            attr_name = license['attribution name']
     
     # Look for an explicit flag inside license dictionary.
     if is_dict and 'attribution' in license:
