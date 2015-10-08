@@ -16,6 +16,20 @@ from .compat import csvopen, csvwriter
 
 class SourceSaysSkip(RuntimeError): pass
 
+def boolstr(value):
+    '''
+    '''
+    if value is True:
+        return 'true'
+    
+    if value is False:
+        return 'false'
+    
+    if value is None:
+        return ''
+    
+    raise ValueError(repr(value))
+
 def process(source, destination, extras=dict()):
     ''' Process a single source and destination, return path to JSON state file.
     
@@ -146,7 +160,7 @@ def write_state(source, skipped, destination, log_handler, cache_result,
         ('processed', conform_result.path and relpath(processed_path2, statedir)),
         ('process time', conform_result.elapsed and str(conform_result.elapsed)),
         ('output', relpath(output_path, statedir)),
-        ('attribution required', conform_result.attribution_flag),
+        ('attribution required', boolstr(conform_result.attribution_flag)),
         ('attribution name', conform_result.attribution_name),
         ]
                

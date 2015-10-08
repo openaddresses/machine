@@ -492,7 +492,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['website'], 'http://nlftp.mlit.go.jp/isj/index.html')
         self.assertEqual(state['license'], 'http://nlftp.mlit.go.jp/ksj/other/yakkan.html')
-        self.assertIs(state['attribution required'], True)
+        self.assertEqual(state['attribution required'], 'true')
         self.assertIn('Ministry of Land', state['attribution name'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -538,7 +538,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['website'], 'http://adresse.data.gouv.fr/download/')
         self.assertIsNone(state['license'])
-        self.assertIs(state['attribution required'], True)
+        self.assertEqual(state['attribution required'], 'true')
         self.assertIn(u'Géographique et Forestière', state['attribution name'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -565,7 +565,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['website'], 'http://adresse.data.gouv.fr/download/')
         self.assertIsNone(state['license'])
-        self.assertIs(state['attribution required'], True)
+        self.assertEqual(state['attribution required'], 'true')
         self.assertIn(u'Géographique et Forestière', state['attribution name'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
