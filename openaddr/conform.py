@@ -76,8 +76,11 @@ class ConformResult:
     address_count = None
     path = None
     elapsed = None
+    attribution_flag = None
+    attribution_name = None
     
-    def __init__(self, processed, sample, website, license, geometry_type, address_count, path, elapsed):
+    def __init__(self, processed, sample, website, license, geometry_type,
+                 address_count, path, elapsed, attribution_flag, attribution_name):
         self.processed = processed
         self.sample = sample
         self.website = website
@@ -86,10 +89,12 @@ class ConformResult:
         self.address_count = address_count
         self.path = path
         self.elapsed = elapsed
+        self.attribution_flag = attribution_flag
+        self.attribution_name = attribution_name
 
     @staticmethod
     def empty():
-        return ConformResult(None, None, None, None, None, None, None, None)
+        return ConformResult(None, None, None, None, None, None, None, None, None, None)
 
     def todict(self):
         return dict(processed=self.processed, sample=self.sample)

@@ -145,7 +145,9 @@ def write_state(source, skipped, destination, log_handler, cache_result,
         ('cache time', cache_result.elapsed and str(cache_result.elapsed)),
         ('processed', conform_result.path and relpath(processed_path2, statedir)),
         ('process time', conform_result.elapsed and str(conform_result.elapsed)),
-        ('output', relpath(output_path, statedir))
+        ('output', relpath(output_path, statedir)),
+        ('attribution required', conform_result.attribution_flag),
+        ('attribution name', conform_result.attribution_name),
         ]
                
     with csvopen(join(statedir, 'index.txt'), 'w', encoding='utf8') as file:

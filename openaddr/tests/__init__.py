@@ -492,6 +492,8 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['website'], 'http://nlftp.mlit.go.jp/isj/index.html')
         self.assertEqual(state['license'], 'http://nlftp.mlit.go.jp/ksj/other/yakkan.html')
+        self.assertIs(state['attribution required'], True)
+        self.assertIn('Ministry of Land', state['attribution name'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
