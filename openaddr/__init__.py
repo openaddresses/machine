@@ -32,6 +32,7 @@ from .conform import (
     ConvertToCsvTask,
     elaborate_filenames,
     conform_license,
+    conform_attribution,
 )
 
 with open(join(dirname(__file__), 'VERSION')) as file:
@@ -177,6 +178,8 @@ def conform(srcjson, destdir, extras):
         out_path = realpath(join(destdir, 'out.csv'))
 
     rmtree(workdir)
+    
+    attr_flag, attr_name = conform_attribution(data.get('license'), data.get('attribution'))
 
     return ConformResult(data.get('processed', None),
                          data_sample,
@@ -185,7 +188,9 @@ def conform(srcjson, destdir, extras):
                          geometry_type,
                          addr_count,
                          out_path,
-                         datetime.now() - start)
+                         datetime.now() - start,
+                         attr_flag,
+                         attr_name)
 
 def package_output(source, processed_path, website, license):
     ''' Write a zip archive to temp dir with processed data and optional .vrt.

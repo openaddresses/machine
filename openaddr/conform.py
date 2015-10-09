@@ -76,8 +76,11 @@ class ConformResult:
     address_count = None
     path = None
     elapsed = None
+    attribution_flag = None
+    attribution_name = None
     
-    def __init__(self, processed, sample, website, license, geometry_type, address_count, path, elapsed):
+    def __init__(self, processed, sample, website, license, geometry_type,
+                 address_count, path, elapsed, attribution_flag, attribution_name):
         self.processed = processed
         self.sample = sample
         self.website = website
@@ -86,10 +89,12 @@ class ConformResult:
         self.address_count = address_count
         self.path = path
         self.elapsed = elapsed
+        self.attribution_flag = attribution_flag
+        self.attribution_name = attribution_name
 
     @staticmethod
     def empty():
-        return ConformResult(None, None, None, None, None, None, None, None)
+        return ConformResult(None, None, None, None, None, None, None, None, None, None)
 
     def todict(self):
         return dict(processed=self.processed, sample=self.sample)
@@ -893,3 +898,44 @@ def conform_license(license):
         return None
     
     raise ValueError('Unknown license format "{}"'.format(repr(license)))
+
+def conform_attribution(license, attribution):
+    ''' Convert optional license and attribution tags.
+    
+        Return tuple with attribution-required flag and attribution name.
+    '''
+    # Initially guess based on old attribution tag.
+    if attribution in (None, False, ''):
+        attr_flag = False
+        attr_name = None
+    elif not hasattr(attribution, 'encode'):
+        attr_flag = True
+        attr_name = str(attribution)
+    else:
+        attr_flag = True
+        attr_name = attribution
+    
+    is_dict = license is not None and hasattr(license, 'get')
+    
+    # Look for an attribution name inside license dictionary
+    if is_dict and 'attribution name' in license:
+        if not hasattr(license['attribution name'], 'encode'):
+            attr_flag = True
+            attr_name = str(license['attribution name'])
+        elif license['attribution name']:
+            attr_flag = True
+            attr_name = license['attribution name']
+    
+    # Look for an explicit flag inside license dictionary.
+    if is_dict and 'attribution' in license:
+        attr_flag = license['attribution']
+    
+    # Override null flag if name has been defined.
+    if attr_flag is None and attr_name:
+        attr_flag = True
+    
+    # Blank name if flag is not true.
+    if not attr_flag:
+        attr_name = None
+    
+    return attr_flag, attr_name
