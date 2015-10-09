@@ -1,3 +1,6 @@
+2015-10-08: 2.7.0
+- Added support for new attribution tags in source license dictionaries.
+
 2015-10-04: 2.6.0
 - Added support for new license dictionary values in data sources.
 
