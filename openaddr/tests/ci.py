@@ -1073,28 +1073,29 @@ class TestHook (unittest.TestCase):
         self.assertEqual(got1.status_code, 302)
         self.assertTrue(got1.headers.get('Location').endswith('/sets/2'))
 
-        got2 = self.client.get('/state.txt')
-        self.assertEqual(got2.status_code, 200)
+        for path in ('/state.txt', '/sets/2/state.txt'):
+            got2 = self.client.get(path)
+            self.assertEqual(got2.status_code, 200)
         
-        # El-Cheapo CSV parser.
-        lines = got2.data.decode('utf8').split('\r\n')[:3]
-        head, row1, row2 = [row.split('\t') for row in lines]
-        got_state1 = dict(zip(head, row1))
-        got_state2 = dict(zip(head, row2))
+            # El-Cheapo CSV parser.
+            lines = got2.data.decode('utf8').split('\r\n')[:3]
+            head, row1, row2 = [row.split('\t') for row in lines]
+            got_state1 = dict(zip(head, row1))
+            got_state2 = dict(zip(head, row2))
         
-        for key in ('source', 'cache', 'sample', 'geometry type', 'address count',
-                    'version', 'fingerprint', 'cache time', 'processed', 'output',
-                    'process time', 'attribution required', 'attribution name'):
-            self.assertIn(key, got_state1)
-            self.assertIn(key, got_state2)
+            for key in ('source', 'cache', 'sample', 'geometry type', 'address count',
+                        'version', 'fingerprint', 'cache time', 'processed', 'output',
+                        'process time', 'attribution required', 'attribution name'):
+                self.assertIn(key, got_state1)
+                self.assertIn(key, got_state2)
         
-        for (key, value) in got_state1.items():
-            if key in run_state1:
-                self.assertEqual(value, run_state1[key])
+            for (key, value) in got_state1.items():
+                if key in run_state1:
+                    self.assertEqual(value, run_state1[key])
         
-        for (key, value) in got_state2.items():
-            if key in run_state2:
-                self.assertEqual(value, run_state2[key])
+            for (key, value) in got_state2.items():
+                if key in run_state2:
+                    self.assertEqual(value, run_state2[key])
     
 class TestRuns (unittest.TestCase):
 

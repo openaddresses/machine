@@ -125,7 +125,7 @@ def app_get_state_txt():
     buffer = csvIO()
     output = csvDictWriter(buffer, CSV_HEADER, dialect='excel-tab', encoding='utf8')
     output.writerow({col: col for col in CSV_HEADER})
-    for run in runs:
+    for run in sorted(runs, key=attrgetter('source_path')):
         run_state = run.state or {}
         row = {col: run_state.get(col, None) for col in CSV_HEADER}
         row['source'] = os.path.relpath(run.source_path, 'sources')
@@ -281,7 +281,7 @@ def app_get_set_state_txt(set_id):
     buffer = csvIO()
     output = csvDictWriter(buffer, CSV_HEADER, dialect='excel-tab', encoding='utf8')
     output.writerow({col: col for col in CSV_HEADER})
-    for run in runs:
+    for run in sorted(runs, key=attrgetter('source_path')):
         run_state = run.state or {}
         row = {col: run_state.get(col, None) for col in CSV_HEADER}
         row['source'] = os.path.relpath(run.source_path, 'sources')
