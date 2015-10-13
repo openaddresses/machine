@@ -1,3 +1,6 @@
+2015-10-13: 2.7.1
+- Fixed leftover temporary directories from ci.worker.
+
 2015-10-08: 2.7.0
 - Added support for new attribution tags in source license dictionaries.
 
