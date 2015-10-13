@@ -148,15 +148,19 @@ def main():
     
     # Fetch and run jobs in a loop    
     while True:
+        worker_dir = tempfile.mkdtemp(prefix='worker-')
+    
         try:
             with db_connect(args.database_url) as conn:
                 task_Q = db_queue(conn, TASK_QUEUE)
                 done_Q = db_queue(conn, DONE_QUEUE)
                 due_Q = db_queue(conn, DUE_QUEUE)
-                pop_task_from_taskqueue(s3, task_Q, done_Q, due_Q, tempfile.gettempdir())
+                pop_task_from_taskqueue(s3, task_Q, done_Q, due_Q, worker_dir)
         except:
             _L.error('Error in worker main()', exc_info=True)
             time.sleep(5)
+        finally:
+            shutil.rmtree(workdir)
 
 if __name__ == '__main__':
     exit(main())
