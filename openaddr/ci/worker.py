@@ -160,7 +160,7 @@ def main():
             _L.error('Error in worker main()', exc_info=True)
             time.sleep(5)
         finally:
-            shutil.rmtree(workdir)
+            shutil.rmtree(worker_dir)
 
 if __name__ == '__main__':
     exit(main())
