@@ -164,10 +164,9 @@ def main():
     close(handle)
     
     tippecanoe = call_tippecanoe(mbtiles_filename)
-    zip_details = ((source, filename) for (source, filename, _)
-                   in iterate_local_processed_files(runs))
+    results = iterate_local_processed_files(runs)
     
-    for feature in stream_all_features(zip_details):
+    for feature in stream_all_features(results):
         print(json.dumps(feature), file=tippecanoe.stdin)
     
     tippecanoe.stdin.close()
@@ -175,13 +174,13 @@ def main():
     
     mapbox_upload(mbtiles_filename, args.tileset_id, args.mapbox_user, args.mapbox_key)
 
-def stream_all_features(zip_details):
+def stream_all_features(results):
     ''' Generate a stream of all locations as GeoJSON features.
     '''
-    for (source_base, zip_filename) in zip_details:
-        _L.debug(u'Opening {} ({})'.format(zip_filename, source_base))
+    for result in results:
+        _L.debug(u'Opening {} ({})'.format(result.filename, result.source_base))
 
-        zipfile = ZipFile(zip_filename, mode='r')
+        zipfile = ZipFile(result.filename, mode='r')
         for filename in zipfile.namelist():
             # Look for the one expected .csv file in the zip archive.
             _, ext = splitext(filename)
