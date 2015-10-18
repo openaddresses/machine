@@ -167,7 +167,8 @@ def main():
     results = iterate_local_processed_files(runs)
     
     for feature in stream_all_features(results):
-        print(json.dumps(feature), file=tippecanoe.stdin)
+        tippecanoe.stdin.write(json.dumps(feature).encode('utf8'))
+        tippecanoe.stdin.write(b'\n')
     
     tippecanoe.stdin.close()
     tippecanoe.wait()
