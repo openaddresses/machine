@@ -706,8 +706,15 @@ class TestPackage (unittest.TestCase):
             download_processed_file.return_value = 'nonexistent file'
             local_processed_files = iterate_local_processed_files(runs)
             
-            self.assertEqual(next(local_processed_files), ('123', 'nonexistent file', state1))
-            self.assertEqual(next(local_processed_files), ('7/9', 'nonexistent file', state3))
+            local_processed_result1 = next(local_processed_files)
+            local_processed_result2 = next(local_processed_files)
+            
+            self.assertEqual(local_processed_result1.source_base, '123')
+            self.assertEqual(local_processed_result1.filename, 'nonexistent file')
+            self.assertEqual(local_processed_result1.run_state, state1)
+            self.assertEqual(local_processed_result2.source_base, '7/9')
+            self.assertEqual(local_processed_result2.filename, 'nonexistent file')
+            self.assertEqual(local_processed_result2.run_state, state3)
 
     def response_content(self, url, request):
         '''

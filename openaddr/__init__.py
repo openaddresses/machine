@@ -62,6 +62,12 @@ class S3:
         self._make_bucket()
         return self._bucket.new_key(name)
 
+class LocalProcessedResult:
+    def __init__(self, source_base, filename, run_state):
+        self.source_base = source_base
+        self.filename = filename
+        self.run_state = run_state
+
 def cache(srcjson, destdir, extras):
     ''' Python wrapper for openaddress-cache.
     
@@ -243,7 +249,7 @@ def iterate_local_processed_files(runs):
             continue
         
         else:
-            yield (source_base, filename, run_state)
+            yield LocalProcessedResult(source_base, filename, run_state)
 
             if filename and exists(filename):
                 remove(filename)
