@@ -383,8 +383,12 @@ class EsriRestDownloadTask(DownloadTask):
                     response.status_code,
                     response.text
                 ))
+            count_json = response.json()
+            error = count_json.get('error')
+            if error:
+                raise DownloadError("Problem counting ESRI rows: {}" .format(error['message']))
 
-            row_count = response.json().get('count')
+            row_count = count_json.get('count')
             page_size = metadata.get('maxRecordCount', 500)
             if page_size > 1000:
                 page_size = 1000
@@ -433,7 +437,7 @@ class EsriRestDownloadTask(DownloadTask):
                         'outStatistics': json.dumps([
                             dict(statisticType='min', onStatisticField=oid_field_name, outStatisticFieldName='THE_MIN'),
                             dict(statisticType='max', onStatisticField=oid_field_name, outStatisticFieldName='THE_MAX'),
-                        ])
+                        ], separators=(',', ':'))
                     }
                     response = request('GET', query_url, params=query_args, headers=headers)
 
@@ -443,7 +447,13 @@ class EsriRestDownloadTask(DownloadTask):
                             response.text
                         ))
 
-                    resp_attrs = response.json()['features'][0]['attributes']
+                    metadata = response.json()
+
+                    error = metadata.get('error')
+                    if error:
+                        raise DownloadError("Problem querying min/max oid values: {}" .format(error['message']))
+
+                    resp_attrs = metadata['features'][0]['attributes']
                     oid_min = resp_attrs['THE_MIN']
                     oid_max = resp_attrs['THE_MAX']
 
