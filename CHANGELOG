@@ -1,3 +1,6 @@
+2015-10-28: 2.7.2
+- Fixed UI and ESRI caching behaviors.
+
 2015-10-13: 2.7.1
 - Fixed leftover temporary directories from ci.worker.
 
