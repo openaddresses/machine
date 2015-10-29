@@ -144,7 +144,7 @@ class ZipDecompressTask(DecompressionTask):
 class ExcerptDataTask(object):
     ''' Task for sampling three rows of data from datasource.
     '''
-    known_types = ('.shp', '.json', '.geojson', '.csv', '.kml', '.gml')
+    known_types = ('.shp', '.json', '.geojson', '.csv', '.kml', '.gml', '.txt')
 
     def excerpt(self, source_paths, workdir, conform):
         '''
