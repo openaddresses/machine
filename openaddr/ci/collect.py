@@ -64,32 +64,37 @@ def main():
     
     dir = mkdtemp(prefix='collected-')
     
-    everything = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-collected.zip')))
-    us_northeast = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-us_northeast.zip')))
-    us_midwest = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-us_midwest.zip')))
-    us_south = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-us_south.zip')))
-    us_west = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-us_west.zip')))
-    europe = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-europe.zip')))
-    asia = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-asia.zip')))
+    # Map of file suffixes to test functions
+    area_tests = {
+        'collected': (lambda result: True), 'us_northeast': is_us_northeast,
+        'us_midwest': is_us_midwest, 'us_south': is_us_south, 
+        'us_west': is_us_west, 'europe': is_europe, 'asia': is_asia
+        }
+    
+    collections = prepare_collections(s3, set, dir, area_tests)
 
     for result in iterate_local_processed_files(runs):
-        everything.collect(result)
-        if is_us_northeast(result): us_northeast.collect(result)
-        if is_us_midwest(result): us_midwest.collect(result)
-        if is_us_south(result): us_south.collect(result)
-        if is_us_west(result): us_west.collect(result)
-        if is_europe(result): europe.collect(result)
-        if is_asia(result): asia.collect(result)
+        for (collection, test) in collections:
+            if test(result):
+                collection.collect(result)
     
-    everything.publish()
-    us_northeast.publish()
-    us_midwest.publish()
-    us_south.publish()
-    us_west.publish()
-    europe.publish()
-    asia.publish()
+    for (collection, test) in collections:
+        collection.publish()
     
     rmtree(dir)
+
+def prepare_collections(s3, set, dir, area_tests):
+    '''
+    '''
+    collections = []
+    
+    for (suffix, test) in area_tests.items():
+        new_name = 'openaddresses-{}.zip'.format(suffix)
+        new_zip = _prepare_zip(set, join(dir, new_name))
+        new_collection = CollectorPublisher(s3, new_zip)
+        collections.append((new_collection, test))
+        
+    return collections
 
 def _prepare_zip(set, filename):
     '''
