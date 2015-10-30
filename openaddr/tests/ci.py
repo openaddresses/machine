@@ -40,7 +40,7 @@ from ..ci.objects import (
 
 from ..ci.collect import (
     is_us_northeast, is_us_midwest, is_us_south, is_us_west, is_europe, is_asia,
-    add_source_to_zipfile, CollectorPublisher
+    add_source_to_zipfile, CollectorPublisher, prepare_collections
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -1886,6 +1886,33 @@ class TestBatch (unittest.TestCase):
             self.assertEqual(get('http://fake-s3.local/render-world.png').status_code, 200)
 
 class TestCollect (unittest.TestCase):
+
+    def setUp(self):
+        '''
+        '''
+        self.output_dir = mkdtemp(prefix='TestCollect-')
+        self.s3 = FakeS3()
+    
+    def tearDown(self):
+        '''
+        '''
+        rmtree(self.output_dir)
+        remove(self.s3._fake_keys)
+    
+    def test_preparation(self):
+        '''
+        '''
+        set = mock.Mock()
+        set.owner, set.repository, set.commit_sha = 'oa', 'oa', 'ff9900'
+        
+        tests = {'nothing': lambda result: False, 'everything': lambda result: True}
+        collections = prepare_collections(self.s3, set, self.output_dir, tests)
+        
+        for (collection, test) in collections:
+            if '-everything' in collection.zip.filename:
+                self.assertTrue(test(None))
+            elif '-nothing' in collection.zip.filename:
+                self.assertFalse(test(None))
 
     def test_collector_publisher(self):
         '''
