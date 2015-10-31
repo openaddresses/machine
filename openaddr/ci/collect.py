@@ -67,7 +67,7 @@ def main():
     
     # Maps of file suffixes to test functions
     area_tests = {
-        '-collected': (lambda result: True), '-us_northeast': is_us_northeast,
+        '-global': (lambda result: True), '-us_northeast': is_us_northeast,
         '-us_midwest': is_us_midwest, '-us_south': is_us_south, 
         '-us_west': is_us_west, '-europe': is_europe, '-asia': is_asia
         }
@@ -98,7 +98,7 @@ def prepare_collections(s3, set, dir, area_tests, attr_tests):
         return lambda result: (test1(result) and test2(result))
 
     for ((area_suffix, area_test), (attr_suffix, attr_test)) in pairs:
-        new_name = 'openaddresses{}{}.zip'.format(area_suffix, attr_suffix)
+        new_name = 'openaddr-collected{}{}.zip'.format(area_suffix, attr_suffix)
         new_zip = _prepare_zip(set, join(dir, new_name))
         new_collection = CollectorPublisher(s3, new_zip)
         collections.append((new_collection, _and(area_test, attr_test)))
