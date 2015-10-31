@@ -1905,14 +1905,18 @@ class TestCollect (unittest.TestCase):
         set = mock.Mock()
         set.owner, set.repository, set.commit_sha = 'oa', 'oa', 'ff9900'
         
-        tests = {'nothing': lambda result: False, 'everything': lambda result: True}
-        collections = prepare_collections(self.s3, set, self.output_dir, tests)
+        tests = {'-nothing': lambda result: False, '-everything': lambda result: True}
+        collections = prepare_collections(self.s3, set, self.output_dir, tests, tests)
         
         for (collection, test) in collections:
-            if '-everything' in collection.zip.filename:
-                self.assertTrue(test(None))
-            elif '-nothing' in collection.zip.filename:
-                self.assertFalse(test(None))
+            self.assertIn('README.txt', collection.zip.namelist())
+            self.assertIn(b'oa/oa', collection.zip.read('README.txt'))
+            self.assertIn(b'ff9900', collection.zip.read('README.txt'))
+
+            if '-nothing' not in collection.zip.filename:
+                self.assertTrue(test(None), test(None))
+            else:
+                self.assertFalse(test(None), test(None))
 
     def test_collector_publisher(self):
         '''
