@@ -15,7 +15,7 @@ from shutil import rmtree
 
 from .objects import read_latest_set, read_completed_runs_to_date
 from . import db_connect, db_cursor, setup_logger, render_index_maps, log_function_errors
-from .. import S3, iterate_local_processed_files
+from .. import S3, iterate_local_processed_files, util
 
 parser = ArgumentParser(description='Run some source files.')
 
@@ -56,7 +56,7 @@ def main():
     setup_logger(args.sns_arn, log_level=args.loglevel)
     s3 = S3(args.access_key, args.secret_key, args.bucket)
     
-    with db_connect(args.database_url) as conn:
+    with db_connect(**util.prepare_db_kwargs(args.database_url)) as conn:
         with db_cursor(conn) as db:
             set = read_latest_set(db, args.owner, args.repository)
             runs = read_completed_runs_to_date(db, set.id)

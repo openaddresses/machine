@@ -22,7 +22,7 @@ from openaddr.tests.conform import TestConformCli, TestConformTransforms, TestCo
 from openaddr.tests.expand import TestExpand
 from openaddr.tests.render import TestRender
 from openaddr.tests.dotmap import TestDotmap
-from openaddr.tests.util import TestEsri2GeoJSON
+from openaddr.tests.util import TestEsri2GeoJSON, TestUtilities
 from openaddr.tests.summarize import TestSummarizeFunctions
 from openaddr.tests.ci import TestHook, TestRuns, TestWorker, TestBatch, TestObjects, TestCollect
 
