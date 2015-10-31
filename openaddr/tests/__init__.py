@@ -26,6 +26,7 @@ from os import close, environ, mkdir, remove
 from io import BytesIO
 from csv import DictReader
 from zipfile import ZipFile
+from datetime import timedelta
 from mimetypes import guess_type
 from urllib.parse import urlparse, parse_qs
 from os.path import dirname, join, basename, exists, splitext
@@ -48,6 +49,8 @@ from .. import (
     )
 
 from ..ci.objects import Run
+from ..cache import CacheResult
+from ..conform import ConformResult
 
 class TestOA (unittest.TestCase):
     
@@ -631,6 +634,84 @@ class TestOA (unittest.TestCase):
         self.assertTrue(775 in sample_data[1])
         self.assertTrue(2433902.038 in sample_data[1])
         self.assertTrue(575268.364 in sample_data[1])
+
+class TestState (unittest.TestCase):
+    
+    def setUp(self):
+        '''
+        '''
+        self.output_dir = tempfile.mkdtemp(prefix='TestState-')
+    
+    def tearDown(self):
+        '''
+        '''
+        shutil.rmtree(self.output_dir)
+    
+    def test_write_state(self):
+        '''
+        '''
+        log_handler = mock.Mock()
+
+        with open(join(self.output_dir, 'log-handler-stream.txt'), 'w') as file:
+            log_handler.stream.name = file.name
+        
+        with open(join(self.output_dir, 'processed.zip'), 'w') as file:
+            processed_path = file.name
+
+        conform_result = ConformResult(processed=None, sample='/tmp/sample.json',
+                                       website='http://example.com', license='ODbL',
+                                       geometry_type='Point', address_count=999,
+                                       path=processed_path, elapsed=timedelta(seconds=1),
+                                       attribution_flag=True, attribution_name='Example')
+
+        cache_result = CacheResult(cache='http://example.com/cache.csv',
+                                   fingerprint='ff9900', version='0.0.0',
+                                   elapsed=timedelta(seconds=2))
+        
+        #
+        # Check result of process_one.write_state().
+        #
+        args = dict(source='sources/foo.json', skipped=False,
+                    destination=self.output_dir, log_handler=log_handler,
+                    cache_result=cache_result, conform_result=conform_result,
+                    temp_dir=self.output_dir)
+
+        path1 = process_one.write_state(**args)
+        
+        with open(path1) as file:
+            state1 = dict(zip(*json.load(file)))
+        
+        self.assertEqual(state1['source'], 'foo.json')
+        self.assertEqual(state1['skipped'], False)
+        self.assertEqual(state1['cache'], 'http://example.com/cache.csv')
+        self.assertEqual(state1['sample'], 'sample.json')
+        self.assertEqual(state1['website'], 'http://example.com')
+        self.assertEqual(state1['license'], 'ODbL')
+        self.assertEqual(state1['geometry type'], 'Point')
+        self.assertEqual(state1['address count'], 999)
+        self.assertEqual(state1['version'], '0.0.0')
+        self.assertEqual(state1['fingerprint'], 'ff9900')
+        self.assertEqual(state1['cache time'], '0:00:02')
+        self.assertEqual(state1['processed'], 'out.zip')
+        self.assertEqual(state1['process time'], '0:00:01')
+        self.assertEqual(state1['output'], 'output.txt')
+        self.assertEqual(state1['attribution required'], 'true')
+        self.assertEqual(state1['attribution name'], 'Example')
+
+        #
+        # Tweak a few values, try process_one.write_state() again.
+        #
+        conform_result.attribution_flag = False
+
+        args.update(source='sources/foo/bar.json', skipped=True)
+        path2 = process_one.write_state(**args)
+        
+        with open(path2) as file:
+            state2 = dict(zip(*json.load(file)))
+
+        self.assertEqual(state2['source'], 'bar.json')
+        self.assertEqual(state2['skipped'], True)
+        self.assertEqual(state2['attribution required'], 'false')
 
 class TestPackage (unittest.TestCase):
 

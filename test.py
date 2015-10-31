@@ -15,7 +15,7 @@ import logging
 
 from openaddr import jobs
 
-from openaddr.tests import TestOA, TestPackage
+from openaddr.tests import TestOA, TestState, TestPackage
 from openaddr.tests.sample import TestSample
 from openaddr.tests.cache import TestCacheExtensionGuessing, TestCacheEsriDownload
 from openaddr.tests.conform import TestConformCli, TestConformTransforms, TestConformMisc, TestConformCsv, TestConformLicense
