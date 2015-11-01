@@ -18,28 +18,107 @@
 <p>
     We update these zipped global and regional address collections regularly:
 </p>
-<ul>
-    <li><a href="http://data.openaddresses.io/openaddresses-collected.zip">Global collection</a></li>
-    <li>
-        U.S. addresses
-        (<a href="http://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf">list of states by region</a>):
-        <ul>
-            <li><a href="http://data.openaddresses.io/openaddresses-us_northeast.zip">U.S. Northeast collection</a></li>
-            <li><a href="http://data.openaddresses.io/openaddresses-us_midwest.zip">U.S. Midwest collection</a></li>
-            <li><a href="http://data.openaddresses.io/openaddresses-us_south.zip">U.S. South collection</a></li>
-            <li><a href="http://data.openaddresses.io/openaddresses-us_west.zip">U.S. West collection</a></li>
-        </ul>
-    </li>
-    <li>
-        <a href="http://data.openaddresses.io/openaddresses-europe.zip">Europe collection</a>
-        (<a href="http://publications.europa.eu/code/pdf/370000en.htm">list of European countries</a>)
-    </li>
-    <li>
-        <a href="http://data.openaddresses.io/openaddresses-asia.zip">Asia/Oceania collection</a>
-        (<a href="http://www.countrycallingcodes.com/iso-country-codes/asia-codes.php">list of Asian</a>,
-        <a href="http://www.countrycallingcodes.com/iso-country-codes/australia-codes.php">Oceania countries</a>)
-    </li>
-</ul>
+<style lang="text/css">
+
+    #downloads tr th,
+    #downloads tr td
+    {
+        text-align: left;
+        border: none;
+    }
+
+    #downloads tr th { font-size: 65% }
+    
+    #downloads tr:nth-child(2n+0) td { background-color: #f8f8f8 }
+    #downloads tr:nth-child(2n+1) td { background-color: #ffffff }
+
+    #downloads tr td code
+    {
+        background-color: white;
+        border-color: #bcb7df;
+    }
+    
+   /*
+    * Progressively show additional sample data columns.
+    */
+
+    #downloads tr th:nth-child(1),
+    #downloads tr td:nth-child(1),
+    #downloads tr th:nth-child(2),
+    #downloads tr td:nth-child(2)
+    {
+        display: none
+    }
+
+    @media (min-width: 400px)
+    {
+        #downloads tr th:nth-child(1),
+        #downloads tr td:nth-child(1)
+        {
+            display: table-cell
+        }
+    }
+
+    @media (min-width: 960px)
+    {
+        #downloads tr th:nth-child(2),
+        #downloads tr td:nth-child(2)
+        {
+            display: table-cell
+        }
+    }
+
+</style>
+<table id="downloads">
+    <tr>
+        <th width="25%">Collection</th>
+        <th width="25%">What’s Included</th>
+        <th width="25%">No Attribution</th>
+        <th width="25%">Attribution Required</th>
+    </tr>
+    <tr>
+        <td>Global</td>
+        <td>Everything</td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-global.zip"><code>global.zip</code></a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-global-by.zip"><code>global-by.zip</code></a></td>
+    </tr>
+    <tr>
+        <td>U.S. Northeast</td>
+        <td><a href="http://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf">List of states by region</a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-us_northeast.zip"><code>us_northeast.zip</code></a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-us_northeast-by.zip"><code>us_northeast-by.zip</code></a></td>
+    </tr>
+    <tr>
+        <td>U.S. Midwest</td>
+        <td><a href="http://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf">List of states by region</a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-us_midwest.zip"><code>us_midwest.zip</code></a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-us_midwest-by.zip"><code>us_midwest-by.zip</code></a></td>
+    </tr>
+    <tr>
+        <td>U.S. South</td>
+        <td><a href="http://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf">List of states by region</a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-us_south.zip"><code>us_south.zip</code></a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-us_south-by.zip"><code>us_south-by.zip</code></a></td>
+    </tr>
+    <tr>
+        <td>U.S. West</td>
+        <td><a href="http://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf">List of states by region</a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-us_west.zip"><code>us_west.zip</code></a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-us_west-by.zip"><code>us_west-by.zip</code></a></td>
+    </tr>
+    <tr>
+        <td>Europe</td>
+        <td><a href="http://publications.europa.eu/code/pdf/370000en.htm">List of European countries</a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-europe.zip"><code>europe.zip</code></a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-europe-by.zip"><code>europe-by.zip</code></a></td>
+    </tr>
+    <tr>
+        <td>Asia/Oceania</td>
+        <td><a href="http://www.countrycallingcodes.com/iso-country-codes/asia-codes.php">List of Asian</a>, <a href="http://www.countrycallingcodes.com/iso-country-codes/australia-codes.php">Oceania countries</a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-asia.zip"><code>asia.zip</code></a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-asia-by.zip"><code>asia-by.zip</code></a></td>
+    </tr>
+</table>
 <p>
     <button onclick="choosemap('http://data.openaddresses.io/render-world.png')">Show World</button>
     <button onclick="choosemap('http://data.openaddresses.io/render-usa.png')">Show United States</button>

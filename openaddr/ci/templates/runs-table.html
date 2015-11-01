@@ -1,25 +1,25 @@
 <style lang="text/css">
 
-    table { border-collapse: collapse }
+    #runs { border-collapse: collapse }
     
-    table tr th,
-    table tr td.type,
-    table tr td.cached,
-    table tr td.problems,
-    table tr td.sample,
-    table tr td table tr td
+    #runs tr th,
+    #runs tr td.type,
+    #runs tr td.cached,
+    #runs tr td.problems,
+    #runs tr td.sample,
+    #runs tr td table tr td
     {
         font-size: 65%;
     }
     
-    table tr th, table tr td
+    #runs tr th, #runs tr td
     {
         text-align: left;
         padding: 3px 10px;
         border: none;
     }
     
-    table tr td>a
+    #runs tr td>a
     {
         display: block;
         margin: -3px -10px;
@@ -27,28 +27,28 @@
         text-decoration: underline;
     }
     
-    table tr td.problems>a,
-    table tr td.sample>a
+    #runs tr td.problems>a,
+    #runs tr td.sample>a
     {
         display: inline;
         margin: 0;
         padding: 0;
     }
     
-    table tr td.name>a
+    #runs tr td.name>a
     {
         text-decoration: none;
     }
     
-    table tr:nth-child(4n-2) td, table tr:nth-child(4n-1) td { background-color: #f8f8f8 }
-    table tr:nth-child(4n+0) td, table tr:nth-child(4n+1) td { background-color: #ffffff }
+    #runs tr:nth-child(4n-2) td, #runs tr:nth-child(4n-1) td { background-color: #f8f8f8 }
+    #runs tr:nth-child(4n+0) td, #runs tr:nth-child(4n+1) td { background-color: #ffffff }
 
-    table tr td table { margin: 1em 0 }
-    table tr td table { margin: 1em 0 }
-    table tr td table tr th { color: #666 }
+    #runs tr td table { margin: 1em 0 }
+    #runs tr td table { margin: 1em 0 }
+    #runs tr td table tr th { color: #666 }
 
-    table tr td table tr th,
-    table tr td table tr td
+    #runs tr td table tr th,
+    #runs tr td table tr td
     {
         font-family: monospace;
         background-color: transparent !important;
@@ -60,8 +60,8 @@
     * Progressively show additional sample data columns.
     */
 
-    table tr th,
-    table tr td
+    #runs tr th,
+    #runs tr td
     {
         display: none
     }
@@ -71,26 +71,26 @@
     1. name, 2. type, 3. cached, 4. processed, 5. problems, 6. sample
     */
 
-    table tr th:nth-child(1), /* name + data sample */
-    table tr td:nth-child(1), /* name + data sample */
-    table tr.init th.processed,
-    table tr.init th.sample,
-    table tr.init td.processed,
-    table tr.init td.sample,
-    table tr td table tr th:nth-child(1),
-    table tr td table tr th:nth-child(2),
-    table tr td table tr th:nth-child(3),
-    table tr td table tr td:nth-child(1),
-    table tr td table tr td:nth-child(2),
-    table tr td table tr td:nth-child(3)
+    #runs tr th:nth-child(1), /* name + data sample */
+    #runs tr td:nth-child(1), /* name + data sample */
+    #runs tr.init th.processed,
+    #runs tr.init th.sample,
+    #runs tr.init td.processed,
+    #runs tr.init td.sample,
+    #runs tr td table tr th:nth-child(1),
+    #runs tr td table tr th:nth-child(2),
+    #runs tr td table tr th:nth-child(3),
+    #runs tr td table tr td:nth-child(1),
+    #runs tr td table tr td:nth-child(2),
+    #runs tr td table tr td:nth-child(3)
     {
         display: table-cell
     }
 
     @media (min-width: 400px)
     {
-        table tr td table tr th:nth-child(4),
-        table tr td table tr td:nth-child(4)
+        #runs tr td table tr th:nth-child(4),
+        #runs tr td table tr td:nth-child(4)
         {
             display: table-cell
         }
@@ -98,10 +98,10 @@
     
     @media (min-width: 640px)
     {
-        table tr.init th.cached,
-        table tr.init td.cached,
-        table tr td table tr th:nth-child(5),
-        table tr td table tr td:nth-child(5)
+        #runs tr.init th.cached,
+        #runs tr.init td.cached,
+        #runs tr td table tr th:nth-child(5),
+        #runs tr td table tr td:nth-child(5)
         {
             display: table-cell
         }
@@ -109,12 +109,12 @@
     
     @media (min-width: 960px)
     {
-        table tr.init th.type,
-        table tr.init th.problems,
-        table tr.init td.type,
-        table tr.init td.problems,
-        table tr td table tr th:nth-child(6),
-        table tr td table tr td:nth-child(6)
+        #runs tr.init th.type,
+        #runs tr.init th.problems,
+        #runs tr.init td.type,
+        #runs tr.init td.problems,
+        #runs tr td table tr th:nth-child(6),
+        #runs tr td table tr td:nth-child(6)
         {
             display: table-cell
         }
@@ -187,7 +187,7 @@
     }
 
 </script>
-<table>
+<table id="runs">
     <tr class="init">
         <th class="name">Name</th>
         <th class="type">Type</th>
