@@ -491,7 +491,7 @@ class TestOA (unittest.TestCase):
         
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['website'], 'http://nlftp.mlit.go.jp/isj/index.html')
-        self.assertEqual(state['license'], 'http://nlftp.mlit.go.jp/ksj/other/yakkan.html')
+        self.assertEqual(state['license'], u'http://nlftp.mlit.go.jp/ksj/other/yakkan§.html')
         self.assertEqual(state['attribution required'], 'true')
         self.assertIn('Ministry of Land', state['attribution name'])
         
