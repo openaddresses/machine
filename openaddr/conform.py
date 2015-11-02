@@ -886,7 +886,7 @@ def conform_license(license):
     
     if not hasattr(license, 'get'):
         # Old behavior: treat it like a string instead of a dictionary
-        return str(license)
+        return license if hasattr(license, 'encode') else str(license)
     
     if 'url' in license and 'text' in license:
         return '{text} ({url})'.format(**license)
