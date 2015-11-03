@@ -1881,9 +1881,11 @@ class TestCollect (unittest.TestCase):
         with patch('openaddr.ci.collect.add_source_to_zipfile') as add_source_to_zipfile:
             collector_publisher = CollectorPublisher(s3, collected_zip)
             
-            for file in [('abc', 'abc.zip', dict(license='ODbL')), ('def', 'def.zip', dict(website='http://example.com'))]:
-                collector_publisher.collect(file)
+            s1 = {'license': 'ODbL', 'attribution name': 'ABC Co.'}
+            s2 = {'website': 'http://example.com', 'attribution flag': 'false'}
             
+            collector_publisher.collect(('abc', 'abc.zip', s1))
+            collector_publisher.collect(('def', 'def.zip', s2))
             collector_publisher.publish()
 
             add_source_to_zipfile.assert_has_calls([
@@ -1894,8 +1896,8 @@ class TestCollect (unittest.TestCase):
         self.assertEqual(len(collected_zip.writestr.mock_calls), 1)
         filename, content = collected_zip.writestr.mock_calls[0][1]
         self.assertEqual(filename, 'LICENSE.txt')
-        self.assertTrue('abc\nWebsite: Unknown\nLicense: ODbL\n' in content.decode('utf8'))
-        self.assertTrue('def\nWebsite: http://example.com\nLicense: Unknown\n' in content.decode('utf8'))
+        self.assertTrue('abc\nWebsite: Unknown\nLicense: ODbL\nRequired attribution: ABC Co.\n' in content.decode('utf8'))
+        self.assertTrue('def\nWebsite: http://example.com\nLicense: Unknown\nRequired attribution: No\n' in content.decode('utf8'))
         
         collected_zip.close.assert_called_once_with()
 
