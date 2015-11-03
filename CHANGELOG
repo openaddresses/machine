@@ -1,3 +1,8 @@
+2015-11-02: 2.7.3
+- Added attribution information to collection license files.
+- Added support for CSV files with .txt filenames.
+- Fixed encoding bugs.
+
 2015-10-28: 2.7.2
 - Fixed UI and ESRI caching behaviors.
 
