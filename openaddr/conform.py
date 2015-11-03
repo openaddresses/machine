@@ -144,7 +144,7 @@ class ZipDecompressTask(DecompressionTask):
 class ExcerptDataTask(object):
     ''' Task for sampling three rows of data from datasource.
     '''
-    known_types = ('.shp', '.json', '.geojson', '.csv', '.kml', '.gml', '.txt')
+    known_types = ('.shp', '.json', '.geojson', '.csv', '.kml', '.gml')
 
     def excerpt(self, source_paths, workdir, conform):
         '''
@@ -208,8 +208,8 @@ class ExcerptDataTask(object):
         data_path = known_paths[0]
         _, data_ext = os.path.splitext(data_path.lower())
 
+        # Sample a few GeoJSON features to save on memory for large datasets.
         if data_ext in ('.geojson', '.json'):
-            # Sample a few GeoJSON features to save on memory for large datasets.
             with open(data_path, 'r') as complete_layer:
                 temp_dir = os.path.dirname(data_path)
                 _, temp_path = tempfile.mkstemp(dir=temp_dir, suffix='.json')
@@ -217,12 +217,6 @@ class ExcerptDataTask(object):
                 with open(temp_path, 'w') as temp_file:
                     temp_file.write(sample_geojson(complete_layer, 10))
                     data_path = temp_path
-        
-        elif data_ext == '.txt':
-            # Convince OGR it's looking at a CSV file.
-            new_path = data_path + '.csv'
-            os.link(data_path, new_path)
-            data_path, data_ext = new_path, '.csv'
         
         datasource = ogr.Open(data_path, 0)
         layer = datasource.GetLayer()
