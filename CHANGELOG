@@ -1,3 +1,6 @@
+2015-11-02: 2.7.4
+- Fixed problem introduced with .txt filenames.
+
 2015-11-02: 2.7.3
 - Added attribution information to collection license files.
 - Added support for CSV files with .txt filenames.
