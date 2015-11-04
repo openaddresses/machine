@@ -1,4 +1,7 @@
-2015-11-02: 2.7.4
+2015-11-04: 2.7.5
+- Reintroduced support for CSV files named in conform.file tag.
+
+2015-11-03: 2.7.4
 - Fixed problem introduced with .txt filenames.
 
 2015-11-02: 2.7.3
