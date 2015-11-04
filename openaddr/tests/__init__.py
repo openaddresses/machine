@@ -99,6 +99,12 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('ftp.agrc.utah.gov', '/UtahSGID_Vector/UTM12_NAD83/LOCATION/UnpackagedData/AddressPoints/_Statewide/AddressPoints_shp.zip'):
             local_path = join(data_dirname, 'us-ut-excerpt.zip')
         
+        if (host, path) == ('ftp.vgingis.com', '/Download/VA_SiteAddress.txt.zip'):
+            local_path = join(data_dirname, 'VA_SiteAddress-excerpt.zip')
+        
+        if (host, path) == ('gis3.oit.ohio.gov', '/LBRS/_downloads/TRU_ADDS.zip'):
+            local_path = join(data_dirname, 'TRU_ADDS-excerpt.zip')
+        
         if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1/query'):
             qs = parse_qs(query)
             body_data = parse_qs(request.body) if request.body else {}
@@ -560,7 +566,6 @@ class TestOA (unittest.TestCase):
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
-            print(state_path, state)
 
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['website'], 'http://adresse.data.gouv.fr/download/')
@@ -576,6 +581,52 @@ class TestOA (unittest.TestCase):
         self.assertTrue('Saint-Joseph' in sample_data[1])
         self.assertTrue('55.6120442584072' in sample_data[1])
         self.assertTrue('-21.385871079156' in sample_data[1])
+
+    def test_single_va_statewide(self):
+        ''' Test complete process_one.process on data with non-OGR .csv filename.
+        '''
+        source = join(self.src_dir, 'us/va/statewide.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+            print(state_path, state)
+
+        self.assertTrue(state['sample'] is not None)
+
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('ADDRNUM' in sample_data[0])
+        self.assertTrue('393' in sample_data[1])
+        self.assertTrue('36.596097285069824' in sample_data[1])
+        self.assertTrue('-81.260533627271982' in sample_data[1])
+
+    def test_single_oh_trumbull(self):
+        ''' Test complete process_one.process on data with .txt filename present.
+        '''
+        source = join(self.src_dir, 'us/oh/trumbull.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+            print(state_path, state)
+
+        self.assertTrue(state['sample'] is not None)
+
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('HOUSENUM' in sample_data[0])
+        self.assertTrue(775 in sample_data[1])
+        self.assertTrue(2433902.038 in sample_data[1])
+        self.assertTrue(575268.364 in sample_data[1])
 
 class TestPackage (unittest.TestCase):
 

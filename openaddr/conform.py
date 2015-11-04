@@ -39,6 +39,8 @@ attrib_types = {
     'id':       'OA:id'
 }
 
+UNZIPPED_DIRNAME = 'unzipped'
+
 geometry_types = {
     ogr.wkbPoint: 'Point',
     ogr.wkbPoint25D: 'Point 2.5D',
@@ -125,7 +127,7 @@ class NoopDecompressTask(DecompressionTask):
 class ZipDecompressTask(DecompressionTask):
     def decompress(self, source_paths, workdir, filenames):
         output_files = []
-        expand_path = os.path.join(workdir, 'unzipped')
+        expand_path = os.path.join(workdir, UNZIPPED_DIRNAME)
         mkdirsp(expand_path)
 
         for source_path in source_paths:
@@ -198,8 +200,7 @@ class ExcerptDataTask(object):
         encoding = conform.get('encoding', False)
         csvsplit = conform.get('csvsplit', ',')
         
-        known_paths = [source_path for source_path in source_paths
-                       if os.path.splitext(source_path)[1].lower() in self.known_types]
+        known_paths = ExcerptDataTask._get_known_paths(source_paths, workdir, conform, self.known_types)
         
         if not known_paths:
             # we know nothing.
@@ -210,13 +211,7 @@ class ExcerptDataTask(object):
 
         # Sample a few GeoJSON features to save on memory for large datasets.
         if data_ext in ('.geojson', '.json'):
-            with open(data_path, 'r') as complete_layer:
-                temp_dir = os.path.dirname(data_path)
-                _, temp_path = tempfile.mkstemp(dir=temp_dir, suffix='.json')
-
-                with open(temp_path, 'w') as temp_file:
-                    temp_file.write(sample_geojson(complete_layer, 10))
-                    data_path = temp_path
+            data_path = ExcerptDataTask._sample_geojson_file(data_path)
         
         datasource = ogr.Open(data_path, 0)
         layer = datasource.GetLayer()
@@ -226,18 +221,7 @@ class ExcerptDataTask(object):
         
         # GDAL has issues with non-UTF8 input CSV data, so use Python instead.
         if data_ext == '.csv' and encoding not in ('utf8', 'utf-8'):
-            with csvopen(data_path, 'r', encoding=encoding) as file:
-                input = csvreader(file, encoding=encoding, delimiter=csvsplit)
-                data_sample = [row for (row, _) in zip(input, range(6))]
-
-                if len(data_sample) >= 2 and GEOM_FIELDNAME in data_sample[0]:
-                    geom_index = data_sample[0].index(GEOM_FIELDNAME)
-                    geometry = ogr.CreateGeometryFromWkt(data_sample[1][geom_index])
-                    geometry_type = geometry_types.get(geometry.GetGeometryType(), None)
-                else:
-                    geometry_type = None
-
-            return data_sample, geometry_type
+            return ExcerptDataTask._excerpt_csv_file(data_path, encoding, csvsplit)
         
         layer_defn = layer.GetLayerDefn()
         fieldcount = layer_defn.GetFieldCount()
@@ -262,6 +246,60 @@ class ExcerptDataTask(object):
             geometry_type = geometry_types.get(geometry.GetGeometryType(), None)
         else:
             geometry_type = None
+
+        return data_sample, geometry_type
+
+    @staticmethod
+    def _get_known_paths(source_paths, workdir, conform, known_types):
+        if conform.get('type') != 'csv' or 'file' not in conform:
+            return [source_path for source_path in source_paths
+                    if os.path.splitext(source_path)[1].lower() in known_types]
+
+        unzipped_base = os.path.join(workdir, UNZIPPED_DIRNAME)
+        unzipped_paths = dict([(os.path.relpath(source_path, unzipped_base), source_path)
+                               for source_path in source_paths])
+        
+        if conform['file'] not in unzipped_paths:
+            return []
+        
+        csv_path = ExcerptDataTask._make_csv_path(unzipped_paths.get(conform['file']))
+        return [csv_path]
+
+    @staticmethod
+    def _make_csv_path(csv_path):
+        _, csv_ext = os.path.splitext(csv_path.lower())
+
+        if csv_ext != '.csv':
+            # Convince OGR it's looking at a CSV file.
+            new_path = csv_path + '.csv'
+            os.link(csv_path, new_path)
+            csv_path = new_path
+        
+        return csv_path
+
+    @staticmethod
+    def _sample_geojson_file(data_path):
+        # Sample a few GeoJSON features to save on memory for large datasets.
+        with open(data_path, 'r') as complete_layer:
+            temp_dir = os.path.dirname(data_path)
+            _, temp_path = tempfile.mkstemp(dir=temp_dir, suffix='.json')
+
+            with open(temp_path, 'w') as temp_file:
+                temp_file.write(sample_geojson(complete_layer, 10))
+                return temp_path
+    
+    @staticmethod
+    def _excerpt_csv_file(data_path, encoding, csvsplit):
+        with csvopen(data_path, 'r', encoding=encoding) as file:
+            input = csvreader(file, encoding=encoding, delimiter=csvsplit)
+            data_sample = [row for (row, _) in zip(input, range(6))]
+
+            if len(data_sample) >= 2 and GEOM_FIELDNAME in data_sample[0]:
+                geom_index = data_sample[0].index(GEOM_FIELDNAME)
+                geometry = ogr.CreateGeometryFromWkt(data_sample[1][geom_index])
+                geometry_type = geometry_types.get(geometry.GetGeometryType(), None)
+            else:
+                geometry_type = None
 
         return data_sample, geometry_type
 
