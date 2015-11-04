@@ -39,6 +39,8 @@ attrib_types = {
     'id':       'OA:id'
 }
 
+UNZIPPED_DIRNAME = 'unzipped'
+
 geometry_types = {
     ogr.wkbPoint: 'Point',
     ogr.wkbPoint25D: 'Point 2.5D',
@@ -125,7 +127,7 @@ class NoopDecompressTask(DecompressionTask):
 class ZipDecompressTask(DecompressionTask):
     def decompress(self, source_paths, workdir, filenames):
         output_files = []
-        expand_path = os.path.join(workdir, 'unzipped')
+        expand_path = os.path.join(workdir, UNZIPPED_DIRNAME)
         mkdirsp(expand_path)
 
         for source_path in source_paths:
@@ -198,8 +200,24 @@ class ExcerptDataTask(object):
         encoding = conform.get('encoding', False)
         csvsplit = conform.get('csvsplit', ',')
         
-        known_paths = [source_path for source_path in source_paths
-                       if os.path.splitext(source_path)[1].lower() in self.known_types]
+        if conform.get('type') == 'csv' and 'file' in conform:
+            unzipped_base = os.path.join(workdir, UNZIPPED_DIRNAME)
+            unzipped_paths = dict([(os.path.relpath(source_path, unzipped_base), source_path)
+                                   for source_path in source_paths])
+            
+            if conform['file'] in unzipped_paths:
+                csv_path = unzipped_paths.get(conform['file'])
+                _, csv_ext = os.path.splitext(csv_path.lower())
+                if csv_ext != '.csv':
+                    # Convince OGR it's looking at a CSV file.
+                    new_path = csv_path + '.csv'
+                    os.link(csv_path, new_path)
+                    csv_path = new_path
+                
+                known_paths = [csv_path]
+        else:
+            known_paths = [source_path for source_path in source_paths
+                           if os.path.splitext(source_path)[1].lower() in self.known_types]
         
         if not known_paths:
             # we know nothing.

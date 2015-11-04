@@ -596,6 +596,15 @@ class TestOA (unittest.TestCase):
 
         self.assertTrue(state['sample'] is not None)
 
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('ADDRNUM' in sample_data[0])
+        self.assertTrue('393' in sample_data[1])
+        self.assertTrue('36.596097285069824' in sample_data[1])
+        self.assertTrue('-81.260533627271982' in sample_data[1])
+
     def test_single_oh_trumbull(self):
         ''' Test complete process_one.process on data with .txt filename present.
         '''
