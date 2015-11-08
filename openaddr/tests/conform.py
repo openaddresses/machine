@@ -779,8 +779,13 @@ class TestConformLicense (unittest.TestCase):
     def test_sharealike(self):
         ''' Test combinations of share=alike data.
         '''
+        for undict in (None, False, True, 'this', 'that'):
+            self.assertFalse(conform_sharealike(undict), '{} should be False'.format(undict))
+        
         for value1 in (False, 'No', 'no', 'false', 'False', 'n', 'f', None, ''):
-            self.assertFalse(conform_sharealike(value1), '{} should be False'.format(repr(value1)))
+            dict1 = {'share-alike': value1}
+            self.assertFalse(conform_sharealike(dict1), 'sa:{} should be False'.format(repr(value1)))
 
         for value2 in (True, 'Yes', 'yes', 'true', 'True', 'y', 't'):
-            self.assertTrue(conform_sharealike(value2), '{} should be True'.format(repr(value2)))
+            dict2 = {'share-alike': value2}
+            self.assertTrue(conform_sharealike(dict2), 'sa:{} should be True'.format(repr(value2)))

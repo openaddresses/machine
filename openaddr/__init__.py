@@ -33,6 +33,7 @@ from .conform import (
     elaborate_filenames,
     conform_license,
     conform_attribution,
+    conform_sharealike,
 )
 
 with open(join(dirname(__file__), 'VERSION')) as file:
@@ -179,6 +180,7 @@ def conform(srcjson, destdir, extras):
 
     rmtree(workdir)
     
+    sharealike_flag = conform_sharealike(data.get('license'))
     attr_flag, attr_name = conform_attribution(data.get('license'), data.get('attribution'))
 
     return ConformResult(data.get('processed', None),
@@ -189,6 +191,7 @@ def conform(srcjson, destdir, extras):
                          addr_count,
                          out_path,
                          datetime.now() - start,
+                         sharealike_flag,
                          attr_flag,
                          attr_name)
 
