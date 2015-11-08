@@ -979,3 +979,26 @@ def conform_attribution(license, attribution):
         attr_name = None
     
     return attr_flag, attr_name
+
+def conform_sharealike(share_alike):
+    ''' Convert optional license share-alike tags.
+    
+        Return boolean share-alike flag.
+    '''
+    if share_alike is None:
+        return False
+
+    if share_alike is False:
+        return False
+
+    if share_alike is True:
+        return True
+    
+    if hasattr(share_alike, 'lower'):
+        if share_alike.lower() in ('n', 'no', 'f', 'false', ''):
+            return False
+    
+    if hasattr(share_alike, 'lower'):
+        if share_alike.lower() in ('y', 'yes', 't', 'true'):
+            return True
+
