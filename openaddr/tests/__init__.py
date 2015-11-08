@@ -158,6 +158,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'], 'http://www.acgov.org/acdata/terms.htm')
+        self.assertEqual(state['share-alike'], 'false')
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -201,6 +202,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'], '')
+        self.assertEqual(state['share-alike'], 'false')
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -244,6 +246,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['geometry type'], 'Point 2.5D')
         self.assertEqual(state['website'], 'http://ci.carson.ca.us/')
         self.assertIsNone(state['license'])
+        self.assertEqual(state['share-alike'], 'false')
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -331,6 +334,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state['processed'])
         self.assertEqual(state['website'], 'http://data.openoakland.org/dataset/property-parcels/resource/df20b818-0d16-4da8-a9c1-a7b8b720ff49')
         self.assertIsNone(state['license'])
+        self.assertEqual(state['share-alike'], 'false')
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -369,6 +373,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['processed'] is None)
         self.assertEqual(state['website'], 'http://www.ci.berkeley.ca.us/datacatalog/')
         self.assertIsNone(state['license'])
+        self.assertEqual(state['share-alike'], 'false')
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -404,6 +409,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state['processed'])
         self.assertEqual(state['website'], 'http://www.ci.berkeley.ca.us/datacatalog/')
         self.assertIsNone(state['license'])
+        self.assertEqual(state['share-alike'], 'false')
         
         output_path = join(dirname(state_path), state['processed'])
         
@@ -501,6 +507,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['website'], 'http://nlftp.mlit.go.jp/isj/index.html')
         self.assertEqual(state['license'], u'http://nlftp.mlit.go.jp/ksj/other/yakkan§.html')
         self.assertEqual(state['attribution required'], 'true')
+        self.assertEqual(state['share-alike'], 'false')
         self.assertIn('Ministry of Land', state['attribution name'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
