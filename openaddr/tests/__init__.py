@@ -436,6 +436,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'][:21], 'Polish Law on Geodesy')
+        self.assertEqual(state['share-alike'], 'false')
         self.assertIn('issues/187#issuecomment-63327973', state['license'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -463,6 +464,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'][:21], 'Polish Law on Geodesy')
+        self.assertEqual(state['share-alike'], 'false')
         self.assertIn('issues/187#issuecomment-63327973', state['license'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -545,6 +547,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['website'], 'http://adresse.data.gouv.fr/download/')
         self.assertIsNone(state['license'])
         self.assertEqual(state['attribution required'], 'true')
+        self.assertEqual(state['share-alike'], 'true')
         self.assertIn(u'Géographique et Forestière', state['attribution name'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -571,6 +574,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['website'], 'http://adresse.data.gouv.fr/download/')
         self.assertIsNone(state['license'])
         self.assertEqual(state['attribution required'], 'true')
+        self.assertEqual(state['share-alike'], 'true')
         self.assertIn(u'Géographique et Forestière', state['attribution name'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
