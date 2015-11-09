@@ -78,11 +78,13 @@ class ConformResult:
     address_count = None
     path = None
     elapsed = None
+    sharealike_flag = None
     attribution_flag = None
     attribution_name = None
     
     def __init__(self, processed, sample, website, license, geometry_type,
-                 address_count, path, elapsed, attribution_flag, attribution_name):
+                 address_count, path, elapsed, sharealike_flag,
+                 attribution_flag, attribution_name):
         self.processed = processed
         self.sample = sample
         self.website = website
@@ -91,12 +93,13 @@ class ConformResult:
         self.address_count = address_count
         self.path = path
         self.elapsed = elapsed
+        self.sharealike_flag = sharealike_flag
         self.attribution_flag = attribution_flag
         self.attribution_name = attribution_name
 
     @staticmethod
     def empty():
-        return ConformResult(None, None, None, None, None, None, None, None, None, None)
+        return ConformResult(None, None, None, None, None, None, None, None, None, None, None)
 
     def todict(self):
         return dict(processed=self.processed, sample=self.sample)
@@ -979,3 +982,33 @@ def conform_attribution(license, attribution):
         attr_name = None
     
     return attr_flag, attr_name
+
+def conform_sharealike(license):
+    ''' Convert optional license share-alike tags.
+    
+        Return boolean share-alike flag.
+    '''
+    is_dict = license is not None and hasattr(license, 'get')
+    
+    if not is_dict or 'share-alike' not in license:
+        return None
+    
+    share_alike = license.get('share-alike')
+    
+    if share_alike is None:
+        return False
+
+    if share_alike is False:
+        return False
+
+    if share_alike is True:
+        return True
+    
+    if hasattr(share_alike, 'lower'):
+        if share_alike.lower() in ('n', 'no', 'f', 'false', ''):
+            return False
+    
+    if hasattr(share_alike, 'lower'):
+        if share_alike.lower() in ('y', 'yes', 't', 'true'):
+            return True
+

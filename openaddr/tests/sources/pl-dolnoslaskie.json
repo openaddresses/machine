@@ -10,7 +10,8 @@
     },
     "license": {
         "text": "Polish Law on Geodesy and Cartography of 17 May 1989",
-        "url": "https://github.com/openaddresses/openaddresses/issues/187#issuecomment-63327973"
+        "url": "https://github.com/openaddresses/openaddresses/issues/187#issuecomment-63327973",
+        "share-alike": false
     },
     "compression": "zip",
     "conform": {

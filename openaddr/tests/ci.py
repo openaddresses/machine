@@ -1051,6 +1051,11 @@ class TestHook (unittest.TestCase):
         run_state2.update(run_state1)
         run_state2['source'] = 'a2.json'
         
+        # Newer-style run including share-alike columns.
+        run_state3 = {'share-alike': 'true'}
+        run_state3.update(run_state2)
+        run_state3['source'] = 'a3.json'
+        
         # Look for the task in the task queue.
         with db_connect(self.database_url) as conn:
             with db_cursor(conn) as db:
@@ -1068,6 +1073,10 @@ class TestHook (unittest.TestCase):
                 run_id2 = add_run(db)
                 set_run(db, run_id2, 'sources/a2.json', 'ghi', b'jkl',
                         run_state2, True, None, None, None, 2)
+                
+                run_id3 = add_run(db)
+                set_run(db, run_id3, 'sources/a3.json', 'ghi', b'jkl',
+                        run_state3, True, None, None, None, 2)
         
         got1 = self.client.get('/latest/set')
         self.assertEqual(got1.status_code, 302)
@@ -1078,14 +1087,16 @@ class TestHook (unittest.TestCase):
             self.assertEqual(got2.status_code, 200)
         
             # El-Cheapo CSV parser.
-            lines = got2.data.decode('utf8').split('\r\n')[:3]
-            head, row1, row2 = [row.split('\t') for row in lines]
+            lines = got2.data.decode('utf8').split('\r\n')[:4]
+            head, row1, row2, row3 = [row.split('\t') for row in lines]
             got_state1 = dict(zip(head, row1))
             got_state2 = dict(zip(head, row2))
+            got_state3 = dict(zip(head, row3))
         
             for key in ('source', 'cache', 'sample', 'geometry type', 'address count',
                         'version', 'fingerprint', 'cache time', 'processed', 'output',
-                        'process time', 'attribution required', 'attribution name'):
+                        'process time', 'attribution required', 'attribution name',
+                        'share-alike'):
                 self.assertIn(key, got_state1)
                 self.assertIn(key, got_state2)
         
@@ -1096,6 +1107,10 @@ class TestHook (unittest.TestCase):
             for (key, value) in got_state2.items():
                 if key in run_state2:
                     self.assertEqual(value, run_state2[key])
+        
+            for (key, value) in got_state3.items():
+                if key in run_state3:
+                    self.assertEqual(value, run_state3[key])
     
 class TestRuns (unittest.TestCase):
 

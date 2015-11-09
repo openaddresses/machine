@@ -32,7 +32,7 @@ from ..summarize import summarize_runs, GLASS_HALF_FULL, GLASS_HALF_EMPTY, nice_
 
 CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
              'version', 'fingerprint', 'cache time', 'processed', 'process time', \
-             'output', 'attribution required', 'attribution name'
+             'output', 'attribution required', 'attribution name', 'share-alike'
 
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
 

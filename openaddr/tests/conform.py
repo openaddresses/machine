@@ -18,7 +18,7 @@ from ..conform import (
     row_extract_and_reproject, row_convert_to_out, row_fxn_join,
     row_canonicalize_street_and_number, conform_smash_case, conform_cli,
     csvopen, csvDictReader, convert_regexp_replace, conform_license,
-    conform_attribution
+    conform_attribution, conform_sharealike
     )
 
 class TestConformTransforms (unittest.TestCase):
@@ -775,3 +775,17 @@ class TestConformLicense (unittest.TestCase):
         attr_flag14, attr_name14 = conform_attribution({'attribution': None, 'attribution name': False}, None)
         self.assertIs(attr_flag14, True)
         self.assertEqual(attr_name14, 'False')
+    
+    def test_sharealike(self):
+        ''' Test combinations of share=alike data.
+        '''
+        for undict in (None, False, True, 'this', 'that'):
+            self.assertIs(conform_sharealike(undict), None, '{} should be None'.format(undict))
+        
+        for value1 in (False, 'No', 'no', 'false', 'False', 'n', 'f', None, ''):
+            dict1 = {'share-alike': value1}
+            self.assertIs(conform_sharealike(dict1), False, 'sa:{} should be False'.format(repr(value1)))
+
+        for value2 in (True, 'Yes', 'yes', 'true', 'True', 'y', 't'):
+            dict2 = {'share-alike': value2}
+            self.assertIs(conform_sharealike(dict2), True, 'sa:{} should be True'.format(repr(value2)))
