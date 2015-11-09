@@ -991,7 +991,7 @@ def conform_sharealike(license):
     is_dict = license is not None and hasattr(license, 'get')
     
     if not is_dict or 'share-alike' not in license:
-        return False
+        return None
     
     share_alike = license.get('share-alike')
     
