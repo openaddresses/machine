@@ -1,3 +1,6 @@
+2015-11-09: 2.8.0
+- Added support for new share-alike tag in source license dictionaries.
+
 2015-11-04: 2.7.5
 - Reintroduced support for CSV files named in conform.file tag.
 
