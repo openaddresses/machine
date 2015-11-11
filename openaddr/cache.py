@@ -466,7 +466,7 @@ class EsriRestDownloadTask(DownloadTask):
                     oid_field_name = self.find_oid_field_name(metadata)
 
                     try:
-                        (oid_min, oid_max) = self.get_layer_min_max(query_url)
+                        (oid_min, oid_max) = self.get_layer_min_max(query_url, oid_field_name)
 
                         for page_min in range(oid_min - 1, oid_max, page_size):
                             page_max = min(page_min + page_size, oid_max)
