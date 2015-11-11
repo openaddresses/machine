@@ -374,10 +374,11 @@ class EsriRestDownloadTask(DownloadTask):
         response = request('GET', url, params=query_args, headers=self.headers)
         metadata = self.handle_esri_errors(response, "Could not retrieve min/max oid values from ESRI source")
 
-        resp_attrs = metadata['features'][0]['attributes']
-        oid_min = resp_attrs['THE_MIN']
-        oid_max = resp_attrs['THE_MAX']
-        return (oid_min, oid_max)
+        # Some servers (specifically version 10.11, it seems) will respond with SQL statements
+        # for the attribute names rather than the requested field names, so pick the min and max
+        # deliberately rather than relying on the names.
+        min_max_values = metadata['features'][0]['attributes'].values()
+        return (min(min_max_values), max(min_max_values))
 
     def get_layer_oids(self, url):
         query_args = {
