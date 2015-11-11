@@ -249,10 +249,8 @@ class URLDownloadTask(DownloadTask):
                 _L.debug("File exists %s", file_path)
                 continue
 
-            headers = {'User-Agent': self.USER_AGENT}
-
             try:
-                resp = request('GET', source_url, headers=headers, stream=True)
+                resp = request('GET', source_url, headers=self.headers, stream=True)
             except Exception as e:
                 raise DownloadError("Could not connect to URL", e)
 
