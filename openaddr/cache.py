@@ -106,6 +106,10 @@ class DownloadTask(object):
 
     def __init__(self, source_prefix):
         self.source_prefix = source_prefix
+        self.headers = {
+            'User-Agent': 'openaddresses-extract/1.0 (https://github.com/openaddresses/openaddresses)',
+        }
+
 
     @classmethod
     def from_type_string(clz, type_string, source_prefix=None):
@@ -195,14 +199,13 @@ def get_content_mimetype(chunk):
     handle, file = mkstemp()
     os.write(handle, chunk)
     os.close(handle)
-    
+
     mime_type = check_output(('file', '--mime-type', '-b', file)).strip()
     os.remove(file)
-    
+
     return mime_type.decode('utf-8')
 
 class URLDownloadTask(DownloadTask):
-    USER_AGENT = 'openaddresses-extract/1.0 (https://github.com/openaddresses/openaddresses)'
     CHUNK = 16 * 1024
 
     def get_file_path(self, url, dir_path):
@@ -270,8 +273,6 @@ class URLDownloadTask(DownloadTask):
 
 
 class EsriRestDownloadTask(DownloadTask):
-    USER_AGENT = 'openaddresses-extract/1.0 (https://github.com/openaddresses/openaddresses)'
-
     def handle_esri_errors(self, response, error_message):
         if response.status_code != 200:
             raise DownloadError('{}: HTTP {} {}'.format(
@@ -344,6 +345,65 @@ class EsriRestDownloadTask(DownloadTask):
 
         return os.path.join(dir_path, name_base + path_ext)
 
+    def get_layer_metadata(self, url):
+        query_args = {
+            'f': 'json'
+        }
+        response = request('GET', url, params=query_args, headers=self.headers)
+        metadata = self.handle_esri_errors(response, "Could not retrieve field names from ESRI source")
+        return metadata
+
+    def get_layer_feature_count(self, url):
+        query_args = {
+            'where': '1=1',
+            'returnCountOnly': 'true',
+            'f': 'json',
+        }
+        response = request('GET', url, params=query_args, headers=self.headers)
+        count_json = self.handle_esri_errors(response, "Could not retrieve row count from ESRI source")
+        return count_json
+
+    def get_layer_min_max(self, url, oid_field_name):
+        """ Find the min and max values for the OID field. """
+        query_args = {
+            'f': 'json',
+            'outFields': '',
+            'outStatistics': json.dumps([
+                dict(statisticType='min', onStatisticField=oid_field_name, outStatisticFieldName='THE_MIN'),
+                dict(statisticType='max', onStatisticField=oid_field_name, outStatisticFieldName='THE_MAX'),
+            ], separators=(',', ':'))
+        }
+        response = request('GET', url, params=query_args, headers=self.headers)
+        metadata = self.handle_esri_errors(response, "Could not retrieve min/max oid values from ESRI source")
+
+        resp_attrs = metadata['features'][0]['attributes']
+        oid_min = resp_attrs['THE_MIN']
+        oid_max = resp_attrs['THE_MAX']
+        return (oid_min, oid_max)
+
+    def get_layer_oids(self, url):
+        query_args = {
+            'where': '1=1',  # So we get everything
+            'returnIdsOnly': 'true',
+            'f': 'json',
+        }
+        response = request('GET', url, params=query_args, headers=self.headers)
+        oid_data = self.handle_esri_errors(response, "Could not retrieve object IDs from ESRI source")
+        return oid_data
+
+    def find_oid_field_name(self, metadata):
+        oid_field_name = metadata.get('objectIdField')
+        if not oid_field_name:
+            for f in metadata['fields']:
+                if f['type'] == 'esriFieldTypeOID':
+                    oid_field_name = f['name']
+                    break
+
+        if not oid_field_name:
+            raise DownloadError("Could not find object ID field name")
+
+        return oid_field_name
+
     def download(self, source_urls, workdir):
         output_files = []
         download_path = os.path.join(workdir, 'esri')
@@ -358,15 +418,7 @@ class EsriRestDownloadTask(DownloadTask):
                 _L.debug("File exists %s", file_path)
                 continue
 
-            headers = {'User-Agent': self.USER_AGENT}
-
-            # Get the fields
-            query_args = {
-                'f': 'json'
-            }
-            response = request('GET', source_url, params=query_args, headers=headers)
-
-            metadata = self.handle_esri_errors(response, "Could not retrieve field names from ESRI source")
+            metadata = self.get_layer_metadata(source_url)
 
             field_names = [f['name'] for f in metadata['fields']]
             if X_FIELDNAME not in field_names:
@@ -379,14 +431,7 @@ class EsriRestDownloadTask(DownloadTask):
             query_url = source_url + '/query'
 
             # Get the count of rows in the layer
-            query_args = {
-                'where': '1=1',
-                'returnCountOnly': 'true',
-                'f': 'json',
-            }
-            response = request('GET', query_url, params=query_args, headers=headers)
-
-            count_json = self.handle_esri_errors(response, "Could not retrieve row count from ESRI source")
+            count_json = self.get_layer_feature_count(query_url)
 
             row_count = count_json.get('count')
             page_size = metadata.get('maxRecordCount', 500)
@@ -419,33 +464,9 @@ class EsriRestDownloadTask(DownloadTask):
                     # If the layer supports statistics, we can request maximum and minimum object ID
                     # to help build the pages
 
-                    # Find the OID field
-                    oid_field_name = metadata.get('objectIdField')
-                    if not oid_field_name:
-                        for f in metadata['fields']:
-                            if f['type'] == 'esriFieldTypeOID':
-                                oid_field_name = f['name']
-                                break
+                    oid_field_name = self.find_oid_field_name(metadata)
 
-                    if not oid_field_name:
-                        raise DownloadError("Could not find object ID field name")
-
-                    # Find the min and max values for the OID field
-                    query_args = {
-                        'f': 'json',
-                        'outFields': '',
-                        'outStatistics': json.dumps([
-                            dict(statisticType='min', onStatisticField=oid_field_name, outStatisticFieldName='THE_MIN'),
-                            dict(statisticType='max', onStatisticField=oid_field_name, outStatisticFieldName='THE_MAX'),
-                        ], separators=(',', ':'))
-                    }
-                    response = request('GET', query_url, params=query_args, headers=headers)
-
-                    metadata = self.handle_esri_errors(response, "Could not retrieve min/max oid values from ESRI source")
-
-                    resp_attrs = metadata['features'][0]['attributes']
-                    oid_min = resp_attrs['THE_MIN']
-                    oid_max = resp_attrs['THE_MAX']
+                    (oid_min, oid_max) = self.get_layer_min_max(query_url)
 
                     for page_min in range(oid_min - 1, oid_max, page_size):
                         page_max = min(page_min + page_size, oid_max)
@@ -469,15 +490,7 @@ class EsriRestDownloadTask(DownloadTask):
                     # all the individual IDs and page through them one chunk at
                     # a time.
 
-                    # Get all the OIDs
-                    query_args = {
-                        'where': '1=1',  # So we get everything
-                        'returnIdsOnly': 'true',
-                        'f': 'json',
-                    }
-                    response = request('GET', query_url, params=query_args, headers=headers)
-
-                    oid_data = self.handle_esri_errors(response, "Could not retrieve object IDs from ESRI source")
+                    oid_data = self.get_layer_oids(query_url)
                     oids = oid_data['objectIds']
 
                     for i in range(0, len(oids), 100):
@@ -503,7 +516,7 @@ class EsriRestDownloadTask(DownloadTask):
                         raise RuntimeError('Ran out of time caching Esri features')
 
                     try:
-                        response = request('POST', query_url, headers=headers, data=query_args)
+                        response = request('POST', query_url, headers=self.headers, data=query_args)
 
                         data = self.handle_esri_errors(response, "Could not retrieve this chunk of objects from ESRI source")
                     except socket.timeout as e:
