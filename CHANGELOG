@@ -1,3 +1,6 @@
+2015-11-11: 2.8.1
+- Improved ESRI downloader with better errors and OID enumeration when needed.
+
 2015-11-09: 2.8.0
 - Added support for new share-alike tag in source license dictionaries.
 
