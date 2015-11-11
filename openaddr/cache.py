@@ -460,32 +460,40 @@ class EsriRestDownloadTask(DownloadTask):
             else:
                 # If not, we can still use the `where` argument to paginate
 
+                use_oids = True
                 if metadata.get('supportsStatistics'):
                     # If the layer supports statistics, we can request maximum and minimum object ID
                     # to help build the pages
 
                     oid_field_name = self.find_oid_field_name(metadata)
 
-                    (oid_min, oid_max) = self.get_layer_min_max(query_url)
+                    try:
+                        (oid_min, oid_max) = self.get_layer_min_max(query_url)
 
-                    for page_min in range(oid_min - 1, oid_max, page_size):
-                        page_max = min(page_min + page_size, oid_max)
-                        page_args.append({
-                            'where': '{} > {} AND {} <= {}'.format(
-                                oid_field_name,
-                                page_min,
-                                oid_field_name,
-                                page_max,
-                            ),
-                            'geometryPrecision': 7,
-                            'returnGeometry': 'true',
-                            'outSR': 4326,
-                            'outFields': '*',
-                            'f': 'json',
-                        })
-                    _L.info("Built {} requests using OID where clause method".format(len(page_args)))
+                        for page_min in range(oid_min - 1, oid_max, page_size):
+                            page_max = min(page_min + page_size, oid_max)
+                            page_args.append({
+                                'where': '{} > {} AND {} <= {}'.format(
+                                    oid_field_name,
+                                    page_min,
+                                    oid_field_name,
+                                    page_max,
+                                ),
+                                'geometryPrecision': 7,
+                                'returnGeometry': 'true',
+                                'outSR': 4326,
+                                'outFields': '*',
+                                'f': 'json',
+                            })
+                        _L.info("Built {} requests using OID where clause method".format(len(page_args)))
 
-                else:
+                        # If we reach this point we don't need to fall through to enumerating all object IDs
+                        # because the statistics method worked
+                        use_oids = False
+                    except DownloadError:
+                        _L.exception("Finding max/min from statistics failed. Trying OID enumeration.")
+
+                if use_oids:
                     # If the layer does not support statistics, we can request
                     # all the individual IDs and page through them one chunk at
                     # a time.
