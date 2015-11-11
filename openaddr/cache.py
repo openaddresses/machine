@@ -106,6 +106,10 @@ class DownloadTask(object):
 
     def __init__(self, source_prefix):
         self.source_prefix = source_prefix
+        self.headers = {
+            'User-Agent': 'openaddresses-extract/1.0 (https://github.com/openaddresses/openaddresses)',
+        }
+
 
     @classmethod
     def from_type_string(clz, type_string, source_prefix=None):
@@ -195,14 +199,13 @@ def get_content_mimetype(chunk):
     handle, file = mkstemp()
     os.write(handle, chunk)
     os.close(handle)
-    
+
     mime_type = check_output(('file', '--mime-type', '-b', file)).strip()
     os.remove(file)
-    
+
     return mime_type.decode('utf-8')
 
 class URLDownloadTask(DownloadTask):
-    USER_AGENT = 'openaddresses-extract/1.0 (https://github.com/openaddresses/openaddresses)'
     CHUNK = 16 * 1024
 
     def get_file_path(self, url, dir_path):
@@ -246,10 +249,8 @@ class URLDownloadTask(DownloadTask):
                 _L.debug("File exists %s", file_path)
                 continue
 
-            headers = {'User-Agent': self.USER_AGENT}
-
             try:
-                resp = request('GET', source_url, headers=headers, stream=True)
+                resp = request('GET', source_url, headers=self.headers, stream=True)
             except Exception as e:
                 raise DownloadError("Could not connect to URL", e)
 
@@ -270,7 +271,32 @@ class URLDownloadTask(DownloadTask):
 
 
 class EsriRestDownloadTask(DownloadTask):
-    USER_AGENT = 'openaddresses-extract/1.0 (https://github.com/openaddresses/openaddresses)'
+    def handle_esri_errors(self, response, error_message):
+        if response.status_code != 200:
+            raise DownloadError('{}: HTTP {} {}'.format(
+                error_message,
+                response.status_code,
+                response.text,
+            ))
+
+        try:
+            data = response.json()
+        except:
+            _L.error("Could not parse response from {} as JSON:\n\n{}".format(
+                response.request.url,
+                response.text,
+            ))
+            raise
+
+        error = data.get('error')
+        if error:
+            raise DownloadError("{}: {} {}" .format(
+                error_message,
+                error['message'],
+                ', '.join(error['details']),
+            ))
+
+        return data
 
     def build_ogr_geometry(self, geom_type, esri_feature):
         if 'geometry' not in esri_feature:
@@ -317,6 +343,66 @@ class EsriRestDownloadTask(DownloadTask):
 
         return os.path.join(dir_path, name_base + path_ext)
 
+    def get_layer_metadata(self, url):
+        query_args = {
+            'f': 'json'
+        }
+        response = request('GET', url, params=query_args, headers=self.headers)
+        metadata = self.handle_esri_errors(response, "Could not retrieve field names from ESRI source")
+        return metadata
+
+    def get_layer_feature_count(self, url):
+        query_args = {
+            'where': '1=1',
+            'returnCountOnly': 'true',
+            'f': 'json',
+        }
+        response = request('GET', url, params=query_args, headers=self.headers)
+        count_json = self.handle_esri_errors(response, "Could not retrieve row count from ESRI source")
+        return count_json
+
+    def get_layer_min_max(self, url, oid_field_name):
+        """ Find the min and max values for the OID field. """
+        query_args = {
+            'f': 'json',
+            'outFields': '',
+            'outStatistics': json.dumps([
+                dict(statisticType='min', onStatisticField=oid_field_name, outStatisticFieldName='THE_MIN'),
+                dict(statisticType='max', onStatisticField=oid_field_name, outStatisticFieldName='THE_MAX'),
+            ], separators=(',', ':'))
+        }
+        response = request('GET', url, params=query_args, headers=self.headers)
+        metadata = self.handle_esri_errors(response, "Could not retrieve min/max oid values from ESRI source")
+
+        # Some servers (specifically version 10.11, it seems) will respond with SQL statements
+        # for the attribute names rather than the requested field names, so pick the min and max
+        # deliberately rather than relying on the names.
+        min_max_values = metadata['features'][0]['attributes'].values()
+        return (min(min_max_values), max(min_max_values))
+
+    def get_layer_oids(self, url):
+        query_args = {
+            'where': '1=1',  # So we get everything
+            'returnIdsOnly': 'true',
+            'f': 'json',
+        }
+        response = request('GET', url, params=query_args, headers=self.headers)
+        oid_data = self.handle_esri_errors(response, "Could not retrieve object IDs from ESRI source")
+        return oid_data
+
+    def find_oid_field_name(self, metadata):
+        oid_field_name = metadata.get('objectIdField')
+        if not oid_field_name:
+            for f in metadata['fields']:
+                if f['type'] == 'esriFieldTypeOID':
+                    oid_field_name = f['name']
+                    break
+
+        if not oid_field_name:
+            raise DownloadError("Could not find object ID field name")
+
+        return oid_field_name
+
     def download(self, source_urls, workdir):
         output_files = []
         download_path = os.path.join(workdir, 'esri')
@@ -331,34 +417,7 @@ class EsriRestDownloadTask(DownloadTask):
                 _L.debug("File exists %s", file_path)
                 continue
 
-            headers = {'User-Agent': self.USER_AGENT}
-
-            # Get the fields
-            query_args = {
-                'f': 'json'
-            }
-            response = request('GET', source_url, params=query_args, headers=headers)
-
-            if response.status_code != 200:
-                raise DownloadError('Could not retrieve field names from ESRI source: HTTP {} {}'.format(
-                    response.status_code,
-                    response.text
-                ))
-
-            try:
-                metadata = response.json()
-            except:
-                _L.error("Could not parse response from {} as JSON:\n\n{}".format(
-                    response.request.url,
-                    response.text,
-                ))
-                raise
-
-            error = metadata.get('error')
-            if error:
-                raise DownloadError("Problem querying ESRI field names: {}" .format(error['message']))
-            if not metadata.get('fields'):
-                raise DownloadError("No fields available in the source")
+            metadata = self.get_layer_metadata(source_url)
 
             field_names = [f['name'] for f in metadata['fields']]
             if X_FIELDNAME not in field_names:
@@ -371,22 +430,7 @@ class EsriRestDownloadTask(DownloadTask):
             query_url = source_url + '/query'
 
             # Get the count of rows in the layer
-            query_args = {
-                'where': '1=1',
-                'returnCountOnly': 'true',
-                'f': 'json',
-            }
-            response = request('GET', query_url, params=query_args, headers=headers)
-
-            if response.status_code != 200:
-                raise DownloadError('Could not retrieve row count from ESRI source: HTTP {} {}'.format(
-                    response.status_code,
-                    response.text
-                ))
-            count_json = response.json()
-            error = count_json.get('error')
-            if error:
-                raise DownloadError("Problem counting ESRI rows: {}" .format(error['message']))
+            count_json = self.get_layer_feature_count(query_url)
 
             row_count = count_json.get('count')
             page_size = metadata.get('maxRecordCount', 500)
@@ -415,92 +459,46 @@ class EsriRestDownloadTask(DownloadTask):
             else:
                 # If not, we can still use the `where` argument to paginate
 
+                use_oids = True
                 if metadata.get('supportsStatistics'):
                     # If the layer supports statistics, we can request maximum and minimum object ID
                     # to help build the pages
 
-                    # Find the OID field
-                    oid_field_name = metadata.get('objectIdField')
-                    if not oid_field_name:
-                        for f in metadata['fields']:
-                            if f['type'] == 'esriFieldTypeOID':
-                                oid_field_name = f['name']
-                                break
+                    oid_field_name = self.find_oid_field_name(metadata)
 
-                    if not oid_field_name:
-                        raise DownloadError("Could not find object ID field name")
+                    try:
+                        (oid_min, oid_max) = self.get_layer_min_max(query_url, oid_field_name)
 
-                    # Find the min and max values for the OID field
-                    query_args = {
-                        'f': 'json',
-                        'outFields': '',
-                        'outStatistics': json.dumps([
-                            dict(statisticType='min', onStatisticField=oid_field_name, outStatisticFieldName='THE_MIN'),
-                            dict(statisticType='max', onStatisticField=oid_field_name, outStatisticFieldName='THE_MAX'),
-                        ], separators=(',', ':'))
-                    }
-                    response = request('GET', query_url, params=query_args, headers=headers)
+                        for page_min in range(oid_min - 1, oid_max, page_size):
+                            page_max = min(page_min + page_size, oid_max)
+                            page_args.append({
+                                'where': '{} > {} AND {} <= {}'.format(
+                                    oid_field_name,
+                                    page_min,
+                                    oid_field_name,
+                                    page_max,
+                                ),
+                                'geometryPrecision': 7,
+                                'returnGeometry': 'true',
+                                'outSR': 4326,
+                                'outFields': '*',
+                                'f': 'json',
+                            })
+                        _L.info("Built {} requests using OID where clause method".format(len(page_args)))
 
-                    if response.status_code != 200:
-                        raise DownloadError('Could not retrieve min/max oid values from ESRI source: HTTP {} {}'.format(
-                            response.status_code,
-                            response.text
-                        ))
+                        # If we reach this point we don't need to fall through to enumerating all object IDs
+                        # because the statistics method worked
+                        use_oids = False
+                    except DownloadError:
+                        _L.exception("Finding max/min from statistics failed. Trying OID enumeration.")
 
-                    metadata = response.json()
-
-                    error = metadata.get('error')
-                    if error:
-                        raise DownloadError("Problem querying min/max oid values: {}" .format(error['message']))
-
-                    resp_attrs = metadata['features'][0]['attributes']
-                    oid_min = resp_attrs['THE_MIN']
-                    oid_max = resp_attrs['THE_MAX']
-
-                    for page_min in range(oid_min - 1, oid_max, page_size):
-                        page_max = min(page_min + page_size, oid_max)
-                        page_args.append({
-                            'where': '{} > {} AND {} <= {}'.format(
-                                oid_field_name,
-                                page_min,
-                                oid_field_name,
-                                page_max,
-                            ),
-                            'geometryPrecision': 7,
-                            'returnGeometry': 'true',
-                            'outSR': 4326,
-                            'outFields': '*',
-                            'f': 'json',
-                        })
-                    _L.info("Built {} requests using OID where clause method".format(len(page_args)))
-
-                else:
+                if use_oids:
                     # If the layer does not support statistics, we can request
                     # all the individual IDs and page through them one chunk at
                     # a time.
 
-                    # Get all the OIDs
-                    query_args = {
-                        'where': '1=1', # So we get everything
-                        'returnIdsOnly': 'true',
-                        'f': 'json',
-                    }
-                    response = request('GET', query_url, params=query_args, headers=headers)
-
-                    if response.status_code != 200:
-                        raise DownloadError('Could not retrieve object IDs from ESRI source: HTTP {} {}'.format(
-                            response.status_code,
-                            response.text
-                        ))
-
-                    try:
-                        oids = response.json().get('objectIds', [])
-                    except:
-                        _L.error("Could not parse response from {} as JSON:\n\n{}".format(
-                            response.request.url,
-                            response.text,
-                        ))
-                        raise
+                    oid_data = self.get_layer_oids(query_url)
+                    oids = oid_data['objectIds']
 
                     for i in range(0, len(oids), 100):
                         oid_chunk = oids[i:i+100]
@@ -525,16 +523,9 @@ class EsriRestDownloadTask(DownloadTask):
                         raise RuntimeError('Ran out of time caching Esri features')
 
                     try:
-                        response = request('POST', query_url, headers=headers, data=query_args)
-                        _L.debug("Requesting %s", response.url)
+                        response = request('POST', query_url, headers=self.headers, data=query_args)
 
-                        if response.status_code != 200:
-                            raise DownloadError('Could not retrieve this chunk of objects from ESRI source: HTTP {} {}'.format(
-                                response.status_code,
-                                response.text
-                            ))
-
-                        data = response.json()
+                        data = self.handle_esri_errors(response, "Could not retrieve this chunk of objects from ESRI source")
                     except socket.timeout as e:
                         raise DownloadError("Timeout when connecting to URL", e)
                     except ValueError as e:

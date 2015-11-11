@@ -122,6 +122,42 @@ class TestCacheEsriDownload (unittest.TestCase):
                 if qs.get('f') == ['json']:
                     local_path = join(data_dirname, 'us-esri-test-metadata.json')
 
+        if host == 'gis.co.tuolumne.ca.us':
+            qs = parse_qs(query)
+
+            if path == '/arcgis/rest/services/Address_Parcels/MapServer/0/query':
+                body_data = parse_qs(request.body) if request.body else {}
+
+                if qs.get('returnCountOnly') == ['true']:
+                    local_path = join(data_dirname, 'us-ca-tuolumne-count-only.json')
+                elif qs.get('outStatistics'):
+                    local_path = join(data_dirname, 'us-ca-tuolumne-statistics.json')
+                elif body_data.get('outSR') == ['4326']:
+                    local_path = join(data_dirname, 'us-ca-tuolumne-0.json')
+
+            elif path == '/arcgis/rest/services/Address_Parcels/MapServer/0':
+                if qs.get('f') == ['json']:
+                    local_path = join(data_dirname, 'us-ca-tuolumne-metadata.json')
+
+        if host == 'gis.kentcountymi.gov':
+            qs = parse_qs(query)
+
+            if path == '/prodarcgis/rest/services/External/MapServer/5/query':
+                body_data = parse_qs(request.body) if request.body else {}
+
+                if qs.get('returnCountOnly') == ['true']:
+                    local_path = join(data_dirname, 'us-mi-kent-count-only.json')
+                elif qs.get('outStatistics'):
+                    local_path = join(data_dirname, 'us-mi-kent-statistics.json')
+                elif qs.get('returnIdsOnly'):
+                    local_path = join(data_dirname, 'us-mi-kent-ids-only.json')
+                elif body_data.get('outSR') == ['4326']:
+                    local_path = join(data_dirname, 'us-mi-kent-0.json')
+
+            elif path == '/prodarcgis/rest/services/External/MapServer/5':
+                if qs.get('f') == ['json']:
+                    local_path = join(data_dirname, 'us-mi-kent-metadata.json')
+
         if local_path:
             type, _ = mimetypes.guess_type(local_path)
             with open(local_path, 'rb') as file:
@@ -146,3 +182,15 @@ class TestCacheEsriDownload (unittest.TestCase):
         with httmock.HTTMock(self.response_content):
             task = EsriRestDownloadTask('us-esri-test')
             task.download(['https://sampleserver6.arcgisonline.com/arcgis/rest/services/Recreation/FeatureServer/0'], self.workdir)
+
+    def test_download_tuolumne(self):
+        """ ESRI Caching Supports Statistics That Doesn't Respect Requested outField Name """
+        with httmock.HTTMock(self.response_content):
+            task = EsriRestDownloadTask('us-ca-tuolumne')
+            task.download(['http://gis.co.tuolumne.ca.us/arcgis/rest/services/Address_Parcels/MapServer/0'], self.workdir)
+
+    def test_download_palmbeach(self):
+        """ ESRI Caching Falls Through To OID Enumeration When Statistics Doesn't Work """
+        with httmock.HTTMock(self.response_content):
+            task = EsriRestDownloadTask('us-fl-palmbeach')
+            task.download(['http://gis.kentcountymi.gov/prodarcgis/rest/services/External/MapServer/5'], self.workdir)
