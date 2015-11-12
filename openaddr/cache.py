@@ -320,9 +320,9 @@ class EsriRestDownloadTask(DownloadTask):
                 geom.AddGeometry(ring)
         elif geom_type == 'esriGeometryPolyline':
             geom = ogr.Geometry(ogr.wkbMultiLineString)
-            for esri_ring in esri_feature['geometry']['rings']:
+            for esri_path in esri_feature['geometry']['paths']:
                 line = ogr.Geometry(ogr.wkbLineString)
-                for esri_pt in esri_ring:
+                for esri_pt in esri_path:
                     line.AddPoint(esri_pt[0], esri_pt[1])
                 geom.AddGeometry(line)
         else:
