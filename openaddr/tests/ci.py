@@ -40,11 +40,11 @@ from ..ci.objects import (
 
 from ..ci.collect import (
     is_us_northeast, is_us_midwest, is_us_south, is_us_west, is_europe, is_asia,
-    add_source_to_zipfile, CollectorPublisher
+    add_source_to_zipfile, CollectorPublisher, prepare_collections
     )
 
 from ..jobs import JOB_TIMEOUT
-from .. import compat
+from .. import compat, LocalProcessedResult
 from . import FakeS3
 
 def en64(bytes):
@@ -1887,6 +1887,37 @@ class TestBatch (unittest.TestCase):
 
 class TestCollect (unittest.TestCase):
 
+    def setUp(self):
+        '''
+        '''
+        self.output_dir = mkdtemp(prefix='TestCollect-')
+        self.s3 = FakeS3()
+    
+    def tearDown(self):
+        '''
+        '''
+        rmtree(self.output_dir)
+        remove(self.s3._fake_keys)
+    
+    def test_preparation(self):
+        '''
+        '''
+        set = mock.Mock()
+        set.owner, set.repository, set.commit_sha = 'oa', 'oa', 'ff9900'
+        
+        tests = {'-nothing': lambda result: False, '-everything': lambda result: True}
+        collections = prepare_collections(self.s3, set, self.output_dir, tests, tests)
+        
+        for (collection, test) in collections:
+            self.assertIn('README.txt', collection.zip.namelist())
+            self.assertIn(b'oa/oa', collection.zip.read('README.txt'))
+            self.assertIn(b'ff9900', collection.zip.read('README.txt'))
+
+            if '-nothing' not in collection.zip.filename:
+                self.assertTrue(test(None), test(None))
+            else:
+                self.assertFalse(test(None), test(None))
+
     def test_collector_publisher(self):
         '''
         '''
@@ -1899,8 +1930,8 @@ class TestCollect (unittest.TestCase):
             s1 = {'license': 'ODbL', 'attribution name': 'ABC Co.'}
             s2 = {'website': 'http://example.com', 'attribution flag': 'false'}
             
-            collector_publisher.collect(('abc', 'abc.zip', s1))
-            collector_publisher.collect(('def', 'def.zip', s2))
+            collector_publisher.collect(LocalProcessedResult('abc', 'abc.zip', s1))
+            collector_publisher.collect(LocalProcessedResult('def', 'def.zip', s2))
             collector_publisher.publish()
 
             add_source_to_zipfile.assert_has_calls([
@@ -1930,46 +1961,51 @@ class TestCollect (unittest.TestCase):
         
         for abbr in ('ct', 'me', 'ma', 'nh', 'ri', 'vt', 'nj', 'ny', 'pa'):
             for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
-                self.assertTrue(is_us_northeast(source_base, _, _), 'is_us_northeast("{}") should be true'.format(source_base))
+                result = LocalProcessedResult(source_base, None, None)
+                self.assertTrue(is_us_northeast(result), 'is_us_northeast("{}") should be true'.format(source_base))
             
                 for test_func in test_funcs:
                     if test_func is not is_us_northeast:
-                        self.assertFalse(test_func(source_base, _, _), '{}("{}") should be false'.format(test_func.__name__, source_base))
+                        self.assertFalse(test_func(result), '{}("{}") should be false'.format(test_func.__name__, source_base))
 
         for abbr in ('il', 'in', 'mi', 'oh', 'wi', 'ia', 'ks', 'mn', 'mo', 'ne', 'nd', 'sd'):
             for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
-                self.assertTrue(is_us_midwest(source_base, _, _), 'is_us_midwest("{}") should be true'.format(source_base))
+                result = LocalProcessedResult(source_base, None, None)
+                self.assertTrue(is_us_midwest(result), 'is_us_midwest("{}") should be true'.format(source_base))
             
                 for test_func in test_funcs:
                     if test_func is not is_us_midwest:
-                        self.assertFalse(test_func(source_base, _, _), '{}("{}") should be false'.format(test_func.__name__, source_base))
+                        self.assertFalse(test_func(result), '{}("{}") should be false'.format(test_func.__name__, source_base))
 
         for abbr in ('de', 'fl', 'ga', 'md', 'nc', 'sc', 'va', 'dc', 'wv', 'al',
                      'ky', 'ms', 'ar', 'la', 'ok', 'tx', 'tn'):
             for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
-                self.assertTrue(is_us_south(source_base, _, _), 'is_us_south("{}") should be true'.format(source_base))
+                result = LocalProcessedResult(source_base, None, None)
+                self.assertTrue(is_us_south(result), 'is_us_south("{}") should be true'.format(source_base))
             
                 for test_func in test_funcs:
                     if test_func is not is_us_south:
-                        self.assertFalse(test_func(source_base, _, _), '{}("{}") should be false'.format(test_func.__name__, source_base))
+                        self.assertFalse(test_func(result), '{}("{}") should be false'.format(test_func.__name__, source_base))
 
         for abbr in ('az', 'co', 'id', 'mt', 'nv', 'nm', 'ut', 'wy', 'ak', 'ca', 'hi', 'or', 'wa'):
             for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
-                self.assertTrue(is_us_west(source_base, _, _), 'is_us_west("{}") should be true'.format(source_base))
+                result = LocalProcessedResult(source_base, None, None)
+                self.assertTrue(is_us_west(result), 'is_us_west("{}") should be true'.format(source_base))
             
                 for test_func in test_funcs:
                     if test_func is not is_us_west:
-                        self.assertFalse(test_func(source_base, _, _), '{}("{}") should be false'.format(test_func.__name__, source_base))
+                        self.assertFalse(test_func(result), '{}("{}") should be false'.format(test_func.__name__, source_base))
 
         for iso in ('be', 'bg', 'cz', 'dk', 'de', 'ee', 'ie', 'el', 'es', 'fr',
                     'hr', 'it', 'cy', 'lv', 'lt', 'lu', 'hu', 'mt', 'nl', 'at',
                     'pl', 'pt', 'ro', 'si', 'sk', 'fi', 'se', 'uk', 'gr', 'gb'):
             for source_base in (iso, '{}.---'.format(iso), '{}/---'.format(iso)):
-                self.assertTrue(is_europe(source_base, _, _), 'is_europe("{}") should be true'.format(source_base))
+                result = LocalProcessedResult(source_base, None, None)
+                self.assertTrue(is_europe(result), 'is_europe("{}") should be true'.format(source_base))
             
                 for test_func in test_funcs:
                     if test_func is not is_europe:
-                        self.assertFalse(test_func(source_base, _, _), '{}("{}") should be false'.format(test_func.__name__, source_base))
+                        self.assertFalse(test_func(result), '{}("{}") should be false'.format(test_func.__name__, source_base))
 
         for iso in ('af', 'am', 'az', 'bh', 'bd', 'bt', 'bn', 'kh', 'cn', 'cx',
                     'cc', 'io', 'ge', 'hk', 'in', 'id', 'ir', 'iq', 'il', 'jp',
@@ -1982,11 +2018,12 @@ class TestCollect (unittest.TestCase):
                     'fm', 'um', 'nr', 'nc', 'nz', 'nu', 'nf', 'pw', 'pg', 'mp',
                     'sb', 'tk', 'to', 'tv', 'vu', 'um', 'wf', 'ws', 'is'):
             for source_base in (iso, '{}.---'.format(iso), '{}/---'.format(iso)):
-                self.assertTrue(is_asia(source_base, _, _), 'is_asia("{}") should be true'.format(source_base))
+                result = LocalProcessedResult(source_base, None, None)
+                self.assertTrue(is_asia(result), 'is_asia("{}") should be true'.format(source_base))
             
                 for test_func in test_funcs:
                     if test_func is not is_asia:
-                        self.assertFalse(test_func(source_base, _, _), '{}("{}") should be false'.format(test_func.__name__, source_base))
+                        self.assertFalse(test_func(result), '{}("{}") should be false'.format(test_func.__name__, source_base))
 
     def test_add_source_to_zipfile(self):
         '''
