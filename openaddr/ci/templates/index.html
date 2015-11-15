@@ -27,10 +27,13 @@
         border: none;
     }
 
-    #downloads tr th { font-size: 65% }
+    #downloads tr th { vertical-align: bottom }
+    #downloads tr td { vertical-align: top }
+
+    #downloads tr th, #downloads tr td.explanation { font-size: 65% }
     
-    #downloads tr:nth-child(2n+0) td { background-color: #f8f8f8 }
-    #downloads tr:nth-child(2n+1) td { background-color: #ffffff }
+    #downloads tr:nth-child(2n+1) td { background-color: #f8f8f8 }
+    #downloads tr:nth-child(2n+2) td { background-color: #ffffff }
 
     #downloads tr td code
     {
@@ -71,52 +74,62 @@
 </style>
 <table id="downloads">
     <tr>
-        <th width="25%">Collection</th>
-        <th width="25%">What’s Included</th>
-        <th width="25%">No Attribution</th>
-        <th width="25%">Attribution Required</th>
+        <th width="25%" rowspan="2">Collection</th>
+        <th width="25%" rowspan="2">What’s Included</th>
+        <th width="25%">No Share-Alike</th>
+        <th width="25%">Share-Alike Required</th>
+    </tr>
+    <tr>
+        <td class="explanation">
+            Data can be copied, redistributed, and adapted. In some cases
+            attribution is required. See license file included in download for details.
+        </td>
+        <td class="explanation">
+            Data is offered under a <a href="https://en.wikipedia.org/wiki/Share-alike">share-alike license</a>,
+            copies or adaptations must be released under the same or similar licence as the original.
+        </td>
     </tr>
     <tr>
         <td>Global</td>
         <td>Everything</td>
         <td><a href="http://data.openaddresses.io/openaddr-collected-global.zip"><code>global.zip</code></a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-global-by.zip"><code>global-by.zip</code></a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-global-sa.zip"><code>global-sa.zip</code></a></td>
     </tr>
     <tr>
         <td>U.S. Northeast</td>
         <td><a href="http://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf">List of states by region</a></td>
         <td><a href="http://data.openaddresses.io/openaddr-collected-us_northeast.zip"><code>us_northeast.zip</code></a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-us_northeast-by.zip"><code>us_northeast-by.zip</code></a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-us_northeast-sa.zip"><code>us_northeast-sa.zip</code></a></td>
     </tr>
     <tr>
         <td>U.S. Midwest</td>
         <td><a href="http://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf">List of states by region</a></td>
         <td><a href="http://data.openaddresses.io/openaddr-collected-us_midwest.zip"><code>us_midwest.zip</code></a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-us_midwest-by.zip"><code>us_midwest-by.zip</code></a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-us_midwest-sa.zip"><code>us_midwest-sa.zip</code></a></td>
     </tr>
     <tr>
         <td>U.S. South</td>
         <td><a href="http://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf">List of states by region</a></td>
         <td><a href="http://data.openaddresses.io/openaddr-collected-us_south.zip"><code>us_south.zip</code></a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-us_south-by.zip"><code>us_south-by.zip</code></a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-us_south-sa.zip"><code>us_south-sa.zip</code></a></td>
     </tr>
     <tr>
         <td>U.S. West</td>
         <td><a href="http://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf">List of states by region</a></td>
         <td><a href="http://data.openaddresses.io/openaddr-collected-us_west.zip"><code>us_west.zip</code></a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-us_west-by.zip"><code>us_west-by.zip</code></a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-us_west-sa.zip"><code>us_west-sa.zip</code></a></td>
     </tr>
     <tr>
         <td>Europe</td>
         <td><a href="http://publications.europa.eu/code/pdf/370000en.htm">List of European countries</a></td>
         <td><a href="http://data.openaddresses.io/openaddr-collected-europe.zip"><code>europe.zip</code></a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-europe-by.zip"><code>europe-by.zip</code></a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-europe-sa.zip"><code>europe-sa.zip</code></a></td>
     </tr>
     <tr>
         <td>Asia/Oceania</td>
         <td><a href="http://www.countrycallingcodes.com/iso-country-codes/asia-codes.php">List of Asian</a>, <a href="http://www.countrycallingcodes.com/iso-country-codes/australia-codes.php">Oceania countries</a></td>
         <td><a href="http://data.openaddresses.io/openaddr-collected-asia.zip"><code>asia.zip</code></a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-asia-by.zip"><code>asia-by.zip</code></a></td>
+        <td><a href="http://data.openaddresses.io/openaddr-collected-asia-sa.zip"><code>asia-sa.zip</code></a></td>
     </tr>
 </table>
 <p>

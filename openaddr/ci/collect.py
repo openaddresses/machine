@@ -71,12 +71,12 @@ def main():
         '-us_midwest': is_us_midwest, '-us_south': is_us_south, 
         '-us_west': is_us_west, '-europe': is_europe, '-asia': is_asia
         }
-    attr_tests = {
-        '-by': (lambda result: result.run_state.get('attribution required', '') != 'false'),
-        '': (lambda result: result.run_state.get('attribution required', '') == 'false')
+    sa_tests = {
+        '': (lambda result: result.run_state.get('share-alike', '') != 'true'),
+        '-sa': (lambda result: result.run_state.get('share-alike', '') == 'true')
         }
     
-    collections = prepare_collections(s3, set, dir, area_tests, attr_tests)
+    collections = prepare_collections(s3, set, dir, area_tests, sa_tests)
 
     for result in iterate_local_processed_files(runs):
         for (collection, test) in collections:
@@ -88,20 +88,20 @@ def main():
     
     rmtree(dir)
 
-def prepare_collections(s3, set, dir, area_tests, attr_tests):
+def prepare_collections(s3, set, dir, area_tests, sa_tests):
     '''
     '''
     collections = []
-    pairs = product(area_tests.items(), attr_tests.items())
+    pairs = product(area_tests.items(), sa_tests.items())
     
     def _and(test1, test2):
         return lambda result: (test1(result) and test2(result))
 
-    for ((area_suffix, area_test), (attr_suffix, attr_test)) in pairs:
+    for ((area_suffix, area_test), (attr_suffix, sa_test)) in pairs:
         new_name = 'openaddr-collected{}{}.zip'.format(area_suffix, attr_suffix)
         new_zip = _prepare_zip(set, join(dir, new_name))
         new_collection = CollectorPublisher(s3, new_zip)
-        collections.append((new_collection, _and(area_test, attr_test)))
+        collections.append((new_collection, _and(area_test, sa_test)))
         
     return collections
 
