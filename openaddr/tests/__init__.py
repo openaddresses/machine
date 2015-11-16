@@ -122,6 +122,23 @@ class TestOA (unittest.TestCase):
             if qs.get('f') == ['json']:
                 local_path = join(data_dirname, 'us-ca-carson-metadata.json')
 
+        if (host, path) == ('72.205.198.131', '/ArcGIS/rest/services/Brown/Brown/MapServer/33/query'):
+            qs = parse_qs(query)
+            body_data = parse_qs(request.body) if request.body else {}
+
+            if qs.get('returnIdsOnly') == ['true']:
+                local_path = join(data_dirname, 'us-ks-brown-ids-only.json')
+            elif qs.get('returnCountOnly') == ['true']:
+                local_path = join(data_dirname, 'us-ks-brown-count-only.json')
+            elif body_data.get('outSR') == ['4326']:
+                local_path = join(data_dirname, 'us-ks-brown-0.json')
+
+        if (host, path) == ('72.205.198.131', '/ArcGIS/rest/services/Brown/Brown/MapServer/33'):
+            qs = parse_qs(query)
+
+            if qs.get('f') == ['json']:
+                local_path = join(data_dirname, 'us-ks-brown-metadata.json')
+
         if (host, path) == ('data.openaddresses.io', '/20000101/us-ca-carson-cached.json'):
             local_path = join(data_dirname, 'us-ca-carson-cache.geojson')
         
@@ -596,7 +613,6 @@ class TestOA (unittest.TestCase):
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
-            print(state_path, state)
 
         self.assertTrue(state['sample'] is not None)
 
@@ -619,7 +635,6 @@ class TestOA (unittest.TestCase):
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
-            print(state_path, state)
 
         self.assertTrue(state['sample'] is not None)
 
@@ -631,6 +646,25 @@ class TestOA (unittest.TestCase):
         self.assertTrue(775 in sample_data[1])
         self.assertTrue(2433902.038 in sample_data[1])
         self.assertTrue(575268.364 in sample_data[1])
+
+    def test_single_ks_brown(self):
+        ''' Test complete process_one.process on data with ESRI multiPolyline geometries.
+        '''
+        source = join(self.src_dir, 'us/ks/brown_county.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+
+        self.assertTrue(state['sample'] is not None)
+
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('OA:geom' in sample_data[0])
 
 class TestPackage (unittest.TestCase):
 
