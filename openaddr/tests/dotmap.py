@@ -14,6 +14,8 @@ import unittest
 import mock
 from httmock import HTTMock, response
 
+from .. import LocalProcessedResult
+
 from ..dotmap import (
     stream_all_features, call_tippecanoe, _upload_to_s3,
     _mapbox_get_credentials, _mapbox_create_upload
@@ -23,16 +25,16 @@ class TestDotmap (unittest.TestCase):
 
     def setUp(self):
         self.test_dir = mkdtemp()
-        self.zipfiles = list()
+        self.results = list()
         
-        self.zipfiles.append(('us/anytown', join(self.test_dir, 'file1.zip')))
-        zf = ZipFile(self.zipfiles[-1][1], 'w')
+        self.results.append(LocalProcessedResult('us/anytown', join(self.test_dir, 'file1.zip'), None))
+        zf = ZipFile(self.results[-1].filename, 'w')
         zf.writestr('README.txt', b'Good times')
         zf.writestr('stuff.csv', u'LAT,LON\n0,0\n37.804319,-122.271210\n'.encode('utf8'))
         zf.close()
         
-        self.zipfiles.append(('us/whoville', join(self.test_dir, 'file2.zip')))
-        zf = ZipFile(self.zipfiles[-1][1], 'w')
+        self.results.append(LocalProcessedResult('us/whoville', join(self.test_dir, 'file2.zip'), None))
+        zf = ZipFile(self.results[-1].filename, 'w')
         zf.writestr('README.txt', b'Good times')
         zf.writestr('stuff.csv', u'LON,LAT,CITY\n0,0,Womp\n-122.413729,37.775641,Wómp Wómp\n'.encode('utf8'))
         zf.close()
@@ -41,11 +43,11 @@ class TestDotmap (unittest.TestCase):
         rmtree(self.test_dir)
 
     def test_stream_all_features_no_runs(self):
-        features = list(stream_all_features(self.zipfiles[:0]))
+        features = list(stream_all_features(self.results[:0]))
         self.assertEqual(len(features), 0)
 
     def test_stream_all_features_one_run(self):
-        features = list(stream_all_features(self.zipfiles[:1]))
+        features = list(stream_all_features(self.results[:1]))
 
         p1, p2 = [f['geometry']['coordinates'] for f in features]
         self.assertAlmostEqual(p1[0],    0.0)
@@ -54,7 +56,7 @@ class TestDotmap (unittest.TestCase):
         self.assertAlmostEqual(p2[1],   37.804319)
 
     def test_stream_all_features_two_runs(self):
-        features = list(stream_all_features(self.zipfiles[:2]))
+        features = list(stream_all_features(self.results[:2]))
 
         p1, p2, p3, p4 = [f['geometry']['coordinates'] for f in features]
         self.assertAlmostEqual(p1[0],    0.0)

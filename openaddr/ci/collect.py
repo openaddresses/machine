@@ -9,12 +9,13 @@ from os.path import splitext, exists, basename, join
 from urllib.parse import urlparse
 from operator import attrgetter
 from tempfile import mkstemp, mkdtemp
+from itertools import product
 from datetime import date
 from shutil import rmtree
 
 from .objects import read_latest_set, read_completed_runs_to_date
 from . import db_connect, db_cursor, setup_logger, render_index_maps, log_function_errors
-from .. import S3, iterate_local_processed_files
+from .. import S3, iterate_local_processed_files, util
 
 parser = ArgumentParser(description='Run some source files.')
 
@@ -55,7 +56,7 @@ def main():
     setup_logger(args.sns_arn, log_level=args.loglevel)
     s3 = S3(args.access_key, args.secret_key, args.bucket)
     
-    with db_connect(args.database_url) as conn:
+    with db_connect(**util.prepare_db_kwargs(args.database_url)) as conn:
         with db_cursor(conn) as db:
             set = read_latest_set(db, args.owner, args.repository)
             runs = read_completed_runs_to_date(db, set.id)
@@ -64,32 +65,45 @@ def main():
     
     dir = mkdtemp(prefix='collected-')
     
-    everything = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-collected.zip')))
-    us_northeast = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-us_northeast.zip')))
-    us_midwest = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-us_midwest.zip')))
-    us_south = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-us_south.zip')))
-    us_west = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-us_west.zip')))
-    europe = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-europe.zip')))
-    asia = CollectorPublisher(s3, _prepare_zip(set, join(dir, 'openaddresses-asia.zip')))
-
-    for (sb, fn, sd) in iterate_local_processed_files(runs):
-        everything.collect((sb, fn, sd))
-        if is_us_northeast(sb, fn, sd): us_northeast.collect((sb, fn, sd))
-        if is_us_midwest(sb, fn, sd): us_midwest.collect((sb, fn, sd))
-        if is_us_south(sb, fn, sd): us_south.collect((sb, fn, sd))
-        if is_us_west(sb, fn, sd): us_west.collect((sb, fn, sd))
-        if is_europe(sb, fn, sd): europe.collect((sb, fn, sd))
-        if is_asia(sb, fn, sd): asia.collect((sb, fn, sd))
+    # Maps of file suffixes to test functions
+    area_tests = {
+        '-global': (lambda result: True), '-us_northeast': is_us_northeast,
+        '-us_midwest': is_us_midwest, '-us_south': is_us_south, 
+        '-us_west': is_us_west, '-europe': is_europe, '-asia': is_asia
+        }
+    sa_tests = {
+        '': (lambda result: result.run_state.get('share-alike', '') != 'true'),
+        '-sa': (lambda result: result.run_state.get('share-alike', '') == 'true')
+        }
     
-    everything.publish()
-    us_northeast.publish()
-    us_midwest.publish()
-    us_south.publish()
-    us_west.publish()
-    europe.publish()
-    asia.publish()
+    collections = prepare_collections(s3, set, dir, area_tests, sa_tests)
+
+    for result in iterate_local_processed_files(runs):
+        for (collection, test) in collections:
+            if test(result):
+                collection.collect(result)
+    
+    for (collection, test) in collections:
+        collection.publish()
     
     rmtree(dir)
+
+def prepare_collections(s3, set, dir, area_tests, sa_tests):
+    '''
+    '''
+    collections = []
+    pairs = product(area_tests.items(), sa_tests.items())
+    
+    def _and(test1, test2):
+        return lambda result: (test1(result) and test2(result))
+
+    for ((area_suffix, area_test), (attr_suffix, sa_test)) in pairs:
+        new_name = 'openaddr-collected{}{}.zip'.format(area_suffix, attr_suffix)
+        new_zip = _prepare_zip(set, join(dir, new_name))
+        new_collection = CollectorPublisher(s3, new_zip)
+        collections.append((new_collection, _and(area_test, sa_test)))
+        
+    return collections
 
 def _prepare_zip(set, filename):
     '''
@@ -120,21 +134,19 @@ class CollectorPublisher:
         self.zip = collection_zip
         self.sources = dict()
     
-    def collect(self, file_info):
-        ''' Add file info (source_base, filename, source_dict) to collection zip.
+    def collect(self, result):
+        ''' Add LocalProcessedResult instance to collection zip.
         '''
-        source_base, filename, source_dict = file_info
-
-        _L.info(u'Adding {} to {}'.format(source_base, self.zip.filename))
-        add_source_to_zipfile(self.zip, source_base, filename)
+        _L.info(u'Adding {} to {}'.format(result.source_base, self.zip.filename))
+        add_source_to_zipfile(self.zip, result.source_base, result.filename)
 
         attribution = 'No'
-        if source_dict.get('attribution flag') != 'false':
-            attribution = source_dict.get('attribution name')
+        if result.run_state.get('attribution flag') != 'false':
+            attribution = result.run_state.get('attribution name')
     
-        self.sources[source_base] = {
-            'website': source_dict.get('website') or 'Unknown',
-            'license': source_dict.get('license') or 'Unknown',
+        self.sources[result.source_base] = {
+            'website': result.run_state.get('website') or 'Unknown',
+            'license': result.run_state.get('license') or 'Unknown',
             'attribution': attribution
             }
         
@@ -175,71 +187,71 @@ def add_source_to_zipfile(zip_out, source_base, filename):
             zip_out.writestr(zipinfo, zip_in.read(zipinfo.filename))
         zip_in.close()
 
-def _is_us_state(abbr, source_base, filename, source_dict):
+def _is_us_state(abbr, result):
     for sep in ('/', '-'):
-        if source_base == 'us{sep}{abbr}'.format(**locals()):
+        if result.source_base == 'us{sep}{abbr}'.format(**locals()):
             return True
 
-        if source_base.startswith('us{sep}{abbr}.'.format(**locals())):
+        if result.source_base.startswith('us{sep}{abbr}.'.format(**locals())):
             return True
 
-        if source_base.startswith('us{sep}{abbr}{sep}'.format(**locals())):
+        if result.source_base.startswith('us{sep}{abbr}{sep}'.format(**locals())):
             return True
 
     return False
 
-def is_us_northeast(source_base, filename, source_dict):
+def is_us_northeast(result):
     for abbr in ('ct', 'me', 'ma', 'nh', 'ri', 'vt', 'nj', 'ny', 'pa'):
-        if _is_us_state(abbr, source_base, filename, source_dict):
+        if _is_us_state(abbr, result):
             return True
 
     return False
     
-def is_us_midwest(source_base, filename, source_dict):
+def is_us_midwest(result):
     for abbr in ('il', 'in', 'mi', 'oh', 'wi', 'ia', 'ks', 'mn', 'mo', 'ne', 'nd', 'sd'):
-        if _is_us_state(abbr, source_base, filename, source_dict):
+        if _is_us_state(abbr, result):
             return True
 
     return False
     
-def is_us_south(source_base, filename, source_dict):
+def is_us_south(result):
     for abbr in ('de', 'fl', 'ga', 'md', 'nc', 'sc', 'va', 'dc', 'wv', 'al',
                  'ky', 'ms', 'ar', 'la', 'ok', 'tx', 'tn'):
-        if _is_us_state(abbr, source_base, filename, source_dict):
+        if _is_us_state(abbr, result):
             return True
 
     return False
     
-def is_us_west(source_base, filename, source_dict):
+def is_us_west(result):
     for abbr in ('az', 'co', 'id', 'mt', 'nv', 'nm', 'ut', 'wy', 'ak', 'ca', 'hi', 'or', 'wa'):
-        if _is_us_state(abbr, source_base, filename, source_dict):
+        if _is_us_state(abbr, result):
             return True
 
     return False
     
-def _is_country(iso, source_base, filename, source_dict):
+def _is_country(iso, result):
     for sep in ('/', '-'):
-        if source_base == iso:
+        if result.source_base == iso:
             return True
 
-        if source_base.startswith('{iso}.'.format(**locals())):
+        if result.source_base.startswith('{iso}.'.format(**locals())):
             return True
 
-        if source_base.startswith('{iso}{sep}'.format(**locals())):
+        if result.source_base.startswith('{iso}{sep}'.format(**locals())):
             return True
 
     return False
 
-def is_europe(source_base, filename, source_dict):
+def is_europe(result):
     for iso in ('be', 'bg', 'cz', 'dk', 'de', 'ee', 'ie', 'el', 'es', 'fr',
                 'hr', 'it', 'cy', 'lv', 'lt', 'lu', 'hu', 'mt', 'nl', 'at',
                 'pl', 'pt', 'ro', 'si', 'sk', 'fi', 'se', 'uk', 'gr', 'gb'  ):
-        if _is_country(iso, source_base, filename, source_dict):
+        if _is_country(iso, result):
             return True
 
     return False
     
-def is_asia(source_base, filename, source_dict):
+def is_asia(result):
     for iso in ('af', 'am', 'az', 'bh', 'bd', 'bt', 'bn', 'kh', 'cn', 'cx',
                 'cc', 'io', 'ge', 'hk', 'in', 'id', 'ir', 'iq', 'il', 'jp',
                 'jo', 'kz', 'kp', 'kr', 'kw', 'kg', 'la', 'lb', 'mo', 'my',
@@ -250,7 +262,7 @@ def is_asia(source_base, filename, source_dict):
                 'as', 'au', 'nz', 'ck', 'fj', 'pf', 'gu', 'ki', 'mp', 'mh',
                 'fm', 'um', 'nr', 'nc', 'nz', 'nu', 'nf', 'pw', 'pg', 'mp',
                 'sb', 'tk', 'to', 'tv', 'vu', 'um', 'wf', 'ws', 'is'):
-        if _is_country(iso, source_base, filename, source_dict):
+        if _is_country(iso, result):
             return True
 
     return False

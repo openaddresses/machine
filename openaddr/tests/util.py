@@ -8,7 +8,31 @@ from mimetypes import guess_type
 from urllib.parse import urlparse, parse_qs
 from httmock import HTTMock, response
 
+from .. import util
 from ..util.esri2geojson import esri2geojson
+
+class TestUtilities (unittest.TestCase):
+
+    def test_db_kwargs(self):
+        '''
+        '''
+        dsn1 = 'postgres://who@where.kitchen/what'
+        kwargs1 = util.prepare_db_kwargs(dsn1)
+        self.assertEqual(kwargs1['user'], 'who')
+        self.assertIsNone(kwargs1['password'])
+        self.assertEqual(kwargs1['host'], 'where.kitchen')
+        self.assertIsNone(kwargs1['port'])
+        self.assertEqual(kwargs1['database'], 'what')
+        self.assertNotIn('sslmode', kwargs1)
+
+        dsn2 = 'postgres://who:open-sesame@where.kitchen:5432/what?sslmode=require'
+        kwargs2 = util.prepare_db_kwargs(dsn2)
+        self.assertEqual(kwargs2['user'], 'who')
+        self.assertEqual(kwargs2['password'], 'open-sesame')
+        self.assertEqual(kwargs2['host'], 'where.kitchen')
+        self.assertEqual(kwargs2['port'], 5432)
+        self.assertEqual(kwargs2['database'], 'what')
+        self.assertEqual(kwargs2['sslmode'], 'require')
 
 class TestEsri2GeoJSON (unittest.TestCase):
     
