@@ -1,3 +1,7 @@
+2015-11-17: 2.8.2
+- Improved ESRI multipolyline handling.
+- Separated collection downloads along SA license flags.
+
 2015-11-11: 2.8.1
 - Improved ESRI downloader with better errors and OID enumeration when needed.
 
