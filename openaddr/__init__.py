@@ -230,6 +230,8 @@ def package_output(source, processed_path, website, license):
 
 def iterate_local_processed_files(runs):
     ''' Yield a stream of local processed result files for a list of runs.
+    
+        Used in ci.collect and dotmap processes.
     '''
     key = lambda run: run.datetime_tz or date(1970, 1, 1)
     
@@ -243,16 +245,22 @@ def iterate_local_processed_files(runs):
         
         try:
             filename = download_processed_file(processed_url)
-        
         except:
-            _L.error('Failed to download {}'.format(processed_url))
-            continue
+            _L.info('Retrying to download {}'.format(processed_url))
+            try:
+                filename = download_processed_file(processed_url)
+            except:
+                _L.info('Re-retrying to download {}'.format(processed_url))
+                try:
+                    filename = download_processed_file(processed_url)
+                except:
+                    _L.error('Failed to download {}'.format(processed_url))
+                    continue
         
-        else:
-            yield LocalProcessedResult(source_base, filename, run_state)
+        yield LocalProcessedResult(source_base, filename, run_state)
 
-            if filename and exists(filename):
-                remove(filename)
+        if filename and exists(filename):
+            remove(filename)
     
 def download_processed_file(url):
     ''' Download a URL to a local temporary file, return its path.

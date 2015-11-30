@@ -25,6 +25,7 @@ import os
 from os import close, environ, mkdir, remove
 from io import BytesIO
 from csv import DictReader
+from itertools import cycle
 from zipfile import ZipFile
 from datetime import timedelta
 from mimetypes import guess_type
@@ -807,10 +808,13 @@ class TestPackage (unittest.TestCase):
         self.assertEqual(call3[0], 'close')
 
     def test_iterate_local_processed_files(self):
+        state0 = {'processed': 'http://s3.amazonaws.com/openaddresses/000.csv'}
         state1 = {'processed': 'http://s3.amazonaws.com/openaddresses/123.csv', 'website': 'http://example.com'}
         state3 = {'processed': 'http://s3.amazonaws.com/openaddresses/789.csv', 'license': 'ODbL'}
     
         runs = [
+            Run(000, 'sources/000.json', '___', b'', None,
+                state0, None, None, None, None, None, None, None),
             Run(123, 'sources/123.json', 'abc', b'', None,
                 state1, None, None, None, None, None, None, None),
             Run(456, 'sources/456.json', 'def', b'', None,
@@ -819,8 +823,18 @@ class TestPackage (unittest.TestCase):
                 state3, None, None, None, None, None, None, None),
             ]
         
+        failure = cycle((True, True, False))
+        
+        def _download_processed_file(url):
+            if url == state0['processed']:
+                raise Exception('HTTP 404 Not Found')
+            elif next(failure):
+                raise Exception('HTTP 666 Transient B.S.')
+            else:
+                return 'nonexistent file'
+
         with mock.patch('openaddr.download_processed_file') as download_processed_file:
-            download_processed_file.return_value = 'nonexistent file'
+            download_processed_file.side_effect = _download_processed_file
             local_processed_files = iterate_local_processed_files(runs)
             
             local_processed_result1 = next(local_processed_files)
