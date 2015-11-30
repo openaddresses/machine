@@ -1,3 +1,6 @@
+2015-11-29: 2.8.3
+- Added download retries to iterate_local_processed_files().
+
 2015-11-17: 2.8.2
 - Improved ESRI multipolyline handling.
 - Separated collection downloads along SA license flags.
