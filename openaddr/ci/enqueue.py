@@ -56,21 +56,26 @@ def main():
     s3 = S3(args.access_key, args.secret_key, args.bucket)
     github_auth = args.github_token, 'x-oauth-basic'
 
+    next_queue_interval, next_autoscale_interval = 60, 86400 * 2
+
     try:
         sources = find_batch_sources(args.owner, args.repository, github_auth)
 
         with db_connect(args.database_url) as conn:
             task_Q = db_queue(conn, TASK_QUEUE)
-            next_queue_report = time() + 60
+            next_queue_report = time() + next_queue_interval
+            next_autoscale_grow = time() + next_autoscale_interval
 
             with task_Q as db:
                 new_set = add_set(db, args.owner, args.repository)
 
             for expected_count in enqueue_sources(task_Q, new_set, sources):
                 if time() >= next_queue_report:
-                    next_queue_report, n = time() + 60, len(task_Q)
+                    next_queue_report, n = time() + next_queue_interval, len(task_Q)
                     args = n, 's' if n != 1 else '', expected_count
                     _L.debug('Task queue has {} item{}, {} sources expected'.format(*args))
+                if time() >= next_autoscale_grow:
+                    next_autoscale_grow = time() + next_autoscale_interval
                 if expected_count:
                     sleep(5)
         
