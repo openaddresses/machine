@@ -10,7 +10,6 @@
     "type": "http",
     "compression": "zip",
     "conform": {
-        "type": "csv",
         "csvsplit": ";",
         "number": "numero",
         "street": "nom_voie",

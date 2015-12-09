@@ -341,82 +341,34 @@ def guess_source_encoding(datasource, layer):
 def find_source_path(source_definition, source_paths):
     "Figure out which of the possible paths is the actual source"
     conform = source_definition["conform"]
-    if conform["type"] in ("shapefile", "shapefile-polygon"):
-        # TODO this code is too complicated; see XML variant below for simpler option
-        # Shapefiles are named *.shp
-        candidates = []
-        for fn in source_paths:
-            basename, ext = os.path.splitext(fn)
-            if ext.lower() == ".shp":
-                candidates.append(fn)
-        if len(candidates) == 0:
-            _L.warning("No shapefiles found in %s", source_paths)
-            return None
-        elif len(candidates) == 1:
-            _L.debug("Selected %s for source", candidates[0])
-            return candidates[0]
-        else:
-            # Multiple candidates; look for the one named by the file attribute
-            if "file" not in conform:
-                _L.warning("Multiple shapefiles found, but source has no file attribute.")
-                return None
-            source_file_name = conform["file"]
-            for c in candidates:
-                if source_file_name == os.path.basename(c):
-                    return c
-            _L.warning("Source names file %s but could not find it", source_file_name)
-            return None
-    elif conform["type"] == "geojson" and source_definition["type"] != "ESRI":
-        candidates = []
-        for fn in source_paths:
-            basename, ext = os.path.splitext(fn)
-            if ext.lower() in (".json", ".geojson"):
-                candidates.append(fn)
-        if len(candidates) == 0:
-            _L.warning("No JSON found in %s", source_paths)
-            return None
-        elif len(candidates) == 1:
-            _L.debug("Selected %s for source", candidates[0])
-            return candidates[0]
-        else:
-            _L.warning("Found more than one JSON file in source, can't pick one")
-            # geojson spec currently doesn't include a file attribute. Maybe it should?
-            return None
-    elif conform["type"] == "geojson" and source_definition["type"] == "ESRI":
-        # Old style ESRI conform: ESRI downloader should only give us a single cache.csv file
-        return source_paths[0]
-    elif conform["type"] == "csv":
-        # Return file if it's specified, else return the first file we find
-        if "file" in conform:
-            for fn in source_paths:
-                # Consider it a match if the basename matches; directory names are a mess
-                if os.path.basename(conform["file"]) == os.path.basename(fn):
-                    return fn
-            _L.warning("Conform named %s as file but we could not find it." % conform["file"])
-            return None
-        else:
-            return source_paths[0]
-
-    elif conform["type"] == "xml":
-        # Return file if it's specified, else return the first .gml file we find
-        if "file" in conform:
-            for fn in source_paths:
-                # Consider it a match if the basename matches; directory names are a mess
-                if os.path.basename(conform["file"]) == os.path.basename(fn):
-                    return fn
-            _L.warning("Conform named %s as file but we could not find it." % conform["file"])
-            return None
-        else:
-            for fn in source_paths:
-                _, ext = os.path.splitext(fn)
-                if ext == ".gml":
-                    return fn
-            _L.warning("Could not find a .gml file")
-            return None
-
-
+    
+    # Determine possible inputs
+    candidates = []
+    for fn in source_paths:
+        basename, ext = os.path.splitext(fn)
+        if ext.lower() in ['.shp', '.json', '.geojson', '.csv', '.gml', '.txt']:
+            candidates.append(fn)
+    if len(candidates) == 0:
+        _L.warning("No geometry sources found %s", source_paths)
+        return None
+    elif len(candidates) == 1 and "file" not in conform:
+        _L.debug("Selected %s for source", candidates[0])
+        return candidates[0]
     else:
-        _L.warning("Unknown source type %s", conform["type"])
+        # Multiple candidates; look for the one named by the file attribute
+        if "file" not in conform:
+            _L.warning("Multiple geometry sources found, but source has no file attribute.")
+            return None
+        source_file_name = conform["file"]
+        # Looks for file with exact path & name
+        for c in candidates:
+            if source_file_name == c:
+                return c
+        # Looks for file with similiar name
+        for c in candidates:
+            if c.find(source_file_name) != -1:
+                return c
+        _L.warning("Source names file %s but could not find it", source_file_name)
         return None
 
 class ConvertToCsvTask(object):
@@ -639,31 +591,17 @@ def _transform_to_4326(srs):
 def row_extract_and_reproject(source_definition, source_row):
     ''' Find lat/lon in source CSV data and store it in ESPG:4326 in X/Y in the row
     '''
-    # Ignore any lat/lon names for natively geographic sources.
-    ignore_conform_names = bool(source_definition['conform']['type'] != 'csv')
-
-    # ESRI-derived source CSV is synthetic; we should ignore any lat/lon names.
-    ignore_conform_names |= bool(source_definition['type'] == 'ESRI')
-
     # Set local variables lon_name, source_x, lat_name, source_y
-    if ignore_conform_names:
-        # Use our own X_FIELDNAME convention
-        lat_name = Y_FIELDNAME
-        lon_name = X_FIELDNAME
+    lat_name = source_definition["conform"]["lat"] if source_definition["conform"].get('lat', False) else Y_FIELDNAME
+    lon_name = source_definition["conform"]["lon"] if source_definition["conform"].get('lon', False) else X_FIELDNAME
+    if lon_name in source_row:
         source_x = source_row[lon_name]
+    else:
+        source_x = source_row[lon_name.upper()]
+    if lat_name in source_row:
         source_y = source_row[lat_name]
     else:
-        # Conforms can name the lat/lon columns from the original source data
-        lat_name = source_definition["conform"]["lat"]
-        lon_name = source_definition["conform"]["lon"]
-        if lon_name in source_row:
-            source_x = source_row[lon_name]
-        else:
-            source_x = source_row[lon_name.upper()]
-        if lat_name in source_row:
-            source_y = source_row[lat_name]
-        else:
-            source_y = source_row[lat_name.upper()]
+        source_y = source_row[lat_name.upper()]
 
     # Prepare an output row with the source lat and lon columns deleted
     out_row = copy.deepcopy(source_row)
@@ -856,11 +794,12 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     The extracted file will be in UTF-8 and will have X and Y columns corresponding
     to longitude and latitude in EPSG:4326.
     """
-    if source_definition["conform"]["type"] in ("shapefile", "shapefile-polygon", "xml"):
+    _, ext = os.path.splitext(source_path.lower())
+    if ext in ['.shp', '.gml']:
         ogr_source_to_csv(source_definition, source_path, extract_path)
-    elif source_definition["conform"]["type"] == "csv":
+    elif ext in ['.csv', '.txt']:
         csv_source_to_csv(source_definition, source_path, extract_path)
-    elif source_definition["conform"]["type"] == "geojson":
+    elif ext in ['.geojson', '.json']:
         # GeoJSON sources have some awkward legacy with ESRI, see issue #34
         if source_definition["type"] == "ESRI":
             _L.info("ESRI GeoJSON source found; treating it as CSV")
@@ -869,8 +808,7 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
             _L.info("Non-ESRI GeoJSON source found; this code is not well tested.")
             ogr_source_to_csv(source_definition, source_path, extract_path)
     else:
-        raise Exception("Unsupported source type %s" % source_definition["conform"]["type"])
-
+        raise Exception("Unsupported source type %s" % source_path)
 # The canonical output schema for conform
 _openaddr_csv_schema = ["LON", "LAT", "NUMBER", "STREET", "CITY", "DISTRICT", "REGION", "POSTCODE", "ID"]
 
@@ -901,9 +839,6 @@ def conform_cli(source_definition, source_path, dest_path):
     # TODO: this tool only works if the source creates a single output
 
     if "conform" not in source_definition:
-        return 1
-    if not source_definition["conform"].get("type", None) in ["shapefile", "shapefile-polygon", "geojson", "csv", "xml"]:
-        _L.warning("Skipping file with unknown conform: %s", source_path)
         return 1
 
     # Create a temporary filename for the intermediate extracted source CSV
