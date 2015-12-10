@@ -83,7 +83,7 @@ setup(
         'psycopg2 == 2.6.1',
         
         # https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1306991/comments/10
-        'requests == 2.2.1',
+        'requests == 2.8.1',
 
         # https://pypi.python.org/pypi/requests-ftp, appears no longer maintained.
         'requests-ftp == 0.2.0',
@@ -93,6 +93,9 @@ setup(
         
         # https://boto3.readthedocs.org
         'boto3 == 1.1.4',
+
+        # https://github.com/mapbox/mapbox-sdk-py
+        'mapbox == 0.5.0',
 
         ] + conditional_requirements
 )
