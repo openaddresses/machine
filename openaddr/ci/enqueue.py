@@ -1,6 +1,7 @@
 import logging; _L = logging.getLogger('openaddr.ci.enqueue')
 
 from os import environ
+from itertools import count
 from time import time, sleep
 from argparse import ArgumentParser
 
@@ -10,8 +11,11 @@ from . import (
     )
 
 from .objects import add_set
+from ..util import set_autoscale_capacity
 from . import render_set_maps, log_function_errors
 from .. import S3
+
+from boto import connect_autoscale, connect_cloudwatch
 
 parser = ArgumentParser(description='Run some source files.')
 
@@ -54,6 +58,8 @@ def main():
     args = parser.parse_args()
     setup_logger(args.sns_arn, log_level=args.loglevel)
     s3 = S3(args.access_key, args.secret_key, args.bucket)
+    autoscale = connect_autoscale(args.access_key, args.secret_key)
+    cloudwatch = connect_cloudwatch(args.access_key, args.secret_key)
     github_auth = args.github_token, 'x-oauth-basic'
 
     next_queue_interval, next_autoscale_interval = 60, 86400 * 2
@@ -65,6 +71,7 @@ def main():
             task_Q = db_queue(conn, TASK_QUEUE)
             next_queue_report = time() + next_queue_interval
             next_autoscale_grow = time() + next_autoscale_interval
+            minimum_capacity = count(1)
 
             with task_Q as db:
                 new_set = add_set(db, args.owner, args.repository)
@@ -74,8 +81,12 @@ def main():
                     next_queue_report, n = time() + next_queue_interval, len(task_Q)
                     args = n, 's' if n != 1 else '', expected_count
                     _L.debug('Task queue has {} item{}, {} sources expected'.format(*args))
-                if time() >= next_autoscale_grow:
-                    next_autoscale_grow = time() + next_autoscale_interval
+                try:
+                    if time() >= next_autoscale_grow:
+                        next_autoscale_grow = time() + next_autoscale_interval
+                        set_autoscale_capacity(autoscale, cloudwatch, next(minimum_capacity))
+                except Exception as e:
+                    _L.error('Problem during autoscale', exc_info=True)
                 if expected_count:
                     sleep(5)
         

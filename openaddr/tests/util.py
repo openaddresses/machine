@@ -50,6 +50,9 @@ class TestUtilities (unittest.TestCase):
         # The right group name was used.
         autoscale.get_all_groups.assert_called_once_with([group_name])
         
+        # Conditions haven't yet required a capacity increase.
+        as_group.set_capacity.assert_not_called()
+
         as_group.desired_capacity = 1
         util.set_autoscale_capacity(autoscale, cloudwatch, 1)
         
@@ -57,9 +60,6 @@ class TestUtilities (unittest.TestCase):
         cloudwatch.get_metric_statistics.return_value = [{'Maximum': 0}]
         util.set_autoscale_capacity(autoscale, cloudwatch, 1)
         
-        # Conditions haven't yet required a capacity increase.
-        as_group.set_capacity.assert_not_called()
-
         cloudwatch.get_metric_statistics.return_value = [{'Maximum': 1}]
         util.set_autoscale_capacity(autoscale, cloudwatch, 1)
         
