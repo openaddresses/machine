@@ -1,3 +1,6 @@
+2015-11-29: 2.8.4
+- Added timed autoscale growth to openaddr-enqueue-sources.
+
 2015-11-29: 2.8.3
 - Added download retries to iterate_local_processed_files().
 
