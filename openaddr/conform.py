@@ -467,6 +467,21 @@ def convert_regexp_replace(replace):
     
     return replace    
 
+def normalize_ogr_filename_case(source_path):
+    '''
+    '''
+    base, ext = splitext(source_path)
+    
+    if ext == ext.lower():
+        # Extension is already lowercase, no need to do anything.
+        return source_path
+
+    normal_path = base + ext.lower()
+    
+    if os.path.exists(normal_path):
+        # We appear to be on a case-insentive filesystem.
+        return normal_path
+
 def ogr_source_to_csv(source_definition, source_path, dest_path):
     "Convert a single shapefile or GeoJSON in source_path and put it in dest_path"
     in_datasource = ogr.Open(source_path, 0)

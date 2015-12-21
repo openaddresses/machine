@@ -18,7 +18,7 @@ from ..conform import (
     row_extract_and_reproject, row_convert_to_out, row_fxn_join,
     row_canonicalize_street_and_number, conform_smash_case, conform_cli,
     csvopen, csvDictReader, convert_regexp_replace, conform_license,
-    conform_attribution, conform_sharealike
+    conform_attribution, conform_sharealike, normalize_ogr_filename_case
     )
 
 class TestConformTransforms (unittest.TestCase):
@@ -451,6 +451,12 @@ class TestConformCli (unittest.TestCase):
 
 class TestConformMisc(unittest.TestCase):
 
+    def setUp(self):
+        self.testdir = tempfile.mkdtemp(prefix='openaddr-TestConformMisc-')
+
+    def tearDown(self):
+        shutil.rmtree(self.testdir)
+
     def test_convert_regexp_replace(self):
         '''
         '''
@@ -557,6 +563,22 @@ class TestConformMisc(unittest.TestCase):
         c = {"conform": {"type": "xml", "file": "xyzzy/foo.gml"}}
         self.assertEqual("xyzzy/foo.gml", find_source_path(c, ["xyzzy/foo.gml", "bar.gml", "foo.gml"]))
         self.assertEqual("/tmp/foo/xyzzy/foo.gml", find_source_path(c, ["/tmp/foo/xyzzy/foo.gml"]))
+
+    def test_normalize_ogr_filename_case(self):
+        
+        filename1 = os.path.join(self.testdir, 'file.shp')
+        with open(filename1, 'w') as file1:
+            file1.write('yo')
+        
+        self.assertEqual(normalize_ogr_filename_case(filename1), filename1)
+        self.assertTrue(os.path.exists(normalize_ogr_filename_case(filename1)))
+        
+        filename2 = os.path.join(self.testdir, 'file.Shp')
+        with open(filename2, 'w') as file2:
+            file2.write('yo')
+        
+        self.assertNotEqual(normalize_ogr_filename_case(filename2), filename2)
+        self.assertTrue(os.path.exists(normalize_ogr_filename_case(filename2)))
 
 class TestConformCsv(unittest.TestCase):
     "Fixture to create real files to test csv_source_to_csv()"
