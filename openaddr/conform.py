@@ -479,8 +479,20 @@ def normalize_ogr_filename_case(source_path):
     normal_path = base + ext.lower()
     
     if os.path.exists(normal_path):
-        # We appear to be on a case-insentive filesystem.
+        # We appear to be on a case-insensitive filesystem.
         return normal_path
+
+    os.link(source_path, normal_path)
+    
+    # May need to deal with some additional files.
+    extras = {'.Shp': ('.Shx', '.Dbf', '.Prj'), '.SHP': ('.SHX', '.DBF', '.PRJ')}
+    
+    if ext in extras:
+        for other_ext in extras[ext]:
+            if os.path.exists(base + other_ext):
+                os.link(base + other_ext, base + other_ext.lower())
+
+    return normal_path
 
 def ogr_source_to_csv(source_definition, source_path, dest_path):
     "Convert a single shapefile or GeoJSON in source_path and put it in dest_path"
