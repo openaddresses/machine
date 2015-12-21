@@ -44,6 +44,7 @@ from ..ci.collect import (
     )
 
 from ..jobs import JOB_TIMEOUT
+from ..ci.worker import make_source_filename
 from .. import compat, LocalProcessedResult
 from . import FakeS3
 
@@ -1506,6 +1507,13 @@ class TestWorker (unittest.TestCase):
         rmtree(self.output_dir)
         remove(self.s3._fake_keys)
     
+    def test_make_source_filename(self):
+        '''
+        '''
+        self.assertEqual(make_source_filename(u'yo'), u'yo.txt')
+        self.assertEqual(make_source_filename(u'yo-yo'), u'yo-yo.txt')
+        self.assertEqual(make_source_filename(u'yo/yo'), u'yo--yo.txt')
+    
     @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')
     def test_happy_worker(self, check_output, mkdtemp):
@@ -1540,7 +1548,7 @@ class TestWorker (unittest.TestCase):
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
             os.path.join(self.output_dir, 'work/logfile.txt'),
-            os.path.join(self.output_dir, 'work/user_input.txt'),
+            os.path.join(self.output_dir, u'work/so--exalté.txt'),
             os.path.join(self.output_dir, 'work/out')
             ),
             timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
@@ -1593,7 +1601,7 @@ class TestWorker (unittest.TestCase):
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
             os.path.join(self.output_dir, 'work/logfile.txt'),
-            os.path.join(self.output_dir, 'work/user_input.txt'),
+            os.path.join(self.output_dir, 'work/angry.txt'),
             os.path.join(self.output_dir, 'work/out')
             ),
             timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
@@ -1635,7 +1643,7 @@ class TestWorker (unittest.TestCase):
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
             os.path.join(self.output_dir, 'work/logfile.txt'),
-            os.path.join(self.output_dir, 'work/user_input.txt'),
+            os.path.join(self.output_dir, u'work/so--exalté.txt'),
             os.path.join(self.output_dir, 'work/out')
             ),
             timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
