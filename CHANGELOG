@@ -1,3 +1,8 @@
+2015-12-22: 2.9.0
+- Added conform "unit" attribute for apartments or subaddresses.
+- Fixed meaningless internal source naming for worker jobs.
+- Fixed mixed-case shapefile filename extension recognition.
+
 2015-11-29: 2.8.4
 - Added timed autoscale growth to openaddr-enqueue-sources.
 
