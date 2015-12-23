@@ -18,7 +18,7 @@ from ..conform import (
     row_extract_and_reproject, row_convert_to_out, row_fxn_join,
     row_canonicalize_street_and_number, conform_smash_case, conform_cli,
     csvopen, csvDictReader, convert_regexp_replace, conform_license,
-    conform_attribution, conform_sharealike
+    conform_attribution, conform_sharealike, normalize_ogr_filename_case
     )
 
 class TestConformTransforms (unittest.TestCase):
@@ -451,6 +451,12 @@ class TestConformCli (unittest.TestCase):
 
 class TestConformMisc(unittest.TestCase):
 
+    def setUp(self):
+        self.testdir = tempfile.mkdtemp(prefix='openaddr-TestConformMisc-')
+
+    def tearDown(self):
+        shutil.rmtree(self.testdir)
+
     def test_convert_regexp_replace(self):
         '''
         '''
@@ -557,6 +563,70 @@ class TestConformMisc(unittest.TestCase):
         c = {"conform": {"type": "xml", "file": "xyzzy/foo.gml"}}
         self.assertEqual("xyzzy/foo.gml", find_source_path(c, ["xyzzy/foo.gml", "bar.gml", "foo.gml"]))
         self.assertEqual("/tmp/foo/xyzzy/foo.gml", find_source_path(c, ["/tmp/foo/xyzzy/foo.gml"]))
+
+    def test_normalize_ogr_filename_case1(self):
+        filename = os.path.join(self.testdir, 'file.geojson')
+        with open(filename, 'w') as file:
+            file.write('yo')
+        
+        self.assertEqual(normalize_ogr_filename_case(filename), filename)
+        self.assertTrue(os.path.exists(normalize_ogr_filename_case(filename)))
+
+    def test_normalize_ogr_filename_case2(self):
+        filename = os.path.join(self.testdir, 'file.GeoJSON')
+        with open(filename, 'w') as file:
+            file.write('yo')
+        
+        self.assertNotEqual(normalize_ogr_filename_case(filename), filename)
+        self.assertTrue(os.path.exists(normalize_ogr_filename_case(filename)))
+
+    def test_normalize_ogr_filename_case3(self):
+        filename = os.path.join(self.testdir, 'file.shp')
+        with open(filename, 'w') as file:
+            file.write('yo')
+        
+        for otherbase in ('file.shx', 'file.dbf', 'file.prj'):
+            othername = os.path.join(self.testdir, otherbase)
+            with open(othername, 'w') as other:
+                other.write('yo')
+        
+        self.assertEqual(normalize_ogr_filename_case(filename), filename)
+        self.assertTrue(os.path.exists(normalize_ogr_filename_case(filename)))
+        self.assertTrue(os.path.exists(os.path.join(self.testdir, 'file.shx')))
+        self.assertTrue(os.path.exists(os.path.join(self.testdir, 'file.dbf')))
+        self.assertTrue(os.path.exists(os.path.join(self.testdir, 'file.prj')))
+
+    def test_normalize_ogr_filename_case4(self):
+        filename = os.path.join(self.testdir, 'file.Shp')
+        with open(filename, 'w') as file:
+            file.write('yo')
+        
+        for otherbase in ('file.Shx', 'file.Dbf', 'file.Prj'):
+            othername = os.path.join(self.testdir, otherbase)
+            with open(othername, 'w') as other:
+                other.write('yo')
+        
+        self.assertNotEqual(normalize_ogr_filename_case(filename), filename)
+        self.assertTrue(os.path.exists(normalize_ogr_filename_case(filename)))
+        self.assertTrue(os.path.exists(os.path.join(self.testdir, 'file.shx')))
+        self.assertTrue(os.path.exists(os.path.join(self.testdir, 'file.dbf')))
+        self.assertTrue(os.path.exists(os.path.join(self.testdir, 'file.prj')))
+
+    def test_normalize_ogr_filename_case5(self):
+        filename = os.path.join(self.testdir, 'file.SHP')
+        with open(filename, 'w') as file:
+            file.write('yo')
+        
+        for otherbase in ('file.SHX', 'file.DBF', 'file.PRJ'):
+            othername = os.path.join(self.testdir, otherbase)
+            with open(othername, 'w') as other:
+                other.write('yo')
+        
+        self.assertNotEqual(normalize_ogr_filename_case(filename), filename)
+        self.assertTrue(os.path.exists(normalize_ogr_filename_case(filename)))
+        self.assertTrue(os.path.exists(os.path.join(self.testdir, 'file.shx')))
+        self.assertTrue(os.path.exists(os.path.join(self.testdir, 'file.dbf')))
+        self.assertTrue(os.path.exists(os.path.join(self.testdir, 'file.prj')))
 
 class TestConformCsv(unittest.TestCase):
     "Fixture to create real files to test csv_source_to_csv()"

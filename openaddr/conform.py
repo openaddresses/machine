@@ -217,7 +217,8 @@ class ExcerptDataTask(object):
         if data_ext in ('.geojson', '.json'):
             data_path = ExcerptDataTask._sample_geojson_file(data_path)
         
-        datasource = ogr.Open(data_path, 0)
+        ogr_data_path = normalize_ogr_filename_case(data_path)
+        datasource = ogr.Open(ogr_data_path, 0)
         layer = datasource.GetLayer()
 
         if not encoding:
@@ -466,6 +467,33 @@ def convert_regexp_replace(replace):
         return convert_regexp_replace(re.sub(r'\$\{(\d+)\}', r'\\g<\g<1>>', replace))
     
     return replace    
+
+def normalize_ogr_filename_case(source_path):
+    '''
+    '''
+    base, ext = splitext(source_path)
+    
+    if ext == ext.lower():
+        # Extension is already lowercase, no need to do anything.
+        return source_path
+
+    normal_path = base + ext.lower()
+    
+    if os.path.exists(normal_path):
+        # We appear to be on a case-insensitive filesystem.
+        return normal_path
+
+    os.link(source_path, normal_path)
+    
+    # May need to deal with some additional files.
+    extras = {'.Shp': ('.Shx', '.Dbf', '.Prj'), '.SHP': ('.SHX', '.DBF', '.PRJ')}
+    
+    if ext in extras:
+        for other_ext in extras[ext]:
+            if os.path.exists(base + other_ext):
+                os.link(base + other_ext, base + other_ext.lower())
+
+    return normal_path
 
 def ogr_source_to_csv(source_definition, source_path, dest_path):
     "Convert a single shapefile or GeoJSON in source_path and put it in dest_path"
@@ -860,7 +888,8 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     to longitude and latitude in EPSG:4326.
     """
     if source_definition["conform"]["type"] in ("shapefile", "shapefile-polygon", "xml"):
-        ogr_source_to_csv(source_definition, source_path, extract_path)
+        ogr_source_path = normalize_ogr_filename_case(source_path)
+        ogr_source_to_csv(source_definition, ogr_source_path, extract_path)
     elif source_definition["conform"]["type"] == "csv":
         csv_source_to_csv(source_definition, source_path, extract_path)
     elif source_definition["conform"]["type"] == "geojson":
@@ -870,7 +899,8 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
             csv_source_to_csv(source_definition, source_path, extract_path)
         else:
             _L.info("Non-ESRI GeoJSON source found; this code is not well tested.")
-            ogr_source_to_csv(source_definition, source_path, extract_path)
+            ogr_source_path = normalize_ogr_filename_case(source_path)
+            ogr_source_to_csv(source_definition, ogr_source_path, extract_path)
     else:
         raise Exception("Unsupported source type %s" % source_definition["conform"]["type"])
 
