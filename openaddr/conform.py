@@ -32,6 +32,7 @@ X_FIELDNAME, Y_FIELDNAME = 'OA:x', 'OA:y'
 attrib_types = { 
     'street':   'OA:street',
     'number':   'OA:number',
+    'unit':     'OA:unit',
     'city':     'OA:city',
     'postcode': 'OA:postcode',
     'district': 'OA:district',
@@ -805,6 +806,7 @@ def row_fxn_regexp(sd, row, key):
 
 def row_canonicalize_street_and_number(sd, row):
     "Expand abbreviations and otherwise canonicalize street name and number"
+    row["UNIT"] = (row["UNIT"] or '').strip()
     row["NUMBER"] = (row["NUMBER"] or '').strip()
     if row["NUMBER"].endswith(".0"):
         row["NUMBER"] = row["NUMBER"][:-2]
@@ -837,6 +839,7 @@ def row_convert_to_out(sd, row):
     return {
         "LON": row.get(X_FIELDNAME, None),
         "LAT": row.get(Y_FIELDNAME, None),
+        "UNIT": row.get(keys['unit'], None) if keys['unit'] else None,
         "NUMBER": row.get(keys['number'], None) if keys['number'] else None,
         "STREET": row.get(keys['street'], None) if keys['street'] else None,
         "CITY": row.get(keys['city'], None) if keys['city'] else None,
@@ -872,7 +875,7 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
         raise Exception("Unsupported source type %s" % source_definition["conform"]["type"])
 
 # The canonical output schema for conform
-_openaddr_csv_schema = ["LON", "LAT", "NUMBER", "STREET", "CITY", "DISTRICT", "REGION", "POSTCODE", "ID"]
+_openaddr_csv_schema = ["LON", "LAT", "NUMBER", "STREET", "UNIT", "CITY", "DISTRICT", "REGION", "POSTCODE", "ID"]
 
 def transform_to_out_csv(source_definition, extract_path, dest_path):
     ''' Transform an extracted source CSV to the OpenAddresses output CSV by applying conform rules.
