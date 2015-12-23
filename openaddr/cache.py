@@ -229,7 +229,7 @@ class URLDownloadTask(DownloadTask):
 
         return os.path.join(dir_path, name_base + path_ext)
 
-    def download(self, source_urls, workdir, conform):
+    def download(self, source_urls, workdir, conform=None):
         output_files = []
         download_path = os.path.join(workdir, 'http')
         mkdirsp(download_path)
@@ -412,7 +412,7 @@ class EsriRestDownloadTask(DownloadTask):
             if k in attrib_types:
                 if isinstance(v, dict):
                     # It's a function of some sort
-                    fields.add(k.get('field'))
+                    fields.add(v.get('field'))
                 elif isinstance(v, list):
                     # It's a list of field names
                     for f in v:
@@ -421,11 +421,11 @@ class EsriRestDownloadTask(DownloadTask):
                     fields.add(v)
 
         if fields:
-            return ','.join(filter(None, fields))
+            return ','.join(filter(None, sorted(fields)))
         else:
             return '*'
 
-    def download(self, source_urls, workdir, conform):
+    def download(self, source_urls, workdir, conform=None):
         output_files = []
         download_path = os.path.join(workdir, 'esri')
         mkdirsp(download_path)
