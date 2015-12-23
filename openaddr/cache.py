@@ -30,7 +30,7 @@ requests_ftp.monkeypatch_session()
 _http_timeout = 180
 
 from .compat import csvopen, csvDictWriter
-from .conform import X_FIELDNAME, Y_FIELDNAME, GEOM_FIELDNAME
+from .conform import X_FIELDNAME, Y_FIELDNAME, GEOM_FIELDNAME, attrib_types
 
 def mkdirsp(path):
     try:
@@ -122,7 +122,7 @@ class DownloadTask(object):
         else:
             raise KeyError("I don't know how to extract for type {}".format(type_string))
 
-    def download(self, source_urls, workdir):
+    def download(self, source_urls, workdir, conform):
         raise NotImplementedError()
 
 def guess_url_file_extension(url):
@@ -223,13 +223,13 @@ class URLDownloadTask(DownloadTask):
             # With a source prefix, create a safe and unique filename with a hash.
             hash = sha1((host + path_base).encode('utf-8'))
             name_base = u'{}-{}'.format(self.source_prefix, hash.hexdigest()[:8])
-        
+
         path_ext = guess_url_file_extension(url)
         _L.debug(u'Guessed {}{} for {}'.format(name_base, path_ext, url))
-    
+
         return os.path.join(dir_path, name_base + path_ext)
 
-    def download(self, source_urls, workdir):
+    def download(self, source_urls, workdir, conform):
         output_files = []
         download_path = os.path.join(workdir, 'http')
         mkdirsp(download_path)
@@ -403,10 +403,34 @@ class EsriRestDownloadTask(DownloadTask):
 
         return oid_field_name
 
-    def download(self, source_urls, workdir):
+    def field_names_to_request(self, conform):
+        if not conform:
+            return '*'
+
+        fields = set()
+        for k, v in conform.iteritems():
+            if k in attrib_types:
+                if isinstance(v, dict):
+                    # It's a function of some sort
+                    fields.add(k.get('field'))
+                elif isinstance(v, list):
+                    # It's a list of field names
+                    for f in v:
+                        fields.add(f)
+                else:
+                    fields.add(v)
+
+        if fields:
+            return ','.join(filter(None, fields))
+        else:
+            return '*'
+
+    def download(self, source_urls, workdir, conform):
         output_files = []
         download_path = os.path.join(workdir, 'esri')
         mkdirsp(download_path)
+
+        query_fields = self.field_names_to_request(conform)
 
         for source_url in source_urls:
             size = 0
@@ -452,7 +476,7 @@ class EsriRestDownloadTask(DownloadTask):
                         'geometryPrecision': 7,
                         'returnGeometry': 'true',
                         'outSR': 4326,
-                        'outFields': '*',
+                        'outFields': query_fields,
                         'f': 'json',
                     })
                 _L.info("Built {} requests using resultOffset method".format(len(page_args)))
@@ -481,7 +505,7 @@ class EsriRestDownloadTask(DownloadTask):
                                 'geometryPrecision': 7,
                                 'returnGeometry': 'true',
                                 'outSR': 4326,
-                                'outFields': '*',
+                                'outFields': query_fields,
                                 'f': 'json',
                             })
                         _L.info("Built {} requests using OID where clause method".format(len(page_args)))
@@ -507,7 +531,7 @@ class EsriRestDownloadTask(DownloadTask):
                             'geometryPrecision': 7,
                             'returnGeometry': 'true',
                             'outSR': 4326,
-                            'outFields': '*',
+                            'outFields': query_fields,
                             'f': 'json',
                         })
                     _L.info("Built {} requests using OID enumeration method".format(len(page_args)))
