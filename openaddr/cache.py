@@ -408,7 +408,7 @@ class EsriRestDownloadTask(DownloadTask):
             return '*'
 
         fields = set()
-        for k, v in conform.iteritems():
+        for k, v in conform.items():
             if k in attrib_types:
                 if isinstance(v, dict):
                     # It's a function of some sort
