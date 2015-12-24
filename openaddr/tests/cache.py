@@ -169,28 +169,41 @@ class TestCacheEsriDownload (unittest.TestCase):
         """ ESRI Caching Supports Object ID Enumeration """
         with httmock.HTTMock(self.response_content):
             task = EsriRestDownloadTask('us-ca-carson')
-            task.download(['http://www.carsonproperty.info/ArcGIS/rest/services/basemap/MapServer/1'], self.workdir)
-    
+            task.download(['http://www.carsonproperty.info/ArcGIS/rest/services/basemap/MapServer/1'], self.workdir, None)
+
     def test_download_madison(self):
         """ ESRI Caching Supports Statistics Pagination """
         with httmock.HTTMock(self.response_content):
             task = EsriRestDownloadTask('us-ms-madison')
-            task.download(['http://gis.cmpdd.org/arcgis/rest/services/Viewers/Madison/MapServer/13'], self.workdir)
+            task.download(['http://gis.cmpdd.org/arcgis/rest/services/Viewers/Madison/MapServer/13'], self.workdir, None)
 
     def test_download_esri_sample(self):
         """ ESRI Caching Supports Advanced Query Pagination """
         with httmock.HTTMock(self.response_content):
             task = EsriRestDownloadTask('us-esri-test')
-            task.download(['https://sampleserver6.arcgisonline.com/arcgis/rest/services/Recreation/FeatureServer/0'], self.workdir)
+            task.download(['https://sampleserver6.arcgisonline.com/arcgis/rest/services/Recreation/FeatureServer/0'], self.workdir, None)
 
     def test_download_tuolumne(self):
         """ ESRI Caching Supports Statistics That Doesn't Respect Requested outField Name """
         with httmock.HTTMock(self.response_content):
             task = EsriRestDownloadTask('us-ca-tuolumne')
-            task.download(['http://gis.co.tuolumne.ca.us/arcgis/rest/services/Address_Parcels/MapServer/0'], self.workdir)
+            task.download(['http://gis.co.tuolumne.ca.us/arcgis/rest/services/Address_Parcels/MapServer/0'], self.workdir, None)
 
     def test_download_palmbeach(self):
         """ ESRI Caching Falls Through To OID Enumeration When Statistics Doesn't Work """
         with httmock.HTTMock(self.response_content):
             task = EsriRestDownloadTask('us-fl-palmbeach')
-            task.download(['http://gis.kentcountymi.gov/prodarcgis/rest/services/External/MapServer/5'], self.workdir)
+            task.download(['http://gis.kentcountymi.gov/prodarcgis/rest/services/External/MapServer/5'], self.workdir, None)
+
+    def test_download_with_conform(self):
+        """ ESRI Caching Will Request With The Minimum Fields Required """
+        conforms = (
+            ('*', None),
+            ('a,b,c', {'type': 'csv', 'street': ['a', 'b'], 'number': 'c'}),
+            ('a', {'type': 'csv', 'street': {'function': 'regexp', 'field': 'a'}, 'number': {'function': 'regexp', 'field': 'a'}}),
+        )
+
+        task = EsriRestDownloadTask('us-fl-palmbeach')
+        for expected, conform in conforms:
+            actual = task.field_names_to_request(conform)
+            self.assertEquals(expected, actual)

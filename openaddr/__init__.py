@@ -97,7 +97,7 @@ def cache(srcjson, destdir, extras):
         source_urls = [source_urls]
 
     task = DownloadTask.from_type_string(data.get('type'), source)
-    downloaded_files = task.download(source_urls, workdir)
+    downloaded_files = task.download(source_urls, workdir, data.get('conform'))
 
     # FIXME: I wrote the download stuff to assume multiple files because
     # sometimes a Shapefile fileset is splayed across multiple files instead
