@@ -443,7 +443,7 @@ class EsriRestDownloadTask(DownloadTask):
 
             metadata = self.get_layer_metadata(source_url)
 
-            field_names = [f['name'] for f in metadata['fields']]
+            field_names = list(query_fields)
             if X_FIELDNAME not in field_names:
                 field_names.append(X_FIELDNAME)
             if Y_FIELDNAME not in field_names:
