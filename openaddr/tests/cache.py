@@ -87,7 +87,24 @@ class TestCacheEsriDownload (unittest.TestCase):
             elif path == '/ArcGIS/rest/services/basemap/MapServer/1':
                 if qs.get('f') == ['json']:
                     local_path = join(data_dirname, 'us-ca-carson-metadata.json')
-        
+
+        if host == 'www.gocolumbiamo.com':
+            qs = parse_qs(query)
+
+            if path == '/arcgis/rest/services/ADDRESSES/MapServer/2/query':
+                body_data = parse_qs(request.body) if request.body else {}
+
+                if qs.get('returnIdsOnly') == ['true']:
+                    local_path = join(data_dirname, 'us-mo-columbia-ids-only.json')
+                elif qs.get('returnCountOnly') == ['true']:
+                    local_path = join(data_dirname, 'us-mo-columbia-count-only.json')
+                elif body_data.get('outSR') == ['4326']:
+                    local_path = join(data_dirname, 'us-mo-columbia-0.json')
+
+            elif path == '/arcgis/rest/services/ADDRESSES/MapServer/2':
+                if qs.get('f') == ['json']:
+                    local_path = join(data_dirname, 'us-mo-columbia-metadata.json')
+
         if host == 'gis.cmpdd.org':
             qs = parse_qs(query)
             
@@ -194,6 +211,12 @@ class TestCacheEsriDownload (unittest.TestCase):
         with httmock.HTTMock(self.response_content):
             task = EsriRestDownloadTask('us-fl-palmbeach')
             task.download(['http://gis.kentcountymi.gov/prodarcgis/rest/services/External/MapServer/5'], self.workdir, None)
+
+    def test_download_columbia(self):
+        """ ESRI Caching Coerces Floats To Integer Type """
+        with httmock.HTTMock(self.response_content):
+            task = EsriRestDownloadTask('us-mo-columbia')
+            task.download(['http://www.gocolumbiamo.com/arcgis/rest/services/ADDRESSES/MapServer/2'], self.workdir, None)
 
     def test_download_with_conform(self):
         """ ESRI Caching Will Request With The Minimum Fields Required """

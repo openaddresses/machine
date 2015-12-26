@@ -527,7 +527,7 @@ class EsriRestDownloadTask(DownloadTask):
                     for i in range(0, len(oids), 100):
                         oid_chunk = oids[i:i+100]
                         page_args.append({
-                            'objectIds': ','.join(map(str, oid_chunk)),
+                            'objectIds': ','.join(map(str, map(long, oid_chunk))),
                             'geometryPrecision': 7,
                             'returnGeometry': 'true',
                             'outSR': 4326,
