@@ -1,3 +1,6 @@
+2015-12-26: 2.9.1
+- Fixed a few ESRI feature service query loose ends.
+
 2015-12-22: 2.9.0
 - Added conform "unit" attribute for apartments or subaddresses.
 - Fixed meaningless internal source naming for worker jobs.
