@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, print_function
 import logging; _L = logging.getLogger('openaddr.cache')
 
-from .compat import standard_library
+from .compat import standard_library, PY2
 
 import ogr
 import os
@@ -525,7 +525,7 @@ class EsriRestDownloadTask(DownloadTask):
                     oids = oid_data['objectIds']
 
                     for i in range(0, len(oids), 100):
-                        oid_chunk = oids[i:i+100]
+                        oid_chunk = map(long if PY2 else int, oids[i:i+100])
                         page_args.append({
                             'objectIds': ','.join(map(str, oid_chunk)),
                             'geometryPrecision': 7,
