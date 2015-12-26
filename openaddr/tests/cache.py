@@ -221,12 +221,12 @@ class TestCacheEsriDownload (unittest.TestCase):
     def test_download_with_conform(self):
         """ ESRI Caching Will Request With The Minimum Fields Required """
         conforms = (
-            ('*', None),
-            ('a,b,c', {'type': 'csv', 'street': ['a', 'b'], 'number': 'c'}),
-            ('a', {'type': 'csv', 'street': {'function': 'regexp', 'field': 'a'}, 'number': {'function': 'regexp', 'field': 'a'}}),
+            (None, None),
+            (['a', 'b', 'c'], {'type': 'csv', 'street': ['a', 'b'], 'number': 'c'}),
+            (['a'], {'type': 'csv', 'street': {'function': 'regexp', 'field': 'a'}, 'number': {'function': 'regexp', 'field': 'a'}}),
         )
 
         task = EsriRestDownloadTask('us-fl-palmbeach')
         for expected, conform in conforms:
             actual = task.field_names_to_request(conform)
-            self.assertEquals(expected, actual)
+            self.assertEqual(expected, actual)

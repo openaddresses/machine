@@ -404,8 +404,10 @@ class EsriRestDownloadTask(DownloadTask):
         return oid_field_name
 
     def field_names_to_request(self, conform):
+        ''' Return list of fieldnames to request based on conform, or None.
+        '''
         if not conform:
-            return '*'
+            return None
 
         fields = set()
         for k, v in conform.items():
@@ -421,9 +423,9 @@ class EsriRestDownloadTask(DownloadTask):
                     fields.add(v)
 
         if fields:
-            return ','.join(filter(None, sorted(fields)))
+            return list(filter(None, sorted(fields)))
         else:
-            return '*'
+            return None
 
     def download(self, source_urls, workdir, conform=None):
         output_files = []
@@ -442,8 +444,12 @@ class EsriRestDownloadTask(DownloadTask):
                 continue
 
             metadata = self.get_layer_metadata(source_url)
+            
+            if query_fields is None:
+                field_names = [f['name'] for f in metadata['fields']]
+            else:
+                field_names = query_fields[:]
 
-            field_names = list(query_fields)
             if X_FIELDNAME not in field_names:
                 field_names.append(X_FIELDNAME)
             if Y_FIELDNAME not in field_names:
@@ -476,7 +482,7 @@ class EsriRestDownloadTask(DownloadTask):
                         'geometryPrecision': 7,
                         'returnGeometry': 'true',
                         'outSR': 4326,
-                        'outFields': query_fields,
+                        'outFields': ','.join(query_fields or ['*']),
                         'f': 'json',
                     })
                 _L.info("Built {} requests using resultOffset method".format(len(page_args)))
@@ -505,7 +511,7 @@ class EsriRestDownloadTask(DownloadTask):
                                 'geometryPrecision': 7,
                                 'returnGeometry': 'true',
                                 'outSR': 4326,
-                                'outFields': query_fields,
+                                'outFields': ','.join(query_fields or ['*']),
                                 'f': 'json',
                             })
                         _L.info("Built {} requests using OID where clause method".format(len(page_args)))
@@ -584,7 +590,7 @@ class EsriRestDownloadTask(DownloadTask):
                                 row[X_FIELDNAME] = round(centroid.GetX(), 7)
                                 row[Y_FIELDNAME] = round(centroid.GetY(), 7)
 
-                            writer.writerow(row)
+                            writer.writerow({fn: row.get(fn) for fn in field_names})
                             size += 1
                         except TypeError:
                             _L.debug("Skipping a geometry", exc_info=True)

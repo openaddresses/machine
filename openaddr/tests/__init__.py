@@ -328,7 +328,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
-        self.assertEqual(state['fingerprint'], '3926017394c9ff4d6a68718a0a503620')
+        self.assertEqual(state['fingerprint'], '9494df65d13eb9b99f97bcdf0ba55a5f')
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point 2.5D')
@@ -339,7 +339,7 @@ class TestOA (unittest.TestCase):
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
-        self.assertTrue('SITEFRAC' in sample_data[0])
+        self.assertTrue('SITENUMBER' in sample_data[0])
         
         with open(join(dirname(state_path), state['processed'])) as file:
             rows = list(DictReader(file, dialect='excel'))
@@ -365,7 +365,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
-        self.assertEqual(state['fingerprint'], '3926017394c9ff4d6a68718a0a503620')
+        self.assertEqual(state['fingerprint'], '169d24669244b870acd30cea35fd0d03')
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point 2.5D')
@@ -374,7 +374,7 @@ class TestOA (unittest.TestCase):
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
-        self.assertTrue('SITEFRAC' in sample_data[0])
+        self.assertTrue('SITENUMBER' in sample_data[0])
         
         with open(join(dirname(state_path), state['processed'])) as file:
             self.assertTrue('555,Carson Street' in file.read())
@@ -391,7 +391,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
-        self.assertEqual(state['fingerprint'], '3926017394c9ff4d6a68718a0a503620')
+        self.assertEqual(state['fingerprint'], '169d24669244b870acd30cea35fd0d03')
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point 2.5D')
@@ -400,7 +400,7 @@ class TestOA (unittest.TestCase):
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
-        self.assertTrue('SITEFRAC' in sample_data[0])
+        self.assertTrue('SITENUMBER' in sample_data[0])
         
         with open(join(dirname(state_path), state['processed'])) as file:
             self.assertTrue('555,Carson Street' in file.read())
@@ -765,13 +765,13 @@ class TestOA (unittest.TestCase):
         self.assertEqual(len(sample_data), 6)
         self.assertIn('OA:geom', sample_data[0])
         self.assertIn('UNITNUM', sample_data[0])
-        self.assertEqual('423', sample_data[1][2])
-        self.assertEqual(['W', '28TH DIVISION', 'HWY'], sample_data[1][4:7])
-        self.assertEqual('1', sample_data[1][9])
-        self.assertEqual('2', sample_data[2][9])
-        self.assertEqual('3', sample_data[3][9])
-        self.assertEqual('4', sample_data[4][9])
-        self.assertEqual('5', sample_data[5][9])
+        self.assertEqual('423', sample_data[1][0])
+        self.assertEqual(['W', ' ', '28TH DIVISION', 'HWY'], sample_data[1][1:5])
+        self.assertEqual('1', sample_data[1][6])
+        self.assertEqual('2', sample_data[2][6])
+        self.assertEqual('3', sample_data[3][6])
+        self.assertEqual('4', sample_data[4][6])
+        self.assertEqual('5', sample_data[5][6])
         
         output_path = join(dirname(state_path), state['processed'])
         
