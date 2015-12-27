@@ -537,7 +537,7 @@ class EsriRestDownloadTask(DownloadTask):
                             'geometryPrecision': 7,
                             'returnGeometry': 'true',
                             'outSR': 4326,
-                            'outFields': query_fields,
+                            'outFields': ','.join(query_fields or ['*']),
                             'f': 'json',
                         })
                     _L.info("Built {} requests using OID enumeration method".format(len(page_args)))
