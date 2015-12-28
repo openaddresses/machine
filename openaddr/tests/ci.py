@@ -1913,7 +1913,7 @@ class TestCollect (unittest.TestCase):
         set = mock.Mock()
         set.owner, set.repository, set.commit_sha = 'oa', 'oa', 'ff9900'
         
-        tests = {'-nothing': lambda result: False, '-everything': lambda result: True}
+        tests = {'nothing': lambda result: False, 'everything': lambda result: True}
         collections = prepare_collections(self.s3, set, self.output_dir, tests, tests)
         
         for (collection, test) in collections:
@@ -1933,7 +1933,7 @@ class TestCollect (unittest.TestCase):
         collected_zip.filename = 'collected-local.zip'
         
         with patch('openaddr.ci.collect.add_source_to_zipfile') as add_source_to_zipfile:
-            collector_publisher = CollectorPublisher(s3, collected_zip)
+            collector_publisher = CollectorPublisher(s3, collected_zip, 'everywhere', 'yo')
             
             s1 = {'license': 'ODbL', 'attribution name': 'ABC Co.'}
             s2 = {'website': 'http://example.com', 'attribution flag': 'false'}
