@@ -1929,7 +1929,8 @@ class TestCollect (unittest.TestCase):
     def test_collector_publisher(self):
         '''
         '''
-        s3, collected_zip = mock.Mock(), mock.Mock()
+        s3, db, collected_zip = mock.Mock(), mock.Mock(), mock.Mock()
+        s3.new_key.return_value.generate_url.return_value = 'http://internet/collected-local.zip'
         collected_zip.filename = 'collected-local.zip'
         
         with patch('openaddr.ci.collect.add_source_to_zipfile') as add_source_to_zipfile:
@@ -1940,7 +1941,8 @@ class TestCollect (unittest.TestCase):
             
             collector_publisher.collect(LocalProcessedResult('abc', 'abc.zip', s1))
             collector_publisher.collect(LocalProcessedResult('def', 'def.zip', s2))
-            collector_publisher.publish()
+            
+            collector_publisher.publish(db)
 
             add_source_to_zipfile.assert_has_calls([
                 mock.call(collected_zip, 'abc', 'abc.zip'),
@@ -1956,10 +1958,19 @@ class TestCollect (unittest.TestCase):
         collected_zip.close.assert_called_once_with()
 
         s3.new_key.assert_called_once_with('collected-local.zip')
+        s3.new_key.return_value.generate_url.assert_called_once_with(force_http=True)
 
         s3.new_key.return_value.set_contents_from_filename.assert_called_once_with(
             'collected-local.zip', policy='public-read',
             headers={'Content-Type': 'application/zip'})
+        
+        self.assertEqual(db.execute.mock_calls, [
+            mock.call('DELETE FROM zips WHERE url = %s',
+                      ('http://internet/collected-local.zip',)),
+            mock.call('''INSERT INTO zips
+                      (url, datetime, collection, license_attr)
+                      VALUES (%s, NOW(), %s, %s)''',
+                      ('http://internet/collected-local.zip', 'everywhere', 'yo'))])
     
     def test_collection_checks(self):
         '''

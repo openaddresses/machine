@@ -154,7 +154,7 @@ class CollectorPublisher:
             'attribution': attribution
             }
         
-    def publish(self):
+    def publish(self, db):
         ''' Create new S3 object with zipfile name and upload the collection.
         '''
         # Write a short file with source licenses.
@@ -173,6 +173,15 @@ class CollectorPublisher:
         zip_args = dict(policy='public-read', headers={'Content-Type': 'application/zip'})
         zip_key.set_contents_from_filename(self.zip.filename, **zip_args)
         _L.info(u'Uploaded {} to {}'.format(self.zip.filename, zip_key.name))
+        
+        zip_url = zip_key.generate_url(force_http=True)
+        
+        db.execute('''DELETE FROM zips WHERE url = %s''', (zip_url, ))
+
+        db.execute('''INSERT INTO zips
+                      (url, datetime, collection, license_attr)
+                      VALUES (%s, NOW(), %s, %s)''',
+                   (zip_url, self.collection_id, self.license_attr))
 
 def add_source_to_zipfile(zip_out, source_base, filename):
     '''
