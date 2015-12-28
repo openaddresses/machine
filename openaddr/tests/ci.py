@@ -1958,7 +1958,7 @@ class TestCollect (unittest.TestCase):
         collected_zip.close.assert_called_once_with()
 
         s3.new_key.assert_called_once_with('collected-local.zip')
-        s3.new_key.return_value.generate_url.assert_called_once_with(force_http=True)
+        s3.new_key.return_value.generate_url.assert_called_once_with(expires_in=0, query_auth=False, force_http=True)
 
         s3.new_key.return_value.set_contents_from_filename.assert_called_once_with(
             'collected-local.zip', policy='public-read',

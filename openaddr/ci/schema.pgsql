@@ -57,7 +57,7 @@ CREATE TABLE runs
     commit_sha          VARCHAR(40) NULL
 );
 
-CREATE TYPE zip_collection AS ENUM ('global', 'us_midwest', 'us_south', 'us_west', 'europe', 'asia');
+CREATE TYPE zip_collection AS ENUM ('global', 'us_northeast', 'us_midwest', 'us_south', 'us_west', 'europe', 'asia');
 CREATE TYPE zip_licensing AS ENUM ('', 'sa');
 
 CREATE TABLE zips

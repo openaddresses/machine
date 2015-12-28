@@ -14,7 +14,7 @@ import json, io, zipfile
 
 from osgeo import ogr
 from requests import get
-from boto import connect_s3
+from boto.s3.connection import S3Connection
 from dateutil.parser import parse
 from .sample import sample_geojson
 
@@ -51,7 +51,9 @@ class S3:
     
     def _make_bucket(self):
         if not self._bucket:
-            connection = connect_s3(self._key, self._secret)
+            # see https://github.com/boto/boto/issues/2836#issuecomment-67896932
+            kwargs = dict(calling_format='boto.s3.connection.OrdinaryCallingFormat')
+            connection = S3Connection(self._key, self._secret, **kwargs)
             self._bucket = connection.get_bucket(self.bucketname)
     
     def get_key(self, name):

@@ -55,8 +55,9 @@ def main():
     args = parser.parse_args()
     setup_logger(args.sns_arn, log_level=args.loglevel)
     s3 = S3(args.access_key, args.secret_key, args.bucket)
+    db_args = util.prepare_db_kwargs(args.database_url)
     
-    with db_connect(**util.prepare_db_kwargs(args.database_url)) as conn:
+    with db_connect(**db_args) as conn:
         with db_cursor(conn) as db:
             set = read_latest_set(db, args.owner, args.repository)
             runs = read_completed_runs_to_date(db, set.id)
@@ -83,8 +84,11 @@ def main():
             if test(result):
                 collection.collect(result)
     
-    for (collection, test) in collections:
-        collection.publish()
+    #with db_connect(**db_args) as conn:
+    with db_connect('postgres:///hooked_on_sources') as conn:
+        with db_cursor(conn) as db:
+            for (collection, test) in collections:
+                collection.publish(db)
     
     rmtree(dir)
 
@@ -174,7 +178,8 @@ class CollectorPublisher:
         zip_key.set_contents_from_filename(self.zip.filename, **zip_args)
         _L.info(u'Uploaded {} to {}'.format(self.zip.filename, zip_key.name))
         
-        zip_url = zip_key.generate_url(force_http=True)
+        zip_url = zip_key.generate_url(expires_in=0, query_auth=False, force_http=True)
+        _L.debug(u'Uploaded to {}'.format(zip_url))
         
         db.execute('''DELETE FROM zips WHERE url = %s''', (zip_url, ))
 
