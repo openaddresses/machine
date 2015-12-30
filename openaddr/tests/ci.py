@@ -1913,7 +1913,7 @@ class TestCollect (unittest.TestCase):
         set = mock.Mock()
         set.owner, set.repository, set.commit_sha = 'oa', 'oa', 'ff9900'
         
-        tests = {'-nothing': lambda result: False, '-everything': lambda result: True}
+        tests = {'nothing': lambda result: False, 'everything': lambda result: True}
         collections = prepare_collections(self.s3, set, self.output_dir, tests, tests)
         
         for (collection, test) in collections:
@@ -1929,18 +1929,20 @@ class TestCollect (unittest.TestCase):
     def test_collector_publisher(self):
         '''
         '''
-        s3, collected_zip = mock.Mock(), mock.Mock()
+        s3, db, collected_zip = mock.Mock(), mock.Mock(), mock.Mock()
+        s3.new_key.return_value.generate_url.return_value = 'http://internet/collected-local.zip'
         collected_zip.filename = 'collected-local.zip'
         
         with patch('openaddr.ci.collect.add_source_to_zipfile') as add_source_to_zipfile:
-            collector_publisher = CollectorPublisher(s3, collected_zip)
+            collector_publisher = CollectorPublisher(s3, collected_zip, 'everywhere', 'yo')
             
             s1 = {'license': 'ODbL', 'attribution name': 'ABC Co.'}
             s2 = {'website': 'http://example.com', 'attribution flag': 'false'}
             
             collector_publisher.collect(LocalProcessedResult('abc', 'abc.zip', s1))
             collector_publisher.collect(LocalProcessedResult('def', 'def.zip', s2))
-            collector_publisher.publish()
+            
+            collector_publisher.publish(db)
 
             add_source_to_zipfile.assert_has_calls([
                 mock.call(collected_zip, 'abc', 'abc.zip'),
@@ -1956,10 +1958,19 @@ class TestCollect (unittest.TestCase):
         collected_zip.close.assert_called_once_with()
 
         s3.new_key.assert_called_once_with('collected-local.zip')
+        s3.new_key.return_value.generate_url.assert_called_once_with(expires_in=0, query_auth=False, force_http=True)
 
         s3.new_key.return_value.set_contents_from_filename.assert_called_once_with(
             'collected-local.zip', policy='public-read',
             headers={'Content-Type': 'application/zip'})
+        
+        self.assertEqual(db.execute.mock_calls, [
+            mock.call('DELETE FROM zips WHERE url = %s',
+                      ('http://internet/collected-local.zip',)),
+            mock.call('''INSERT INTO zips
+                      (url, datetime, is_current, content_length, collection, license_attr)
+                      VALUES (%s, NOW(), true, %s, %s, %s)''',
+                      ('http://internet/collected-local.zip', None, 'everywhere', 'yo'))])
     
     def test_collection_checks(self):
         '''

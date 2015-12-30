@@ -3,7 +3,7 @@ import logging; _L = logging.getLogger('openaddr.ci.collect')
 from ..compat import standard_library
 
 from argparse import ArgumentParser
-from os import environ
+from os import environ, stat
 from zipfile import ZipFile, ZIP_DEFLATED
 from os.path import splitext, exists, basename, join
 from urllib.parse import urlparse
@@ -55,8 +55,9 @@ def main():
     args = parser.parse_args()
     setup_logger(args.sns_arn, log_level=args.loglevel)
     s3 = S3(args.access_key, args.secret_key, args.bucket)
+    db_args = util.prepare_db_kwargs(args.database_url)
     
-    with db_connect(**util.prepare_db_kwargs(args.database_url)) as conn:
+    with db_connect(**db_args) as conn:
         with db_cursor(conn) as db:
             set = read_latest_set(db, args.owner, args.repository)
             runs = read_completed_runs_to_date(db, set.id)
@@ -67,13 +68,13 @@ def main():
     
     # Maps of file suffixes to test functions
     area_tests = {
-        '-global': (lambda result: True), '-us_northeast': is_us_northeast,
-        '-us_midwest': is_us_midwest, '-us_south': is_us_south, 
-        '-us_west': is_us_west, '-europe': is_europe, '-asia': is_asia
+        'global': (lambda result: True), 'us_northeast': is_us_northeast,
+        'us_midwest': is_us_midwest, 'us_south': is_us_south, 
+        'us_west': is_us_west, 'europe': is_europe, 'asia': is_asia
         }
     sa_tests = {
         '': (lambda result: result.run_state.get('share-alike', '') != 'true'),
-        '-sa': (lambda result: result.run_state.get('share-alike', '') == 'true')
+        'sa': (lambda result: result.run_state.get('share-alike', '') == 'true')
         }
     
     collections = prepare_collections(s3, set, dir, area_tests, sa_tests)
@@ -83,8 +84,12 @@ def main():
             if test(result):
                 collection.collect(result)
     
-    for (collection, test) in collections:
-        collection.publish()
+    #with db_connect(**db_args) as conn:
+    with db_connect('postgres:///hooked_on_sources') as conn:
+        with db_cursor(conn) as db:
+            db.execute('UPDATE zips SET is_current = false')
+            for (collection, test) in collections:
+                collection.publish(db)
     
     rmtree(dir)
 
@@ -97,10 +102,12 @@ def prepare_collections(s3, set, dir, area_tests, sa_tests):
     def _and(test1, test2):
         return lambda result: (test1(result) and test2(result))
 
-    for ((area_suffix, area_test), (attr_suffix, sa_test)) in pairs:
+    for ((area_id, area_test), (attr_id, sa_test)) in pairs:
+        area_suffix = ('-' + area_id).rstrip('-')
+        attr_suffix = ('-' + attr_id).rstrip('-')
         new_name = 'openaddr-collected{}{}.zip'.format(area_suffix, attr_suffix)
         new_zip = _prepare_zip(set, join(dir, new_name))
-        new_collection = CollectorPublisher(s3, new_zip)
+        new_collection = CollectorPublisher(s3, new_zip, area_id, attr_id)
         collections.append((new_collection, _and(area_test, sa_test)))
         
     return collections
@@ -129,10 +136,12 @@ Data source information can be found at
 class CollectorPublisher:
     ''' 
     '''
-    def __init__(self, s3, collection_zip):
+    def __init__(self, s3, collection_zip, collection_id, license_attr):
         self.s3 = s3
         self.zip = collection_zip
         self.sources = dict()
+        self.collection_id = collection_id
+        self.license_attr = license_attr
     
     def collect(self, result):
         ''' Add LocalProcessedResult instance to collection zip.
@@ -150,7 +159,7 @@ class CollectorPublisher:
             'attribution': attribution
             }
         
-    def publish(self):
+    def publish(self, db):
         ''' Create new S3 object with zipfile name and upload the collection.
         '''
         # Write a short file with source licenses.
@@ -169,6 +178,16 @@ class CollectorPublisher:
         zip_args = dict(policy='public-read', headers={'Content-Type': 'application/zip'})
         zip_key.set_contents_from_filename(self.zip.filename, **zip_args)
         _L.info(u'Uploaded {} to {}'.format(self.zip.filename, zip_key.name))
+        
+        zip_url = zip_key.generate_url(expires_in=0, query_auth=False, force_http=True)
+        length = stat(self.zip.filename).st_size if exists(self.zip.filename) else None
+        
+        db.execute('''DELETE FROM zips WHERE url = %s''', (zip_url, ))
+
+        db.execute('''INSERT INTO zips
+                      (url, datetime, is_current, content_length, collection, license_attr)
+                      VALUES (%s, NOW(), true, %s, %s, %s)''',
+                   (zip_url, length, self.collection_id, self.license_attr))
 
 def add_source_to_zipfile(zip_out, source_base, filename):
     '''

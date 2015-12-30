@@ -1,9 +1,12 @@
 DROP VIEW IF EXISTS dashboard_runs;
 DROP VIEW IF EXISTS dashboard_stats;
 
+DROP TABLE IF EXISTS zips;
 DROP TABLE IF EXISTS runs;
 DROP TABLE IF EXISTS sets;
 DROP TABLE IF EXISTS jobs;
+DROP TYPE IF EXISTS zip_collection;
+DROP TYPE IF EXISTS zip_licensing;
 DROP SEQUENCE IF EXISTS ints;
 
 CREATE SEQUENCE ints;
@@ -52,6 +55,21 @@ CREATE TABLE runs
     job_id              VARCHAR(40) REFERENCES jobs(id) NULL,
     set_id              INTEGER REFERENCES sets(id) NULL,
     commit_sha          VARCHAR(40) NULL
+);
+
+CREATE TYPE zip_collection AS ENUM ('global', 'us_northeast', 'us_midwest', 'us_south', 'us_west', 'europe', 'asia');
+CREATE TYPE zip_licensing AS ENUM ('', 'sa');
+
+CREATE TABLE zips
+(
+    url                 VARCHAR(128) NOT NULL PRIMARY KEY,
+    datetime            TIMESTAMP WITH TIME ZONE,
+    is_current          BOOLEAN DEFAULT true,
+    content_length      INTEGER,
+    address_count       INTEGER,
+    
+    collection          zip_collection,
+    license_attr        zip_licensing
 );
 
 CREATE INDEX runs_set_ids ON runs (set_id);
