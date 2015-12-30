@@ -5,7 +5,7 @@ from .. import jobs, render
 
 from .objects import (
     add_job, write_job, read_job, complete_set, update_set_renders,
-    add_run, set_run, copy_run, read_completed_set_runs,
+    add_run, set_run, copy_run, read_completed_set_runs, read_set,
     get_completed_file_run, get_completed_run, new_read_completed_set_runs
     )
 
@@ -570,6 +570,18 @@ def update_job_status(db, job_id, job_url, filename, run_status, results, github
     elif job.status is True:
         update_success_status(job.github_status_url, job_url, filenames, github_auth)
 
+def is_merged_to_master(owner, repository, commit_sha, github_auth):
+    '''
+    '''
+    template1 = get('https://api.github.com/').json().get('repository_url')
+    repo_url = expand_uri(template1, dict(owner=owner, repo=repository))
+    
+    template2 = get(repo_url).json().get('compare_url')
+    compare_url = expand_uri(template2, dict(base=commit_sha, head='master'))
+    
+    compare = get(compare_url).json()
+    return compare['base_commit']['sha'] == compare['merge_base_commit']['sha']
+
 def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
     '''
     '''
@@ -654,7 +666,10 @@ def pop_task_from_donequeue(queue, github_auth):
             # We are too late, this got handled.
             return
         
-        run_status = bool(message == MAGIC_OK_MESSAGE)
+        run_status, s = bool(message == MAGIC_OK_MESSAGE), read_set(db, set_id)
+        is_merged = s and is_merged_to_master(s.owner, s.repository, commit_sha, github_auth)
+        print('done commit', commit_sha, 'merged?', is_merged)
+        
         set_run(db, run_id, filename, file_id, content_b64, run_state,
                 run_status, job_id, worker_id, commit_sha, set_id)
 
@@ -686,7 +701,10 @@ def pop_task_from_duequeue(queue, github_auth):
             # Everything's fine, this got handled.
             return
 
-        run_status = False
+        run_status, s = False, read_set(db, set_id)
+        is_merged = s and is_merged_to_master(s.owner, s.repository, commit_sha, github_auth)
+        print('due commit', commit_sha, 'merged?', is_merged)
+
         set_run(db, run_id, filename, file_id, content_b64, None, run_status,
                 job_id, worker_id, commit_sha, set_id)
 
