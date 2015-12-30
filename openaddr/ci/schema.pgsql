@@ -64,6 +64,7 @@ CREATE TABLE zips
 (
     url                 VARCHAR(128) NOT NULL PRIMARY KEY,
     datetime            TIMESTAMP WITH TIME ZONE,
+    is_current          BOOLEAN DEFAULT true,
     content_length      INTEGER,
     address_count       INTEGER,
     

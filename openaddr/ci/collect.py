@@ -3,7 +3,7 @@ import logging; _L = logging.getLogger('openaddr.ci.collect')
 from ..compat import standard_library
 
 from argparse import ArgumentParser
-from os import environ
+from os import environ, stat
 from zipfile import ZipFile, ZIP_DEFLATED
 from os.path import splitext, exists, basename, join
 from urllib.parse import urlparse
@@ -87,6 +87,7 @@ def main():
     #with db_connect(**db_args) as conn:
     with db_connect('postgres:///hooked_on_sources') as conn:
         with db_cursor(conn) as db:
+            db.execute('UPDATE zips SET is_current = false')
             for (collection, test) in collections:
                 collection.publish(db)
     
@@ -179,14 +180,14 @@ class CollectorPublisher:
         _L.info(u'Uploaded {} to {}'.format(self.zip.filename, zip_key.name))
         
         zip_url = zip_key.generate_url(expires_in=0, query_auth=False, force_http=True)
-        _L.debug(u'Uploaded to {}'.format(zip_url))
+        length = stat(self.zip.filename).st_size if exists(self.zip.filename) else None
         
         db.execute('''DELETE FROM zips WHERE url = %s''', (zip_url, ))
 
         db.execute('''INSERT INTO zips
-                      (url, datetime, collection, license_attr)
-                      VALUES (%s, NOW(), %s, %s)''',
-                   (zip_url, self.collection_id, self.license_attr))
+                      (url, datetime, is_current, content_length, collection, license_attr)
+                      VALUES (%s, NOW(), true, %s, %s, %s)''',
+                   (zip_url, length, self.collection_id, self.license_attr))
 
 def add_source_to_zipfile(zip_out, source_base, filename):
     '''

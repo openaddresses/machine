@@ -1968,9 +1968,9 @@ class TestCollect (unittest.TestCase):
             mock.call('DELETE FROM zips WHERE url = %s',
                       ('http://internet/collected-local.zip',)),
             mock.call('''INSERT INTO zips
-                      (url, datetime, collection, license_attr)
-                      VALUES (%s, NOW(), %s, %s)''',
-                      ('http://internet/collected-local.zip', 'everywhere', 'yo'))])
+                      (url, datetime, is_current, content_length, collection, license_attr)
+                      VALUES (%s, NOW(), true, %s, %s, %s)''',
+                      ('http://internet/collected-local.zip', None, 'everywhere', 'yo'))])
     
     def test_collection_checks(self):
         '''
