@@ -167,7 +167,8 @@ def app_hook():
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         queue = db_queue(conn, TASK_QUEUE)
         try:
-            job_id = create_queued_job(queue, files, job_url_template, commit_sha, status_url)
+            job_id = create_queued_job(queue, files, job_url_template,
+                                       commit_sha, owner, repo, status_url)
             job_url = expand_uri(job_url_template, dict(id=job_id))
         except Exception as e:
             # Oops, tell Github something went wrong.

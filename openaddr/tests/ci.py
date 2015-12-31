@@ -76,37 +76,42 @@ class TestObjects (unittest.TestCase):
     def test_add_job(self):
         ''' Check behavior of objects.add_job()
         '''
-        add_job(self.db, 'xyz', True, {}, {}, {}, 'http://')
+        add_job(self.db, 'xyz', True, {}, {}, {}, 'o', 'a', 'http://')
 
         self.db.execute.assert_called_once_with(
                '''INSERT INTO jobs
-                  (task_files, file_states, file_results, github_status_url, status, id)
-                  VALUES (%s::json, %s::json, %s::json, %s, %s, %s)''',
-                  ('{}', '{}', '{}', 'http://', True, 'xyz'))
+                  (task_files, file_states, file_results, github_owner,
+                   github_repository, github_status_url, status, id)
+                  VALUES (%s::json, %s::json, %s::json, %s, %s, %s, %s, %s)''',
+                  ('{}', '{}', '{}', 'o', 'a', 'http://', True, 'xyz'))
 
     def test_write_job(self):
         ''' Check behavior of objects.write_job()
         '''
-        write_job(self.db, 'xyz', True, {}, {}, {}, 'http://')
+        write_job(self.db, 'xyz', True, {}, {}, {}, 'o', 'a', 'http://')
 
         self.db.execute.assert_called_once_with(
                '''UPDATE jobs
                   SET task_files=%s::json, file_states=%s::json,
-                      file_results=%s::json, github_status_url=%s, status=%s
+                      file_results=%s::json, github_owner=%s, github_repository=%s,
+                      github_status_url=%s, status=%s
                   WHERE id = %s''',
-                  ('{}', '{}', '{}', 'http://', True, 'xyz'))
+                  ('{}', '{}', '{}', 'o', 'a', 'http://', True, 'xyz'))
 
     def test_read_job_yes(self):
         ''' Check behavior of objects.read_job()
         '''
-        self.db.fetchone.return_value = True, {}, {}, {}, 'http://'
+        self.db.fetchone.return_value = True, {}, {}, {}, 'o', 'a', 'http://'
         
         job = read_job(self.db, 'xyz')
         self.assertEqual(job.id, 'xyz')
         self.assertEqual(job.status, True)
+        self.assertEqual(job.github_owner, 'o')
+        self.assertEqual(job.github_repository, 'a')
 
         self.db.execute.assert_called_once_with(
-               '''SELECT status, task_files, file_states, file_results, github_status_url
+               '''SELECT status, task_files, file_states, file_results,
+                         github_owner, github_repository, github_status_url
                   FROM jobs WHERE id = %s
                   LIMIT 1''',
                   ('xyz', ))
@@ -120,7 +125,8 @@ class TestObjects (unittest.TestCase):
         self.assertIsNone(nothing)
 
         self.db.execute.assert_called_once_with(
-               '''SELECT status, task_files, file_states, file_results, github_status_url
+               '''SELECT status, task_files, file_states, file_results,
+                         github_owner, github_repository, github_status_url
                   FROM jobs WHERE id = %s
                   LIMIT 1''',
                   ('xyz', ))
@@ -128,14 +134,15 @@ class TestObjects (unittest.TestCase):
     def test_read_jobs(self):
         ''' Check behavior of objects.read_jobs()
         '''
-        self.db.fetchall.return_value = (('xyz', True, {}, {}, {}, 'http://'), )
+        self.db.fetchall.return_value = (('xyz', True, {}, {}, {}, 'o', 'a', 'http://'), )
         
         (job, ) = read_jobs(self.db, None)
         self.assertEqual(job.id, 'xyz')
         self.assertEqual(job.status, True)
 
         self.db.execute.assert_called_once_with(
-               '''SELECT id, status, task_files, file_states, file_results, github_status_url
+               '''SELECT id, status, task_files, file_states, file_results,
+                         github_owner, github_repository, github_status_url
                   --
                   -- Select sequence value from jobs based on ID. Null sequence
                   -- values will be excluded by this comparison to an integer.
@@ -1180,7 +1187,9 @@ class TestRuns (unittest.TestCase):
         
         # fake job template url, commit sha, and status url.
         self.fake_queued_job_args = (
-            'http://example.com/{id}', 'ff9900ff9900ff9900ff9900ff9900ff9900',
+            'http://example.com/{id}',
+            'ff9900ff9900ff9900ff9900ff9900ff9900',
+            'openaddresses', 'fake-sources',
             'http://api.github.com/repos/openaddresses/fake-sources/statuses/ff9900'
             )
     

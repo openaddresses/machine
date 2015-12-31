@@ -482,7 +482,7 @@ def calculate_job_id(files):
     
     return job_id
 
-def create_queued_job(queue, files, job_url_template, commit_sha, status_url):
+def create_queued_job(queue, files, job_url_template, commit_sha, owner, repo, status_url):
     ''' Create a new job, and add its files to the queue.
     '''
     filenames = list(files.keys())
@@ -495,7 +495,7 @@ def create_queued_job(queue, files, job_url_template, commit_sha, status_url):
 
     with queue as db:
         task_files = add_files_to_queue(queue, job_id, job_url, files, commit_sha)
-        add_job(db, job_id, None, task_files, file_states, file_results, status_url)
+        add_job(db, job_id, None, task_files, file_states, file_results, owner, repo, status_url)
     
     return job_id
 
@@ -561,7 +561,8 @@ def update_job_status(db, job_id, job_url, filename, run_status, results, github
     else:
         job.status = True
     
-    write_job(db, job.id, job.status, job.task_files, job.states, job.file_results, job.github_status_url)
+    write_job(db, job.id, job.status, job.task_files, job.states, job.file_results,
+              job.github_owner, job.github_repository, job.github_status_url)
     
     if not job.github_status_url:
         _L.warning('No status_url to tell about {} status of job {}'.format(job.status, job.id))
