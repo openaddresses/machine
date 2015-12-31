@@ -230,7 +230,7 @@ def process_pushevent_payload_files(payload, github_auth):
     return files
 
 def get_commit_info(app, payload):
-    ''' Get commit SHA and Github status API URL from webhook payload.
+    ''' Get owner, repository, commit SHA and Github status API URL from webhook payload.
     '''
     if 'pull_request' in payload:
         commit_sha = payload['pull_request']['head']['sha']
@@ -244,9 +244,16 @@ def get_commit_info(app, payload):
     else:
         raise ValueError('Unintelligible payload')
     
+    if 'repository' not in payload:
+        raise ValueError('Unintelligible payload')
+
+    repo = payload['repository']
+    owner = repo['owner'].get('name') or repo['owner'].get('login')
+    repository = repo['name']
+    
     app.logger.debug('Status URL {}'.format(status_url))
     
-    return commit_sha, status_url
+    return owner, repository, commit_sha, status_url
 
 def post_github_status(status_url, status_json, github_auth):
     ''' POST status JSON to Github status API.
