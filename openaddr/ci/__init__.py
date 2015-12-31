@@ -229,8 +229,8 @@ def process_pushevent_payload_files(payload, github_auth):
     
     return files
 
-def get_commit_info(payload):
-    ''' Get commit SHA and Github status API URL from webhook payload.
+def get_commit_info(app, payload):
+    ''' Get owner, repository, commit SHA and Github status API URL from webhook payload.
     '''
     if 'pull_request' in payload:
         commit_sha = payload['pull_request']['head']['sha']
@@ -244,9 +244,16 @@ def get_commit_info(payload):
     else:
         raise ValueError('Unintelligible payload')
     
-    current_app.logger.debug('Status URL {}'.format(status_url))
+    if 'repository' not in payload:
+        raise ValueError('Unintelligible payload')
+
+    repo = payload['repository']
+    owner = repo['owner'].get('name') or repo['owner'].get('login')
+    repository = repo['name']
     
-    return commit_sha, status_url
+    app.logger.debug('Status URL {}'.format(status_url))
+    
+    return owner, repository, commit_sha, status_url
 
 def post_github_status(status_url, status_json, github_auth):
     ''' POST status JSON to Github status API.
@@ -475,7 +482,7 @@ def calculate_job_id(files):
     
     return job_id
 
-def create_queued_job(queue, files, job_url_template, commit_sha, status_url):
+def create_queued_job(queue, files, job_url_template, commit_sha, owner, repo, status_url):
     ''' Create a new job, and add its files to the queue.
     '''
     filenames = list(files.keys())
@@ -488,7 +495,7 @@ def create_queued_job(queue, files, job_url_template, commit_sha, status_url):
 
     with queue as db:
         task_files = add_files_to_queue(queue, job_id, job_url, files, commit_sha)
-        add_job(db, job_id, None, task_files, file_states, file_results, status_url)
+        add_job(db, job_id, None, task_files, file_states, file_results, owner, repo, status_url)
     
     return job_id
 
@@ -554,7 +561,8 @@ def update_job_status(db, job_id, job_url, filename, run_status, results, github
     else:
         job.status = True
     
-    write_job(db, job.id, job.status, job.task_files, job.states, job.file_results, job.github_status_url)
+    write_job(db, job.id, job.status, job.task_files, job.states, job.file_results,
+              job.github_owner, job.github_repository, job.github_status_url)
     
     if not job.github_status_url:
         _L.warning('No status_url to tell about {} status of job {}'.format(job.status, job.id))
@@ -573,14 +581,32 @@ def update_job_status(db, job_id, job_url, filename, run_status, results, github
 def is_merged_to_master(owner, repository, commit_sha, github_auth):
     '''
     '''
-    template1 = get('https://api.github.com/').json().get('repository_url')
-    repo_url = expand_uri(template1, dict(owner=owner, repo=repository))
+    try:
+        template1 = get('https://api.github.com/').json().get('repository_url')
+        repo_url = expand_uri(template1, dict(owner=owner, repo=repository))
     
-    template2 = get(repo_url).json().get('compare_url')
-    compare_url = expand_uri(template2, dict(base=commit_sha, head='master'))
+        template2 = get(repo_url).json().get('compare_url')
+        compare_url = expand_uri(template2, dict(base=commit_sha, head='master'))
     
-    compare = get(compare_url).json()
-    return compare['base_commit']['sha'] == compare['merge_base_commit']['sha']
+        compare = get(compare_url).json()
+        return compare['base_commit']['sha'] == compare['merge_base_commit']['sha']
+
+    except Exception as e:
+        _L.error('Failed to check merged status of {}/{} {}: {}'.format(owner, repository, commit_sha, e))
+        return None
+
+def get_task_owner_repository(db, set_id, job_id):
+    '''
+    '''
+    set, job = read_set(db, set_id), read_job(db, job_id)
+
+    if set:
+        return set.owner, set.repository
+
+    if job:
+        return job.github_owner, job.github_repository
+
+    return None, None
 
 def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
     '''
@@ -666,9 +692,9 @@ def pop_task_from_donequeue(queue, github_auth):
             # We are too late, this got handled.
             return
         
-        run_status, s = bool(message == MAGIC_OK_MESSAGE), read_set(db, set_id)
-        is_merged = s and is_merged_to_master(s.owner, s.repository, commit_sha, github_auth)
-        print('done commit', commit_sha, 'merged?', is_merged)
+        run_status = bool(message == MAGIC_OK_MESSAGE)
+        owner, repo = get_task_owner_repository(db, set_id, job_id)
+        is_merged = is_merged_to_master(owner, repo, commit_sha, github_auth)
         
         set_run(db, run_id, filename, file_id, content_b64, run_state,
                 run_status, job_id, worker_id, commit_sha, is_merged, set_id)
@@ -701,9 +727,9 @@ def pop_task_from_duequeue(queue, github_auth):
             # Everything's fine, this got handled.
             return
 
-        run_status, s = False, read_set(db, set_id)
-        is_merged = s and is_merged_to_master(s.owner, s.repository, commit_sha, github_auth)
-        print('due commit', commit_sha, 'merged?', is_merged)
+        run_status = False
+        owner, repo = get_task_owner_repository(db, set_id, job_id)
+        is_merged = is_merged_to_master(owner, repo, commit_sha, github_auth)
 
         set_run(db, run_id, filename, file_id, content_b64, None, run_status,
                 job_id, worker_id, commit_sha, is_merged, set_id)

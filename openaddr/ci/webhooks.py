@@ -144,7 +144,7 @@ def app_hook():
     if skip_payload(webhook_payload):
         return jsonify({'url': None, 'files': [], 'skip': True})
     
-    commit_sha, status_url = get_commit_info(webhook_payload)
+    owner, repo, commit_sha, status_url = get_commit_info(current_app, webhook_payload)
     if current_app.config['GAG_GITHUB_STATUS']:
         status_url = None
     
@@ -167,7 +167,8 @@ def app_hook():
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         queue = db_queue(conn, TASK_QUEUE)
         try:
-            job_id = create_queued_job(queue, files, job_url_template, commit_sha, status_url)
+            job_id = create_queued_job(queue, files, job_url_template,
+                                       commit_sha, owner, repo, status_url)
             job_url = expand_uri(job_url_template, dict(id=job_id))
         except Exception as e:
             # Oops, tell Github something went wrong.
