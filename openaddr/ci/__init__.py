@@ -229,7 +229,7 @@ def process_pushevent_payload_files(payload, github_auth):
     
     return files
 
-def get_commit_info(payload):
+def get_commit_info(app, payload):
     ''' Get commit SHA and Github status API URL from webhook payload.
     '''
     if 'pull_request' in payload:
@@ -244,7 +244,7 @@ def get_commit_info(payload):
     else:
         raise ValueError('Unintelligible payload')
     
-    current_app.logger.debug('Status URL {}'.format(status_url))
+    app.logger.debug('Status URL {}'.format(status_url))
     
     return commit_sha, status_url
 

@@ -144,7 +144,7 @@ def app_hook():
     if skip_payload(webhook_payload):
         return jsonify({'url': None, 'files': [], 'skip': True})
     
-    commit_sha, status_url = get_commit_info(webhook_payload)
+    commit_sha, status_url = get_commit_info(current_app, webhook_payload)
     if current_app.config['GAG_GITHUB_STATUS']:
         status_url = None
     
