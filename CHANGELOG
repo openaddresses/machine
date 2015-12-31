@@ -1,3 +1,6 @@
+2015-12-30: 2.10.2
+- Fixed integer bounds bug on zips table.
+
 2015-12-30: 2.10.1
 - Fixed stupid bug attempting to connect to local Postgres.
 
