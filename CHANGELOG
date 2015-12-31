@@ -1,3 +1,6 @@
+2015-12-30: 2.10.1
+- Fixed stupid bug attempting to connect to local Postgres.
+
 2015-12-30: 2.10.0
 - Added zips table to store information about collection archives.
 - Added runs.is_merged column to store information about Git source branches.

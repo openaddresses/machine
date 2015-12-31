@@ -84,8 +84,7 @@ def main():
             if test(result):
                 collection.collect(result)
     
-    #with db_connect(**db_args) as conn:
-    with db_connect('postgres:///hooked_on_sources') as conn:
+    with db_connect(**db_args) as conn:
         with db_cursor(conn) as db:
             db.execute('UPDATE zips SET is_current = false')
             for (collection, test) in collections:
