@@ -272,18 +272,18 @@ class TestObjects (unittest.TestCase):
     def test_set_run(self):
         ''' Check behavior of objects.add_set()
         '''
-        set_run(self.db, 456, '', '', b'', {}, True, 'xyz', '', '', 123)
+        set_run(self.db, 456, '', '', b'', {}, True, 'xyz', '', '', False, 123)
 
         self.db.execute.assert_called_once_with(
                '''UPDATE runs SET
                   source_path = %s, source_data = %s, source_id = %s,
                   state = %s::json, status = %s, worker_id = %s,
                   code_version = %s, job_id = %s, commit_sha = %s,
-                  set_id = %s, datetime_tz = NOW()
+                  is_merged = %s, set_id = %s, datetime_tz = NOW()
                   WHERE id = %s''',
                   ('', b'', '',
                    '{}', True, '',
-                   __version__, 'xyz', '',
+                   __version__, 'xyz', '', False,
                    123, 456))
 
     def test_copy_run(self):
@@ -297,9 +297,9 @@ class TestObjects (unittest.TestCase):
         self.db.execute.assert_has_calls([mock.call(
                '''INSERT INTO runs
                   (copy_of, source_path, source_id, source_data, state, status,
-                   worker_id, code_version, job_id, commit_sha, set_id, datetime_tz)
+                   worker_id, code_version, job_id, commit_sha, is_merged, set_id, datetime_tz)
                   SELECT id, source_path, source_id, source_data, state, status,
-                         worker_id, code_version, %s, %s, %s, NOW()
+                         worker_id, code_version, %s, %s, NULL, %s, NOW()
                   FROM runs
                   WHERE id = %s''',
                   ('xyz', '', 123, 456)
@@ -310,7 +310,7 @@ class TestObjects (unittest.TestCase):
         ''' Check behavior of objects.read_run()
         '''
         self.db.fetchone.return_value = (123, '', '', b'', None, {}, True, None,
-                                         __version__, '', None, None, '')
+                                         __version__, '', None, None, '', False)
         
         run = read_run(self.db, 123)
         self.assertEqual(run.id, 123)
@@ -318,7 +318,7 @@ class TestObjects (unittest.TestCase):
         self.db.execute.assert_called_once_with(
                '''SELECT id, source_path, source_id, source_data, datetime_tz,
                          state, status, copy_of, code_version, worker_id,
-                         job_id, set_id, commit_sha
+                         job_id, set_id, commit_sha, is_merged
                   FROM runs WHERE id = %s
                   LIMIT 1''',
                   (123, ))
@@ -334,7 +334,7 @@ class TestObjects (unittest.TestCase):
         self.db.execute.assert_called_once_with(
                '''SELECT id, source_path, source_id, source_data, datetime_tz,
                          state, status, copy_of, code_version, worker_id,
-                         job_id, set_id, commit_sha
+                         job_id, set_id, commit_sha, is_merged
                   FROM runs WHERE id = %s
                   LIMIT 1''',
                   (123, ))
@@ -425,18 +425,19 @@ class TestObjects (unittest.TestCase):
         ''' Check behavior of objects.new_read_completed_set_runs()
         '''
         self.db.fetchall.return_value = (('abc', 'pl', 'jkl', b'', None, {}, True,
-                                          None, '', '', 'mno', 123, 'abc'), )
+                                          None, '', '', 'mno', 123, 'abc', False), )
         
         runs = new_read_completed_set_runs(self.db, 123)
         self.assertEqual(runs[0].id, 'abc')
         self.assertEqual(runs[0].source_path, 'pl')
         self.assertEqual(runs[0].source_data, b'')
         self.assertEqual(runs[0].status, True)
+        self.assertFalse(runs[0].is_merged)
 
         self.db.execute.assert_called_once_with(
                '''SELECT id, source_path, source_id, source_data, datetime_tz,
                          state, status, copy_of, code_version, worker_id,
-                         job_id, set_id, commit_sha FROM runs
+                         job_id, set_id, commit_sha, is_merged FROM runs
                   WHERE set_id = %s AND status IS NOT NULL''',
                   (123, ))
     
@@ -485,10 +486,10 @@ class TestObjects (unittest.TestCase):
             if len(queries) == 3:
                 _ = None
                 return [
-                    (403, u'sources/fails-second-time.json', _, b'', _, _, _, _, _, _, _, 123, _),
-                    (501, u'sources/works-both-times.json', _, b'', _, _, _, _, _, _, _, 123, _),
-                    (502, u'sources/works-second-time.json', _, b'', _, _, _, _, _, _, _, 123, _),
-                    (504, u'sources/fails-both-times.json', _, b'', _, _, _, _, _, _, _, 123, _),
+                    (403, u'sources/fails-second-time.json', _, b'', _, _, _, _, _, _, _, 123, _, _),
+                    (501, u'sources/works-both-times.json', _, b'', _, _, _, _, _, _, _, 123, _, _),
+                    (502, u'sources/works-second-time.json', _, b'', _, _, _, _, _, _, _, 123, _, _),
+                    (504, u'sources/fails-both-times.json', _, b'', _, _, _, _, _, _, _, 123, _, _),
                     ]
         
         with patch('openaddr.ci.objects.read_set') as read_set:
@@ -529,7 +530,7 @@ class TestObjects (unittest.TestCase):
         self.assertEqual(e3_query, 
                '''SELECT id, source_path, source_id, source_data, datetime_tz,
                          state, status, copy_of, code_version, worker_id,
-                         job_id, set_id, commit_sha
+                         job_id, set_id, commit_sha, is_merged
                   FROM runs
                   WHERE id IN %s''')
 
@@ -1070,15 +1071,15 @@ class TestHook (unittest.TestCase):
                 
                 run_id1 = add_run(db)
                 set_run(db, run_id1, 'sources/a1.json', 'abc', b'def',
-                        run_state1, True, None, None, None, 2)
+                        run_state1, True, None, None, None, False, 2)
                 
                 run_id2 = add_run(db)
                 set_run(db, run_id2, 'sources/a2.json', 'ghi', b'jkl',
-                        run_state2, True, None, None, None, 2)
+                        run_state2, True, None, None, None, False, 2)
                 
                 run_id3 = add_run(db)
                 set_run(db, run_id3, 'sources/a3.json', 'ghi', b'jkl',
-                        run_state3, True, None, None, None, 2)
+                        run_state3, True, None, None, None, False, 2)
         
         got1 = self.client.get('/latest/set')
         self.assertEqual(got1.status_code, 302)
@@ -1787,7 +1788,7 @@ class TestBatch (unittest.TestCase):
                     file_names.add(task.data['name'])
                     with task_Q as db:
                         set_run(db, add_run(db), task.data['name'], None, None,
-                                None, True, None, None, None, task.data['set_id'])
+                                None, True, None, None, None, False, task.data['set_id'])
         
             # Find a record of the one set.
             with task_Q as db:

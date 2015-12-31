@@ -40,7 +40,7 @@ class Run:
     '''
     def __init__(self, id, source_path, source_id, source_data, datetime_tz,
                  state, status, copy_of, code_version, worker_id, job_id,
-                 set_id, commit_sha):
+                 set_id, commit_sha, is_merged):
         '''
         '''
         self.id = id
@@ -58,6 +58,7 @@ class Run:
         self.job_id = job_id
         self.set_id = set_id
         self.commit_sha = commit_sha
+        self.is_merged = is_merged
 
 def add_job(db, job_id, status, task_files, file_states, file_results, status_url):
     ''' Save information about a job to the database.
@@ -206,18 +207,18 @@ def add_run(db):
     return run_id
 
 def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
-            job_id, worker_id, commit_sha, set_id):
+            job_id, worker_id, commit_sha, is_merged, set_id):
     ''' Populate an identitified row in the runs table.
     '''
     db.execute('''UPDATE runs SET
                   source_path = %s, source_data = %s, source_id = %s,
                   state = %s::json, status = %s, worker_id = %s,
                   code_version = %s, job_id = %s, commit_sha = %s,
-                  set_id = %s, datetime_tz = NOW()
+                  is_merged = %s, set_id = %s, datetime_tz = NOW()
                   WHERE id = %s''',
                (filename, content_b64, file_id,
                json.dumps(run_state), run_status, worker_id,
-               __version__, job_id, commit_sha,
+               __version__, job_id, commit_sha, is_merged,
                set_id, run_id))
 
 def copy_run(db, run_id, job_id, commit_sha, set_id):
@@ -227,9 +228,9 @@ def copy_run(db, run_id, job_id, commit_sha, set_id):
     '''
     db.execute('''INSERT INTO runs
                   (copy_of, source_path, source_id, source_data, state, status,
-                   worker_id, code_version, job_id, commit_sha, set_id, datetime_tz)
+                   worker_id, code_version, job_id, commit_sha, is_merged, set_id, datetime_tz)
                   SELECT id, source_path, source_id, source_data, state, status,
-                         worker_id, code_version, %s, %s, %s, NOW()
+                         worker_id, code_version, %s, %s, NULL, %s, NOW()
                   FROM runs
                   WHERE id = %s''',
                (job_id, commit_sha, set_id, run_id))
@@ -245,19 +246,19 @@ def read_run(db, run_id):
     '''
     db.execute('''SELECT id, source_path, source_id, source_data, datetime_tz,
                          state, status, copy_of, code_version, worker_id,
-                         job_id, set_id, commit_sha
+                         job_id, set_id, commit_sha, is_merged
                   FROM runs WHERE id = %s
                   LIMIT 1''', (run_id, ))
     
     try:
-        (id, source_path, source_id, source_data, datetime_tz, state, status,
-         copy_of, code_version, worker_id, job_id, set_id, commit_sha) = db.fetchone()
+        (id, source_path, source_id, source_data, datetime_tz, state, status, copy_of,
+         code_version, worker_id, job_id, set_id, commit_sha, is_merged) = db.fetchone()
     except TypeError:
         return None
     else:
         return Run(id, source_path, source_id, source_data, datetime_tz,
                    state, status, copy_of, code_version, worker_id,
-                   job_id, set_id, commit_sha)
+                   job_id, set_id, commit_sha, is_merged)
     
 def get_completed_file_run(db, file_id, interval):
     ''' Look for an existing run on this file ID within the reuse timeout limit.
@@ -304,7 +305,7 @@ def new_read_completed_set_runs(db, set_id):
     '''
     db.execute('''SELECT id, source_path, source_id, source_data, datetime_tz,
                          state, status, copy_of, code_version, worker_id,
-                         job_id, set_id, commit_sha FROM runs
+                         job_id, set_id, commit_sha, is_merged FROM runs
                   WHERE set_id = %s AND status IS NOT NULL''',
                (set_id, ))
     
@@ -357,7 +358,7 @@ def read_completed_runs_to_date(db, starting_set_id):
     # Get Run instance for each of the returned run IDs.
     db.execute('''SELECT id, source_path, source_id, source_data, datetime_tz,
                          state, status, copy_of, code_version, worker_id,
-                         job_id, set_id, commit_sha
+                         job_id, set_id, commit_sha, is_merged
                   FROM runs
                   WHERE id IN %s''',
                (run_ids, ))

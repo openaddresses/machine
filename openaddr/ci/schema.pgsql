@@ -54,7 +54,8 @@ CREATE TABLE runs
     worker_id           VARCHAR(16) NULL,
     job_id              VARCHAR(40) REFERENCES jobs(id) NULL,
     set_id              INTEGER REFERENCES sets(id) NULL,
-    commit_sha          VARCHAR(40) NULL
+    commit_sha          VARCHAR(40) NULL,
+    is_merged           BOOLEAN
 );
 
 CREATE TYPE zip_collection AS ENUM ('global', 'us_northeast', 'us_midwest', 'us_south', 'us_west', 'europe', 'asia');

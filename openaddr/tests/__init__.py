@@ -931,13 +931,13 @@ class TestPackage (unittest.TestCase):
     
         runs = [
             Run(000, 'sources/000.json', '___', b'', None,
-                state0, None, None, None, None, None, None, None),
+                state0, None, None, None, None, None, None, None, None),
             Run(123, 'sources/123.json', 'abc', b'', None,
-                state1, None, None, None, None, None, None, None),
+                state1, None, None, None, None, None, None, None, None),
             Run(456, 'sources/456.json', 'def', b'', None,
-                {'processed': None}, None, None, None, None, None, None, None),
+                {'processed': None}, None, None, None, None, None, None, None, None),
             Run(789, 'sources/7/9.json', 'ghi', b'', None,
-                state3, None, None, None, None, None, None, None),
+                state3, None, None, None, None, None, None, None, None),
             ]
         
         failure = cycle((True, True, False))
