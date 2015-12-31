@@ -1,3 +1,7 @@
+2015-12-30: 2.10.0
+- Added zips table to store information about collection archives.
+- Added runs.is_merged column to store information about Git source branches.
+
 2015-12-27: 2.9.2
 - Fixed incorrect outFields parameter for ESRI service.
 
