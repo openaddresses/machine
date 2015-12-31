@@ -59,7 +59,7 @@ class TestSummarizeFunctions (unittest.TestCase):
         '''
         '''
         _ = None
-        make_run = lambda state: Run(_, _, _, b'', _, state, _, _, _, _, _, _, _)
+        make_run = lambda state: Run(_, _, _, b'', _, state, _, _, _, _, _, _, _, _)
         
         runs = [
             make_run({}),
@@ -97,7 +97,7 @@ class TestSummarizeFunctions (unittest.TestCase):
                  'sample': 'http://example.com/sample.json'}
         
         run = Run(456, u'sources/pl/foö.json', 'abc', source_b64, datetime.utcnow(),
-                  state, True, None, '', '', None, None, 'def')
+                  state, True, None, '', '', None, None, 'def', False)
         
         with HTTMock(self.response_content):
             conv = convert_run(memcache, run, url_template)
@@ -139,7 +139,7 @@ class TestSummarizeFunctions (unittest.TestCase):
                  'sample': 'http://example.com/sample.json'}
         
         run = Run(456, u'sources/pl/foö.json', 'abc', source_b64, datetime.utcnow(),
-                  state, True, None, '', '', None, None, 'def')
+                  state, True, None, '', '', None, None, 'def', False)
         
         with mock.patch('requests.get') as get:
             conv = convert_run(memcache, run, url_template)
