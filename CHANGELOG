@@ -1,3 +1,7 @@
+2015-12-31: 2.11.1
+- Added filesize display to front page zip collection downloads.
+- Added row number to conform error log.
+
 2015-12-31: 2.11.0
 - Added jobs.github_owner and jobs.github_repository colunms.
 - Started looking in both jobs and sets for runs.is_merged information.
