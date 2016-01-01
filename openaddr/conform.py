@@ -8,6 +8,7 @@ from .compat import standard_library
 import os
 import errno
 import tempfile
+import itertools
 import json
 import copy
 import sys
@@ -645,12 +646,17 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
             writer = csvDictWriter(dest_fp, out_fieldnames)
             writer.writeheader()
             # For every row in the source CSV
-            for source_row in reader:
+            for (source_row, row_number) in zip(reader, itertools.count(1)):
                 if len(source_row) != num_fields:
                     _L.debug("Skipping row. Got %d columns, expected %d", len(source_row), num_fields)
                     continue
-                out_row = row_extract_and_reproject(source_definition, source_row)
-                writer.writerow(out_row)
+                try:
+                    out_row = row_extract_and_reproject(source_definition, source_row)
+                except Exception as e:
+                    _L.error('Error in row {}: {}'.format(row_number, e))
+                    raise
+                else:
+                    writer.writerow(out_row)
 
 _transform_cache = {}
 def _transform_to_4326(srs):
