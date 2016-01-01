@@ -92,8 +92,8 @@
     <tr>
         <td>Global</td>
         <td>Everything</td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-global.zip"><code>global.zip</code></a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-global-sa.zip"><code>global-sa.zip</code></a></td>
+        <td><a href="{{ zips[('global', '')].url }}"><code>global.zip</code> {{ zips[('global', '')].content_length|nice_size }}</a></td>
+        <td><a href="{{ zips[('global', 'sa')].url }}"><code>global-sa.zip</code> {{ zips[('global', 'sa')].content_length|nice_size }}</a></td>
     </tr>
     <tr>
         <td>U.S. Northeast</td>

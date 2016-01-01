@@ -24,7 +24,8 @@ from . import (
 
 from .objects import (
     read_job, read_jobs, read_sets, read_set, read_latest_set,
-    read_run, new_read_completed_set_runs, read_completed_runs_to_date
+    read_run, new_read_completed_set_runs, read_completed_runs_to_date,
+    Zip
     )
 
 from ..compat import expand_uri, csvIO, csvDictWriter
@@ -110,7 +111,10 @@ def app_index():
     summary_data = summarize_runs(mc, good_runs, last_modified, set.owner,
                                   set.repository, GLASS_HALF_FULL)
 
-    return render_template('index.html', set=None, **summary_data)
+    zips = {('global', ''): Zip('http://data.openaddresses.io/openaddr-collected-global.zip', 87654321),
+            ('global', 'sa'): Zip('http://data.openaddresses.io/openaddr-collected-global-sa.zip', 12345678)}
+    
+    return render_template('index.html', set=None, zips=zips, **summary_data)
 
 @webhooks.route('/state.txt', methods=['GET'])
 @log_application_errors
@@ -308,6 +312,28 @@ def app_get_run_sample(run_id):
     
     return render_template('run-sample.html', sample_data=sample_data or [])
 
+def nice_size(size):
+    KB = 1024.
+    MB = 1024. * KB
+    GB = 1024. * MB
+    TB = 1024. * GB
+
+    if size < KB:
+        size, suffix = size, 'B'
+    elif size < MB:
+        size, suffix = size/KB, 'KB'
+    elif size < GB:
+        size, suffix = size/MB, 'MB'
+    elif size < TB:
+        size, suffix = size/GB, 'GB'
+    else:
+        size, suffix = size/TB, 'TB'
+
+    if size < 10:
+        return '{:.1f} {}'.format(size, suffix)
+    else:
+        return '{:.0f} {}'.format(size, suffix)
+
 app = Flask(__name__)
 app.config.update(load_config())
 app.register_blueprint(webhooks)
@@ -316,6 +342,7 @@ app.jinja_env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=F
 app.jinja_env.filters['element_id'] = lambda value: value.replace("'", '-')
 app.jinja_env.filters['nice_integer'] = nice_integer
 app.jinja_env.filters['breakstate'] = break_state
+app.jinja_env.filters['nice_size'] = nice_size
 
 @app.before_first_request
 def app_prepare():

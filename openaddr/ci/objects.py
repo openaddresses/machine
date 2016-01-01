@@ -63,6 +63,13 @@ class Run:
         self.commit_sha = commit_sha
         self.is_merged = is_merged
 
+class Zip:
+    '''
+    '''
+    def __init__(self, url, content_length):
+        self.url = url
+        self.content_length = content_length
+
 def add_job(db, job_id, status, task_files, file_states, file_results, owner, repo, status_url):
     ''' Save information about a job to the database.
     
