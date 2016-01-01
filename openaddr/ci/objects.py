@@ -63,6 +63,13 @@ class Run:
         self.commit_sha = commit_sha
         self.is_merged = is_merged
 
+class Zip:
+    '''
+    '''
+    def __init__(self, url, content_length):
+        self.url = url
+        self.content_length = content_length
+
 def add_job(db, job_id, status, task_files, file_states, file_results, owner, repo, status_url):
     ''' Save information about a job to the database.
     
@@ -372,3 +379,12 @@ def read_completed_runs_to_date(db, starting_set_id):
                (run_ids, ))
     
     return [Run(*row) for row in db.fetchall()]
+
+def load_collection_zips_dict(db):
+    '''
+    '''
+    db.execute('''SELECT collection, license_attr, url, content_length
+                  FROM zips WHERE is_current''')
+    
+    return {(coll, attr): Zip(url, len)
+            for (coll, attr, url, len) in db.fetchall()}

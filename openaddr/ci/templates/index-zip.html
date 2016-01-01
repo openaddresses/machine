@@ -1,0 +1,7 @@
+{% if key in zips and zips[key].content_length > 1024 %}
+    {% set Z = zips[key] %}
+    <a href="{{ Z.url }}"><code>{{ '-'.join(key).rstrip('-') }}.zip</code>
+    <small>{{ Z.content_length|nice_size }}</small></a>
+{% else %}
+    &nbsp;
+{% endif %}
