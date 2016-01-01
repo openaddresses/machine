@@ -379,3 +379,12 @@ def read_completed_runs_to_date(db, starting_set_id):
                (run_ids, ))
     
     return [Run(*row) for row in db.fetchall()]
+
+def load_collection_zips_dict(db):
+    '''
+    '''
+    db.execute('''SELECT collection, license_attr, url, content_length
+                  FROM zips WHERE is_current''')
+    
+    return {(coll, attr): Zip(url, len)
+            for (coll, attr, url, len) in db.fetchall()}

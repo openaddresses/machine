@@ -25,7 +25,7 @@ from . import (
 from .objects import (
     read_job, read_jobs, read_sets, read_set, read_latest_set,
     read_run, new_read_completed_set_runs, read_completed_runs_to_date,
-    Zip
+    load_collection_zips_dict
     )
 
 from ..compat import expand_uri, csvIO, csvDictWriter
@@ -103,6 +103,7 @@ def app_index():
         with db_cursor(conn) as db:
             set = read_latest_set(db, 'openaddresses', 'openaddresses')
             runs = read_completed_runs_to_date(db, set.id)
+            zips = load_collection_zips_dict(db)
     
     good_runs = [run for run in runs if (run.state or {}).get('processed')]
     last_modified = sorted(good_runs, key=attrgetter('datetime_tz'))[-1].datetime_tz
@@ -111,9 +112,6 @@ def app_index():
     summary_data = summarize_runs(mc, good_runs, last_modified, set.owner,
                                   set.repository, GLASS_HALF_FULL)
 
-    zips = {('global', ''): Zip('http://data.openaddresses.io/openaddr-collected-global.zip', 87654321),
-            ('global', 'sa'): Zip('http://data.openaddresses.io/openaddr-collected-global-sa.zip', 12345678)}
-    
     return render_template('index.html', set=None, zips=zips, **summary_data)
 
 @webhooks.route('/state.txt', methods=['GET'])
@@ -330,9 +328,9 @@ def nice_size(size):
         size, suffix = size/TB, 'TB'
 
     if size < 10:
-        return '{:.1f} {}'.format(size, suffix)
+        return '{:.1f}{}'.format(size, suffix)
     else:
-        return '{:.0f} {}'.format(size, suffix)
+        return '{:.0f}{}'.format(size, suffix)
 
 app = Flask(__name__)
 app.config.update(load_config())

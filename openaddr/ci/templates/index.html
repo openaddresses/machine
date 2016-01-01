@@ -43,6 +43,7 @@
     
    /*
     * Progressively show additional sample data columns.
+    * Always show the explanation cells.
     */
 
     #downloads tr th:nth-child(1),
@@ -52,6 +53,8 @@
     {
         display: none
     }
+
+    #downloads tr td.explanation { display: table-cell }
 
     @media (min-width: 400px)
     {
@@ -92,44 +95,44 @@
     <tr>
         <td>Global</td>
         <td>Everything</td>
-        <td><a href="{{ zips[('global', '')].url }}"><code>global.zip</code> {{ zips[('global', '')].content_length|nice_size }}</a></td>
-        <td><a href="{{ zips[('global', 'sa')].url }}"><code>global-sa.zip</code> {{ zips[('global', 'sa')].content_length|nice_size }}</a></td>
+        <td>{% set key = ('global', '') %}{% include "index-zip.html" %}</td>
+        <td>{% set key = ('global', 'sa') %}{% include "index-zip.html" %}</td>
     </tr>
     <tr>
         <td>U.S. Northeast</td>
         <td><a href="http://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf">List of states by region</a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-us_northeast.zip"><code>us_northeast.zip</code></a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-us_northeast-sa.zip"><code>us_northeast-sa.zip</code></a></td>
+        <td>{% set key = ('us_northeast', '') %}{% include "index-zip.html" %}</td>
+        <td>{% set key = ('us_northeast', 'sa') %}{% include "index-zip.html" %}</td>
     </tr>
     <tr>
         <td>U.S. Midwest</td>
         <td><a href="http://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf">List of states by region</a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-us_midwest.zip"><code>us_midwest.zip</code></a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-us_midwest-sa.zip"><code>us_midwest-sa.zip</code></a></td>
+        <td>{% set key = ('us_midwest', '') %}{% include "index-zip.html" %}</td>
+        <td>{% set key = ('us_midwest', 'sa') %}{% include "index-zip.html" %}</td>
     </tr>
     <tr>
         <td>U.S. South</td>
         <td><a href="http://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf">List of states by region</a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-us_south.zip"><code>us_south.zip</code></a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-us_south-sa.zip"><code>us_south-sa.zip</code></a></td>
+        <td>{% set key = ('us_south', '') %}{% include "index-zip.html" %}</td>
+        <td>{% set key = ('us_south', 'sa') %}{% include "index-zip.html" %}</td>
     </tr>
     <tr>
         <td>U.S. West</td>
         <td><a href="http://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf">List of states by region</a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-us_west.zip"><code>us_west.zip</code></a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-us_west-sa.zip"><code>us_west-sa.zip</code></a></td>
+        <td>{% set key = ('us_west', '') %}{% include "index-zip.html" %}</td>
+        <td>{% set key = ('us_west', 'sa') %}{% include "index-zip.html" %}</td>
     </tr>
     <tr>
         <td>Europe</td>
         <td><a href="http://publications.europa.eu/code/pdf/370000en.htm">List of European countries</a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-europe.zip"><code>europe.zip</code></a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-europe-sa.zip"><code>europe-sa.zip</code></a></td>
+        <td>{% set key = ('europe', '') %}{% include "index-zip.html" %}</td>
+        <td>{% set key = ('europe', 'sa') %}{% include "index-zip.html" %}</td>
     </tr>
     <tr>
         <td>Asia/Oceania</td>
         <td><a href="http://www.countrycallingcodes.com/iso-country-codes/asia-codes.php">List of Asian</a>, <a href="http://www.countrycallingcodes.com/iso-country-codes/australia-codes.php">Oceania countries</a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-asia.zip"><code>asia.zip</code></a></td>
-        <td><a href="http://data.openaddresses.io/openaddr-collected-asia-sa.zip"><code>asia-sa.zip</code></a></td>
+        <td>{% set key = ('asia', '') %}{% include "index-zip.html" %}</td>
+        <td>{% set key = ('asia', 'sa') %}{% include "index-zip.html" %}</td>
     </tr>
 </table>
 <p>
