@@ -694,7 +694,7 @@ def pop_task_from_donequeue(queue, github_auth):
         
         run_status = bool(message == MAGIC_OK_MESSAGE)
         owner, repo = get_task_owner_repository(db, set_id, job_id)
-        is_merged = is_merged_to_master(owner, repo, commit_sha, github_auth)
+        is_merged = bool(read_set(db, set_id)) or is_merged_to_master(owner, repo, commit_sha, github_auth)
         
         set_run(db, run_id, filename, file_id, content_b64, run_state,
                 run_status, job_id, worker_id, commit_sha, is_merged, set_id)
@@ -729,7 +729,7 @@ def pop_task_from_duequeue(queue, github_auth):
 
         run_status = False
         owner, repo = get_task_owner_repository(db, set_id, job_id)
-        is_merged = is_merged_to_master(owner, repo, commit_sha, github_auth)
+        is_merged = bool(read_set(db, set_id)) or is_merged_to_master(owner, repo, commit_sha, github_auth)
 
         set_run(db, run_id, filename, file_id, content_b64, None, run_status,
                 job_id, worker_id, commit_sha, is_merged, set_id)
