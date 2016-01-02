@@ -1876,10 +1876,27 @@ class TestBatch (unittest.TestCase):
     def test_is_merged_to_master(self):
         '''
         '''
-        with HTTMock(self.response_content):
-            self.assertIs(is_merged_to_master('openaddresses', 'openaddresses', 'e38df23', self.github_auth), False)
-            self.assertIs(is_merged_to_master('openaddresses', 'openaddresses', 'a7266f30', self.github_auth), True)
-            self.assertIsNone(is_merged_to_master('openaddresses', 'openaddresses', 'gobbledygook', self.github_auth))
+        _ = mock.Mock()
+        
+        with patch('openaddr.ci.objects.read_set') as read_set, patch('openaddr.ci.objects.read_job') as read_job:
+
+            read_set.return_value, read_job.return_value = None, None
+            self.assertIsNone(is_merged_to_master(_, _, _, _, _), 'No merged status with missing set and job')
+        
+            read_set.return_value, read_job.return_value = mock.Mock(), None
+            self.assertIs(is_merged_to_master(_, _, _, _, _), True, 'Merged is true for any valid set')
+
+            read_set.return_value, read_job.return_value = mock.Mock(), mock.Mock()
+            self.assertIs(is_merged_to_master(_, _, _, _, _), True, 'Merged is true for any valid set')
+        
+            read_set.return_value, read_job.return_value = None, mock.Mock()
+            read_job.return_value.github_owner = 'openaddresses'
+            read_job.return_value.github_repository = 'openaddresses'
+
+            with HTTMock(self.response_content):
+                self.assertIs(is_merged_to_master(_, _, _, 'e38df23', _), False, 'This commit is unmerged')
+                self.assertIs(is_merged_to_master(_, _, _, 'a7266f30', _), True, 'This commit is merged')
+                self.assertIsNone(is_merged_to_master(_, _, _, 'gobbledygook', _), 'This commit is unknown')
     
     def test_batch_runs(self):
         ''' Show that the right tasks are enqueued in a batch context.

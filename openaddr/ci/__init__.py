@@ -5,9 +5,11 @@ from .. import jobs, render
 
 from .objects import (
     add_job, write_job, read_job, complete_set, update_set_renders,
-    add_run, set_run, copy_run, read_completed_set_runs, read_set,
+    add_run, set_run, copy_run, read_completed_set_runs,
     get_completed_file_run, get_completed_run, new_read_completed_set_runs
     )
+
+from . import objects
 
 from os.path import relpath, splitext, join, basename
 from datetime import timedelta
@@ -578,12 +580,23 @@ def update_job_status(db, job_id, job_url, filename, run_status, results, github
     elif job.status is True:
         update_success_status(job.github_status_url, job_url, filenames, github_auth)
 
-def is_merged_to_master(owner, repository, commit_sha, github_auth):
+def is_merged_to_master(db, set_id, job_id, commit_sha, github_auth):
     '''
     '''
+    # use objects.read_set and read_job so they can be mocked in testing.
+    set, job = objects.read_set(db, set_id), objects.read_job(db, job_id)
+    
+    if set is not None:
+        # Sets come from master by definition.
+        return True
+    
+    elif job is None:
+        # Missing set and job means unknown merge status.
+        return None
+    
     try:
         template1 = get('https://api.github.com/').json().get('repository_url')
-        repo_url = expand_uri(template1, dict(owner=owner, repo=repository))
+        repo_url = expand_uri(template1, dict(owner=job.github_owner, repo=job.github_repository))
     
         template2 = get(repo_url).json().get('compare_url')
         compare_url = expand_uri(template2, dict(base=commit_sha, head='master'))
@@ -592,21 +605,9 @@ def is_merged_to_master(owner, repository, commit_sha, github_auth):
         return compare['base_commit']['sha'] == compare['merge_base_commit']['sha']
 
     except Exception as e:
-        _L.error('Failed to check merged status of {}/{} {}: {}'.format(owner, repository, commit_sha, e))
+        _L.error('Failed to check merged status of {}/{} {}: {}'\
+            .format(job.github_owner, job.github_repository, commit_sha, e))
         return None
-
-def get_task_owner_repository(db, set_id, job_id):
-    '''
-    '''
-    set, job = read_set(db, set_id), read_job(db, job_id)
-
-    if set:
-        return set.owner, set.repository
-
-    if job:
-        return job.github_owner, job.github_repository
-
-    return None, None
 
 def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
     '''
@@ -693,8 +694,7 @@ def pop_task_from_donequeue(queue, github_auth):
             return
         
         run_status = bool(message == MAGIC_OK_MESSAGE)
-        owner, repo = get_task_owner_repository(db, set_id, job_id)
-        is_merged = bool(read_set(db, set_id)) or is_merged_to_master(owner, repo, commit_sha, github_auth)
+        is_merged = is_merged_to_master(db, set_id, job_id, commit_sha, github_auth)
         
         set_run(db, run_id, filename, file_id, content_b64, run_state,
                 run_status, job_id, worker_id, commit_sha, is_merged, set_id)
@@ -728,8 +728,7 @@ def pop_task_from_duequeue(queue, github_auth):
             return
 
         run_status = False
-        owner, repo = get_task_owner_repository(db, set_id, job_id)
-        is_merged = bool(read_set(db, set_id)) or is_merged_to_master(owner, repo, commit_sha, github_auth)
+        is_merged = is_merged_to_master(db, set_id, job_id, commit_sha, github_auth)
 
         set_run(db, run_id, filename, file_id, content_b64, None, run_status,
                 job_id, worker_id, commit_sha, is_merged, set_id)
