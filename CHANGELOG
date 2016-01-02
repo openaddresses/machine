@@ -1,3 +1,6 @@
+2016-01-02: 2.11.2
+- Fixed ci.is_merged_to_master() to treat all sets as merged.
+
 2015-12-31: 2.11.1
 - Added filesize display to front page zip collection downloads.
 - Added row number to conform error log.
