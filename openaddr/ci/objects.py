@@ -356,8 +356,8 @@ def read_completed_runs_to_date(db, starting_set_id):
                       SELECT source_path FROM runs
                       WHERE set_id = %s
                     )
-                    -- Get only successful, merged runs.
-                    AND status = true
+                    -- Get only unsuccessful, merged runs.
+                    AND status = false
                     AND (is_merged = true OR is_merged IS NULL)
                   GROUP BY source_path''',
                (set.id, ))

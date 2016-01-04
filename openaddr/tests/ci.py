@@ -531,8 +531,8 @@ class TestObjects (unittest.TestCase):
                       SELECT source_path FROM runs
                       WHERE set_id = %s
                     )
-                    -- Get only successful, merged runs.
-                    AND status = true
+                    -- Get only unsuccessful, merged runs.
+                    AND status = false
                     AND (is_merged = true OR is_merged IS NULL)
                   GROUP BY source_path''')
 
