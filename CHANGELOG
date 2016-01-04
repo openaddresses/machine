@@ -1,3 +1,6 @@
+2016-01-03: 2.11.3
+- Showing only merged sources on front page.
+
 2016-01-02: 2.11.2
 - Fixed ci.is_merged_to_master() to treat all sets as merged.
 
