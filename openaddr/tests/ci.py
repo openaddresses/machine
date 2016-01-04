@@ -519,8 +519,9 @@ class TestObjects (unittest.TestCase):
                       SELECT source_path FROM runs
                       WHERE set_id = %s
                     )
-                    -- Get only successful runs.
+                    -- Get only successful, merged runs.
                     AND status = true
+                    AND (is_merged = true OR is_merged IS NULL)
                   GROUP BY source_path''')
 
         self.assertEqual(e2_query, 
@@ -530,8 +531,9 @@ class TestObjects (unittest.TestCase):
                       SELECT source_path FROM runs
                       WHERE set_id = %s
                     )
-                    -- Get only unsuccessful runs.
-                    AND status = false
+                    -- Get only successful, merged runs.
+                    AND status = true
+                    AND (is_merged = true OR is_merged IS NULL)
                   GROUP BY source_path''')
 
         self.assertEqual(e3_query, 
@@ -1135,6 +1137,11 @@ class TestHook (unittest.TestCase):
         run_state3 = {'share-alike': 'true'}
         run_state3.update(run_state2)
         run_state3['source'] = 'a3.json'
+
+        # Unmerged and should never show up.
+        run_state4 = {}
+        run_state4.update(run_state3)
+        run_state4['cache'] = 'zzz'
         
         # Look for the task in the task queue.
         with db_connect(self.database_url) as conn:
@@ -1148,15 +1155,20 @@ class TestHook (unittest.TestCase):
                 
                 run_id1 = add_run(db)
                 set_run(db, run_id1, 'sources/a1.json', 'abc', b'def',
-                        run_state1, True, None, None, None, False, 2)
+                        run_state1, True, None, None, None, True, 2)
                 
                 run_id2 = add_run(db)
                 set_run(db, run_id2, 'sources/a2.json', 'ghi', b'jkl',
-                        run_state2, True, None, None, None, False, 2)
+                        run_state2, True, None, None, None, True, 2)
                 
                 run_id3 = add_run(db)
                 set_run(db, run_id3, 'sources/a3.json', 'ghi', b'jkl',
-                        run_state3, True, None, None, None, False, 2)
+                        run_state3, True, None, None, None, True, 2)
+                
+                # Unmerged run, as though from a separate job and not this set.
+                run_id4 = add_run(db)
+                set_run(db, run_id4, 'sources/a3.json', 'ghi', b'jkl',
+                        run_state4, True, None, None, None, False, None)
         
         got1 = self.client.get('/latest/set')
         self.assertEqual(got1.status_code, 302)
