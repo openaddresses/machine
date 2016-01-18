@@ -595,13 +595,13 @@ def is_merged_to_master(db, set_id, job_id, commit_sha, github_auth):
         return None
     
     try:
-        template1 = get('https://api.github.com/').json().get('repository_url')
+        template1 = get('https://api.github.com/', auth=github_auth).json().get('repository_url')
         repo_url = expand_uri(template1, dict(owner=job.github_owner, repo=job.github_repository))
     
-        template2 = get(repo_url).json().get('compare_url')
+        template2 = get(repo_url, auth=github_auth).json().get('compare_url')
         compare_url = expand_uri(template2, dict(base=commit_sha, head='master'))
     
-        compare = get(compare_url).json()
+        compare = get(compare_url, auth=github_auth).json()
         return compare['base_commit']['sha'] == compare['merge_base_commit']['sha']
 
     except Exception as e:

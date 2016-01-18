@@ -62,7 +62,7 @@ def main():
     cloudwatch = connect_cloudwatch(args.access_key, args.secret_key)
     github_auth = args.github_token, 'x-oauth-basic'
 
-    next_queue_interval, next_autoscale_interval = 60, 86400 * 2
+    next_queue_interval, next_autoscale_interval = 60, 86400 * 1.5
 
     try:
         sources = find_batch_sources(args.owner, args.repository, github_auth)
