@@ -21,7 +21,6 @@ from os.path import splitext
 
 from .compat import csvopen, csvreader, csvDictReader, csvDictWriter
 from .sample import sample_geojson
-from .expand import expand_street_name
 
 from osgeo import ogr, osr
 ogr.UseExceptions()
@@ -766,7 +765,7 @@ def row_transform_and_convert(sd, row):
     ##################
     
     row2 = row_convert_to_out(sd, row)
-    row3 = row_canonicalize_street_and_number(sd, row2)
+    row3 = row_canonicalize_unit_and_number(sd, row2)
     row4 = row_round_lat_lon(sd, row3)
     return row4
 
@@ -838,13 +837,12 @@ def row_fxn_regexp(sd, row, key):
             row[attrib_types[key]] = ''.join(match.groups()) if match else '';
     return row
 
-def row_canonicalize_street_and_number(sd, row):
-    "Expand abbreviations and otherwise canonicalize street name and number"
+def row_canonicalize_unit_and_number(sd, row):
+    "Canonicalize address unit and number"
     row["UNIT"] = (row["UNIT"] or '').strip()
     row["NUMBER"] = (row["NUMBER"] or '').strip()
     if row["NUMBER"].endswith(".0"):
         row["NUMBER"] = row["NUMBER"][:-2]
-    row["STREET"] = expand_street_name(row["STREET"])
     return row
 
 def _round_wgs84_to_7(n):

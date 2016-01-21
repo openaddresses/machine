@@ -16,7 +16,7 @@ from ..conform import (
     csv_source_to_csv, find_source_path, row_transform_and_convert,
     row_fxn_regexp, row_smash_case, row_round_lat_lon, row_merge,
     row_extract_and_reproject, row_convert_to_out, row_fxn_join,
-    row_canonicalize_street_and_number, conform_smash_case, conform_cli,
+    row_canonicalize_unit_and_number, conform_smash_case, conform_cli,
     csvopen, csvDictReader, convert_regexp_replace, conform_license,
     conform_attribution, conform_sharealike, normalize_ogr_filename_case
     )
@@ -179,8 +179,8 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual({"STREET": "Maple Street", "UNIT": "", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3",
                           "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None, "ID": None}, r)
 
-    def test_row_canonicalize_street_and_number(self):
-        r = row_canonicalize_street_and_number({}, {"NUMBER": "324 ", "STREET": " OAK DR.", "UNIT": "1"})
+    def test_row_canonicalize_unit_and_number(self):
+        r = row_canonicalize_unit_and_number({}, {"NUMBER": "324 ", "STREET": " OAK DR.", "UNIT": "1"})
         self.assertEqual("324", r["NUMBER"])
         self.assertEqual("Oak Drive", r["STREET"])
         self.assertEqual("1", r["UNIT"])
@@ -191,17 +191,17 @@ class TestConformTransforms (unittest.TestCase):
                      ("3240", "3240"),
                      ("INVALID", "INVALID"),
                      ("324.5", "324.5")):
-            r = row_canonicalize_street_and_number({}, {"NUMBER": a, "STREET": "", "UNIT": ""})
+            r = row_canonicalize_unit_and_number({}, {"NUMBER": a, "STREET": "", "UNIT": ""})
             self.assertEqual(e, r["NUMBER"])
 
     def test_row_canonicalize_street_and_no_number(self):
-        r = row_canonicalize_street_and_number({}, {"NUMBER": None, "STREET": " OAK DR.", "UNIT": None})
+        r = row_canonicalize_unit_and_number({}, {"NUMBER": None, "STREET": " OAK DR.", "UNIT": None})
         self.assertEqual("", r["NUMBER"])
         self.assertEqual("Oak Drive", r["STREET"])
         self.assertEqual("", r["UNIT"])
 
     def test_row_canonicalize_street_with_no_unit_number(self):
-        r = row_canonicalize_street_and_number({}, {"NUMBER": None, "STREET": " OAK DR.", "UNIT": None})
+        r = row_canonicalize_unit_and_number({}, {"NUMBER": None, "STREET": " OAK DR.", "UNIT": None})
         self.assertEqual("", r["NUMBER"])
         self.assertEqual("Oak Drive", r["STREET"])
         self.assertEqual("", r["UNIT"])
