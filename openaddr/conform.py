@@ -843,6 +843,7 @@ def row_canonicalize_unit_and_number(sd, row):
     row["NUMBER"] = (row["NUMBER"] or '').strip()
     if row["NUMBER"].endswith(".0"):
         row["NUMBER"] = row["NUMBER"][:-2]
+    row["STREET"] = (row["STREET"] or '').strip()
     return row
 
 def _round_wgs84_to_7(n):

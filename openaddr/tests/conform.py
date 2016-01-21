@@ -166,23 +166,23 @@ class TestConformTransforms (unittest.TestCase):
     def test_transform_and_convert(self):
         d = { "conform": { "street": ["s1", "s2"], "number": "n", "lon": "y", "lat": "x" } }
         r = row_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
-        self.assertEqual({"STREET": "Maple Street", "UNIT": "", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3",
+        self.assertEqual({"STREET": "MAPLE ST", "UNIT": "", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3",
                           "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None, "ID": None}, r)
 
         d = { "conform": { "street": ["s1", "s2"], "number": "n", "lon": "y", "lat": "x" } }
         r = row_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
-        self.assertEqual({"STREET": "Maple Street", "UNIT": "", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3",
+        self.assertEqual({"STREET": "MAPLE ST", "UNIT": "", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3",
                           "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None, "ID": None}, r)
 
         d = { "conform": { "street": "auto_street", "number": "auto_number", "split": "s", "lon": "y", "lat": "x" } }
         r = row_transform_and_convert(d, { "s": "123 MAPLE ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
-        self.assertEqual({"STREET": "Maple Street", "UNIT": "", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3",
+        self.assertEqual({"STREET": "MAPLE ST", "UNIT": "", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3",
                           "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None, "ID": None}, r)
 
     def test_row_canonicalize_unit_and_number(self):
         r = row_canonicalize_unit_and_number({}, {"NUMBER": "324 ", "STREET": " OAK DR.", "UNIT": "1"})
         self.assertEqual("324", r["NUMBER"])
-        self.assertEqual("Oak Drive", r["STREET"])
+        self.assertEqual("OAK DR.", r["STREET"])
         self.assertEqual("1", r["UNIT"])
 
         # Tests for integer conversion
@@ -197,13 +197,13 @@ class TestConformTransforms (unittest.TestCase):
     def test_row_canonicalize_street_and_no_number(self):
         r = row_canonicalize_unit_and_number({}, {"NUMBER": None, "STREET": " OAK DR.", "UNIT": None})
         self.assertEqual("", r["NUMBER"])
-        self.assertEqual("Oak Drive", r["STREET"])
+        self.assertEqual("OAK DR.", r["STREET"])
         self.assertEqual("", r["UNIT"])
 
     def test_row_canonicalize_street_with_no_unit_number(self):
         r = row_canonicalize_unit_and_number({}, {"NUMBER": None, "STREET": " OAK DR.", "UNIT": None})
         self.assertEqual("", r["NUMBER"])
-        self.assertEqual("Oak Drive", r["STREET"])
+        self.assertEqual("OAK DR.", r["STREET"])
         self.assertEqual("", r["UNIT"])
 
     def test_row_round_lat_lon(self):
@@ -297,17 +297,17 @@ class TestConformCli (unittest.TestCase):
 
             self.assertEqual(6, len(rows))
             self.assertEqual(rows[0]['NUMBER'], '5115')
-            self.assertEqual(rows[0]['STREET'], 'Fruited Plains Lane')
+            self.assertEqual(rows[0]['STREET'], 'FRUITED PLAINS LN')
             self.assertEqual(rows[1]['NUMBER'], '5121')
-            self.assertEqual(rows[1]['STREET'], 'Fruited Plains Lane')
+            self.assertEqual(rows[1]['STREET'], 'FRUITED PLAINS LN')
             self.assertEqual(rows[2]['NUMBER'], '5133')
-            self.assertEqual(rows[2]['STREET'], 'Fruited Plains Lane')
+            self.assertEqual(rows[2]['STREET'], 'FRUITED PLAINS LN')
             self.assertEqual(rows[3]['NUMBER'], '5126')
-            self.assertEqual(rows[3]['STREET'], 'Fruited Plains Lane')
+            self.assertEqual(rows[3]['STREET'], 'FRUITED PLAINS LN')
             self.assertEqual(rows[4]['NUMBER'], '5120')
-            self.assertEqual(rows[4]['STREET'], 'Fruited Plains Lane')
+            self.assertEqual(rows[4]['STREET'], 'FRUITED PLAINS LN')
             self.assertEqual(rows[5]['NUMBER'], '5115')
-            self.assertEqual(rows[5]['STREET'], 'Old Mill Road')
+            self.assertEqual(rows[5]['STREET'], 'OLD MILL RD')
 
     def test_lake_man_split(self):
         rc, dest_path = self._run_conform_on_source('lake-man-split', 'shp')
@@ -316,17 +316,17 @@ class TestConformCli (unittest.TestCase):
         with csvopen(dest_path) as fp:
             rows = list(csvDictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '915')
-            self.assertEqual(rows[0]['STREET'], 'Edward Avenue')
+            self.assertEqual(rows[0]['STREET'], 'EDWARD AVE')
             self.assertEqual(rows[1]['NUMBER'], '3273')
-            self.assertEqual(rows[1]['STREET'], 'Peter Street')
+            self.assertEqual(rows[1]['STREET'], 'PETER ST')
             self.assertEqual(rows[2]['NUMBER'], '976')
-            self.assertEqual(rows[2]['STREET'], 'Ford Boulevard')
+            self.assertEqual(rows[2]['STREET'], 'FORD BLVD')
             self.assertEqual(rows[3]['NUMBER'], '7055')
-            self.assertEqual(rows[3]['STREET'], 'Saint Rose Avenue')
+            self.assertEqual(rows[3]['STREET'], 'ST ROSE AVE')
             self.assertEqual(rows[4]['NUMBER'], '534')
-            self.assertEqual(rows[4]['STREET'], 'Wallace Avenue')
+            self.assertEqual(rows[4]['STREET'], 'WALLACE AVE')
             self.assertEqual(rows[5]['NUMBER'], '531')
-            self.assertEqual(rows[5]['STREET'], 'Scofield Avenue')
+            self.assertEqual(rows[5]['STREET'], 'SCOFIELD AVE')
 
     def test_lake_man_merge_postcode(self):
         rc, dest_path = self._run_conform_on_source('lake-man-merge-postcode', 'shp')
@@ -335,17 +335,17 @@ class TestConformCli (unittest.TestCase):
         with csvopen(dest_path) as fp:
             rows = list(csvDictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '35845')
-            self.assertEqual(rows[0]['STREET'], 'Eklutna Lake Road')
+            self.assertEqual(rows[0]['STREET'], 'EKLUTNA LAKE RD')
             self.assertEqual(rows[1]['NUMBER'], '35850')
-            self.assertEqual(rows[1]['STREET'], 'Eklutna Lake Road')
+            self.assertEqual(rows[1]['STREET'], 'EKLUTNA LAKE RD')
             self.assertEqual(rows[2]['NUMBER'], '35900')
-            self.assertEqual(rows[2]['STREET'], 'Eklutna Lake Road')
+            self.assertEqual(rows[2]['STREET'], 'EKLUTNA LAKE RD')
             self.assertEqual(rows[3]['NUMBER'], '35870')
-            self.assertEqual(rows[3]['STREET'], 'Eklutna Lake Road')
+            self.assertEqual(rows[3]['STREET'], 'EKLUTNA LAKE RD')
             self.assertEqual(rows[4]['NUMBER'], '32551')
-            self.assertEqual(rows[4]['STREET'], 'Eklutna Lake Road')
+            self.assertEqual(rows[4]['STREET'], 'EKLUTNA LAKE RD')
             self.assertEqual(rows[5]['NUMBER'], '31401')
-            self.assertEqual(rows[5]['STREET'], 'Eklutna Lake Road')
+            self.assertEqual(rows[5]['STREET'], 'EKLUTNA LAKE RD')
     
     def test_lake_man_merge_postcode2(self):
         rc, dest_path = self._run_conform_on_source('lake-man-merge-postcode2', 'shp')
@@ -354,24 +354,24 @@ class TestConformCli (unittest.TestCase):
         with csvopen(dest_path) as fp:
             rows = list(csvDictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '85')
-            self.assertEqual(rows[0]['STREET'], 'Maitland Drive')
+            self.assertEqual(rows[0]['STREET'], 'MAITLAND DR')
             self.assertEqual(rows[1]['NUMBER'], '81')
-            self.assertEqual(rows[1]['STREET'], 'Maitland Drive')
+            self.assertEqual(rows[1]['STREET'], 'MAITLAND DR')
             self.assertEqual(rows[2]['NUMBER'], '92')
-            self.assertEqual(rows[2]['STREET'], 'Maitland Drive')
+            self.assertEqual(rows[2]['STREET'], 'MAITLAND DR')
             self.assertEqual(rows[3]['NUMBER'], '92')
-            self.assertEqual(rows[3]['STREET'], 'Maitland Drive')
+            self.assertEqual(rows[3]['STREET'], 'MAITLAND DR')
             self.assertEqual(rows[4]['NUMBER'], '92')
-            self.assertEqual(rows[4]['STREET'], 'Maitland Drive')
+            self.assertEqual(rows[4]['STREET'], 'MAITLAND DR')
             self.assertEqual(rows[5]['NUMBER'], '92')
-            self.assertEqual(rows[5]['STREET'], 'Maitland Drive')
+            self.assertEqual(rows[5]['STREET'], 'MAITLAND DR')
 
     def test_lake_man_shp_utf8(self):
         rc, dest_path = self._run_conform_on_source('lake-man-utf8', 'shp')
         self.assertEqual(0, rc)
         with csvopen(dest_path, encoding='utf-8') as fp:
             rows = list(csvDictReader(fp, encoding='utf-8'))
-            self.assertEqual(rows[0]['STREET'], u'Pz Espa\u00f1a')
+            self.assertEqual(rows[0]['STREET'], u'PZ ESPA\u00d1A')
 
     def test_lake_man_shp_epsg26943(self):
         rc, dest_path = self._run_conform_on_source('lake-man-epsg26943', 'shp')
@@ -401,17 +401,17 @@ class TestConformCli (unittest.TestCase):
         with csvopen(dest_path) as fp:
             rows = list(csvDictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '1')
-            self.assertEqual(rows[0]['STREET'], 'Spectrum Pointe Drive #320')
+            self.assertEqual(rows[0]['STREET'], 'Spectrum Pointe Dr #320')
             self.assertEqual(rows[1]['NUMBER'], '')
             self.assertEqual(rows[1]['STREET'], '')
             self.assertEqual(rows[2]['NUMBER'], '300')
-            self.assertEqual(rows[2]['STREET'], 'East Chapman Avenue')
+            self.assertEqual(rows[2]['STREET'], 'E Chapman Ave')
             self.assertEqual(rows[3]['NUMBER'], '1')
-            self.assertEqual(rows[3]['STREET'], 'Spectrum Pointe Drive #320')
+            self.assertEqual(rows[3]['STREET'], 'Spectrum Pointe Dr #320')
             self.assertEqual(rows[4]['NUMBER'], '1')
-            self.assertEqual(rows[4]['STREET'], 'Spectrum Pointe Drive #320')
+            self.assertEqual(rows[4]['STREET'], 'Spectrum Pointe Dr #320')
             self.assertEqual(rows[5]['NUMBER'], '1')
-            self.assertEqual(rows[5]['STREET'], 'Spectrum Pointe Drive #320')
+            self.assertEqual(rows[5]['STREET'], 'Spectrum Pointe Dr #320')
 
     def test_nara_jp(self):
         "Test case from jp-nara.json"
@@ -434,7 +434,7 @@ class TestConformCli (unittest.TestCase):
             self.assertAlmostEqual(float(rows[0]['LAT']), 37.802612637607439, places=5)
             self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824, places=5)
             self.assertEqual(rows[0]['NUMBER'], '5')
-            self.assertEqual(rows[0]['STREET'], u'Pz Espa\u00f1a')
+            self.assertEqual(rows[0]['STREET'], u'PZ ESPA\u00d1A')
 
     def test_lake_man_gml(self):
         "GML XML files"
@@ -446,7 +446,7 @@ class TestConformCli (unittest.TestCase):
             self.assertAlmostEqual(float(rows[0]['LAT']), 37.802612637607439)
             self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824)
             self.assertEqual(rows[0]['NUMBER'], '5115')
-            self.assertEqual(rows[0]['STREET'], 'Fruited Plains Lane')
+            self.assertEqual(rows[0]['STREET'], 'FRUITED PLAINS LN')
 
 
 class TestConformMisc(unittest.TestCase):
