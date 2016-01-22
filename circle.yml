@@ -1,0 +1,35 @@
+machine:
+  python:
+    version: 3.3.3
+  environment:
+    BOTO_CONFIG: /tmp/nowhere
+    DATABASE_URL: postgres://openaddr:openaddr@localhost/openaddr
+
+dependencies:
+  override:
+    # Although we include chef, we need to pre-install a number of dependencies
+    # to adapt to Travis and CircleCI Ubuntu apt sources and virtualenv environment.
+    #   https://github.com/travis-ci/travis-ci/issues/2683#issuecomment-52720150
+    #   https://github.com/travis-ci/travis-ci/issues/2938
+    # CircleCI does not include ppa:ubuntugis by default, Travis does.
+    - sudo add-apt-repository -y ppa:ubuntugis
+    - sudo apt-get update -y
+    - sudo apt-get install -y -qq libgdal1h proj gmsh gmt
+    - sudo apt-get install -y -qq libgdal1-dev python3-dev python-dev
+    - sudo apt-get install -y -qq libffi-dev libcairo2
+    # Determine GDAL library version and install a compatible python binding.
+    #   http://gis.stackexchange.com/questions/28966/python-gdal-package-missing-header-file-when-installing-via-pip
+    - V=`dpkg -s libgdal1-dev | grep Version | cut -d' ' -f2 | cut -d'-' -f1`; env CPLUS_INCLUDE_PATH=/usr/include/gdal C_INCLUDE_PATH=/usr/include/gdal pip install "GDAL==$V"
+    #
+    # cairocffi is a drop-in replacement for Pycairo, which is absent from pip.
+    #   http://stackoverflow.com/questions/11491268/install-pycairo-in-virtualenv
+    #   https://pythonhosted.org/cairocffi/
+    - pip install cairocffi
+    - sudo chef/run.sh testing
+    # Older CircleCI-provided pip complains about install of a directory.
+    - pip install -U pip
+    - pip install -U .
+
+test:
+  override:
+    - python setup.py test
