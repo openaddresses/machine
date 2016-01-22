@@ -1,4 +1,6 @@
-package 'postgresql'
+# Specify 9.4 because this recipe tends to be used only in CI.
+# CircleCI has 9.4, while installing package 'postgresql' gets conflicting 9.5.
+package 'postgresql-9.4'
 
 user = node[:db_user]
 pass = node[:db_pass]
