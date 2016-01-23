@@ -2112,15 +2112,17 @@ class TestCollect (unittest.TestCase):
             
             s1 = {'license': 'ODbL', 'attribution name': 'ABC Co.'}
             s2 = {'website': 'http://example.com', 'attribution flag': 'false'}
+            r1 = LocalProcessedResult('abc', 'abc.zip', s1, None)
+            r2 = LocalProcessedResult('def', 'def.zip', s2, None)
             
-            collector_publisher.collect(LocalProcessedResult('abc', 'abc.zip', s1, None))
-            collector_publisher.collect(LocalProcessedResult('def', 'def.zip', s2, None))
+            collector_publisher.collect(r1)
+            collector_publisher.collect(r2)
             
             collector_publisher.publish(db)
 
             add_source_to_zipfile.assert_has_calls([
-                mock.call(collected_zip, 'abc', None, 'abc.zip'),
-                mock.call(collected_zip, 'def', None, 'def.zip')
+                mock.call(collected_zip, r1),
+                mock.call(collected_zip, r2)
                 ])
         
         self.assertEqual(len(collected_zip.writestr.mock_calls), 1)
@@ -2242,11 +2244,11 @@ class TestCollect (unittest.TestCase):
         output.write.side_effect = remember_write_contents
         
         with patch('openaddr.ci.collect.expand_and_add_csv_to_zipfile') as expand_and_add_csv_to_zipfile:
-            add_source_to_zipfile(output, 'foobar', '2.x.y', 'temp')
-            add_source_to_zipfile(output, 'foobar', '2.x.y', filename1)
-            add_source_to_zipfile(output, 'foobar', '3.x.y', filename2)
-            add_source_to_zipfile(output, 'foobar', '4.x.y', filename1)
-            add_source_to_zipfile(output, 'foobar', '1.x.y', filename1)
+            add_source_to_zipfile(output, LocalProcessedResult('foobar', 'temp', {}, '2.x.y'))
+            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename1, {}, '2.x.y'))
+            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename2, {}, '3.x.y'))
+            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename1, {}, '4.x.y'))
+            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename1, {}, '1.x.y'))
         
         self.assertEqual(len(expand_and_add_csv_to_zipfile.mock_calls), 4)
         self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[0][1][1], 'foobar.csv')

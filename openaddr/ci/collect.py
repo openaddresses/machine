@@ -149,7 +149,7 @@ class CollectorPublisher:
         ''' Add LocalProcessedResult instance to collection zip.
         '''
         _L.info(u'Adding {} to {}'.format(result.source_base, self.zip.filename))
-        add_source_to_zipfile(self.zip, result.source_base, result.code_version, result.filename)
+        add_source_to_zipfile(self.zip, result)
 
         attribution = 'No'
         if result.run_state.get('attribution flag') != 'false':
@@ -210,20 +210,20 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
     zip_out.write(tmp_filename, arc_filename)
     remove(tmp_filename)
 
-def add_source_to_zipfile(zip_out, source_base, code_version, filename):
-    ''' Add a source to zipfile after running it through expand_and_add_csv_to_zipfile().
+def add_source_to_zipfile(zip_out, result):
+    ''' Add a LocalProcessedResult to zipfile via expand_and_add_csv_to_zipfile().
     
         Use result code_version to determine whether to expand; 3+ will do it.
     '''
-    _, ext = splitext(filename)
-    do_expand = bool(int(code_version.split('.')[0]) >= 3) # Expand for 3+.
+    _, ext = splitext(result.filename)
+    do_expand = bool(int(result.code_version.split('.')[0]) >= 3) # Expand for 3+.
     
     if ext == '.csv':
-        with open(filename) as file:
-            expand_and_add_csv_to_zipfile(zip_out, source_base + ext, file, do_expand)
+        with open(result.filename) as file:
+            expand_and_add_csv_to_zipfile(zip_out, result.source_base + ext, file, do_expand)
     
     elif ext == '.zip':
-        zip_in = ZipFile(filename, 'r')
+        zip_in = ZipFile(result.filename, 'r')
         for zipinfo in zip_in.infolist():
             if zipinfo.filename == 'README.txt':
                 # Skip README files when building collection.
