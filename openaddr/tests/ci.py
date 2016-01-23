@@ -1184,6 +1184,10 @@ class TestHook (unittest.TestCase):
             got_state1 = dict(zip(head, row1))
             got_state2 = dict(zip(head, row2))
             got_state3 = dict(zip(head, row3))
+            
+            self.assertEqual(got_state1['code version'], __version__)
+            self.assertEqual(got_state2['code version'], __version__)
+            self.assertEqual(got_state3['code version'], __version__)
         
             for key in ('source', 'cache', 'sample', 'geometry type', 'address count',
                         'version', 'fingerprint', 'cache time', 'processed', 'output',

@@ -33,7 +33,8 @@ from ..summarize import summarize_runs, GLASS_HALF_FULL, GLASS_HALF_EMPTY, nice_
 
 CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
              'version', 'fingerprint', 'cache time', 'processed', 'process time', \
-             'output', 'attribution required', 'attribution name', 'share-alike'
+             'output', 'attribution required', 'attribution name', 'share-alike', \
+             'code version'
 
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
 
@@ -131,6 +132,7 @@ def app_get_state_txt():
         run_state = run.state or {}
         row = {col: run_state.get(col, None) for col in CSV_HEADER}
         row['source'] = os.path.relpath(run.source_path, 'sources')
+        row['code version'] = run.code_version
         output.writerow(row)
 
     return Response(buffer.getvalue(),
@@ -288,6 +290,7 @@ def app_get_set_state_txt(set_id):
         run_state = run.state or {}
         row = {col: run_state.get(col, None) for col in CSV_HEADER}
         row['source'] = os.path.relpath(run.source_path, 'sources')
+        row['code version'] = run.code_version
         output.writerow(row)
 
     return Response(buffer.getvalue(),
