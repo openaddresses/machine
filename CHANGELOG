@@ -1,5 +1,6 @@
 2016-01-23: 2.12.0
 - Added "code version" column to state.txt outputs.
+- Switched from Travis to Circle CI for testing.
 
 2016-01-17: 2.11.5
 - Fixed missing Github auth in dequeue.
