@@ -3,19 +3,22 @@ import logging; _L = logging.getLogger('openaddr.ci.collect')
 from ..compat import standard_library
 
 from argparse import ArgumentParser
-from os import environ, stat
+from os import environ, stat, close, remove
 from zipfile import ZipFile, ZIP_DEFLATED
 from os.path import splitext, exists, basename, join
 from urllib.parse import urlparse
 from operator import attrgetter
+from csv import DictReader, DictWriter
 from tempfile import mkstemp, mkdtemp
 from itertools import product
+from io import TextIOWrapper
 from datetime import date
 from shutil import rmtree
 
 from .objects import read_latest_set, read_completed_runs_to_date
 from . import db_connect, db_cursor, setup_logger, render_index_maps, log_function_errors
-from .. import S3, iterate_local_processed_files, util
+from .. import S3, iterate_local_processed_files, util, expand
+from ..conform import _openaddr_csv_schema
 
 parser = ArgumentParser(description='Run some source files.')
 
@@ -188,13 +191,33 @@ class CollectorPublisher:
                       VALUES (%s, NOW(), true, %s, %s, %s)''',
                    (zip_url, length, self.collection_id, self.license_attr))
 
+def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file):
+    '''
+    '''
+    handle, tmp_filename = mkstemp(suffix='.csv')
+    close(handle)
+    
+    
+    with open(tmp_filename, 'w') as output:
+        in_csv = DictReader(file)
+        out_csv = DictWriter(output, _openaddr_csv_schema, dialect='excel')
+        out_csv.writerow({col: col for col in _openaddr_csv_schema})
+        
+        for row in in_csv:
+            row['STREET'] = expand.expand_street_name(row['STREET'])
+            out_csv.writerow(row)
+
+    zip_out.write(tmp_filename, arc_filename)
+    remove(tmp_filename)
+
 def add_source_to_zipfile(zip_out, source_base, filename):
     '''
     '''
     _, ext = splitext(filename)
-
+    
     if ext == '.csv':
-        zip_out.write(filename, source_base + ext)
+        with open(filename) as file:
+            expand_and_add_csv_to_zipfile(zip_out, source_base + ext, file)
     
     elif ext == '.zip':
         zip_in = ZipFile(filename, 'r')
@@ -202,7 +225,11 @@ def add_source_to_zipfile(zip_out, source_base, filename):
             if zipinfo.filename == 'README.txt':
                 # Skip README files when building collection.
                 continue
-            zip_out.writestr(zipinfo, zip_in.read(zipinfo.filename))
+            elif splitext(zipinfo.filename)[1] == '.csv':
+                zipped_file = TextIOWrapper(zip_in.open(zipinfo.filename), 'utf8')
+                expand_and_add_csv_to_zipfile(zip_out, zipinfo.filename, zipped_file)
+            else:
+                zip_out.writestr(zipinfo, zip_in.read(zipinfo.filename))
         zip_in.close()
 
 def _is_us_state(abbr, result):

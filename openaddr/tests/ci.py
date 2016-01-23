@@ -3,7 +3,7 @@ from __future__ import print_function
 
 from .. import __version__
 
-from os import environ, remove, stat, close, utime
+from os import environ, remove, stat, close, utime, write
 from os.path import join, splitext
 from shutil import rmtree
 from tempfile import mkdtemp, mkstemp
@@ -2222,28 +2222,46 @@ class TestCollect (unittest.TestCase):
         '''
         handle, filename1 = mkstemp(suffix='.csv')
         utime(filename1, (1234567890, 1234567890))
+        write(handle, b'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID\n-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77')
         close(handle)
         
         handle, filename2 = mkstemp(suffix='.zip')
         zipfile3 = ZipFile(filename2, 'w')
         zipfile3.writestr('README.txt', b'hello world')
         zipfile3.writestr('foo/thing.vrt', b'vrt data')
-        zipfile3.writestr('foo/thing.csv', b'csv data')
+        zipfile3.writestr('foo/thing.csv', b'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID\n-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77')
         zipfile3.close()
         utime(filename2, (987654321, 987654321))
         close(handle)
 
+        output_write_contents = list()
+        def remember_write_contents(fn, _):
+            with open(fn) as file:
+                output_write_contents.append(file.read())
         output = mock.Mock()
+        output.write.side_effect = remember_write_contents
         
-        add_source_to_zipfile(output, 'foobar', 'temp')
-        add_source_to_zipfile(output, 'foobar', filename1)
-        add_source_to_zipfile(output, 'foobar', filename2)
+        with patch('openaddr.expand.expand_street_name') as expand_street_name:
+            expand_street_name.return_value = 'Maitland Drive'
+            add_source_to_zipfile(output, 'foobar', 'temp')
+            add_source_to_zipfile(output, 'foobar', filename1)
+            add_source_to_zipfile(output, 'foobar', filename2)
         
-        output.write.assert_called_once_with(filename1, 'foobar.csv')
+        self.assertEqual(len(expand_street_name.mock_calls), 2)
+        self.assertEqual(expand_street_name.mock_calls[0][1][0], 'MAITLAND DR')
+        self.assertEqual(expand_street_name.mock_calls[1][1][0], 'MAITLAND DR')
+
+        self.assertEqual(len(output.write.mock_calls), 2)
+        self.assertEqual(output.write.mock_calls[0][1][1], 'foobar.csv')
+        self.assertEqual(output.write.mock_calls[1][1][1], 'foo/thing.csv')
+        self.assertIn('LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID', output_write_contents[0])
+        self.assertIn('-122.2359742,37.7362507,85,Maitland Drive,A,ALAMEDA,,,94502,74-1035-77', output_write_contents[0])
+        self.assertIn('LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID', output_write_contents[1])
+        self.assertIn('-122.2359742,37.7362507,85,Maitland Drive,A,ALAMEDA,,,94502,74-1035-77', output_write_contents[1])
+        
+        self.assertEqual(len(output.writestr.mock_calls), 1)
         self.assertEqual(output.writestr.mock_calls[0][1][0].filename, 'foo/thing.vrt')
-        self.assertEqual(output.writestr.mock_calls[1][1][0].filename, 'foo/thing.csv')
         self.assertEqual(output.writestr.mock_calls[0][1][1], b'vrt data')
-        self.assertEqual(output.writestr.mock_calls[1][1][1], b'csv data')
         
         remove(filename1)
         remove(filename2)
