@@ -2244,19 +2244,19 @@ class TestCollect (unittest.TestCase):
         output.write.side_effect = remember_write_contents
         
         with patch('openaddr.ci.collect.expand_and_add_csv_to_zipfile') as expand_and_add_csv_to_zipfile:
-            add_source_to_zipfile(output, LocalProcessedResult('foobar', 'temp', {}, '2.x.y'))
-            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename1, {}, '2.x.y'))
-            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename2, {}, '3.x.y'))
-            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename1, {}, '4.x.y'))
-            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename1, {}, '1.x.y'))
+            add_source_to_zipfile(output, LocalProcessedResult('foobar', 'temp', {}, '2.0.0'))
+            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename1, {}, '2.12.0'))
+            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename2, {}, '2.13.0'))
+            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename1, {}, '3'))
+            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename1, {}, None))
         
         self.assertEqual(len(expand_and_add_csv_to_zipfile.mock_calls), 4)
         self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[0][1][1], 'foobar.csv')
-        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[0][1][3], False, 'Should be False for 2.x')
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[0][1][3], False, 'Should be False for 2.12.x')
         self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[1][1][1], 'foo/thing.csv')
-        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[1][1][3], True, 'Should be True for 3.x')
-        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[2][1][3], True, 'Should be True for 4.x')
-        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[3][1][3], False, 'Should be False for 1.x')
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[1][1][3], True, 'Should be True for 2.13.x')
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[2][1][3], True, 'Should be True for 3.x')
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[3][1][3], False, 'Should be False for missing version')
         
         self.assertEqual(len(output.writestr.mock_calls), 1)
         self.assertEqual(output.writestr.mock_calls[0][1][0].filename, 'foo/thing.vrt')

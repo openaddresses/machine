@@ -216,7 +216,14 @@ def add_source_to_zipfile(zip_out, result):
         Use result code_version to determine whether to expand; 3+ will do it.
     '''
     _, ext = splitext(result.filename)
-    do_expand = bool(int(result.code_version.split('.')[0]) >= 3) # Expand for 3+.
+    
+    try:
+        number = [int(n) for n in result.code_version.split('.')]
+    except:
+        _L.info('Skipping street name expansion for {} ({})'.format(result.source_base, result.code_version))
+        do_expand = False # Be conservative for now.
+    else:
+        do_expand = bool(number >= [2, 13]) # Expand for 2.13+.
     
     if ext == '.csv':
         with open(result.filename) as file:
