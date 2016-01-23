@@ -25,6 +25,9 @@ from .sample import sample_geojson
 from osgeo import ogr, osr
 ogr.UseExceptions()
 
+# The canonical output schema for conform
+OPENADDR_CSV_SCHEMA = ["LON", "LAT", "NUMBER", "STREET", "UNIT", "CITY", "DISTRICT", "REGION", "POSTCODE", "ID"]
+
 # Field names for use in cached CSV files.
 # We add columns to the extracted CSV with our own data with these names.
 GEOM_FIELDNAME = 'OA:geom'
@@ -909,9 +912,6 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     else:
         raise Exception("Unsupported source type %s" % source_definition["conform"]["type"])
 
-# The canonical output schema for conform
-_openaddr_csv_schema = ["LON", "LAT", "NUMBER", "STREET", "UNIT", "CITY", "DISTRICT", "REGION", "POSTCODE", "ID"]
-
 def transform_to_out_csv(source_definition, extract_path, dest_path):
     ''' Transform an extracted source CSV to the OpenAddresses output CSV by applying conform rules.
 
@@ -927,7 +927,7 @@ def transform_to_out_csv(source_definition, extract_path, dest_path):
         reader = csvDictReader(extract_fp, encoding='utf-8')
         # Write to the destination CSV
         with csvopen(dest_path, 'w', encoding='utf-8') as dest_fp:
-            writer = csvDictWriter(dest_fp, _openaddr_csv_schema, encoding='utf-8')
+            writer = csvDictWriter(dest_fp, OPENADDR_CSV_SCHEMA, encoding='utf-8')
             writer.writeheader()
             # For every row in the extract
             for extract_row in reader:

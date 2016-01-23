@@ -18,7 +18,7 @@ from shutil import rmtree
 from .objects import read_latest_set, read_completed_runs_to_date
 from . import db_connect, db_cursor, setup_logger, render_index_maps, log_function_errors
 from .. import S3, iterate_local_processed_files, util, expand
-from ..conform import _openaddr_csv_schema
+from ..conform import OPENADDR_CSV_SCHEMA
 
 parser = ArgumentParser(description='Run some source files.')
 
@@ -199,8 +199,8 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
     
     with open(tmp_filename, 'w') as output:
         in_csv = DictReader(file)
-        out_csv = DictWriter(output, _openaddr_csv_schema, dialect='excel')
-        out_csv.writerow({col: col for col in _openaddr_csv_schema})
+        out_csv = DictWriter(output, OPENADDR_CSV_SCHEMA, dialect='excel')
+        out_csv.writerow({col: col for col in OPENADDR_CSV_SCHEMA})
         
         for row in in_csv:
             if do_expand:
