@@ -3,7 +3,7 @@ from __future__ import print_function
 
 from .. import __version__
 
-from os import environ, remove, stat, close, utime, write
+from os import environ, remove, stat, close, utime
 from os.path import join, splitext
 from shutil import rmtree
 from tempfile import mkdtemp, mkstemp
@@ -11,7 +11,7 @@ from urllib.parse import parse_qsl, urlparse, urljoin
 from base64 import b64decode, b64encode
 from datetime import timedelta, datetime
 from zipfile import ZipFile
-from io import BytesIO
+from io import BytesIO, StringIO
 from mock import patch
 from time import sleep
 import hmac, hashlib, mock
@@ -41,7 +41,8 @@ from ..ci.objects import (
 
 from ..ci.collect import (
     is_us_northeast, is_us_midwest, is_us_south, is_us_west, is_europe, is_asia,
-    add_source_to_zipfile, CollectorPublisher, prepare_collections
+    add_source_to_zipfile, CollectorPublisher, prepare_collections,
+    expand_and_add_csv_to_zipfile
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -2222,14 +2223,13 @@ class TestCollect (unittest.TestCase):
         '''
         handle, filename1 = mkstemp(suffix='.csv')
         utime(filename1, (1234567890, 1234567890))
-        write(handle, b'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID\n-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77')
         close(handle)
         
         handle, filename2 = mkstemp(suffix='.zip')
         zipfile3 = ZipFile(filename2, 'w')
         zipfile3.writestr('README.txt', b'hello world')
         zipfile3.writestr('foo/thing.vrt', b'vrt data')
-        zipfile3.writestr('foo/thing.csv', b'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID\n-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77')
+        zipfile3.writestr('foo/thing.csv', b'csv data')
         zipfile3.close()
         utime(filename2, (987654321, 987654321))
         close(handle)
@@ -2241,23 +2241,14 @@ class TestCollect (unittest.TestCase):
         output = mock.Mock()
         output.write.side_effect = remember_write_contents
         
-        with patch('openaddr.expand.expand_street_name') as expand_street_name:
-            expand_street_name.return_value = 'Maitland Drive'
+        with patch('openaddr.ci.collect.expand_and_add_csv_to_zipfile') as expand_and_add_csv_to_zipfile:
             add_source_to_zipfile(output, 'foobar', 'temp')
             add_source_to_zipfile(output, 'foobar', filename1)
             add_source_to_zipfile(output, 'foobar', filename2)
         
-        self.assertEqual(len(expand_street_name.mock_calls), 2)
-        self.assertEqual(expand_street_name.mock_calls[0][1][0], 'MAITLAND DR')
-        self.assertEqual(expand_street_name.mock_calls[1][1][0], 'MAITLAND DR')
-
-        self.assertEqual(len(output.write.mock_calls), 2)
-        self.assertEqual(output.write.mock_calls[0][1][1], 'foobar.csv')
-        self.assertEqual(output.write.mock_calls[1][1][1], 'foo/thing.csv')
-        self.assertIn('LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID', output_write_contents[0])
-        self.assertIn('-122.2359742,37.7362507,85,Maitland Drive,A,ALAMEDA,,,94502,74-1035-77', output_write_contents[0])
-        self.assertIn('LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID', output_write_contents[1])
-        self.assertIn('-122.2359742,37.7362507,85,Maitland Drive,A,ALAMEDA,,,94502,74-1035-77', output_write_contents[1])
+        self.assertEqual(len(expand_and_add_csv_to_zipfile.mock_calls), 2)
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[0][1][1], 'foobar.csv')
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[1][1][1], 'foo/thing.csv')
         
         self.assertEqual(len(output.writestr.mock_calls), 1)
         self.assertEqual(output.writestr.mock_calls[0][1][0].filename, 'foo/thing.vrt')
@@ -2265,6 +2256,34 @@ class TestCollect (unittest.TestCase):
         
         remove(filename1)
         remove(filename2)
+    
+    def test_expand_and_add_csv_to_zipfile(self):
+        '''
+        '''
+        output = mock.Mock()
+        output_write_contents = list()
+
+        def remember_write_contents(fn, _):
+            with open(fn) as file:
+                # Python 2.7 and 3 use different line endings in csv module:
+                output_write_contents.append([line.strip() for line in file])
+
+        output.write.side_effect = remember_write_contents
+        
+        input = StringIO(u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID\n-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77\n-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11\n-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,74-1033-146\n-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,74-1033-122\n-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26\n-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222\n')
+        expand_and_add_csv_to_zipfile(output, 'whatever', input)
+        
+        self.assertEqual(len(output.write.mock_calls), 1)
+        self.assertEqual(output_write_contents[0],
+            [
+            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID',
+            '-122.2359742,37.7362507,85,Maitland Drive,A,ALAMEDA,,,94502,74-1035-77',
+            '-122.2353881,37.7223605,1360,South Loop Road,,ALAMEDA,,,94502,74-1339-11',
+            '-122.2385597,37.7284071,3508,Catalina Avenue,,ALAMEDA,,,94502,74-1033-146',
+            '-122.2368942,37.7305041,3512,Mcsherry Way,,ALAMEDA,,,94502,74-1033-122',
+            '-122.2349371,37.7357455,514,Flower Lane,,ALAMEDA,,,94502,74-1036-26',
+            '-122.2367819,37.7342157,1014,Holly Street,,ALAMEDA,,,94502,74-1075-222',
+            ])
 
 if __name__ == '__main__':
     unittest.main()
