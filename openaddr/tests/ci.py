@@ -2242,13 +2242,19 @@ class TestCollect (unittest.TestCase):
         output.write.side_effect = remember_write_contents
         
         with patch('openaddr.ci.collect.expand_and_add_csv_to_zipfile') as expand_and_add_csv_to_zipfile:
-            add_source_to_zipfile(output, 'foobar', None, 'temp')
-            add_source_to_zipfile(output, 'foobar', None, filename1)
-            add_source_to_zipfile(output, 'foobar', None, filename2)
+            add_source_to_zipfile(output, 'foobar', '2.x.y', 'temp')
+            add_source_to_zipfile(output, 'foobar', '2.x.y', filename1)
+            add_source_to_zipfile(output, 'foobar', '3.x.y', filename2)
+            add_source_to_zipfile(output, 'foobar', '4.x.y', filename1)
+            add_source_to_zipfile(output, 'foobar', '1.x.y', filename1)
         
-        self.assertEqual(len(expand_and_add_csv_to_zipfile.mock_calls), 2)
+        self.assertEqual(len(expand_and_add_csv_to_zipfile.mock_calls), 4)
         self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[0][1][1], 'foobar.csv')
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[0][1][3], False, 'Should be False for 2.x')
         self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[1][1][1], 'foo/thing.csv')
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[1][1][3], True, 'Should be True for 3.x')
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[2][1][3], True, 'Should be True for 4.x')
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[3][1][3], False, 'Should be False for 1.x')
         
         self.assertEqual(len(output.writestr.mock_calls), 1)
         self.assertEqual(output.writestr.mock_calls[0][1][0].filename, 'foo/thing.vrt')
@@ -2270,10 +2276,11 @@ class TestCollect (unittest.TestCase):
 
         output.write.side_effect = remember_write_contents
         
-        input = StringIO(u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID\n-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77\n-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11\n-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,74-1033-146\n-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,74-1033-122\n-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26\n-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222\n')
-        expand_and_add_csv_to_zipfile(output, 'whatever', input)
+        input = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID\n-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77\n-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11\n-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,74-1033-146\n-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,74-1033-122\n-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26\n-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222\n'
+        expand_and_add_csv_to_zipfile(output, 'whatever', StringIO(input), True)
+        expand_and_add_csv_to_zipfile(output, 'whatever', StringIO(input), False)
         
-        self.assertEqual(len(output.write.mock_calls), 1)
+        self.assertEqual(len(output.write.mock_calls), 2)
         self.assertEqual(output_write_contents[0],
             [
             'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID',
@@ -2283,6 +2290,16 @@ class TestCollect (unittest.TestCase):
             '-122.2368942,37.7305041,3512,Mcsherry Way,,ALAMEDA,,,94502,74-1033-122',
             '-122.2349371,37.7357455,514,Flower Lane,,ALAMEDA,,,94502,74-1036-26',
             '-122.2367819,37.7342157,1014,Holly Street,,ALAMEDA,,,94502,74-1075-222',
+            ])
+        self.assertEqual(output_write_contents[1],
+            [
+            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID',
+            '-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77',
+            '-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11',
+            '-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,74-1033-146',
+            '-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,74-1033-122',
+            '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26',
+            '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222',
             ])
 
 if __name__ == '__main__':

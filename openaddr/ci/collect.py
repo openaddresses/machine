@@ -191,8 +191,8 @@ class CollectorPublisher:
                       VALUES (%s, NOW(), true, %s, %s, %s)''',
                    (zip_url, length, self.collection_id, self.license_attr))
 
-def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file):
-    '''
+def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
+    ''' Write csv to zipfile, with optional expand.expand_street_name().
     '''
     handle, tmp_filename = mkstemp(suffix='.csv')
     close(handle)
@@ -203,20 +203,24 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file):
         out_csv.writerow({col: col for col in _openaddr_csv_schema})
         
         for row in in_csv:
-            row['STREET'] = expand.expand_street_name(row['STREET'])
+            if do_expand:
+                row['STREET'] = expand.expand_street_name(row['STREET'])
             out_csv.writerow(row)
 
     zip_out.write(tmp_filename, arc_filename)
     remove(tmp_filename)
 
 def add_source_to_zipfile(zip_out, source_base, code_version, filename):
-    '''
+    ''' Add a source to zipfile after running it through expand_and_add_csv_to_zipfile().
+    
+        Use result code_version to determine whether to expand; 3+ will do it.
     '''
     _, ext = splitext(filename)
+    do_expand = bool(int(code_version.split('.')[0]) >= 3) # Expand for 3+.
     
     if ext == '.csv':
         with open(filename) as file:
-            expand_and_add_csv_to_zipfile(zip_out, source_base + ext, file)
+            expand_and_add_csv_to_zipfile(zip_out, source_base + ext, file, do_expand)
     
     elif ext == '.zip':
         zip_in = ZipFile(filename, 'r')
@@ -226,7 +230,7 @@ def add_source_to_zipfile(zip_out, source_base, code_version, filename):
                 continue
             elif splitext(zipinfo.filename)[1] == '.csv':
                 zipped_file = TextIOWrapper(zip_in.open(zipinfo.filename), 'utf8')
-                expand_and_add_csv_to_zipfile(zip_out, zipinfo.filename, zipped_file)
+                expand_and_add_csv_to_zipfile(zip_out, zipinfo.filename, zipped_file, do_expand)
             else:
                 zip_out.writestr(zipinfo, zip_in.read(zipinfo.filename))
         zip_in.close()
