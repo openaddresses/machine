@@ -149,7 +149,7 @@ class CollectorPublisher:
         ''' Add LocalProcessedResult instance to collection zip.
         '''
         _L.info(u'Adding {} to {}'.format(result.source_base, self.zip.filename))
-        add_source_to_zipfile(self.zip, result.source_base, result.filename)
+        add_source_to_zipfile(self.zip, result.source_base, result.code_version, result.filename)
 
         attribution = 'No'
         if result.run_state.get('attribution flag') != 'false':
@@ -197,7 +197,6 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file):
     handle, tmp_filename = mkstemp(suffix='.csv')
     close(handle)
     
-    
     with open(tmp_filename, 'w') as output:
         in_csv = DictReader(file)
         out_csv = DictWriter(output, _openaddr_csv_schema, dialect='excel')
@@ -210,7 +209,7 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file):
     zip_out.write(tmp_filename, arc_filename)
     remove(tmp_filename)
 
-def add_source_to_zipfile(zip_out, source_base, filename):
+def add_source_to_zipfile(zip_out, source_base, code_version, filename):
     '''
     '''
     _, ext = splitext(filename)

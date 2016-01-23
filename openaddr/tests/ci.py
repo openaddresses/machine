@@ -2113,14 +2113,14 @@ class TestCollect (unittest.TestCase):
             s1 = {'license': 'ODbL', 'attribution name': 'ABC Co.'}
             s2 = {'website': 'http://example.com', 'attribution flag': 'false'}
             
-            collector_publisher.collect(LocalProcessedResult('abc', 'abc.zip', s1))
-            collector_publisher.collect(LocalProcessedResult('def', 'def.zip', s2))
+            collector_publisher.collect(LocalProcessedResult('abc', 'abc.zip', s1, None))
+            collector_publisher.collect(LocalProcessedResult('def', 'def.zip', s2, None))
             
             collector_publisher.publish(db)
 
             add_source_to_zipfile.assert_has_calls([
-                mock.call(collected_zip, 'abc', 'abc.zip'),
-                mock.call(collected_zip, 'def', 'def.zip')
+                mock.call(collected_zip, 'abc', None, 'abc.zip'),
+                mock.call(collected_zip, 'def', None, 'def.zip')
                 ])
         
         self.assertEqual(len(collected_zip.writestr.mock_calls), 1)
@@ -2154,7 +2154,7 @@ class TestCollect (unittest.TestCase):
         
         for abbr in ('ct', 'me', 'ma', 'nh', 'ri', 'vt', 'nj', 'ny', 'pa'):
             for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
-                result = LocalProcessedResult(source_base, None, None)
+                result = LocalProcessedResult(source_base, None, None, None)
                 self.assertTrue(is_us_northeast(result), 'is_us_northeast("{}") should be true'.format(source_base))
             
                 for test_func in test_funcs:
@@ -2163,7 +2163,7 @@ class TestCollect (unittest.TestCase):
 
         for abbr in ('il', 'in', 'mi', 'oh', 'wi', 'ia', 'ks', 'mn', 'mo', 'ne', 'nd', 'sd'):
             for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
-                result = LocalProcessedResult(source_base, None, None)
+                result = LocalProcessedResult(source_base, None, None, None)
                 self.assertTrue(is_us_midwest(result), 'is_us_midwest("{}") should be true'.format(source_base))
             
                 for test_func in test_funcs:
@@ -2173,7 +2173,7 @@ class TestCollect (unittest.TestCase):
         for abbr in ('de', 'fl', 'ga', 'md', 'nc', 'sc', 'va', 'dc', 'wv', 'al',
                      'ky', 'ms', 'ar', 'la', 'ok', 'tx', 'tn'):
             for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
-                result = LocalProcessedResult(source_base, None, None)
+                result = LocalProcessedResult(source_base, None, None, None)
                 self.assertTrue(is_us_south(result), 'is_us_south("{}") should be true'.format(source_base))
             
                 for test_func in test_funcs:
@@ -2182,7 +2182,7 @@ class TestCollect (unittest.TestCase):
 
         for abbr in ('az', 'co', 'id', 'mt', 'nv', 'nm', 'ut', 'wy', 'ak', 'ca', 'hi', 'or', 'wa'):
             for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
-                result = LocalProcessedResult(source_base, None, None)
+                result = LocalProcessedResult(source_base, None, None, None)
                 self.assertTrue(is_us_west(result), 'is_us_west("{}") should be true'.format(source_base))
             
                 for test_func in test_funcs:
@@ -2193,7 +2193,7 @@ class TestCollect (unittest.TestCase):
                     'hr', 'it', 'cy', 'lv', 'lt', 'lu', 'hu', 'mt', 'nl', 'at',
                     'pl', 'pt', 'ro', 'si', 'sk', 'fi', 'se', 'uk', 'gr', 'gb'):
             for source_base in (iso, '{}.---'.format(iso), '{}/---'.format(iso)):
-                result = LocalProcessedResult(source_base, None, None)
+                result = LocalProcessedResult(source_base, None, None, None)
                 self.assertTrue(is_europe(result), 'is_europe("{}") should be true'.format(source_base))
             
                 for test_func in test_funcs:
@@ -2211,7 +2211,7 @@ class TestCollect (unittest.TestCase):
                     'fm', 'um', 'nr', 'nc', 'nz', 'nu', 'nf', 'pw', 'pg', 'mp',
                     'sb', 'tk', 'to', 'tv', 'vu', 'um', 'wf', 'ws', 'is'):
             for source_base in (iso, '{}.---'.format(iso), '{}/---'.format(iso)):
-                result = LocalProcessedResult(source_base, None, None)
+                result = LocalProcessedResult(source_base, None, None, None)
                 self.assertTrue(is_asia(result), 'is_asia("{}") should be true'.format(source_base))
             
                 for test_func in test_funcs:
@@ -2242,9 +2242,9 @@ class TestCollect (unittest.TestCase):
         output.write.side_effect = remember_write_contents
         
         with patch('openaddr.ci.collect.expand_and_add_csv_to_zipfile') as expand_and_add_csv_to_zipfile:
-            add_source_to_zipfile(output, 'foobar', 'temp')
-            add_source_to_zipfile(output, 'foobar', filename1)
-            add_source_to_zipfile(output, 'foobar', filename2)
+            add_source_to_zipfile(output, 'foobar', None, 'temp')
+            add_source_to_zipfile(output, 'foobar', None, filename1)
+            add_source_to_zipfile(output, 'foobar', None, filename2)
         
         self.assertEqual(len(expand_and_add_csv_to_zipfile.mock_calls), 2)
         self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[0][1][1], 'foobar.csv')
