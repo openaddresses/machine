@@ -218,10 +218,10 @@ class TestOA (unittest.TestCase):
             self.assertEqual(rows[10]['NUMBER'], '605')
             self.assertEqual(rows[100]['NUMBER'], '167')
             self.assertEqual(rows[1000]['NUMBER'], '322')
-            self.assertEqual(rows[1]['STREET'], 'Broadway')
-            self.assertEqual(rows[10]['STREET'], 'Hillsborough Street')
-            self.assertEqual(rows[100]['STREET'], '8th Street')
-            self.assertEqual(rows[1000]['STREET'], 'Hanover Avenue')
+            self.assertEqual(rows[1]['STREET'], 'BROADWAY')
+            self.assertEqual(rows[10]['STREET'], 'HILLSBOROUGH ST')
+            self.assertEqual(rows[100]['STREET'], '8TH ST')
+            self.assertEqual(rows[1000]['STREET'], 'HANOVER AV')
             self.assertEqual(rows[1]['UNIT'], '')
             self.assertEqual(rows[10]['UNIT'], '')
             self.assertEqual(rows[100]['UNIT'], '')
@@ -265,10 +265,10 @@ class TestOA (unittest.TestCase):
             self.assertEqual(rows[10]['NUMBER'], '605')
             self.assertEqual(rows[100]['NUMBER'], '167')
             self.assertEqual(rows[1000]['NUMBER'], '322')
-            self.assertEqual(rows[1]['STREET'], 'Broadway')
-            self.assertEqual(rows[10]['STREET'], 'Hillsborough Street')
-            self.assertEqual(rows[100]['STREET'], '8th Street')
-            self.assertEqual(rows[1000]['STREET'], 'Hanover Avenue')
+            self.assertEqual(rows[1]['STREET'], 'BROADWAY')
+            self.assertEqual(rows[10]['STREET'], 'HILLSBOROUGH ST')
+            self.assertEqual(rows[100]['STREET'], '8TH ST')
+            self.assertEqual(rows[1000]['STREET'], 'HANOVER AV')
 
     def test_single_sf(self):
         ''' Test complete process_one.process on San Francisco sample data.
@@ -307,10 +307,10 @@ class TestOA (unittest.TestCase):
             self.assertEqual(rows[10]['NUMBER'], '42')
             self.assertEqual(rows[100]['NUMBER'], '209')
             self.assertEqual(rows[1000]['NUMBER'], '1415')
-            self.assertEqual(rows[1]['STREET'], 'Octavia Street')
-            self.assertEqual(rows[10]['STREET'], 'Golden Gate Avenue')
-            self.assertEqual(rows[100]['STREET'], 'Octavia Street')
-            self.assertEqual(rows[1000]['STREET'], 'Folsom Street')
+            self.assertEqual(rows[1]['STREET'], 'OCTAVIA ST')
+            self.assertEqual(rows[10]['STREET'], 'GOLDEN GATE AVE')
+            self.assertEqual(rows[100]['STREET'], 'OCTAVIA ST')
+            self.assertEqual(rows[1000]['STREET'], 'FOLSOM ST')
             self.assertEqual(rows[1]['UNIT'], '')
             self.assertEqual(rows[10]['UNIT'], '')
             self.assertEqual(rows[100]['UNIT'], '')
@@ -345,7 +345,7 @@ class TestOA (unittest.TestCase):
             rows = list(DictReader(file, dialect='excel'))
             self.assertEqual(5, len(rows))
             self.assertEqual(rows[0]['NUMBER'], '555')
-            self.assertEqual(rows[0]['STREET'], 'Carson Street')
+            self.assertEqual(rows[0]['STREET'], 'CARSON ST')
             self.assertEqual(rows[0]['UNIT'], '')
             self.assertEqual(rows[0]['CITY'], 'CARSON, CA')
             self.assertEqual(rows[0]['POSTCODE'], '90745')
@@ -377,7 +377,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue('SITENUMBER' in sample_data[0])
         
         with open(join(dirname(state_path), state['processed'])) as file:
-            self.assertTrue('555,Carson Street' in file.read())
+            self.assertTrue('555,CARSON ST' in file.read())
 
     def test_single_car_old_cached(self):
         ''' Test complete process_one.process on Carson sample data.
@@ -403,7 +403,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue('SITENUMBER' in sample_data[0])
         
         with open(join(dirname(state_path), state['processed'])) as file:
-            self.assertTrue('555,Carson Street' in file.read())
+            self.assertTrue('555,CARSON ST' in file.read())
 
     def test_single_oak(self):
         ''' Test complete process_one.process on Oakland sample data.
@@ -506,9 +506,9 @@ class TestOA (unittest.TestCase):
             self.assertEqual(rows[1]['NUMBER'], '2418')
             self.assertEqual(rows[10]['NUMBER'], '2029')
             self.assertEqual(rows[100]['NUMBER'], '2298')
-            self.assertEqual(rows[1]['STREET'], 'Dana Street')
-            self.assertEqual(rows[10]['STREET'], 'Channing Way')
-            self.assertEqual(rows[100]['STREET'], 'Durant Avenue')
+            self.assertEqual(rows[1]['STREET'], 'DANA ST')
+            self.assertEqual(rows[10]['STREET'], 'CHANNING WAY')
+            self.assertEqual(rows[100]['STREET'], 'DURANT AVE')
             self.assertEqual(rows[1]['UNIT'], u'')
             self.assertEqual(rows[10]['UNIT'], u'')
             self.assertEqual(rows[100]['UNIT'], u'')
@@ -578,7 +578,7 @@ class TestOA (unittest.TestCase):
             self.assertEqual(rows[100]['NUMBER'], u'5a')
             self.assertEqual(rows[1]['STREET'], u'Ulica Dolnych Wa\u0142\xf3w  Gliwice')
             self.assertEqual(rows[10]['STREET'], u'Ulica Dolnych Wa\u0142\xf3w  Gliwice')
-            self.assertEqual(rows[100]['STREET'], u'Plac Place Inwalid\xf3w Wojennych  Gliwice')
+            self.assertEqual(rows[100]['STREET'], u'Plac pl. Inwalid\xf3w Wojennych  Gliwice')
             self.assertEqual(rows[1]['UNIT'], u'')
             self.assertEqual(rows[10]['UNIT'], u'')
             self.assertEqual(rows[100]['UNIT'], u'')
@@ -783,9 +783,9 @@ class TestOA (unittest.TestCase):
             self.assertEqual(rows[1]['NUMBER'], u'423')
             self.assertEqual(rows[11]['NUMBER'], u'423')
             self.assertEqual(rows[21]['NUMBER'], u'7')
-            self.assertEqual(rows[1]['STREET'], u'West 28th Division Highway')
-            self.assertEqual(rows[11]['STREET'], u'West 28th Division Highway')
-            self.assertEqual(rows[21]['STREET'], u'West 28th Division Highway')
+            self.assertEqual(rows[1]['STREET'], u'W 28TH DIVISION HWY')
+            self.assertEqual(rows[11]['STREET'], u'W 28TH DIVISION HWY')
+            self.assertEqual(rows[21]['STREET'], u'W 28TH DIVISION HWY')
 
 class TestState (unittest.TestCase):
     

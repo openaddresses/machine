@@ -65,10 +65,11 @@ class S3:
         return self._bucket.new_key(name)
 
 class LocalProcessedResult:
-    def __init__(self, source_base, filename, run_state):
+    def __init__(self, source_base, filename, run_state, code_version):
         self.source_base = source_base
         self.filename = filename
         self.run_state = run_state
+        self.code_version = code_version
 
 def cache(srcjson, destdir, extras):
     ''' Python wrapper for openaddress-cache.
@@ -259,7 +260,7 @@ def iterate_local_processed_files(runs):
                     _L.error('Failed to download {}'.format(processed_url))
                     continue
         
-        yield LocalProcessedResult(source_base, filename, run_state)
+        yield LocalProcessedResult(source_base, filename, run_state, run.code_version)
 
         if filename and exists(filename):
             remove(filename)

@@ -21,10 +21,12 @@ from os.path import splitext
 
 from .compat import csvopen, csvreader, csvDictReader, csvDictWriter
 from .sample import sample_geojson
-from .expand import expand_street_name
 
 from osgeo import ogr, osr
 ogr.UseExceptions()
+
+# The canonical output schema for conform
+OPENADDR_CSV_SCHEMA = ["LON", "LAT", "NUMBER", "STREET", "UNIT", "CITY", "DISTRICT", "REGION", "POSTCODE", "ID"]
 
 # Field names for use in cached CSV files.
 # We add columns to the extracted CSV with our own data with these names.
@@ -766,7 +768,7 @@ def row_transform_and_convert(sd, row):
     ##################
     
     row2 = row_convert_to_out(sd, row)
-    row3 = row_canonicalize_street_and_number(sd, row2)
+    row3 = row_canonicalize_unit_and_number(sd, row2)
     row4 = row_round_lat_lon(sd, row3)
     return row4
 
@@ -838,13 +840,13 @@ def row_fxn_regexp(sd, row, key):
             row[attrib_types[key]] = ''.join(match.groups()) if match else '';
     return row
 
-def row_canonicalize_street_and_number(sd, row):
-    "Expand abbreviations and otherwise canonicalize street name and number"
+def row_canonicalize_unit_and_number(sd, row):
+    "Canonicalize address unit and number"
     row["UNIT"] = (row["UNIT"] or '').strip()
     row["NUMBER"] = (row["NUMBER"] or '').strip()
     if row["NUMBER"].endswith(".0"):
         row["NUMBER"] = row["NUMBER"][:-2]
-    row["STREET"] = expand_street_name(row["STREET"])
+    row["STREET"] = (row["STREET"] or '').strip()
     return row
 
 def _round_wgs84_to_7(n):
@@ -910,9 +912,6 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     else:
         raise Exception("Unsupported source type %s" % source_definition["conform"]["type"])
 
-# The canonical output schema for conform
-_openaddr_csv_schema = ["LON", "LAT", "NUMBER", "STREET", "UNIT", "CITY", "DISTRICT", "REGION", "POSTCODE", "ID"]
-
 def transform_to_out_csv(source_definition, extract_path, dest_path):
     ''' Transform an extracted source CSV to the OpenAddresses output CSV by applying conform rules.
 
@@ -928,7 +927,7 @@ def transform_to_out_csv(source_definition, extract_path, dest_path):
         reader = csvDictReader(extract_fp, encoding='utf-8')
         # Write to the destination CSV
         with csvopen(dest_path, 'w', encoding='utf-8') as dest_fp:
-            writer = csvDictWriter(dest_fp, _openaddr_csv_schema, encoding='utf-8')
+            writer = csvDictWriter(dest_fp, OPENADDR_CSV_SCHEMA, encoding='utf-8')
             writer.writeheader()
             # For every row in the extract
             for extract_row in reader:

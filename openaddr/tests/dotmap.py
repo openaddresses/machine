@@ -27,13 +27,13 @@ class TestDotmap (unittest.TestCase):
         self.test_dir = mkdtemp()
         self.results = list()
         
-        self.results.append(LocalProcessedResult('us/anytown', join(self.test_dir, 'file1.zip'), None))
+        self.results.append(LocalProcessedResult('us/anytown', join(self.test_dir, 'file1.zip'), None, None))
         zf = ZipFile(self.results[-1].filename, 'w')
         zf.writestr('README.txt', b'Good times')
         zf.writestr('stuff.csv', u'LAT,LON\n0,0\n37.804319,-122.271210\n'.encode('utf8'))
         zf.close()
         
-        self.results.append(LocalProcessedResult('us/whoville', join(self.test_dir, 'file2.zip'), None))
+        self.results.append(LocalProcessedResult('us/whoville', join(self.test_dir, 'file2.zip'), None, None))
         zf = ZipFile(self.results[-1].filename, 'w')
         zf.writestr('README.txt', b'Good times')
         zf.writestr('stuff.csv', u'LON,LAT,CITY\n0,0,Womp\n-122.413729,37.775641,Wómp Wómp\n'.encode('utf8'))

@@ -11,7 +11,7 @@ from urllib.parse import parse_qsl, urlparse, urljoin
 from base64 import b64decode, b64encode
 from datetime import timedelta, datetime
 from zipfile import ZipFile
-from io import BytesIO
+from io import BytesIO, StringIO
 from mock import patch
 from time import sleep
 import hmac, hashlib, mock
@@ -41,7 +41,8 @@ from ..ci.objects import (
 
 from ..ci.collect import (
     is_us_northeast, is_us_midwest, is_us_south, is_us_west, is_europe, is_asia,
-    add_source_to_zipfile, CollectorPublisher, prepare_collections
+    add_source_to_zipfile, CollectorPublisher, prepare_collections,
+    expand_and_add_csv_to_zipfile
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -2111,15 +2112,17 @@ class TestCollect (unittest.TestCase):
             
             s1 = {'license': 'ODbL', 'attribution name': 'ABC Co.'}
             s2 = {'website': 'http://example.com', 'attribution flag': 'false'}
+            r1 = LocalProcessedResult('abc', 'abc.zip', s1, None)
+            r2 = LocalProcessedResult('def', 'def.zip', s2, None)
             
-            collector_publisher.collect(LocalProcessedResult('abc', 'abc.zip', s1))
-            collector_publisher.collect(LocalProcessedResult('def', 'def.zip', s2))
+            collector_publisher.collect(r1)
+            collector_publisher.collect(r2)
             
             collector_publisher.publish(db)
 
             add_source_to_zipfile.assert_has_calls([
-                mock.call(collected_zip, 'abc', 'abc.zip'),
-                mock.call(collected_zip, 'def', 'def.zip')
+                mock.call(collected_zip, r1),
+                mock.call(collected_zip, r2)
                 ])
         
         self.assertEqual(len(collected_zip.writestr.mock_calls), 1)
@@ -2153,7 +2156,7 @@ class TestCollect (unittest.TestCase):
         
         for abbr in ('ct', 'me', 'ma', 'nh', 'ri', 'vt', 'nj', 'ny', 'pa'):
             for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
-                result = LocalProcessedResult(source_base, None, None)
+                result = LocalProcessedResult(source_base, None, None, None)
                 self.assertTrue(is_us_northeast(result), 'is_us_northeast("{}") should be true'.format(source_base))
             
                 for test_func in test_funcs:
@@ -2162,7 +2165,7 @@ class TestCollect (unittest.TestCase):
 
         for abbr in ('il', 'in', 'mi', 'oh', 'wi', 'ia', 'ks', 'mn', 'mo', 'ne', 'nd', 'sd'):
             for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
-                result = LocalProcessedResult(source_base, None, None)
+                result = LocalProcessedResult(source_base, None, None, None)
                 self.assertTrue(is_us_midwest(result), 'is_us_midwest("{}") should be true'.format(source_base))
             
                 for test_func in test_funcs:
@@ -2172,7 +2175,7 @@ class TestCollect (unittest.TestCase):
         for abbr in ('de', 'fl', 'ga', 'md', 'nc', 'sc', 'va', 'dc', 'wv', 'al',
                      'ky', 'ms', 'ar', 'la', 'ok', 'tx', 'tn'):
             for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
-                result = LocalProcessedResult(source_base, None, None)
+                result = LocalProcessedResult(source_base, None, None, None)
                 self.assertTrue(is_us_south(result), 'is_us_south("{}") should be true'.format(source_base))
             
                 for test_func in test_funcs:
@@ -2181,7 +2184,7 @@ class TestCollect (unittest.TestCase):
 
         for abbr in ('az', 'co', 'id', 'mt', 'nv', 'nm', 'ut', 'wy', 'ak', 'ca', 'hi', 'or', 'wa'):
             for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
-                result = LocalProcessedResult(source_base, None, None)
+                result = LocalProcessedResult(source_base, None, None, None)
                 self.assertTrue(is_us_west(result), 'is_us_west("{}") should be true'.format(source_base))
             
                 for test_func in test_funcs:
@@ -2192,7 +2195,7 @@ class TestCollect (unittest.TestCase):
                     'hr', 'it', 'cy', 'lv', 'lt', 'lu', 'hu', 'mt', 'nl', 'at',
                     'pl', 'pt', 'ro', 'si', 'sk', 'fi', 'se', 'uk', 'gr', 'gb'):
             for source_base in (iso, '{}.---'.format(iso), '{}/---'.format(iso)):
-                result = LocalProcessedResult(source_base, None, None)
+                result = LocalProcessedResult(source_base, None, None, None)
                 self.assertTrue(is_europe(result), 'is_europe("{}") should be true'.format(source_base))
             
                 for test_func in test_funcs:
@@ -2210,7 +2213,7 @@ class TestCollect (unittest.TestCase):
                     'fm', 'um', 'nr', 'nc', 'nz', 'nu', 'nf', 'pw', 'pg', 'mp',
                     'sb', 'tk', 'to', 'tv', 'vu', 'um', 'wf', 'ws', 'is'):
             for source_base in (iso, '{}.---'.format(iso), '{}/---'.format(iso)):
-                result = LocalProcessedResult(source_base, None, None)
+                result = LocalProcessedResult(source_base, None, None, None)
                 self.assertTrue(is_asia(result), 'is_asia("{}") should be true'.format(source_base))
             
                 for test_func in test_funcs:
@@ -2233,20 +2236,85 @@ class TestCollect (unittest.TestCase):
         utime(filename2, (987654321, 987654321))
         close(handle)
 
+        output_write_contents = list()
+        def remember_write_contents(fn, _):
+            with open(fn) as file:
+                output_write_contents.append(file.read())
         output = mock.Mock()
+        output.write.side_effect = remember_write_contents
         
-        add_source_to_zipfile(output, 'foobar', 'temp')
-        add_source_to_zipfile(output, 'foobar', filename1)
-        add_source_to_zipfile(output, 'foobar', filename2)
+        with patch('openaddr.ci.collect.expand_and_add_csv_to_zipfile') as expand_and_add_csv_to_zipfile:
+            add_source_to_zipfile(output, LocalProcessedResult('foobar', 'temp', {}, '2.0.0'))
+            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename1, {}, '2.12.0'))
+            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename2, {}, '2.13.0'))
+            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename1, {}, '3'))
+            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename1, {}, None))
         
-        output.write.assert_called_once_with(filename1, 'foobar.csv')
+        self.assertEqual(len(expand_and_add_csv_to_zipfile.mock_calls), 4)
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[0][1][1], 'foobar.csv')
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[0][1][3], False, 'Should be False for 2.12.x')
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[1][1][1], 'foo/thing.csv')
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[1][1][3], True, 'Should be True for 2.13.x')
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[2][1][3], True, 'Should be True for 3.x')
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[3][1][3], False, 'Should be False for missing version')
+        
+        self.assertEqual(len(output.writestr.mock_calls), 1)
         self.assertEqual(output.writestr.mock_calls[0][1][0].filename, 'foo/thing.vrt')
-        self.assertEqual(output.writestr.mock_calls[1][1][0].filename, 'foo/thing.csv')
         self.assertEqual(output.writestr.mock_calls[0][1][1], b'vrt data')
-        self.assertEqual(output.writestr.mock_calls[1][1][1], b'csv data')
         
         remove(filename1)
         remove(filename2)
+    
+    def test_expand_and_add_csv_to_zipfile(self):
+        '''
+        '''
+        output = mock.Mock()
+        output_write_contents = list()
+
+        def remember_write_contents(fn, _):
+            with open(fn) as file:
+                # Python 2.7 and 3 use different line endings in csv module:
+                output_write_contents.append([line.strip() for line in file])
+
+        output.write.side_effect = remember_write_contents
+        
+        input1 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID\n-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77\n-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11\n-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,74-1033-146\n-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,74-1033-122\n-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26\n-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222\n'
+        expand_and_add_csv_to_zipfile(output, 'whatever', StringIO(input1), True)
+        expand_and_add_csv_to_zipfile(output, 'whatever', StringIO(input1), False)
+        input2 = u'LON,LAT,NUMBER,STREET,CITY,DISTRICT,REGION,POSTCODE\n-122.2359742,37.7362507,85,MAITLAND DR,ALAMEDA,,,94502\n-122.2353881,37.7223605,1360,S LOOP RD,ALAMEDA,,,94502\n-122.2385597,37.7284071,3508,CATALINA AV,ALAMEDA,,,94502\n-122.2368942,37.7305041,3512,MCSHERRY WY,ALAMEDA,,,94502\n-122.2349371,37.7357455,514,FLOWER LA,ALAMEDA,,,94502\n-122.2367819,37.7342157,1014,HOLLY ST,ALAMEDA,,,94502\n'
+        expand_and_add_csv_to_zipfile(output, 'whatever', StringIO(input2), False)
+        
+        self.assertEqual(len(output.write.mock_calls), 3)
+        self.assertEqual(output_write_contents[0],
+            [
+            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID',
+            '-122.2359742,37.7362507,85,Maitland Drive,A,ALAMEDA,,,94502,74-1035-77',
+            '-122.2353881,37.7223605,1360,South Loop Road,,ALAMEDA,,,94502,74-1339-11',
+            '-122.2385597,37.7284071,3508,Catalina Avenue,,ALAMEDA,,,94502,74-1033-146',
+            '-122.2368942,37.7305041,3512,Mcsherry Way,,ALAMEDA,,,94502,74-1033-122',
+            '-122.2349371,37.7357455,514,Flower Lane,,ALAMEDA,,,94502,74-1036-26',
+            '-122.2367819,37.7342157,1014,Holly Street,,ALAMEDA,,,94502,74-1075-222',
+            ])
+        self.assertEqual(output_write_contents[1],
+            [
+            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID',
+            '-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77',
+            '-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11',
+            '-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,74-1033-146',
+            '-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,74-1033-122',
+            '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26',
+            '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222',
+            ])
+        self.assertEqual(output_write_contents[2],
+            [
+            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID',
+            '-122.2359742,37.7362507,85,MAITLAND DR,,ALAMEDA,,,94502,',
+            '-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,',
+            '-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,',
+            '-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,',
+            '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,',
+            '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,',
+            ])
 
 if __name__ == '__main__':
     unittest.main()

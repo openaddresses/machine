@@ -3,19 +3,22 @@ import logging; _L = logging.getLogger('openaddr.ci.collect')
 from ..compat import standard_library
 
 from argparse import ArgumentParser
-from os import environ, stat
+from os import environ, stat, close, remove
 from zipfile import ZipFile, ZIP_DEFLATED
 from os.path import splitext, exists, basename, join
 from urllib.parse import urlparse
 from operator import attrgetter
+from csv import DictReader, DictWriter
 from tempfile import mkstemp, mkdtemp
 from itertools import product
+from io import TextIOWrapper
 from datetime import date
 from shutil import rmtree
 
 from .objects import read_latest_set, read_completed_runs_to_date
 from . import db_connect, db_cursor, setup_logger, render_index_maps, log_function_errors
-from .. import S3, iterate_local_processed_files, util
+from .. import S3, iterate_local_processed_files, util, expand
+from ..conform import OPENADDR_CSV_SCHEMA
 
 parser = ArgumentParser(description='Run some source files.')
 
@@ -146,7 +149,7 @@ class CollectorPublisher:
         ''' Add LocalProcessedResult instance to collection zip.
         '''
         _L.info(u'Adding {} to {}'.format(result.source_base, self.zip.filename))
-        add_source_to_zipfile(self.zip, result.source_base, result.filename)
+        add_source_to_zipfile(self.zip, result)
 
         attribution = 'No'
         if result.run_state.get('attribution flag') != 'false':
@@ -188,21 +191,55 @@ class CollectorPublisher:
                       VALUES (%s, NOW(), true, %s, %s, %s)''',
                    (zip_url, length, self.collection_id, self.license_attr))
 
-def add_source_to_zipfile(zip_out, source_base, filename):
+def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
+    ''' Write csv to zipfile, with optional expand.expand_street_name().
     '''
-    '''
-    _, ext = splitext(filename)
+    handle, tmp_filename = mkstemp(suffix='.csv')
+    close(handle)
+    
+    with open(tmp_filename, 'w') as output:
+        in_csv = DictReader(file)
+        out_csv = DictWriter(output, OPENADDR_CSV_SCHEMA, dialect='excel')
+        out_csv.writerow({col: col for col in OPENADDR_CSV_SCHEMA})
+        
+        for row in in_csv:
+            if do_expand:
+                row['STREET'] = expand.expand_street_name(row['STREET'])
+            out_csv.writerow(row)
 
+    zip_out.write(tmp_filename, arc_filename)
+    remove(tmp_filename)
+
+def add_source_to_zipfile(zip_out, result):
+    ''' Add a LocalProcessedResult to zipfile via expand_and_add_csv_to_zipfile().
+    
+        Use result code_version to determine whether to expand; 3+ will do it.
+    '''
+    _, ext = splitext(result.filename)
+    
+    try:
+        number = [int(n) for n in result.code_version.split('.')]
+    except:
+        _L.info('Skipping street name expansion for {} ({})'.format(result.source_base, result.code_version))
+        do_expand = False # Be conservative for now.
+    else:
+        do_expand = bool(number >= [2, 13]) # Expand for 2.13+.
+    
     if ext == '.csv':
-        zip_out.write(filename, source_base + ext)
+        with open(result.filename) as file:
+            expand_and_add_csv_to_zipfile(zip_out, result.source_base + ext, file, do_expand)
     
     elif ext == '.zip':
-        zip_in = ZipFile(filename, 'r')
+        zip_in = ZipFile(result.filename, 'r')
         for zipinfo in zip_in.infolist():
             if zipinfo.filename == 'README.txt':
                 # Skip README files when building collection.
                 continue
-            zip_out.writestr(zipinfo, zip_in.read(zipinfo.filename))
+            elif splitext(zipinfo.filename)[1] == '.csv':
+                zipped_file = TextIOWrapper(zip_in.open(zipinfo.filename), 'utf8')
+                expand_and_add_csv_to_zipfile(zip_out, zipinfo.filename, zipped_file, do_expand)
+            else:
+                zip_out.writestr(zipinfo, zip_in.read(zipinfo.filename))
         zip_in.close()
 
 def _is_us_state(abbr, result):
