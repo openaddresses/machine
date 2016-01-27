@@ -1,3 +1,6 @@
+2016-01-27: 2.13.0
+- Moved street name expansion to collection step from batch and job steps.
+
 2016-01-23: 2.12.0
 - Added "code version" column to state.txt outputs.
 - Switched from Travis to Circle CI for testing.
