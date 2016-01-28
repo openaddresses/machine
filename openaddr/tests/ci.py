@@ -2230,8 +2230,8 @@ class TestCollect (unittest.TestCase):
         handle, filename2 = mkstemp(suffix='.zip')
         zipfile3 = ZipFile(filename2, 'w')
         zipfile3.writestr('README.txt', b'hello world')
-        zipfile3.writestr('foo/thing.vrt', b'vrt data')
-        zipfile3.writestr('foo/thing.csv', b'csv data')
+        zipfile3.writestr('us/ca/oakland.vrt', b'vrt data')
+        zipfile3.writestr('us/ca/oakland.csv', b'csv data')
         zipfile3.close()
         utime(filename2, (987654321, 987654321))
         close(handle)
@@ -2244,22 +2244,25 @@ class TestCollect (unittest.TestCase):
         output.write.side_effect = remember_write_contents
         
         with patch('openaddr.ci.collect.expand_and_add_csv_to_zipfile') as expand_and_add_csv_to_zipfile:
-            add_source_to_zipfile(output, LocalProcessedResult('foobar', 'temp', {}, '2.0.0'))
-            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename1, {}, '2.12.0'))
-            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename2, {}, '2.13.0'))
-            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename1, {}, '3'))
-            add_source_to_zipfile(output, LocalProcessedResult('foobar', filename1, {}, None))
+            add_source_to_zipfile(output, LocalProcessedResult('us/ca/oakland', 'temp', {}, '2.0.0'))
+            add_source_to_zipfile(output, LocalProcessedResult('us/ca/oakland', filename1, {}, '2.12.0'))
+            add_source_to_zipfile(output, LocalProcessedResult('us/ca/oakland', filename2, {}, '2.13.0'))
+            add_source_to_zipfile(output, LocalProcessedResult('us/ca/oakland', filename1, {}, '3'))
+            add_source_to_zipfile(output, LocalProcessedResult('ca/bc/vancouver', filename1, {}, '3'))
+            add_source_to_zipfile(output, LocalProcessedResult('us/ca/oakland', filename1, {}, None))
         
-        self.assertEqual(len(expand_and_add_csv_to_zipfile.mock_calls), 4)
-        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[0][1][1], 'foobar.csv')
+        self.assertEqual(len(expand_and_add_csv_to_zipfile.mock_calls), 5)
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[0][1][1], 'us/ca/oakland.csv')
         self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[0][1][3], False, 'Should be False for 2.12.x')
-        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[1][1][1], 'foo/thing.csv')
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[1][1][1], 'us/ca/oakland.csv')
         self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[1][1][3], True, 'Should be True for 2.13.x')
         self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[2][1][3], True, 'Should be True for 3.x')
-        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[3][1][3], False, 'Should be False for missing version')
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[3][1][1], 'ca/bc/vancouver.csv')
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[3][1][3], False, 'Should be False for non-US 3.x')
+        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[4][1][3], False, 'Should be False for missing version')
         
         self.assertEqual(len(output.writestr.mock_calls), 1)
-        self.assertEqual(output.writestr.mock_calls[0][1][0].filename, 'foo/thing.vrt')
+        self.assertEqual(output.writestr.mock_calls[0][1][0].filename, 'us/ca/oakland.vrt')
         self.assertEqual(output.writestr.mock_calls[0][1][1], b'vrt data')
         
         remove(filename1)
@@ -2278,13 +2281,16 @@ class TestCollect (unittest.TestCase):
 
         output.write.side_effect = remember_write_contents
         
+        # Addresses that should trigger expansion.
         input1 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID\n-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77\n-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11\n-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,74-1033-146\n-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,74-1033-122\n-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26\n-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222\n'
-        expand_and_add_csv_to_zipfile(output, 'whatever', BytesIO(input1.encode('utf8')), True)
-        expand_and_add_csv_to_zipfile(output, 'whatever', BytesIO(input1.encode('utf8')), False)
+        expand_and_add_csv_to_zipfile(output, 'us/ca/alameda.csv', BytesIO(input1.encode('utf8')), True)
+        expand_and_add_csv_to_zipfile(output, 'us/ca/alameda.csv', BytesIO(input1.encode('utf8')), False)
+
+        # Collections with missing columns and non-ASCII characters.
         input2 = u'LON,LAT,NUMBER,STREET,CITY,DISTRICT,REGION,POSTCODE\n-122.2359742,37.7362507,85,MAITLAND DR,ALAMEDA,,,94502\n-122.2353881,37.7223605,1360,S LOOP RD,ALAMEDA,,,94502\n-122.2385597,37.7284071,3508,CATALINA AV,ALAMEDA,,,94502\n-122.2368942,37.7305041,3512,MCSHERRY WY,ALAMEDA,,,94502\n-122.2349371,37.7357455,514,FLOWER LA,ALAMEDA,,,94502\n-122.2367819,37.7342157,1014,HOLLY ST,ALAMEDA,,,94502\n'
-        expand_and_add_csv_to_zipfile(output, 'whatever', BytesIO(input2.encode('utf8')), False)
+        expand_and_add_csv_to_zipfile(output, 'us/ca/alameda.csv', BytesIO(input2.encode('utf8')), False)
         input3 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID\n8.6885893,50.1042197,12,Abtsgäßchen,,Frankfurt am Main,,,60594,\n8.6885485,50.1041506,14,Abtsgäßchen,,Frankfurt am Main,,,60594,\n'
-        expand_and_add_csv_to_zipfile(output, 'whatever', BytesIO(input3.encode('utf8')), False)
+        expand_and_add_csv_to_zipfile(output, 'de/he/frankfurt.csv', BytesIO(input3.encode('utf8')), False)
         
         self.assertEqual(len(output.write.mock_calls), 4)
         self.assertEqual(output_write_contents[0],
@@ -2316,6 +2322,12 @@ class TestCollect (unittest.TestCase):
             '-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,',
             '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,',
             '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,',
+            ])
+        self.assertEqual(output_write_contents[3],
+            [
+            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID',
+            '8.6885893,50.1042197,12,Abtsgäßchen,,Frankfurt am Main,,,60594,',
+            '8.6885485,50.1041506,14,Abtsgäßchen,,Frankfurt am Main,,,60594,',
             ])
 
 if __name__ == '__main__':

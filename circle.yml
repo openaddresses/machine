@@ -1,6 +1,6 @@
 machine:
   python:
-    version: 3.3.3
+    version: 2.7.6
   environment:
     BOTO_CONFIG: /tmp/nowhere
     DATABASE_URL: postgres://openaddr:openaddr@localhost/openaddr
