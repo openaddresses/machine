@@ -19,6 +19,7 @@ from .objects import read_latest_set, read_completed_runs_to_date
 from . import db_connect, db_cursor, setup_logger, render_index_maps, log_function_errors
 from .. import S3, iterate_local_processed_files, util, expand
 from ..conform import OPENADDR_CSV_SCHEMA
+from ..compat import PY2
 
 parser = ArgumentParser(description='Run some source files.')
 
@@ -193,9 +194,14 @@ class CollectorPublisher:
 
 def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
     ''' Write csv to zipfile, with optional expand.expand_street_name().
+    
+        File is assumed to be open in binary mode.
     '''
     handle, tmp_filename = mkstemp(suffix='.csv')
     close(handle)
+    
+    if not PY2:
+        file = TextIOWrapper(file, 'utf8')
     
     with open(tmp_filename, 'w') as output:
         in_csv = DictReader(file)
@@ -236,7 +242,7 @@ def add_source_to_zipfile(zip_out, result):
                 # Skip README files when building collection.
                 continue
             elif splitext(zipinfo.filename)[1] == '.csv':
-                zipped_file = TextIOWrapper(zip_in.open(zipinfo.filename), 'utf8')
+                zipped_file = zip_in.open(zipinfo.filename)
                 expand_and_add_csv_to_zipfile(zip_out, zipinfo.filename, zipped_file, do_expand)
             else:
                 zip_out.writestr(zipinfo, zip_in.read(zipinfo.filename))
