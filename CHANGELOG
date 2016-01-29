@@ -1,3 +1,7 @@
+2016-01-28: 2.13.1
+- Prevented street name expansion for non-U.S. sources.
+- Fixed bug in collections processing.
+
 2016-01-27: 2.13.0
 - Moved street name expansion to collection step from batch and job steps.
 
