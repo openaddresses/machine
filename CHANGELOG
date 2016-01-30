@@ -1,3 +1,6 @@
+2016-01-30: 2.13.2
+- Fixed unicode bug in collections processing.
+
 2016-01-28: 2.13.1
 - Prevented street name expansion for non-U.S. sources.
 - Fixed bug in collections processing.
