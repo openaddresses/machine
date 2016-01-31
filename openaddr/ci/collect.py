@@ -228,15 +228,20 @@ def add_source_to_zipfile(zip_out, result):
     
     try:
         number = [int(n) for n in result.code_version.split('.')]
-    except:
-        _L.info(u'Skipping street name expansion for {} (version {})'.format(result.source_base, result.code_version))
+    except Exception as e:
+        _L.info(u'Skipping street name expansion for {} (error {})'.format(result.source_base, e))
         do_expand = False # Be conservative for now.
     else:
-        do_expand = bool(number >= [2, 13]) # Expand for 2.13+.
-        
+        if number >= [2, 13]:
+            do_expand = True # Expand for 2.13+.
+        else:
+            _L.info(u'Skipping street name expansion for {} (version {})'.format(result.source_base, result.code_version))
+            do_expand = False
+
+    if do_expand:
         is_us = (is_us_northeast(result) or is_us_midwest(result)
                  or is_us_south(result) or is_us_west(result))
-        
+
         if not is_us:
             _L.info(u'Skipping street name expansion for {} (not U.S.)'.format(result.source_base))
             do_expand = False
