@@ -204,14 +204,17 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
         file = TextIOWrapper(file, 'utf8')
     
     with open(tmp_filename, 'w') as output:
-        in_csv = DictReader(file)
-        out_csv = DictWriter(output, OPENADDR_CSV_SCHEMA, dialect='excel')
-        out_csv.writerow({col: col for col in OPENADDR_CSV_SCHEMA})
+        if do_expand:
+            in_csv = DictReader(file)
+            out_csv = DictWriter(output, OPENADDR_CSV_SCHEMA, dialect='excel')
+            out_csv.writerow({col: col for col in OPENADDR_CSV_SCHEMA})
         
-        for row in in_csv:
-            if do_expand:
+            for row in in_csv:
                 row['STREET'] = expand.expand_street_name(row['STREET'])
-            out_csv.writerow(row)
+                out_csv.writerow(row)
+        else:
+            for line in file:
+                output.write(line)
 
     zip_out.write(tmp_filename, arc_filename)
     remove(tmp_filename)
@@ -225,15 +228,20 @@ def add_source_to_zipfile(zip_out, result):
     
     try:
         number = [int(n) for n in result.code_version.split('.')]
-    except:
-        _L.info(u'Skipping street name expansion for {} (version {})'.format(result.source_base, result.code_version))
+    except Exception as e:
+        _L.info(u'Skipping street name expansion for {} (error {})'.format(result.source_base, e))
         do_expand = False # Be conservative for now.
     else:
-        do_expand = bool(number >= [2, 13]) # Expand for 2.13+.
-        
+        if number >= [2, 13]:
+            do_expand = True # Expand for 2.13+.
+        else:
+            _L.info(u'Skipping street name expansion for {} (version {})'.format(result.source_base, result.code_version))
+            do_expand = False
+
+    if do_expand:
         is_us = (is_us_northeast(result) or is_us_midwest(result)
                  or is_us_south(result) or is_us_west(result))
-        
+
         if not is_us:
             _L.info(u'Skipping street name expansion for {} (not U.S.)'.format(result.source_base))
             do_expand = False
