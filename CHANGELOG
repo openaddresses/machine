@@ -1,3 +1,6 @@
+2016-01-31: 2.13.3
+- Made collections hopefully a little faster.
+
 2016-01-30: 2.13.2
 - Fixed unicode bug in collections processing.
 
