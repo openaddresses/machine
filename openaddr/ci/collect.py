@@ -204,14 +204,17 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
         file = TextIOWrapper(file, 'utf8')
     
     with open(tmp_filename, 'w') as output:
-        in_csv = DictReader(file)
-        out_csv = DictWriter(output, OPENADDR_CSV_SCHEMA, dialect='excel')
-        out_csv.writerow({col: col for col in OPENADDR_CSV_SCHEMA})
+        if do_expand:
+            in_csv = DictReader(file)
+            out_csv = DictWriter(output, OPENADDR_CSV_SCHEMA, dialect='excel')
+            out_csv.writerow({col: col for col in OPENADDR_CSV_SCHEMA})
         
-        for row in in_csv:
-            if do_expand:
+            for row in in_csv:
                 row['STREET'] = expand.expand_street_name(row['STREET'])
-            out_csv.writerow(row)
+                out_csv.writerow(row)
+        else:
+            for line in file:
+                output.write(line)
 
     zip_out.write(tmp_filename, arc_filename)
     remove(tmp_filename)
