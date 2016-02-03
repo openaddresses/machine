@@ -1642,6 +1642,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(make_source_filename(u'yo'), u'yo.txt')
         self.assertEqual(make_source_filename(u'yo-yo'), u'yo-yo.txt')
         self.assertEqual(make_source_filename(u'yo/yo'), u'yo--yo.txt')
+        self.assertEqual(make_source_filename(u'yó/yó'), u'yó--yó.txt')
     
     @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')

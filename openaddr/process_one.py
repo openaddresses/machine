@@ -200,7 +200,7 @@ def main():
     setup_logger(logfile=args.logfile, log_level=args.loglevel)
     
     try:
-        file_path = process(args.source, args.destination)
+        file_path = process(args.source.decode('utf8'), args.destination.decode('utf8'))
     except Exception as e:
         _L.error(e, exc_info=True)
         return 1
