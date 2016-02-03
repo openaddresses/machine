@@ -205,7 +205,7 @@ def main():
         _L.error(e, exc_info=True)
         return 1
     else:
-        _L.info(file_path)
+        print(file_path.encode('utf8'))
         return 0
 
 if __name__ == '__main__':
