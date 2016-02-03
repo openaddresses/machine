@@ -1,3 +1,6 @@
+2016-02-02: 2.13.5
+- Fixed a unicode encoding problem with process_one output since 2.9.0.
+
 2016-02-02: 2.13.4
 - Fixed a unicode decoding problem with process_one args since 2.9.0.
 
