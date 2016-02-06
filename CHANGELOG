@@ -1,3 +1,6 @@
+2016-02-06: 2.13.7
+- Fixed return value bug in ci.enqueue.
+
 2016-02-03: 2.13.6
 - Fixed missing process_one output for worker.
 

@@ -96,6 +96,10 @@ def main():
         
     except:
         _L.error('Error in worker main()', exc_info=True)
+        return 1
+
+    else:
+        return 0
 
 if __name__ == '__main__':
     exit(main())
