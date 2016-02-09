@@ -263,14 +263,16 @@ class ExcerptDataTask(object):
 
     @staticmethod
     def _get_known_paths(source_paths, workdir, conform, known_types):
-        if conform.get('type') == 'csv' and 'file' not in conform:
-            # Return the first file we find, if exact csv path is unspecified.
-            return source_paths[:1]
-    
         if conform.get('type') != 'csv' or 'file' not in conform:
-            return [source_path for source_path in source_paths
-                    if os.path.splitext(source_path)[1].lower() in known_types]
-
+            paths = [source_path for source_path in source_paths
+                     if os.path.splitext(source_path)[1].lower() in known_types]
+            
+            # If nothing was found or named but we expect a CSV, return first file.
+            if not paths and conform.get('type') == 'csv' and 'file' not in conform:
+                return source_paths[:1]
+            
+            return paths
+    
         unzipped_base = os.path.join(workdir, UNZIPPED_DIRNAME)
         unzipped_paths = dict([(os.path.relpath(source_path, unzipped_base), source_path)
                                for source_path in source_paths])
