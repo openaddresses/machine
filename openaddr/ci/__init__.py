@@ -22,7 +22,7 @@ from time import sleep
 import json, os
 
 from flask import Flask, request, Response, current_app, jsonify, render_template
-from requests import get, post
+from requests import get, post, ConnectionError
 from dateutil.tz import tzutc
 from psycopg2 import connect
 from boto import connect_sns
@@ -58,6 +58,9 @@ RUN_REUSE_TIMEOUT = timedelta(days=5)
 
 # Time to chill out in pop_task_from_taskqueue() after sending Done task.
 WORKER_COOLDOWN = timedelta(seconds=5)
+
+# Time to chill out in find_batch_sources() after failing a request.
+GITHUB_RETRY_DELAY = timedelta(seconds=5)
 
 def td2str(td):
     ''' Convert a timedelta to a string formatted like '3h'.
@@ -357,7 +360,16 @@ def find_batch_sources(owner, repository, github_auth):
         
             if ext == '.json':
                 _L.debug('Getting source {url}'.format(**source))
-                more_source = get(source['url'], auth=github_auth).json()
+                try:
+                    more_source = get(source['url'], auth=github_auth).json()
+                except ConnectionError:
+                    _L.info('Retrying to download {url}'.format(**source))
+                    try:
+                        sleep(GITHUB_RETRY_DELAY.seconds + GITHUB_RETRY_DELAY.days * 86400)
+                        more_source = get(source['url'], auth=github_auth).json()
+                    except ConnectionError:
+                        _L.error('Failed to download {url}'.format(**source))
+                        raise
 
                 yield dict(commit_sha=commit_sha, url=source['url'],
                            blob_sha=source['sha'], path=source['path'],

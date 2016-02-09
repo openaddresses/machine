@@ -18,7 +18,7 @@ import hmac, hashlib, mock
 
 import unittest, json, os, sys, itertools
 
-from requests import get
+from requests import get, ConnectionError
 from httmock import HTTMock, response
 
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
@@ -1803,6 +1803,8 @@ class TestBatch (unittest.TestCase):
         self.output_dir = mkdtemp(prefix='TestBatch-')
         self.database_url = app.config['DATABASE_URL']
         self.github_auth = app.config['GITHUB_AUTH']
+        
+        self.request_index = 0
     
     def tearDown(self):
         '''
@@ -1817,6 +1819,8 @@ class TestBatch (unittest.TestCase):
     def response_content(self, url, request):
         '''
         '''
+        self.request_index += 1
+        
         query = dict(parse_qsl(url.query))
         MHP = request.method, url.hostname, url.path
         GH, response_headers = 'api.github.com', {'Content-Type': 'application/json; charset=utf-8'}
@@ -1857,18 +1861,30 @@ class TestBatch (unittest.TestCase):
             return response(200, data.encode('utf8'), headers=response_headers)
         
         if MHP == ('GET', GH, '/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-alameda_county.json') and query.get('ref', '').startswith('8dd262'):
+            if self.request_index % 2:
+                raise ConnectionError('Something-or-other went wrong')
+        
             data = u'''{\r  "name": "us-ca-alameda_county.json",\r  "path": "sources/us-ca-alameda_county.json",\r  "sha": "c9cd0ed30256ae64d5924b03b0423346501b92d8",\r  "size": 745,\r  "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-alameda_county.json?ref=8dd262c2f30a70b27e371869c54315b1abc32247",\r  "html_url": "https://github.com/openaddresses/hooked-on-sources/blob/8dd262c2f30a70b27e371869c54315b1abc32247/sources/us-ca-alameda_county.json",\r  "git_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/blobs/c9cd0ed30256ae64d5924b03b0423346501b92d8",\r  "download_url": "https://raw.githubusercontent.com/openaddresses/hooked-on-sources/8dd262c2f30a70b27e371869c54315b1abc32247/sources/us-ca-alameda_county.json",\r  "type": "file",\r  "content": "ewogICAgImNvdmVyYWdlIjogewogICAgICAgICJVUyBDZW5zdXMiOiB7CiAg\\nICAgICAgICAgICJnZW9pZCI6ICIwNjAwMSIsCiAgICAgICAgICAgICJuYW1l\\nIjogIkFsYW1lZGEgQ291bnR5IiwKICAgICAgICAgICAgInN0YXRlIjogIkNh\\nbGlmb3JuaWEiCiAgICAgICAgfSwKICAgICAgICAiY291bnRyeSI6ICJ1cyIs\\nCiAgICAgICAgInN0YXRlIjogImNhIiwKICAgICAgICAiY291bnR5IjogIkFs\\nYW1lZGEiCiAgICB9LAogICAgImRhdGEiOiAiaHR0cHM6Ly9kYXRhLmFjZ292\\nLm9yZy9hcGkvZ2Vvc3BhdGlhbC84ZTRzLTdmNHY/bWV0aG9kPWV4cG9ydCZm\\nb3JtYXQ9T3JpZ2luYWwiLAogICAgImxpY2Vuc2UiOiAiaHR0cDovL3d3dy5h\\nY2dvdi5vcmcvYWNkYXRhL3Rlcm1zLmh0bSIsCiAgICAiYXR0cmlidXRpb24i\\nOiAiQWxhbWVkYSBDb3VudHkiLAogICAgInllYXIiOiAiIiwKICAgICJ0eXBl\\nIjogImh0dHAiLAogICAgImNvbXByZXNzaW9uIjogInppcCIsCiAgICAiY29u\\nZm9ybSI6IHsKICAgICAgICAibWVyZ2UiOiBbCiAgICAgICAgICAgICJmZWFu\\nbWUiLAogICAgICAgICAgICAiZmVhdHlwIgogICAgICAgIF0sCiAgICAgICAg\\nImxvbiI6ICJ4IiwKICAgICAgICAibGF0IjogInkiLAogICAgICAgICJudW1i\\nZXIiOiAic3RfbnVtIiwKICAgICAgICAic3RyZWV0IjogImF1dG9fc3RyZWV0\\nIiwKICAgICAgICAidHlwZSI6ICJzaGFwZWZpbGUiLAogICAgICAgICJwb3N0\\nY29kZSI6ICJ6aXBjb2RlIgogICAgfQp9Cg==\\n",\r  "encoding": "base64",\r  "_links": {\r    "self": "https://api.github.com/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-alameda_county.json?ref=8dd262c2f30a70b27e371869c54315b1abc32247",\r    "git": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/blobs/c9cd0ed30256ae64d5924b03b0423346501b92d8",\r    "html": "https://github.com/openaddresses/hooked-on-sources/blob/8dd262c2f30a70b27e371869c54315b1abc32247/sources/us-ca-alameda_county.json"\r  }\r}'''
             return response(200, data.encode('utf8'), headers=response_headers)
         
         if MHP == ('GET', GH, '/repos/openaddresses/hooked-on-sources/contents/sources/fr/la-r%C3%A9union.json') and query.get('ref', '').startswith('8dd262'):
+            if self.request_index % 2:
+                raise ConnectionError('Something-or-other went wrong')
+        
             data = u'''{\r  "name": "la-réunion.json",\r  "path": "sources/fr/la-réunion.json",\r  "sha": "a8ccd9b403c39e9e9150470cb6b0d4c6515f82a9",\r  "size": 603,\r  "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/contents/sources/fr/la-r%C3%A9union.json?ref=8dd262c2f30a70b27e371869c54315b1abc32247",\r  "html_url": "https://github.com/openaddresses/hooked-on-sources/blob/8dd262c2f30a70b27e371869c54315b1abc32247/sources/fr/la-r%C3%A9union.json",\r  "git_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/blobs/a8ccd9b403c39e9e9150470cb6b0d4c6515f82a9",\r  "download_url": "https://raw.githubusercontent.com/openaddresses/hooked-on-sources/8dd262c2f30a70b27e371869c54315b1abc32247/sources/fr/la-r%C3%A9union.json",\r  "type": "file",\r  "content": "ewogICAgImNvdmVyYWdlIjogewogICAgICAgICJJU08gMzE2NiI6IHsKICAg\\nICAgICAgICAgImFscGhhMiI6ICJGUi05NzQiCiAgICAgICAgfQogICAgfSwK\\nICAgICJ3ZWJzaXRlIjogImh0dHA6Ly9hZHJlc3NlLmRhdGEuZ291di5mci9k\\nb3dubG9hZC8iLAogICAgIm5vdGUiOiAiRG93bmxvYWRlZCBhbmQgY2FjaGVk\\nIDIwMTUtMDYtMTgiLAogICAgImRhdGEiOiAiaHR0cDovL2RhdGEub3BlbmFk\\nZHJlc3Nlcy5pby9jYWNoZS9mci9CQU5fbGljZW5jZV9ncmF0dWl0ZV9yZXBh\\ncnRhZ2VfOTc0LnppcCIsCiAgICAidHlwZSI6ICJodHRwIiwKICAgICJjb21w\\ncmVzc2lvbiI6ICJ6aXAiLAogICAgImNvbmZvcm0iOiB7CiAgICAgICAgInR5\\ncGUiOiAiY3N2IiwKICAgICAgICAiY3N2c3BsaXQiOiAiOyIsCiAgICAgICAg\\nIm51bWJlciI6ICJudW1lcm8iLAogICAgICAgICJzdHJlZXQiOiAibm9tX3Zv\\naWUiLAogICAgICAgICJsb24iOiAibG9uIiwKICAgICAgICAibGF0IjogImxh\\ndCIsCiAgICAgICAgImNpdHkiOiAibm9tX2NvbW11bmUiLAogICAgICAgICJw\\nb3N0Y29kZSI6ICJjb2RlX3Bvc3QiLAogICAgICAgICJlbmNvZGluZyI6ICJJ\\nU08tODg1OS0xIgogICAgfQp9\\n",\r  "encoding": "base64",\r  "_links": {\r    "self": "https://api.github.com/repos/openaddresses/hooked-on-sources/contents/sources/fr/la-r%C3%A9union.json?ref=8dd262c2f30a70b27e371869c54315b1abc32247",\r    "git": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/blobs/a8ccd9b403c39e9e9150470cb6b0d4c6515f82a9",\r    "html": "https://github.com/openaddresses/hooked-on-sources/blob/8dd262c2f30a70b27e371869c54315b1abc32247/sources/fr/la-r%C3%A9union.json"\r  }\r}'''
             return response(200, data.encode('utf8'), headers=response_headers)
         
         if MHP == ('GET', GH, '/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-san_francisco.json') and query.get('ref', '').startswith('8dd262'):
+            if self.request_index % 2:
+                raise ConnectionError('Something-or-other went wrong')
+        
             data = u'''{\r  "name": "us-ca-san_francisco.json",\r  "path": "sources/us-ca-san_francisco.json",\r  "sha": "cbf1f900ac072b6a2e728819a97e74bc772e79ff",\r  "size": 519,\r  "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-san_francisco.json?ref=8dd262c2f30a70b27e371869c54315b1abc32247",\r  "html_url": "https://github.com/openaddresses/hooked-on-sources/blob/8dd262c2f30a70b27e371869c54315b1abc32247/sources/us-ca-san_francisco.json",\r  "git_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/blobs/cbf1f900ac072b6a2e728819a97e74bc772e79ff",\r  "download_url": "https://raw.githubusercontent.com/openaddresses/hooked-on-sources/8dd262c2f30a70b27e371869c54315b1abc32247/sources/us-ca-san_francisco.json",\r  "type": "file",\r  "content": "ewogICAgImNvdmVyYWdlIjogewogICAgICAgICJjb3VudHJ5IjogInVzIiwK\\nICAgICAgICAic3RhdGUiOiAiY2EiLAogICAgICAgICJjaXR5IjogIlNhbiBG\\ncmFuY2lzY28iCiAgICB9LAogICAgImF0dHJpYnV0aW9uIjogIkNpdHkgb2Yg\\nU2FuIEZyYW5jaXNjbyIsCiAgICAiZGF0YSI6ICJodHRwczovL2RhdGEuc2Zn\\nb3Yub3JnL2Rvd25sb2FkL2t2ZWotdzVrYi9aSVBQRUQlMjBTSEFQRUZJTEUi\\nLAogICAgImxpY2Vuc2UiOiAiIiwKICAgICJ5ZWFyIjogIiIsCiAgICAidHlw\\nZSI6ICJodHRwIiwKICAgICJjb21wcmVzc2lvbiI6ICJ6aXAiLAogICAgImNv\\nbmZvcm0iOiB7Cgkic3BsaXQiOiAiQUREUkVTUyIsCiAgICAgICAgImxvbiI6\\nICJ4IiwKICAgICAgICAibGF0IjogInkiLAogICAgICAgICJudW1iZXIiOiAi\\nYXV0b19udW1iZXIiLAogICAgICAgICJzdHJlZXQiOiAiYXV0b19zdHJlZXQi\\nLAogICAgICAgICJ0eXBlIjogInNoYXBlZmlsZSIsCiAgICAgICAgInBvc3Rj\\nb2RlIjogInppcGNvZGUiCiAgICB9Cn0K\\n",\r  "encoding": "base64",\r  "_links": {\r    "self": "https://api.github.com/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-san_francisco.json?ref=8dd262c2f30a70b27e371869c54315b1abc32247",\r    "git": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/blobs/cbf1f900ac072b6a2e728819a97e74bc772e79ff",\r    "html": "https://github.com/openaddresses/hooked-on-sources/blob/8dd262c2f30a70b27e371869c54315b1abc32247/sources/us-ca-san_francisco.json"\r  }\r}'''
             return response(200, data.encode('utf8'), headers=response_headers)
         
         if MHP == ('GET', GH, '/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-nevada_county.json') and query.get('ref', '').startswith('8dd262'):
+            if self.request_index % 2:
+                raise ConnectionError('Something-or-other went wrong')
+        
             data = u'''{\r  "name": "us-ca-nevada_county.json",\r  "path": "sources/us-ca-nevada_county.json",\r  "sha": "2dc45c5b21b9149d16b47142ee06d5238be8bfd9",\r  "size": 659,\r  "url": "https://api.github.com/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-nevada_county.json?ref=8dd262c2f30a70b27e371869c54315b1abc32247",\r  "html_url": "https://github.com/openaddresses/hooked-on-sources/blob/8dd262c2f30a70b27e371869c54315b1abc32247/sources/us-ca-nevada_county.json",\r  "git_url": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/blobs/2dc45c5b21b9149d16b47142ee06d5238be8bfd9",\r  "download_url": "https://raw.githubusercontent.com/openaddresses/hooked-on-sources/8dd262c2f30a70b27e371869c54315b1abc32247/sources/us-ca-nevada_county.json",\r  "type": "file",\r  "content": "ewogICAgImNvdmVyYWdlIjogewogICAgICAgICJVUyBDZW5zdXMiOiB7CiAg\\nICAgICAgICAgICJnZW9pZCI6ICIwNjA1NyIsCiAgICAgICAgICAgICJuYW1l\\nIjogIk5ldmFkYSBDb3VudHkiLAogICAgICAgICAgICAic3RhdGUiOiAiQ2Fs\\naWZvcm5pYSIKICAgICAgICB9LAogICAgICAgICJjb3VudHJ5IjogInVzIiwK\\nICAgICAgICAic3RhdGUiOiAiY2EiLAogICAgICAgICJjb3VudHkiOiAiTmV2\\nYWRhIgogICAgfSwKICAgICJhdHRyaWJ1dGlvbiI6ICJOZXZhZGEgQ291bnR5\\nIiwKICAgICJkYXRhIjogImh0dHA6Ly93d3cubXluZXZhZGFjb3VudHkuY29t\\nL25jL2lncy9naXMvZG9jcy9EaWdpdGFsJTIwRGF0YSUyMExpYnJhcnkvQWRk\\ncmVzc1BvaW50LnppcCIsCiAgICAid2Vic2l0ZSI6ICJodHRwOi8vd3d3Lm15\\nbmV2YWRhY291bnR5LmNvbS9uYy9pZ3MvZ2lzL1BhZ2VzL01ldGFEYXRhLmFz\\ncHgiLAogICAgInR5cGUiOiAiaHR0cCIsCiAgICAiY29tcHJlc3Npb24iOiAi\\nemlwIiwKICAgICJjb25mb3JtIjogewogICAgICAgICJsb24iOiAieCIsCiAg\\nICAgICAgImxhdCI6ICJ5IiwKICAgICAgICAibnVtYmVyIjogInN0cmVldE51\\nbSIsCiAgICAgICAgInN0cmVldCI6ICJzdHJlZXROYW1lIiwKICAgICAgICAi\\ndHlwZSI6ICJzaGFwZWZpbGUiCiAgICB9Cn0KCgo=\\n",\r  "encoding": "base64",\r  "_links": {\r    "self": "https://api.github.com/repos/openaddresses/hooked-on-sources/contents/sources/us-ca-nevada_county.json?ref=8dd262c2f30a70b27e371869c54315b1abc32247",\r    "git": "https://api.github.com/repos/openaddresses/hooked-on-sources/git/blobs/2dc45c5b21b9149d16b47142ee06d5238be8bfd9",\r    "html": "https://github.com/openaddresses/hooked-on-sources/blob/8dd262c2f30a70b27e371869c54315b1abc32247/sources/us-ca-nevada_county.json"\r  }\r}'''
             return response(200, data.encode('utf8'), headers=response_headers)
         
@@ -1916,6 +1932,7 @@ class TestBatch (unittest.TestCase):
                 self.assertIs(is_merged_to_master(_, _, _, 'a7266f30', _), True, 'This commit is merged')
                 self.assertIsNone(is_merged_to_master(_, _, _, 'gobbledygook', _), 'This commit is unknown')
     
+    @patch('openaddr.ci.GITHUB_RETRY_DELAY', new=timedelta(seconds=0))
     def test_batch_runs(self):
         ''' Show that the right tasks are enqueued in a batch context.
         '''
@@ -1959,6 +1976,7 @@ class TestBatch (unittest.TestCase):
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=0))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.GITHUB_RETRY_DELAY', new=timedelta(seconds=0))
     @patch('openaddr.ci.worker.do_work')
     def test_single_run(self, do_work):
         ''' Show that the tasks enqueued in a batch context can be run.
@@ -2018,6 +2036,7 @@ class TestBatch (unittest.TestCase):
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=0))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.GITHUB_RETRY_DELAY', new=timedelta(seconds=0))
     @patch('openaddr.ci.worker.do_work')
     def test_run_with_renders(self, do_work):
         ''' Show that a batch context will result in rendered maps.
