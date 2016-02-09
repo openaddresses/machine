@@ -1,3 +1,7 @@
+2016-02-09: 2.13.8
+- Fixed enqueuing try/catch in ci.enqueue.
+- Fixed broken Berlin sample data.
+
 2016-02-06: 2.13.7
 - Fixed return value bug in ci.enqueue.
 
