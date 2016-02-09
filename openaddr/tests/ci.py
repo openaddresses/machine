@@ -36,7 +36,7 @@ from ..ci.objects import (
     Set, add_set, complete_set, update_set_renders, read_set, read_sets,
     add_run, set_run, copy_run, get_completed_file_run, get_completed_run,
     read_completed_set_runs, new_read_completed_set_runs, read_latest_set,
-    read_run, read_completed_runs_to_date, Run
+    read_run, read_completed_runs_to_date, read_latest_run, Run
     )
 
 from ..ci.collect import (
@@ -549,6 +549,45 @@ class TestObjects (unittest.TestCase):
         self.assertEqual(e3_args, ((403, 501, 502, 504), ))
 
         self.assertEqual(len(runs), 4)
+
+    def test_get_latest_run(self):
+        ''' 
+        '''
+        queries = []
+        
+        def fake_execute(q, *args, **kwargs):
+            # Build up a list of queries so we can fetchall() the right rows.
+            queries.append(q)
+
+        def fake_fetchone():
+            if len(queries) == 1:
+                return (99, )
+            if len(queries) == 2:
+                return (None, )
+            if len(queries) == 3:
+                return (-99, )
+            if len(queries) == 4:
+                return (None, )
+            if len(queries) == 5:
+                return (None, )
+        
+        with patch('openaddr.ci.objects.read_run') as read_run:
+            self.db.execute.side_effect = fake_execute
+            self.db.fetchone.side_effect = fake_fetchone
+
+            read_latest_run(self.db, 'sources/a1.json')
+            self.assertEqual(len(read_run.mock_calls), 1, 'Should see one new call to read_run()')
+            self.assertEqual(read_run.mock_calls[-1][1][1], 99)
+            self.assertEqual(len(self.db.execute.mock_calls), 1)
+
+            read_latest_run(self.db, 'sources/a1.json')
+            self.assertEqual(len(read_run.mock_calls), 2, 'Should see one new call to read_run()')
+            self.assertEqual(read_run.mock_calls[-1][1][1], -99)
+            self.assertEqual(len(self.db.execute.mock_calls), 3)
+
+            read_latest_run(self.db, 'sources/a1.json')
+            self.assertEqual(len(read_run.mock_calls), 2, 'Should not see a new call to read_run()')
+            self.assertEqual(len(self.db.execute.mock_calls), 5)
 
 class TestHook (unittest.TestCase):
 
