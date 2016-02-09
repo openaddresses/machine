@@ -1932,6 +1932,7 @@ class TestBatch (unittest.TestCase):
                 self.assertIs(is_merged_to_master(_, _, _, 'a7266f30', _), True, 'This commit is merged')
                 self.assertIsNone(is_merged_to_master(_, _, _, 'gobbledygook', _), 'This commit is unknown')
     
+    @patch('openaddr.ci.GITHUB_RETRY_DELAY', new=timedelta(seconds=0))
     def test_batch_runs(self):
         ''' Show that the right tasks are enqueued in a batch context.
         '''
@@ -1975,6 +1976,7 @@ class TestBatch (unittest.TestCase):
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=0))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.GITHUB_RETRY_DELAY', new=timedelta(seconds=0))
     @patch('openaddr.ci.worker.do_work')
     def test_single_run(self, do_work):
         ''' Show that the tasks enqueued in a batch context can be run.
@@ -2034,6 +2036,7 @@ class TestBatch (unittest.TestCase):
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=0))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.GITHUB_RETRY_DELAY', new=timedelta(seconds=0))
     @patch('openaddr.ci.worker.do_work')
     def test_run_with_renders(self, do_work):
         ''' Show that a batch context will result in rendered maps.
