@@ -170,6 +170,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('data.openaddresses.io', '/cache/fr/BAN_licence_gratuite_repartage_974.zip'):
             local_path = join(data_dirname, 'BAN_licence_gratuite_repartage_974.zip')
         
+        if (host, path) == ('fbarc.stadt-berlin.de', '/FIS_Broker_Atom/Hauskoordinaten/HKO_EPSG3068.zip'):
+            local_path = join(data_dirname, 'de-berlin-excerpt.zip')
+        
         if scheme == 'file':
             local_path = path
 
@@ -786,6 +789,30 @@ class TestOA (unittest.TestCase):
             self.assertEqual(rows[1]['STREET'], u'W 28TH DIVISION HWY')
             self.assertEqual(rows[11]['STREET'], u'W 28TH DIVISION HWY')
             self.assertEqual(rows[21]['STREET'], u'W 28TH DIVISION HWY')
+
+    def test_single_de_berlin(self):
+        ''' Test complete process_one.process on data.
+        '''
+        source = join(self.src_dir, 'de/berlin.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+
+        output_path = join(dirname(state_path), state['processed'])
+        
+        with csvopen(output_path, encoding='utf8') as input:
+            rows = list(csvDictReader(input, encoding='utf8'))
+            self.assertEqual(rows[0]['NUMBER'], u'72')
+            self.assertEqual(rows[1]['NUMBER'], u'3')
+            self.assertEqual(rows[2]['NUMBER'], u'75')
+            self.assertEqual(rows[0]['STREET'], u'Otto-Braun-Stra\xdfe')
+            self.assertEqual(rows[1]['STREET'], u'Dorotheenstra\xdfe')
+            self.assertEqual(rows[2]['STREET'], u'Alte Jakobstra\xdfe')
+
+        self.assertIsNotNone(state['sample'])
 
 class TestState (unittest.TestCase):
     
