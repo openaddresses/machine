@@ -814,6 +814,15 @@ class TestOA (unittest.TestCase):
 
         self.assertIsNotNone(state['sample'])
 
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+
+        self.assertEqual(len(sample_data), 6)
+        
+        for (sample_datum, row) in zip(sample_data[1:], rows[0:]):
+            self.assertEqual(sample_datum[9], row['NUMBER'])
+            self.assertEqual(sample_datum[13], row['STREET'])
+
 class TestState (unittest.TestCase):
     
     def setUp(self):
