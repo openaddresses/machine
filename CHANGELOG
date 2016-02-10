@@ -1,3 +1,7 @@
+2016-02-09: 2.14.0
+- Added /index.json index of data URLs.
+- Added /latest/run/{source}.json redirect for processed data.
+
 2016-02-09: 2.13.8
 - Fixed enqueuing try/catch in ci.enqueue.
 - Fixed broken Berlin sample data.
