@@ -1248,6 +1248,45 @@ class TestHook (unittest.TestCase):
                 if key in run_state3:
                     self.assertEqual(value, run_state3[key])
     
+    def test_get_latest_run(self):
+        '''
+        '''
+        run_state1 = {
+            'processed': 'http://s3.amazonaws.com/data.openaddresses.io/runs/1/a1.zip',
+            'source': 'a1.json', 'skipped': 'b', 'cache': 'c', 'sample': 'd',
+            'website': 'e', 'license': 'f', 'geometry type': 'g',
+            'address count': 'h', 'version': 'i', 'fingerprint': 'j',
+            'cache time': 'k', 'process time': 'm', 'output': 'n',
+            'attribution required': 'true', 'attribution name': 'p',
+            'share-alike': 'true'
+            }
+        
+        run_state2 = {k: v for (k, v) in run_state1.items()}
+        run_state2.update({'source': 'a2.json', 'processed': 'http://data.openaddresses.io.s3.amazonaws.com/runs/2/a2.zip'})
+
+        with db_connect(self.database_url) as conn:
+            with db_cursor(conn) as db:
+                db.execute('''INSERT INTO sets
+                              (id, owner, repository, datetime_start, datetime_end)
+                              VALUES (%s, %s, %s, %s, %s)''',
+                           (1, 'openaddresses', 'openaddresses', datetime.now(), None))
+                
+                run_id1 = add_run(db)
+                set_run(db, run_id1, 'sources/a1.json', 'abc', b'def',
+                        run_state1, True, None, None, None, True, 1)
+                
+                run_id2 = add_run(db)
+                set_run(db, run_id2, 'sources/a2.json', 'abc', b'def',
+                        run_state2, True, None, None, None, True, 1)
+
+        got1 = self.client.get('/latest/run/a1.zip')
+        self.assertEqual(got1.status_code, 302)
+        self.assertTrue(got1.headers.get('Location').endswith('/runs/1/a1.zip'))
+
+        got2 = self.client.get('/latest/run/a2.zip')
+        self.assertEqual(got2.status_code, 302)
+        self.assertTrue(got2.headers.get('Location').endswith('/runs/2/a2.zip'))
+    
 class TestRuns (unittest.TestCase):
 
     def setUp(self):

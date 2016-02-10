@@ -25,7 +25,7 @@ from . import (
 from .objects import (
     read_job, read_jobs, read_sets, read_set, read_latest_set,
     read_run, new_read_completed_set_runs, read_completed_runs_to_date,
-    load_collection_zips_dict
+    load_collection_zips_dict, read_latest_run
     )
 
 from ..compat import expand_uri, csvIO, csvDictWriter
@@ -254,6 +254,22 @@ def app_get_latest_set():
         return Response('No latest set found', 404)
     
     return redirect('/sets/{id}'.format(id=set.id), 302)
+
+@webhooks.route('/latest/run/<path:source>.zip', methods=['GET'])
+@log_application_errors
+def app_get_latest_run(source):
+    '''
+    '''
+    source_path = 'sources/{}.json'.format(source)
+    
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            run = read_latest_run(db, source_path)
+
+    if run is None or not run.state.get('processed'):
+        return Response('No latest run found', 404)
+    
+    return redirect(run.state.get('processed'), 302)
 
 @webhooks.route('/sets/<set_id>/', methods=['GET'])
 @log_application_errors
