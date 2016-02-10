@@ -115,6 +115,14 @@ def app_index():
 
     return render_template('index.html', set=None, zips=zips, **summary_data)
 
+@webhooks.route('/index.json')
+@log_application_errors
+def app_index_json():
+    return jsonify({
+        'run_states_url': urljoin(request.url, u'/state.txt'),
+        'latest_run_processed_url': urljoin(request.url, u'/latest/run/{source}.zip')
+        })
+
 @webhooks.route('/state.txt', methods=['GET'])
 @log_application_errors
 def app_get_state_txt():
