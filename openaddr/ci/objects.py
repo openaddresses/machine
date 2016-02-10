@@ -382,6 +382,36 @@ def read_completed_runs_to_date(db, starting_set_id):
     
     return [Run(*row) for row in db.fetchall()]
 
+def read_latest_run(db, source_path):
+    '''
+    '''
+    # Get ID for latest successful source run matching path.
+    db.execute('''SELECT MAX(id) FROM runs
+                  WHERE source_path = %s
+                    -- Get only successful, merged run.
+                    AND status = true
+                    AND (is_merged = true OR is_merged IS NULL)''',
+               (source_path, ))
+    
+    (run_id, ) = db.fetchone()
+    
+    if run_id is not None:
+        return read_run(db, run_id)
+
+    # Get ID for latest unsuccessful source run matching path.
+    db.execute('''SELECT MAX(id) FROM runs
+                  WHERE source_path = %s
+                    -- Get only unsuccessful, merged runs.
+                    AND status = false
+                    AND (is_merged = true OR is_merged IS NULL)''',
+               (source_path, ))
+
+    # Use unsuccessful run if no successful one exists.
+    (run_id, ) = db.fetchone()
+    
+    if run_id is not None:
+        return read_run(db, run_id)
+    
 def load_collection_zips_dict(db):
     '''
     '''

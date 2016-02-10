@@ -2,7 +2,7 @@ import logging; _L = logging.getLogger('openaddr.ci.webhooks')
 
 from functools import wraps
 from operator import itemgetter, attrgetter
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse, urlunparse
 from collections import OrderedDict
 from csv import DictWriter
 import hashlib, hmac
@@ -25,7 +25,7 @@ from . import (
 from .objects import (
     read_job, read_jobs, read_sets, read_set, read_latest_set,
     read_run, new_read_completed_set_runs, read_completed_runs_to_date,
-    load_collection_zips_dict
+    load_collection_zips_dict, read_latest_run
     )
 
 from ..compat import expand_uri, csvIO, csvDictWriter
@@ -115,6 +115,14 @@ def app_index():
 
     return render_template('index.html', set=None, zips=zips, **summary_data)
 
+@webhooks.route('/index.json')
+@log_application_errors
+def app_index_json():
+    return jsonify({
+        'run_states_url': urljoin(request.url, u'/state.txt'),
+        'latest_run_processed_url': urljoin(request.url, u'/latest/run/{source}.zip')
+        })
+
 @webhooks.route('/state.txt', methods=['GET'])
 @log_application_errors
 def app_get_state_txt():
@@ -133,6 +141,10 @@ def app_get_state_txt():
         row = {col: run_state.get(col, None) for col in CSV_HEADER}
         row['source'] = os.path.relpath(run.source_path, 'sources')
         row['code version'] = run.code_version
+        row['cache'] = nice_domain(row['cache'])
+        row['sample'] = nice_domain(row['sample'])
+        row['processed'] = nice_domain(row['processed'])
+        row['output'] = nice_domain(row['output'])
         output.writerow(row)
 
     return Response(buffer.getvalue(),
@@ -255,6 +267,22 @@ def app_get_latest_set():
     
     return redirect('/sets/{id}'.format(id=set.id), 302)
 
+@webhooks.route('/latest/run/<path:source>.zip', methods=['GET'])
+@log_application_errors
+def app_get_latest_run(source):
+    '''
+    '''
+    source_path = 'sources/{}.json'.format(source)
+    
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            run = read_latest_run(db, source_path)
+
+    if run is None or not run.state.get('processed'):
+        return Response('No latest run found', 404)
+    
+    return redirect(nice_domain(run.state.get('processed')), 302)
+
 @webhooks.route('/sets/<set_id>/', methods=['GET'])
 @log_application_errors
 def app_get_set(set_id):
@@ -291,6 +319,10 @@ def app_get_set_state_txt(set_id):
         row = {col: run_state.get(col, None) for col in CSV_HEADER}
         row['source'] = os.path.relpath(run.source_path, 'sources')
         row['code version'] = run.code_version
+        row['cache'] = nice_domain(row['cache'])
+        row['sample'] = nice_domain(row['sample'])
+        row['processed'] = nice_domain(row['processed'])
+        row['output'] = nice_domain(row['output'])
         output.writerow(row)
 
     return Response(buffer.getvalue(),
@@ -334,6 +366,23 @@ def nice_size(size):
         return '{:.1f}{}'.format(size, suffix)
     else:
         return '{:.0f}{}'.format(size, suffix)
+
+def nice_domain(url):
+    '''
+    '''
+    parsed = urlparse(url)
+    _ = None
+    
+    if parsed.hostname == u'data.openaddresses.io':
+        return urlunparse((u'http', parsed.hostname, parsed.path, _, _, _))
+    
+    if parsed.hostname == u's3.amazonaws.com' and parsed.path.startswith(u'/data.openaddresses.io/'):
+        return urlunparse((u'http', u'data.openaddresses.io', parsed.path[22:], _, _, _))
+    
+    if parsed.hostname == u'data.openaddresses.io.s3.amazonaws.com':
+        return urlunparse((u'http', u'data.openaddresses.io', parsed.path, _, _, _))
+    
+    return url
 
 app = Flask(__name__)
 app.config.update(load_config())

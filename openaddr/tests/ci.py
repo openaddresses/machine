@@ -36,7 +36,7 @@ from ..ci.objects import (
     Set, add_set, complete_set, update_set_renders, read_set, read_sets,
     add_run, set_run, copy_run, get_completed_file_run, get_completed_run,
     read_completed_set_runs, new_read_completed_set_runs, read_latest_set,
-    read_run, read_completed_runs_to_date, Run
+    read_run, read_completed_runs_to_date, read_latest_run, Run
     )
 
 from ..ci.collect import (
@@ -549,6 +549,45 @@ class TestObjects (unittest.TestCase):
         self.assertEqual(e3_args, ((403, 501, 502, 504), ))
 
         self.assertEqual(len(runs), 4)
+
+    def test_get_latest_run(self):
+        ''' 
+        '''
+        queries = []
+        
+        def fake_execute(q, *args, **kwargs):
+            # Build up a list of queries so we can fetchall() the right rows.
+            queries.append(q)
+
+        def fake_fetchone():
+            if len(queries) == 1:
+                return (99, )
+            if len(queries) == 2:
+                return (None, )
+            if len(queries) == 3:
+                return (-99, )
+            if len(queries) == 4:
+                return (None, )
+            if len(queries) == 5:
+                return (None, )
+        
+        with patch('openaddr.ci.objects.read_run') as read_run:
+            self.db.execute.side_effect = fake_execute
+            self.db.fetchone.side_effect = fake_fetchone
+
+            read_latest_run(self.db, 'sources/a1.json')
+            self.assertEqual(len(read_run.mock_calls), 1, 'Should see one new call to read_run()')
+            self.assertEqual(read_run.mock_calls[-1][1][1], 99)
+            self.assertEqual(len(self.db.execute.mock_calls), 1)
+
+            read_latest_run(self.db, 'sources/a1.json')
+            self.assertEqual(len(read_run.mock_calls), 2, 'Should see one new call to read_run()')
+            self.assertEqual(read_run.mock_calls[-1][1][1], -99)
+            self.assertEqual(len(self.db.execute.mock_calls), 3)
+
+            read_latest_run(self.db, 'sources/a1.json')
+            self.assertEqual(len(read_run.mock_calls), 2, 'Should not see a new call to read_run()')
+            self.assertEqual(len(self.db.execute.mock_calls), 5)
 
 class TestHook (unittest.TestCase):
 
@@ -1208,6 +1247,80 @@ class TestHook (unittest.TestCase):
             for (key, value) in got_state3.items():
                 if key in run_state3:
                     self.assertEqual(value, run_state3[key])
+    
+    def test_get_latest_run(self):
+        '''
+        '''
+        run_states = {
+            'source': 'a1.json', 'skipped': 'b', 'cache': 'c', 'sample': 'd',
+            'website': 'e', 'license': 'f', 'geometry type': 'g',
+            'address count': 'h', 'version': 'i', 'fingerprint': 'j',
+            'cache time': 'k', 'process time': 'm', 'output': 'n',
+            'attribution required': 'true', 'attribution name': 'p',
+            'share-alike': 'true'
+            }
+        
+        run_state1 = {k: v for (k, v) in run_states.items()}
+        run_state1.update({'source': 'a1.json', 'processed': 'https://s3.amazonaws.com/data.openaddresses.io/runs/1/a1.zip'})
+        
+        run_state2 = {k: v for (k, v) in run_states.items()}
+        run_state2.update({'source': 'a2.json', 'processed': 'http://data.openaddresses.io.s3.amazonaws.com/runs/2/a2.zip'})
+        
+        run_state3 = {k: v for (k, v) in run_states.items()}
+        run_state3.update({'source': 'a3.json', 'processed': 'http://data.openaddresses.io/runs/3/a3.zip'})
+        
+        run_state4 = {k: v for (k, v) in run_states.items()}
+        run_state4.update({'source': 'a4.json', 'processed': 'http://future.openaddresses.io/runs/4/a4.zip'})
+        
+        run_state5 = {k: v for (k, v) in run_states.items()}
+        run_state5.update({'source': 'a5.json', 'processed': 'http://s3.amazonaws.com/past.openaddresses.io/runs/5/a5.zip'})
+
+        with db_connect(self.database_url) as conn:
+            with db_cursor(conn) as db:
+                db.execute('''INSERT INTO sets
+                              (id, owner, repository, datetime_start, datetime_end)
+                              VALUES (%s, %s, %s, %s, %s)''',
+                           (1, 'openaddresses', 'openaddresses', datetime.now(), None))
+                
+                run_id1 = add_run(db)
+                set_run(db, run_id1, 'sources/a1.json', 'abc', b'def',
+                        run_state1, True, None, None, None, True, 1)
+                
+                run_id2 = add_run(db)
+                set_run(db, run_id2, 'sources/a2.json', 'abc', b'def',
+                        run_state2, True, None, None, None, True, 1)
+                
+                run_id3 = add_run(db)
+                set_run(db, run_id3, 'sources/a3.json', 'abc', b'def',
+                        run_state3, True, None, None, None, True, 1)
+                
+                run_id4 = add_run(db)
+                set_run(db, run_id4, 'sources/a4.json', 'abc', b'def',
+                        run_state4, True, None, None, None, True, 1)
+                
+                run_id5 = add_run(db)
+                set_run(db, run_id5, 'sources/a5.json', 'abc', b'def',
+                        run_state5, True, None, None, None, True, 1)
+
+        got1 = self.client.get('/latest/run/a1.zip')
+        self.assertEqual(got1.status_code, 302)
+        self.assertEqual(got1.headers.get('Location'), 'http://data.openaddresses.io/runs/1/a1.zip')
+
+        got2 = self.client.get('/latest/run/a2.zip')
+        self.assertEqual(got2.status_code, 302)
+        self.assertEqual(got2.headers.get('Location'), 'http://data.openaddresses.io/runs/2/a2.zip')
+
+        got3 = self.client.get('/latest/run/a3.zip')
+        self.assertEqual(got3.status_code, 302)
+        self.assertEqual(got3.headers.get('Location'), 'http://data.openaddresses.io/runs/3/a3.zip')
+
+        got4 = self.client.get('/latest/run/a4.zip')
+        self.assertEqual(got4.status_code, 302)
+        self.assertEqual(got4.headers.get('Location'), 'http://future.openaddresses.io/runs/4/a4.zip')
+
+        got5 = self.client.get('/latest/run/a5.zip')
+        self.assertEqual(got5.status_code, 302)
+        self.assertEqual(got5.headers.get('Location'), 'http://s3.amazonaws.com/past.openaddresses.io/runs/5/a5.zip')
     
 class TestRuns (unittest.TestCase):
 
