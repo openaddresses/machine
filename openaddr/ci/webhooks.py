@@ -141,6 +141,10 @@ def app_get_state_txt():
         row = {col: run_state.get(col, None) for col in CSV_HEADER}
         row['source'] = os.path.relpath(run.source_path, 'sources')
         row['code version'] = run.code_version
+        row['cache'] = nice_domain(row['cache'])
+        row['sample'] = nice_domain(row['sample'])
+        row['processed'] = nice_domain(row['processed'])
+        row['output'] = nice_domain(row['output'])
         output.writerow(row)
 
     return Response(buffer.getvalue(),
@@ -315,6 +319,10 @@ def app_get_set_state_txt(set_id):
         row = {col: run_state.get(col, None) for col in CSV_HEADER}
         row['source'] = os.path.relpath(run.source_path, 'sources')
         row['code version'] = run.code_version
+        row['cache'] = nice_domain(row['cache'])
+        row['sample'] = nice_domain(row['sample'])
+        row['processed'] = nice_domain(row['processed'])
+        row['output'] = nice_domain(row['output'])
         output.writerow(row)
 
     return Response(buffer.getvalue(),
