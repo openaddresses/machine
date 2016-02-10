@@ -1251,8 +1251,7 @@ class TestHook (unittest.TestCase):
     def test_get_latest_run(self):
         '''
         '''
-        run_state1 = {
-            'processed': 'http://s3.amazonaws.com/data.openaddresses.io/runs/1/a1.zip',
+        run_states = {
             'source': 'a1.json', 'skipped': 'b', 'cache': 'c', 'sample': 'd',
             'website': 'e', 'license': 'f', 'geometry type': 'g',
             'address count': 'h', 'version': 'i', 'fingerprint': 'j',
@@ -1261,8 +1260,20 @@ class TestHook (unittest.TestCase):
             'share-alike': 'true'
             }
         
-        run_state2 = {k: v for (k, v) in run_state1.items()}
+        run_state1 = {k: v for (k, v) in run_states.items()}
+        run_state1.update({'source': 'a1.json', 'processed': 'https://s3.amazonaws.com/data.openaddresses.io/runs/1/a1.zip'})
+        
+        run_state2 = {k: v for (k, v) in run_states.items()}
         run_state2.update({'source': 'a2.json', 'processed': 'http://data.openaddresses.io.s3.amazonaws.com/runs/2/a2.zip'})
+        
+        run_state3 = {k: v for (k, v) in run_states.items()}
+        run_state3.update({'source': 'a3.json', 'processed': 'http://data.openaddresses.io/runs/3/a3.zip'})
+        
+        run_state4 = {k: v for (k, v) in run_states.items()}
+        run_state4.update({'source': 'a4.json', 'processed': 'http://future.openaddresses.io/runs/4/a4.zip'})
+        
+        run_state5 = {k: v for (k, v) in run_states.items()}
+        run_state5.update({'source': 'a5.json', 'processed': 'http://s3.amazonaws.com/past.openaddresses.io/runs/5/a5.zip'})
 
         with db_connect(self.database_url) as conn:
             with db_cursor(conn) as db:
@@ -1278,14 +1289,38 @@ class TestHook (unittest.TestCase):
                 run_id2 = add_run(db)
                 set_run(db, run_id2, 'sources/a2.json', 'abc', b'def',
                         run_state2, True, None, None, None, True, 1)
+                
+                run_id3 = add_run(db)
+                set_run(db, run_id3, 'sources/a3.json', 'abc', b'def',
+                        run_state3, True, None, None, None, True, 1)
+                
+                run_id4 = add_run(db)
+                set_run(db, run_id4, 'sources/a4.json', 'abc', b'def',
+                        run_state4, True, None, None, None, True, 1)
+                
+                run_id5 = add_run(db)
+                set_run(db, run_id5, 'sources/a5.json', 'abc', b'def',
+                        run_state5, True, None, None, None, True, 1)
 
         got1 = self.client.get('/latest/run/a1.zip')
         self.assertEqual(got1.status_code, 302)
-        self.assertTrue(got1.headers.get('Location').endswith('/runs/1/a1.zip'))
+        self.assertEqual(got1.headers.get('Location'), 'http://data.openaddresses.io/runs/1/a1.zip')
 
         got2 = self.client.get('/latest/run/a2.zip')
         self.assertEqual(got2.status_code, 302)
-        self.assertTrue(got2.headers.get('Location').endswith('/runs/2/a2.zip'))
+        self.assertEqual(got2.headers.get('Location'), 'http://data.openaddresses.io/runs/2/a2.zip')
+
+        got3 = self.client.get('/latest/run/a3.zip')
+        self.assertEqual(got3.status_code, 302)
+        self.assertEqual(got3.headers.get('Location'), 'http://data.openaddresses.io/runs/3/a3.zip')
+
+        got4 = self.client.get('/latest/run/a4.zip')
+        self.assertEqual(got4.status_code, 302)
+        self.assertEqual(got4.headers.get('Location'), 'http://future.openaddresses.io/runs/4/a4.zip')
+
+        got5 = self.client.get('/latest/run/a5.zip')
+        self.assertEqual(got5.status_code, 302)
+        self.assertEqual(got5.headers.get('Location'), 'http://s3.amazonaws.com/past.openaddresses.io/runs/5/a5.zip')
     
 class TestRuns (unittest.TestCase):
 

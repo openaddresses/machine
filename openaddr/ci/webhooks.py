@@ -2,7 +2,7 @@ import logging; _L = logging.getLogger('openaddr.ci.webhooks')
 
 from functools import wraps
 from operator import itemgetter, attrgetter
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse, urlunparse
 from collections import OrderedDict
 from csv import DictWriter
 import hashlib, hmac
@@ -277,7 +277,7 @@ def app_get_latest_run(source):
     if run is None or not run.state.get('processed'):
         return Response('No latest run found', 404)
     
-    return redirect(run.state.get('processed'), 302)
+    return redirect(nice_domain(run.state.get('processed')), 302)
 
 @webhooks.route('/sets/<set_id>/', methods=['GET'])
 @log_application_errors
@@ -358,6 +358,23 @@ def nice_size(size):
         return '{:.1f}{}'.format(size, suffix)
     else:
         return '{:.0f}{}'.format(size, suffix)
+
+def nice_domain(url):
+    '''
+    '''
+    parsed = urlparse(url)
+    _ = None
+    
+    if parsed.hostname == u'data.openaddresses.io':
+        return urlunparse((u'http', parsed.hostname, parsed.path, _, _, _))
+    
+    if parsed.hostname == u's3.amazonaws.com' and parsed.path.startswith(u'/data.openaddresses.io/'):
+        return urlunparse((u'http', u'data.openaddresses.io', parsed.path[22:], _, _, _))
+    
+    if parsed.hostname == u'data.openaddresses.io.s3.amazonaws.com':
+        return urlunparse((u'http', u'data.openaddresses.io', parsed.path, _, _, _))
+    
+    return url
 
 app = Flask(__name__)
 app.config.update(load_config())
