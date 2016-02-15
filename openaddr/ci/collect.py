@@ -3,6 +3,7 @@ import logging; _L = logging.getLogger('openaddr.ci.collect')
 from ..compat import standard_library
 
 from argparse import ArgumentParser
+from collections import defaultdict
 from os import environ, stat, close, remove
 from zipfile import ZipFile, ZIP_DEFLATED
 from os.path import splitext, exists, basename, join
@@ -14,6 +15,7 @@ from itertools import product
 from io import TextIOWrapper
 from datetime import date
 from shutil import rmtree
+from math import floor
 
 from .objects import read_latest_set, read_completed_runs_to_date
 from . import db_connect, db_cursor, setup_logger, render_index_maps, log_function_errors
@@ -204,6 +206,8 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
     if not PY2:
         file = TextIOWrapper(file, 'utf8')
     
+    size, squares = .1, defaultdict(lambda: 0)
+    
     with open(tmp_filename1, 'w') as output:
         in_csv = DictReader(file)
         out_csv = DictWriter(output, OPENADDR_CSV_SCHEMA, dialect='excel')
@@ -213,6 +217,16 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
             if do_expand:
                 row['STREET'] = expand.expand_street_name(row['STREET'])
             out_csv.writerow(row)
+            
+            try:
+                lat, lon = float(row['LAT']), float(row['LON'])
+            except ValueError:
+                pass
+            else:
+                key = floor(lat / size) * size, floor(lon / size) * size
+                squares[key] += 1
+    
+    print 'POLYGON({} {} {} {})'.format(key[0], key[1], key[0] + size, key[1] + size)
 
     zip_out.write(tmp_filename1, arc_filename)
     remove(tmp_filename1); remove(tmp_filename2)
