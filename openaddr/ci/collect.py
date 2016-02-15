@@ -197,27 +197,25 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
     
         File is assumed to be open in binary mode.
     '''
-    handle, tmp_filename = mkstemp(suffix='.csv')
-    close(handle)
+    handle1, tmp_filename1 = mkstemp(suffix='.csv')
+    handle2, tmp_filename2 = mkstemp(suffix='.csv')
+    close(handle1); close(handle2)
     
     if not PY2:
         file = TextIOWrapper(file, 'utf8')
     
-    with open(tmp_filename, 'w') as output:
-        if do_expand:
-            in_csv = DictReader(file)
-            out_csv = DictWriter(output, OPENADDR_CSV_SCHEMA, dialect='excel')
-            out_csv.writerow({col: col for col in OPENADDR_CSV_SCHEMA})
-        
-            for row in in_csv:
+    with open(tmp_filename1, 'w') as output:
+        in_csv = DictReader(file)
+        out_csv = DictWriter(output, OPENADDR_CSV_SCHEMA, dialect='excel')
+        out_csv.writerow({col: col for col in OPENADDR_CSV_SCHEMA})
+    
+        for row in in_csv:
+            if do_expand:
                 row['STREET'] = expand.expand_street_name(row['STREET'])
-                out_csv.writerow(row)
-        else:
-            for line in file:
-                output.write(line)
+            out_csv.writerow(row)
 
-    zip_out.write(tmp_filename, arc_filename)
-    remove(tmp_filename)
+    zip_out.write(tmp_filename1, arc_filename)
+    remove(tmp_filename1); remove(tmp_filename2)
 
 def add_source_to_zipfile(zip_out, result):
     ''' Add a LocalProcessedResult to zipfile via expand_and_add_csv_to_zipfile().
