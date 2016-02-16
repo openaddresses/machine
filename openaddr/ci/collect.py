@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 from collections import defaultdict
 from os import environ, stat, close, remove
 from zipfile import ZipFile, ZIP_DEFLATED
-from os.path import splitext, exists, basename, join
+from os.path import splitext, exists, basename, join, dirname
 from urllib.parse import urlparse
 from operator import attrgetter
 from csv import DictReader, DictWriter
@@ -225,10 +225,35 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
             else:
                 key = floor(lat / size) * size, floor(lon / size) * size
                 squares[key] += 1
-    
-    print 'POLYGON({} {} {} {})'.format(key[0], key[1], key[0] + size, key[1] + size)
 
+    # Write the contents of the full address file.
     zip_out.write(tmp_filename1, arc_filename)
+
+    with open(tmp_filename2, 'w') as output:
+        columns = 'count', 'lon', 'lat', 'area'
+        out_csv = DictWriter(output, columns, dialect='excel')
+        out_csv.writerow({col: col for col in columns})
+
+        for ((lat, lon), count) in squares.items():
+            args = lon, lat, lon + size, lat + size
+            area = 'POLYGON(({0} {1},{0} {3},{2} {3},{2} {1},{0} {1}))'.format(*args)
+            out_csv.writerow(dict(count=count, lon=str(lon), lat=str(lat), area=area))
+    
+    prefix, _ = splitext(arc_filename)
+    support_csvname = join('summary', prefix+'-summary.csv')
+    support_vrtname = join('summary', prefix+'-summary.vrt')
+    
+    # Write the contents of the summary file.
+    zip_out.write(tmp_filename2, support_csvname)
+
+    with open(join(dirname(__file__), 'templates', 'source-summary.vrt')) as file:
+        args = dict(filename=basename(support_csvname))
+        args.update(name=splitext(args['filename'])[0])
+        vrt_content = file.read().format(**args)
+
+    # Write the contents of the summary file VRT.
+    zip_out.writestr(vrt_content, support_vrtname)
+
     remove(tmp_filename1); remove(tmp_filename2)
 
 def add_source_to_zipfile(zip_out, result):

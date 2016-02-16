@@ -2425,7 +2425,17 @@ class TestCollect (unittest.TestCase):
         input3 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID\n8.6885893,50.1042197,12,Abtsgäßchen,,Frankfurt am Main,,,60594,\n8.6885485,50.1041506,14,Abtsgäßchen,,Frankfurt am Main,,,60594,\n'
         expand_and_add_csv_to_zipfile(output, 'de/he/frankfurt.csv', BytesIO(input3.encode('utf8')), False)
         
-        self.assertEqual(len(output.write.mock_calls), 4)
+        self.assertEqual(len(output.write.mock_calls), 8)
+
+        self.assertEqual(output.write.mock_calls[0][1][1], 'us/ca/alameda.csv')
+        self.assertEqual(output.write.mock_calls[1][1][1], 'summary/us/ca/alameda-summary.csv')
+        self.assertEqual(output.write.mock_calls[2][1][1], output.write.mock_calls[0][1][1])
+        self.assertEqual(output.write.mock_calls[3][1][1], output.write.mock_calls[1][1][1])
+        self.assertEqual(output.write.mock_calls[4][1][1], output.write.mock_calls[0][1][1])
+        self.assertEqual(output.write.mock_calls[5][1][1], output.write.mock_calls[1][1][1])
+        self.assertEqual(output.write.mock_calls[6][1][1], 'de/he/frankfurt.csv')
+        self.assertEqual(output.write.mock_calls[7][1][1], 'summary/de/he/frankfurt-summary.csv')
+
         self.assertEqual(output_write_contents[0],
             [
             'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID',
@@ -2438,6 +2448,11 @@ class TestCollect (unittest.TestCase):
             ])
         self.assertEqual(output_write_contents[1],
             [
+            'count,lon,lat,area',
+            '6,-122.3,37.7,"POLYGON((-122.3 37.7,-122.3 37.8,-122.2 37.8,-122.2 37.7,-122.3 37.7))"',
+            ])
+        self.assertEqual(output_write_contents[2],
+            [
             'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID',
             '-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77',
             '-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11',
@@ -2446,7 +2461,8 @@ class TestCollect (unittest.TestCase):
             '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26',
             '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222',
             ])
-        self.assertEqual(output_write_contents[2],
+        self.assertEqual(output_write_contents[3], output_write_contents[1])
+        self.assertEqual(output_write_contents[4],
             [
             'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID',
             '-122.2359742,37.7362507,85,MAITLAND DR,,ALAMEDA,,,94502,',
@@ -2456,11 +2472,17 @@ class TestCollect (unittest.TestCase):
             '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,',
             '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,',
             ])
-        self.assertEqual(output_write_contents[3],
+        self.assertEqual(output_write_contents[5], output_write_contents[1])
+        self.assertEqual(output_write_contents[6],
             [
             'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID',
             '8.6885893,50.1042197,12,Abtsgäßchen,,Frankfurt am Main,,,60594,',
             '8.6885485,50.1041506,14,Abtsgäßchen,,Frankfurt am Main,,,60594,',
+            ])
+        self.assertEqual(output_write_contents[7],
+            [
+            'count,lon,lat,area',
+            '2,8.6,50.1,"POLYGON((8.6 50.1,8.6 50.2,8.7 50.2,8.7 50.1,8.6 50.1))"',
             ])
 
 if __name__ == '__main__':
