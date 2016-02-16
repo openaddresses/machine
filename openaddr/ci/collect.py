@@ -212,17 +212,17 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
         out_csv.writerow({col: col for col in OPENADDR_CSV_SCHEMA})
     
         for row in in_csv:
-            if do_expand:
-                row['STREET'] = expand.expand_street_name(row['STREET'])
-            out_csv.writerow(row)
-            
             try:
                 lat, lon = float(row['LAT']), float(row['LON'])
             except ValueError:
-                pass
-            else:
-                key = floor(lat / size) * size, floor(lon / size) * size
-                squares[key] += 1
+                continue
+
+            if do_expand:
+                row['STREET'] = expand.expand_street_name(row['STREET'])
+            
+            out_csv.writerow(row)
+            key = floor(lat / size) * size, floor(lon / size) * size
+            squares[key] += 1
 
     zip_out.write(tmp_filename, arc_filename)
     remove(tmp_filename)
