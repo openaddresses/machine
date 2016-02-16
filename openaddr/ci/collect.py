@@ -232,6 +232,9 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
 def _add_spatial_summary_to_zipfile(zip_out, arc_filename, size, squares):
     '''
     '''
+    assert size in (.1, .2, .5, 1.)
+    F = '{:.1f}'
+
     handle, tmp_filename = mkstemp(suffix='.csv'); close(handle)
 
     with open(tmp_filename, 'w') as output:
@@ -240,9 +243,9 @@ def _add_spatial_summary_to_zipfile(zip_out, arc_filename, size, squares):
         out_csv.writerow({col: col for col in columns})
 
         for ((lat, lon), count) in squares.items():
-            args = lon, lat, lon + size, lat + size
+            args = [F.format(n) for n in (lon, lat, lon + size, lat + size)]
             area = 'POLYGON(({0} {1},{0} {3},{2} {3},{2} {1},{0} {1}))'.format(*args)
-            out_csv.writerow(dict(count=count, lon=str(lon), lat=str(lat), area=area))
+            out_csv.writerow(dict(count=count, lon=F.format(lon), lat=F.format(lat), area=area))
     
     prefix, _ = splitext(arc_filename)
     support_csvname = join('summary', prefix+'-summary.csv')
