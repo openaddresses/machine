@@ -199,16 +199,14 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
     
         File is assumed to be open in binary mode.
     '''
-    handle1, tmp_filename1 = mkstemp(suffix='.csv')
-    handle2, tmp_filename2 = mkstemp(suffix='.csv')
-    close(handle1); close(handle2)
+    handle, tmp_filename = mkstemp(suffix='.csv'); close(handle)
     
     if not PY2:
         file = TextIOWrapper(file, 'utf8')
     
     size, squares = .1, defaultdict(lambda: 0)
     
-    with open(tmp_filename1, 'w') as output:
+    with open(tmp_filename, 'w') as output:
         in_csv = DictReader(file)
         out_csv = DictWriter(output, OPENADDR_CSV_SCHEMA, dialect='excel')
         out_csv.writerow({col: col for col in OPENADDR_CSV_SCHEMA})
@@ -226,10 +224,17 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
                 key = floor(lat / size) * size, floor(lon / size) * size
                 squares[key] += 1
 
-    # Write the contents of the full address file.
-    zip_out.write(tmp_filename1, arc_filename)
+    zip_out.write(tmp_filename, arc_filename)
+    remove(tmp_filename)
 
-    with open(tmp_filename2, 'w') as output:
+    _add_spatial_summary_to_zipfile(zip_out, arc_filename, size, squares)
+
+def _add_spatial_summary_to_zipfile(zip_out, arc_filename, size, squares):
+    '''
+    '''
+    handle, tmp_filename = mkstemp(suffix='.csv'); close(handle)
+
+    with open(tmp_filename, 'w') as output:
         columns = 'count', 'lon', 'lat', 'area'
         out_csv = DictWriter(output, columns, dialect='excel')
         out_csv.writerow({col: col for col in columns})
@@ -244,7 +249,7 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
     support_vrtname = join('summary', prefix+'-summary.vrt')
     
     # Write the contents of the summary file.
-    zip_out.write(tmp_filename2, support_csvname)
+    zip_out.write(tmp_filename, support_csvname)
 
     with open(join(dirname(__file__), 'templates', 'source-summary.vrt')) as file:
         args = dict(filename=basename(support_csvname))
@@ -254,7 +259,7 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
     # Write the contents of the summary file VRT.
     zip_out.writestr(vrt_content, support_vrtname)
 
-    remove(tmp_filename1); remove(tmp_filename2)
+    remove(tmp_filename)
 
 def add_source_to_zipfile(zip_out, result):
     ''' Add a LocalProcessedResult to zipfile via expand_and_add_csv_to_zipfile().
