@@ -154,6 +154,8 @@ class TestOA (unittest.TestCase):
                 local_path = join(data_dirname, 'us-pa-lancaster-count-only.json')
             elif body_data.get('outSR') == ['4326']:
                 local_path = join(data_dirname, 'us-pa-lancaster-0.json')
+            elif body_data.get('resultRecordCount') == ['1']:
+                local_path = join(data_dirname, 'us-pa-lancaster-probe.json')
 
         if (host, path) == ('services1.arcgis.com', '/I6XnrlnguPDoEObn/arcgis/rest/services/AddressPoints/FeatureServer/0'):
             qs = parse_qs(query)
