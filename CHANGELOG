@@ -1,3 +1,6 @@
+2016-02-16: 2.15.1
+- Fized ZipFile.writestr argument order in ci.collect.
+
 2016-02-16: 2.15.0
 - Added spatial summary directory to each collection zip.
 

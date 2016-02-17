@@ -260,7 +260,7 @@ def _add_spatial_summary_to_zipfile(zip_out, arc_filename, size, squares):
         vrt_content = file.read().format(**args)
 
     # Write the contents of the summary file VRT.
-    zip_out.writestr(vrt_content, support_vrtname)
+    zip_out.writestr(support_vrtname, vrt_content)
 
     remove(tmp_filename)
 
