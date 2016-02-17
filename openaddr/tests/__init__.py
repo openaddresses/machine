@@ -154,12 +154,31 @@ class TestOA (unittest.TestCase):
                 local_path = join(data_dirname, 'us-pa-lancaster-count-only.json')
             elif body_data.get('outSR') == ['4326']:
                 local_path = join(data_dirname, 'us-pa-lancaster-0.json')
+            elif body_data.get('resultRecordCount') == ['1']:
+                local_path = join(data_dirname, 'us-pa-lancaster-probe.json')
 
         if (host, path) == ('services1.arcgis.com', '/I6XnrlnguPDoEObn/arcgis/rest/services/AddressPoints/FeatureServer/0'):
             qs = parse_qs(query)
 
             if qs.get('f') == ['json']:
                 local_path = join(data_dirname, 'us-pa-lancaster-metadata.json')
+
+        if (host, path) == ('maps.co.washington.mn.us', '/arcgis/rest/services/Public/Public_Parcels/MapServer/0/query'):
+            qs = parse_qs(query)
+            body_data = parse_qs(request.body) if request.body else {}
+
+            if qs.get('returnCountOnly') == ['true']:
+                local_path = join(data_dirname, 'us-nm-washington-count-only.json')
+            elif body_data.get('outSR') == ['4326']:
+                local_path = join(data_dirname, 'us-nm-washington-0.json')
+            elif body_data.get('resultRecordCount') == ['1']:
+                local_path = join(data_dirname, 'us-nm-washington-probe.json')
+
+        if (host, path) == ('maps.co.washington.mn.us', '/arcgis/rest/services/Public/Public_Parcels/MapServer/0'):
+            qs = parse_qs(query)
+
+            if qs.get('f') == ['json']:
+                local_path = join(data_dirname, 'us-nm-washington-metadata.json')
 
         if (host, path) == ('data.openaddresses.io', '/20000101/us-ca-carson-cached.json'):
             local_path = join(data_dirname, 'us-ca-carson-cache.geojson')
@@ -789,6 +808,47 @@ class TestOA (unittest.TestCase):
             self.assertEqual(rows[1]['STREET'], u'W 28TH DIVISION HWY')
             self.assertEqual(rows[11]['STREET'], u'W 28TH DIVISION HWY')
             self.assertEqual(rows[21]['STREET'], u'W 28TH DIVISION HWY')
+
+    def test_single_nm_washington(self):
+        ''' Test complete process_one.process on data without ESRI support for resultRecordCount.
+        '''
+        source = join(self.src_dir, 'us/nm/washington.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+
+        self.assertTrue(state['sample'] is not None)
+
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+
+        self.assertEqual(len(sample_data), 6)
+        self.assertIn('OA:geom', sample_data[0])
+        self.assertIn('BLDG_NUM', sample_data[0])
+        self.assertEqual('7710', sample_data[1][0])
+        self.assertEqual([' ', 'IVERSON', 'AVE', 'S'], sample_data[1][3:7])
+        self.assertEqual('7710', sample_data[1][0])
+        self.assertEqual('9884', sample_data[2][0])
+        self.assertEqual('9030', sample_data[3][0])
+        self.assertEqual('23110', sample_data[4][0])
+        self.assertEqual(' ', sample_data[5][0])
+        
+        output_path = join(dirname(state_path), state['processed'])
+        
+        with csvopen(output_path, encoding='utf8') as input:
+            rows = list(csvDictReader(input, encoding='utf8'))
+            self.assertEqual(rows[1]['UNIT'], u'')
+            self.assertEqual(rows[5]['UNIT'], u'')
+            self.assertEqual(rows[9]['UNIT'], u'')
+            self.assertEqual(rows[1]['NUMBER'], u'9884')
+            self.assertEqual(rows[5]['NUMBER'], u'3842')
+            self.assertEqual(rows[9]['NUMBER'], u'')
+            self.assertEqual(rows[1]['STREET'], u'5TH STREET LN N')
+            self.assertEqual(rows[5]['STREET'], u'ABERCROMBIE LN')
+            self.assertEqual(rows[9]['STREET'], u'')
 
     def test_single_de_berlin(self):
         ''' Test complete process_one.process on data.

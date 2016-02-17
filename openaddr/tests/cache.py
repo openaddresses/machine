@@ -139,6 +139,23 @@ class TestCacheEsriDownload (unittest.TestCase):
                 if qs.get('f') == ['json']:
                     local_path = join(data_dirname, 'us-esri-test-metadata.json')
 
+        if host == 'maps.co.washington.mn.us':
+            qs = parse_qs(query)
+
+            if path == '/arcgis/rest/services/Public/Public_Parcels/MapServer/0/query':
+                body_data = parse_qs(request.body) if request.body else {}
+
+                if qs.get('returnCountOnly') == ['true']:
+                    local_path = join(data_dirname, 'us-mn-washington-count-only.json')
+                elif body_data.get('resultRecordCount') == ['1']:
+                    local_path = join(data_dirname, 'us-mn-washington-0.json')
+                elif body_data.get('outFields') == ['*']:
+                    local_path = join(data_dirname, 'us-mn-washington-0-allfields.json')
+
+            elif path == '/arcgis/rest/services/Public/Public_Parcels/MapServer/0':
+                if qs.get('f') == ['json']:
+                    local_path = join(data_dirname, 'us-mn-washington-metadata.json')
+
         if host == 'gis.co.tuolumne.ca.us':
             qs = parse_qs(query)
 
@@ -230,3 +247,22 @@ class TestCacheEsriDownload (unittest.TestCase):
         for expected, conform in conforms:
             actual = task.field_names_to_request(conform)
             self.assertEqual(expected, actual)
+
+    def test_download_fallback_to_all_fields(self):
+        """ ESRI Caching Falls Back to Requesting All Fields During Pagination """
+        conform = {
+            "type": "geojson",
+            "number": "BLDG_NUM",
+            "street": [
+                "PREFIX_DIR",
+                "PREFIXTYPE",
+                "STREETNAME",
+                "STREETTYPE",
+                "SUFFIX_DIR"
+            ],
+            "city": "CITY_USPS",
+            "postcode": "ZIP"
+        }
+        with httmock.HTTMock(self.response_content):
+            task = EsriRestDownloadTask('us-mn-washington')
+            task.download(['http://maps.co.washington.mn.us/arcgis/rest/services/Public/Public_Parcels/MapServer/0'], self.workdir, conform)
