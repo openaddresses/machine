@@ -390,6 +390,28 @@ class EsriRestDownloadTask(DownloadTask):
         oid_data = self.handle_esri_errors(response, "Could not retrieve object IDs from ESRI source")
         return oid_data
 
+    def can_handle_pagination(self, query_url, query_fields):
+        check_args = {
+            'resultOffset': 0,
+            'resultRecordCount': 1,
+            'where': '1=1',
+            'returnGeometry': 'false',
+            'outFields': ','.join(query_fields),
+            'f': 'json',
+        }
+        response = request('POST', query_url, headers=self.headers, data=check_args)
+
+        try:
+            data = response.json()
+        except:
+            _L.error("Could not parse response from pagination check {} as JSON:\n\n{}".format(
+                response.request.url,
+                response.text,
+            ))
+            return False
+
+        return data.get('error') and data['error']['message'] != "Failed to execute query."
+
     def find_oid_field_name(self, metadata):
         oid_field_name = metadata.get('objectIdField')
         if not oid_field_name:
@@ -474,6 +496,14 @@ class EsriRestDownloadTask(DownloadTask):
             if metadata.get('supportsPagination') or \
                (metadata.get('advancedQueryCapabilities') and metadata['advancedQueryCapabilities']['supportsPagination']):
                 # If the layer supports pagination, we can use resultOffset/resultRecordCount to paginate
+
+                # There's a bug where some servers won't handle these queries in combination with a list of
+                # fields specified. We'll make a single, 1 row query here to check if the server supports this
+                # and switch to querying for all fields if specifying the fields fails.
+                if query_fields and not self.can_handle_pagination(query_url, query_fields):
+                    _L.info("Source does not support pagination with fields specified, so querying for all fields.")
+                    query_fields = None
+
                 for offset in range(0, row_count, page_size):
                     page_args.append({
                         'resultOffset': offset,
