@@ -1,3 +1,6 @@
+2016-02-16: 2.15.0
+- Added spatial summary directory to each collection zip.
+
 2016-02-09: 2.14.0
 - Added /index.json index of data URLs.
 - Added /latest/run/{source}.json redirect for processed data.
