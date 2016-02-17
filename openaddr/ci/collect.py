@@ -3,9 +3,10 @@ import logging; _L = logging.getLogger('openaddr.ci.collect')
 from ..compat import standard_library
 
 from argparse import ArgumentParser
+from collections import defaultdict
 from os import environ, stat, close, remove
 from zipfile import ZipFile, ZIP_DEFLATED
-from os.path import splitext, exists, basename, join
+from os.path import splitext, exists, basename, join, dirname
 from urllib.parse import urlparse
 from operator import attrgetter
 from csv import DictReader, DictWriter
@@ -14,6 +15,7 @@ from itertools import product
 from io import TextIOWrapper
 from datetime import date
 from shutil import rmtree
+from math import floor
 
 from .objects import read_latest_set, read_completed_runs_to_date
 from . import db_connect, db_cursor, setup_logger, render_index_maps, log_function_errors
@@ -197,26 +199,69 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
     
         File is assumed to be open in binary mode.
     '''
-    handle, tmp_filename = mkstemp(suffix='.csv')
-    close(handle)
+    handle, tmp_filename = mkstemp(suffix='.csv'); close(handle)
     
     if not PY2:
         file = TextIOWrapper(file, 'utf8')
     
+    size, squares = .1, defaultdict(lambda: 0)
+    
     with open(tmp_filename, 'w') as output:
-        if do_expand:
-            in_csv = DictReader(file)
-            out_csv = DictWriter(output, OPENADDR_CSV_SCHEMA, dialect='excel')
-            out_csv.writerow({col: col for col in OPENADDR_CSV_SCHEMA})
-        
-            for row in in_csv:
+        in_csv = DictReader(file)
+        out_csv = DictWriter(output, OPENADDR_CSV_SCHEMA, dialect='excel')
+        out_csv.writerow({col: col for col in OPENADDR_CSV_SCHEMA})
+    
+        for row in in_csv:
+            try:
+                lat, lon = float(row['LAT']), float(row['LON'])
+            except ValueError:
+                continue
+
+            if do_expand:
                 row['STREET'] = expand.expand_street_name(row['STREET'])
-                out_csv.writerow(row)
-        else:
-            for line in file:
-                output.write(line)
+            
+            out_csv.writerow(row)
+            key = floor(lat / size) * size, floor(lon / size) * size
+            squares[key] += 1
 
     zip_out.write(tmp_filename, arc_filename)
+    remove(tmp_filename)
+
+    _add_spatial_summary_to_zipfile(zip_out, arc_filename, size, squares)
+
+def _add_spatial_summary_to_zipfile(zip_out, arc_filename, size, squares):
+    '''
+    '''
+    assert size in (.1, .2, .5, 1.)
+    F = '{:.1f}'
+
+    handle, tmp_filename = mkstemp(suffix='.csv'); close(handle)
+
+    with open(tmp_filename, 'w') as output:
+        columns = 'count', 'lon', 'lat', 'area'
+        out_csv = DictWriter(output, columns, dialect='excel')
+        out_csv.writerow({col: col for col in columns})
+
+        for ((lat, lon), count) in squares.items():
+            args = [F.format(n) for n in (lon, lat, lon + size, lat + size)]
+            area = 'POLYGON(({0} {1},{0} {3},{2} {3},{2} {1},{0} {1}))'.format(*args)
+            out_csv.writerow(dict(count=count, lon=F.format(lon), lat=F.format(lat), area=area))
+    
+    prefix, _ = splitext(arc_filename)
+    support_csvname = join('summary', prefix+'-summary.csv')
+    support_vrtname = join('summary', prefix+'-summary.vrt')
+    
+    # Write the contents of the summary file.
+    zip_out.write(tmp_filename, support_csvname)
+
+    with open(join(dirname(__file__), 'templates', 'source-summary.vrt')) as file:
+        args = dict(filename=basename(support_csvname))
+        args.update(name=splitext(args['filename'])[0])
+        vrt_content = file.read().format(**args)
+
+    # Write the contents of the summary file VRT.
+    zip_out.writestr(vrt_content, support_vrtname)
+
     remove(tmp_filename)
 
 def add_source_to_zipfile(zip_out, result):
