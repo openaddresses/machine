@@ -814,6 +814,15 @@ class TestHook (unittest.TestCase):
         print('Unknowable Request {} "{}"'.format(request.method, url.geturl()), file=sys.stderr)
         raise ValueError('Unknowable Request {} "{}"'.format(request.method, url.geturl()))
 
+    def test_data_index(self):
+        '''
+        '''
+        got = self.client.get('index.json')
+        index = json.loads(got.data)
+        
+        self.assertEqual(index['run_states_url'], 'http://localhost/state.txt')
+        self.assertEqual(index['latest_run_processed_url'], 'http://localhost/latest/run/{source}.zip')
+    
     def test_webhook_badjson_content(self):
         ''' Push a single commit with bad JSON source directly to master.
         '''
