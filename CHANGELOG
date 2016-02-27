@@ -1,3 +1,6 @@
+2016-02-26: 2.16.0
+- Added collections links to /index.json.
+
 2016-02-17: 2.15.2
 - Handled old Esri server responses to resultRecordCount request args. 
 
