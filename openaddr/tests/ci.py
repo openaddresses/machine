@@ -600,6 +600,17 @@ class TestHook (unittest.TestCase):
         from ..ci.webhooks import app
 
         recreate_db.recreate(app.config['DATABASE_URL'])
+        
+        with db_connect(app.config['DATABASE_URL']) as conn:
+            with db_cursor(conn) as db:
+                db.executemany('''INSERT INTO zips
+                                  (datetime, is_current, content_length, collection, license_attr, url)
+                                  VALUES (NOW(), %s, %s, %s, %s, %s)''',
+                               [(True, 1234, 'global', '', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-global.zip'),
+                                (True, 2345, 'global', 'sa', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-global-sa.zip'),
+                                (True, 3456, 'us_west', '', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-us_west.zip'),
+                                (False, 4567, 'us_west', 'sa', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-us_west-sa.zip'),
+                                (False, 5678, 'europe', '', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-europe-sa.zip')])
 
         self.output_dir = mkdtemp(prefix='TestHook-')
         self.database_url = app.config['DATABASE_URL']
@@ -819,9 +830,16 @@ class TestHook (unittest.TestCase):
         '''
         got = self.client.get('index.json')
         index = json.loads(got.data)
+        colls = index.get('collections', {})
         
         self.assertEqual(index['run_states_url'], 'http://localhost/state.txt')
         self.assertEqual(index['latest_run_processed_url'], 'http://localhost/latest/run/{source}.zip')
+        
+        self.assertEqual(colls['global']['']['url'], 'http://data.openaddresses.io/openaddr-collected-global.zip')
+        self.assertEqual(colls['global']['sa']['url'], 'http://data.openaddresses.io/openaddr-collected-global-sa.zip')
+        self.assertEqual(colls['us_west']['']['url'], 'http://data.openaddresses.io/openaddr-collected-us_west.zip')
+        self.assertNotIn('sa', colls['us_west'])
+        self.assertNotIn('europe', colls)
     
     def test_webhook_badjson_content(self):
         ''' Push a single commit with bad JSON source directly to master.
