@@ -118,9 +118,26 @@ def app_index():
 @webhooks.route('/index.json')
 @log_application_errors
 def app_index_json():
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            zips = load_collection_zips_dict(db)
+    
+    collections = {}
+    
+    for ((collection, license), zip) in zips.items():
+        if collection not in collections:
+            collections[collection] = dict()
+        
+        if license not in collections[collection]:
+            collections[collection][license] = dict()
+        
+        d = dict(url=nice_domain(zip.url), content_length=zip.content_length)
+        collections[collection][license] = d
+    
     return jsonify({
         'run_states_url': urljoin(request.url, u'/state.txt'),
-        'latest_run_processed_url': urljoin(request.url, u'/latest/run/{source}.zip')
+        'latest_run_processed_url': urljoin(request.url, u'/latest/run/{source}.zip'),
+        'collections': collections
         })
 
 @webhooks.route('/state.txt', methods=['GET'])
