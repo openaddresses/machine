@@ -123,8 +123,13 @@ def app_index_json():
             zips = load_collection_zips_dict(db)
     
     collections = {}
+    licenses = {'': 'Freely Shareable', 'sa': 'Share-Alike Required'}
     
     for ((collection, license), zip) in zips.items():
+        if zip.content_length < 1024:
+            # too small, probably empty
+            continue
+
         if collection not in collections:
             collections[collection] = dict()
         
@@ -132,6 +137,7 @@ def app_index_json():
             collections[collection][license] = dict()
         
         d = dict(url=nice_domain(zip.url), content_length=zip.content_length)
+        d['license'] = licenses[license]
         collections[collection][license] = d
     
     return jsonify({

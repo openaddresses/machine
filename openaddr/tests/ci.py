@@ -609,7 +609,7 @@ class TestHook (unittest.TestCase):
                                [(True, 1234, 'global', '', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-global.zip'),
                                 (True, 2345, 'global', 'sa', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-global-sa.zip'),
                                 (True, 3456, 'us_west', '', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-us_west.zip'),
-                                (False, 4567, 'us_west', 'sa', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-us_west-sa.zip'),
+                                (True, 456, 'us_west', 'sa', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-us_west-sa.zip'),
                                 (False, 5678, 'europe', '', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-europe-sa.zip')])
 
         self.output_dir = mkdtemp(prefix='TestHook-')
@@ -838,6 +838,12 @@ class TestHook (unittest.TestCase):
         self.assertEqual(colls['global']['']['url'], 'http://data.openaddresses.io/openaddr-collected-global.zip')
         self.assertEqual(colls['global']['sa']['url'], 'http://data.openaddresses.io/openaddr-collected-global-sa.zip')
         self.assertEqual(colls['us_west']['']['url'], 'http://data.openaddresses.io/openaddr-collected-us_west.zip')
+        self.assertEqual(colls['global']['']['content_length'], 1234)
+        self.assertEqual(colls['global']['sa']['content_length'], 2345)
+        self.assertEqual(colls['us_west']['']['content_length'], 3456)
+        self.assertEqual(colls['global']['']['license'], 'Freely Shareable')
+        self.assertEqual(colls['global']['sa']['license'], 'Share-Alike Required')
+        self.assertEqual(colls['us_west']['']['license'], 'Freely Shareable')
         self.assertNotIn('sa', colls['us_west'])
         self.assertNotIn('europe', colls)
     
