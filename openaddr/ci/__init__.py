@@ -633,7 +633,6 @@ def _worker_id():
 def _wait_for_work_lock(lock, source_name, heartbeat_queue):
     '''
     '''
-    heartbeat_queue.put({'worker_id': _worker_id()})
     print('Okay...', source_name, file=sys.stderr)
     from time import time; start = time()
     
@@ -695,7 +694,9 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
         work_wait = threading.Thread(target=_wait_for_work_lock, args=(work_lock, passed_on_kwargs['name'], heartbeat_queue))
 
         with work_lock:
+            heartbeat_queue.put({'worker_id': _worker_id()})
             work_wait.start()
+
             source_name, _ = splitext(relpath(passed_on_kwargs['name'], 'sources'))
             result = worker.do_work(s3, passed_on_kwargs['run_id'], source_name,
                                     passed_on_kwargs['content_b64'], output_dir)
@@ -782,6 +783,15 @@ def pop_task_from_duequeue(queue, github_auth):
 
         if job_id:
             update_job_status(db, job_id, job_url, filename, run_status, False, github_auth)
+
+def clear_heartbeat_queue(queue):
+    '''
+    '''
+    with queue as db:
+        task = queue.get()
+        while task is not None:
+            print('heartbeat:', task.id, task.data, file=sys.stderr)
+            task = queue.get()
 
 def db_connect(dsn=None, user=None, password=None, host=None, port=None, database=None, sslmode=None):
     ''' Connect to database.

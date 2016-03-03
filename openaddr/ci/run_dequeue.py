@@ -6,7 +6,8 @@ from boto import connect_cloudwatch
 
 from . import (
     db_connect, db_queue, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, load_config,
-    pop_task_from_donequeue, pop_task_from_duequeue, setup_logger
+    pop_task_from_donequeue, pop_task_from_duequeue, setup_logger,
+    HEARTBEAT_QUEUE, clear_heartbeat_queue
     )
 
 def main():
@@ -27,9 +28,11 @@ def main():
                 task_Q = db_queue(conn, TASK_QUEUE)
                 done_Q = db_queue(conn, DONE_QUEUE)
                 due_Q = db_queue(conn, DUE_QUEUE)
+                beat_Q = db_queue(conn, HEARTBEAT_QUEUE)
 
                 pop_task_from_donequeue(done_Q, config['GITHUB_AUTH'])
                 pop_task_from_duequeue(due_Q, config['GITHUB_AUTH'])
+                clear_heartbeat_queue(beat_Q)
             
                 if time() < checkin_time:
                     continue
