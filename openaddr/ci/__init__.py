@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import logging; _L = logging.getLogger('openaddr.ci')
 
 from ..compat import standard_library, expand_uri
@@ -630,21 +628,18 @@ def is_merged_to_master(db, set_id, job_id, commit_sha, github_auth):
 def _worker_id():
     return hex(getnode()).rstrip('L')
 
-def _wait_for_work_lock(lock, source_name, heartbeat_queue):
+def _wait_for_work_lock(lock, heartbeat_queue):
+    ''' Wait around for worker while sending heartbeat pings.
     '''
-    '''
-    print('Okay...', source_name, file=sys.stderr)
-    from time import time; start = time()
-    
+    sleep(.1)
+
     while True:
-        sleep(.1)
         if lock.acquire(False):
-            print('Yo dawg', source_name, round(time() - start, 5), file=sys.stderr)
             break
-        else:
-            print('...', source_name, file=sys.stderr)
-            sleep(HEARTBEAT_INTERVAL.seconds + HEARTBEAT_INTERVAL.days * 86400)
-            heartbeat_queue.put({'worker_id': _worker_id()})
+
+        # Keep this put() outside the lock, so threads don't confuse Postgres.
+        sleep(HEARTBEAT_INTERVAL.seconds + HEARTBEAT_INTERVAL.days * 86400)
+        heartbeat_queue.put({'worker_id': _worker_id()})
 
 def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, output_dir):
     '''
@@ -691,7 +686,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
         from . import worker # <-- TODO: un-suck this.
 
         work_lock = threading.Lock()
-        work_wait = threading.Thread(target=_wait_for_work_lock, args=(work_lock, passed_on_kwargs['name'], heartbeat_queue))
+        work_wait = threading.Thread(target=_wait_for_work_lock, args=(work_lock, heartbeat_queue))
 
         with work_lock:
             heartbeat_queue.put({'worker_id': _worker_id()})
@@ -702,7 +697,6 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
                                     passed_on_kwargs['content_b64'], output_dir)
         
         work_wait.join()
-        print('Phew.', source_name, file=sys.stderr)
 
     # Send a Done task
     done_task_data = dict(result=result, **passed_on_kwargs)
@@ -785,12 +779,12 @@ def pop_task_from_duequeue(queue, github_auth):
             update_job_status(db, job_id, job_url, filename, run_status, False, github_auth)
 
 def clear_heartbeat_queue(queue):
-    '''
+    ''' Clear out heartbeat queue, logging each one.
     '''
     with queue as db:
         task = queue.get()
         while task is not None:
-            print('heartbeat:', task.id, task.data, file=sys.stderr)
+            _L.info('Got heartbeat {}: {}'.format(task.id, task.data))
             task = queue.get()
 
 def db_connect(dsn=None, user=None, password=None, host=None, port=None, database=None, sslmode=None):
