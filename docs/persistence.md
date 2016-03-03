@@ -26,11 +26,12 @@ Other information:
 
 The queue is used to schedule runs for [_Worker_ instances](components.md#worker), and its size is used to grow and shrink the _Worker_ pool. The queue is generally empty, and used only to store temporary data for scheduling runs. We use [PQ](https://github.com/malthe/pq) to implement the queue in Python. Data is stored in the one PostgreSQL database but treated as separate.
 
-There are three queues:
+There are four queues:
 
 1. `tasks` queue contains new runs to be handled.
 2. `done` queue contains complete runs to be recognized.
 3. `due` queue contains delayed runs that may have gone overtime.
+4. `heartbeat` queue contains pings from active workers.
 
 Other information:
 
