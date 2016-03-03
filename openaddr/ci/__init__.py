@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import logging; _L = logging.getLogger('openaddr.ci')
 
 from ..compat import standard_library, expand_uri
@@ -19,6 +21,7 @@ from tempfile import mkdtemp
 from functools import wraps
 from shutil import rmtree
 from time import sleep
+import threading, sys
 import json, os
 
 from flask import Flask, request, Response, current_app, jsonify, render_template
@@ -621,6 +624,21 @@ def is_merged_to_master(db, set_id, job_id, commit_sha, github_auth):
             .format(job.github_owner, job.github_repository, commit_sha, e))
         return None
 
+def _wait_for_work_lock(lock, source_name):
+    '''
+    '''
+    print('Okay...', source_name, file=sys.stderr)
+    from time import time; start = time()
+    
+    while True:
+        sleep(.1)
+        if lock.acquire(False):
+            print('Yo dawg', source_name, round(time() - start, 5), file=sys.stderr)
+            break
+        else:
+            print('...', source_name, file=sys.stderr)
+            sleep(.2)
+
 def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
     '''
     '''
@@ -664,9 +682,18 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
     else:
         # Run the task.
         from . import worker # <-- TODO: un-suck this.
-        source_name, _ = splitext(relpath(passed_on_kwargs['name'], 'sources'))
-        result = worker.do_work(s3, passed_on_kwargs['run_id'], source_name,
-                                passed_on_kwargs['content_b64'], output_dir)
+
+        work_lock = threading.Lock()
+        work_wait = threading.Thread(target=_wait_for_work_lock, args=(work_lock, passed_on_kwargs['name']))
+
+        with work_lock:
+            work_wait.start()
+            source_name, _ = splitext(relpath(passed_on_kwargs['name'], 'sources'))
+            result = worker.do_work(s3, passed_on_kwargs['run_id'], source_name,
+                                    passed_on_kwargs['content_b64'], output_dir)
+        
+        work_wait.join()
+        print('Phew.', source_name, file=sys.stderr)
 
     # Send a Done task
     done_task_data = dict(result=result, **passed_on_kwargs)
