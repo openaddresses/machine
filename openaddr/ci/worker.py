@@ -18,7 +18,7 @@ from urllib.parse import urlparse, urljoin
 from . import (
     db_connect, db_queue, db_queue, pop_task_from_taskqueue,
     MAGIC_OK_MESSAGE, DONE_QUEUE, TASK_QUEUE, DUE_QUEUE, setup_logger,
-    log_function_errors
+    log_function_errors, HEARTBEAT_QUEUE
     )
 
 def upload_file(s3, keyname, filename):
@@ -160,7 +160,8 @@ def main():
                 task_Q = db_queue(conn, TASK_QUEUE)
                 done_Q = db_queue(conn, DONE_QUEUE)
                 due_Q = db_queue(conn, DUE_QUEUE)
-                pop_task_from_taskqueue(s3, task_Q, done_Q, due_Q, worker_dir)
+                beat_Q = db_queue(conn, HEARTBEAT_QUEUE)
+                pop_task_from_taskqueue(s3, task_Q, done_Q, due_Q, beat_Q, worker_dir)
         except:
             _L.error('Error in worker main()', exc_info=True)
             time.sleep(5)

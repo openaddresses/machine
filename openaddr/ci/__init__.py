@@ -19,6 +19,7 @@ from tempfile import mkdtemp
 from functools import wraps
 from shutil import rmtree
 from time import sleep
+import threading, sys
 import json, os
 
 from flask import Flask, request, Response, current_app, jsonify, render_template
@@ -48,7 +49,7 @@ def load_config():
                 WEBHOOK_SECRETS=webhook_secrets)
 
 MAGIC_OK_MESSAGE = 'Everything is fine'
-TASK_QUEUE, DONE_QUEUE, DUE_QUEUE = 'tasks', 'finished', 'due'
+TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, HEARTBEAT_QUEUE = 'tasks', 'finished', 'due', 'heartbeat'
 
 # Additional delay after JOB_TIMEOUT for due tasks.
 DUETASK_DELAY = timedelta(minutes=5)
@@ -61,6 +62,9 @@ WORKER_COOLDOWN = timedelta(seconds=5)
 
 # Time to chill out in find_batch_sources() after failing a request.
 GITHUB_RETRY_DELAY = timedelta(seconds=5)
+
+# Time to wait between heartbeat pings from workers.
+HEARTBEAT_INTERVAL = timedelta(minutes=5)
 
 def td2str(td):
     ''' Convert a timedelta to a string formatted like '3h'.
@@ -621,7 +625,23 @@ def is_merged_to_master(db, set_id, job_id, commit_sha, github_auth):
             .format(job.github_owner, job.github_repository, commit_sha, e))
         return None
 
-def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
+def _worker_id():
+    return hex(getnode()).rstrip('L')
+
+def _wait_for_work_lock(lock, heartbeat_queue):
+    ''' Wait around for worker while sending heartbeat pings.
+    '''
+    sleep(.1)
+
+    while True:
+        if lock.acquire(False):
+            break
+
+        # Keep this put() outside the lock, so threads don't confuse Postgres.
+        sleep(HEARTBEAT_INTERVAL.seconds + HEARTBEAT_INTERVAL.days * 86400)
+        heartbeat_queue.put({'worker_id': _worker_id()})
+
+def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, output_dir):
     '''
     '''
     with task_queue as db:
@@ -634,7 +654,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
         _L.info(u'Got file {name} from task queue'.format(**task.data))
         passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'commit_sha', 'set_id'
         passed_on_kwargs = {k: task.data.get(k) for k in passed_on_keys}
-        passed_on_kwargs['worker_id'] = hex(getnode()).rstrip('L')
+        passed_on_kwargs['worker_id'] = _worker_id()
 
         interval = '{} seconds'.format(RUN_REUSE_TIMEOUT.seconds + RUN_REUSE_TIMEOUT.days * 86400)
         previous_run = get_completed_file_run(db, task.data.get('file_id'), interval)
@@ -664,9 +684,19 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, output_dir):
     else:
         # Run the task.
         from . import worker # <-- TODO: un-suck this.
-        source_name, _ = splitext(relpath(passed_on_kwargs['name'], 'sources'))
-        result = worker.do_work(s3, passed_on_kwargs['run_id'], source_name,
-                                passed_on_kwargs['content_b64'], output_dir)
+
+        work_lock = threading.Lock()
+        work_wait = threading.Thread(target=_wait_for_work_lock, args=(work_lock, heartbeat_queue))
+
+        with work_lock:
+            heartbeat_queue.put({'worker_id': _worker_id()})
+            work_wait.start()
+
+            source_name, _ = splitext(relpath(passed_on_kwargs['name'], 'sources'))
+            result = worker.do_work(s3, passed_on_kwargs['run_id'], source_name,
+                                    passed_on_kwargs['content_b64'], output_dir)
+        
+        work_wait.join()
 
     # Send a Done task
     done_task_data = dict(result=result, **passed_on_kwargs)
@@ -747,6 +777,16 @@ def pop_task_from_duequeue(queue, github_auth):
 
         if job_id:
             update_job_status(db, job_id, job_url, filename, run_status, False, github_auth)
+
+def flush_heartbeat_queue(queue):
+    ''' Clear out heartbeat queue, logging each one.
+    '''
+    with queue as db:
+        for task in queue:
+            if task is None:
+                break
+
+            _L.info('Got heartbeat {}: {}'.format(task.id, task.data))
 
 def db_connect(dsn=None, user=None, password=None, host=None, port=None, database=None, sslmode=None):
     ''' Connect to database.

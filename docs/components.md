@@ -21,7 +21,7 @@ This [Python + Flask](http://flask.pocoo.org) application is the center of the O
 
 Does the actual work of running a source and producing output files.
 
-This Python script accepts new source runs from the [`tasks` queue](persistence.md#queue), converts them into output Zip archives with CSV files, uploads those to [S3](persistence.md#s3), and notifies the [dequeuer](#dequeuer) via the [`due` and `done` queues](persistence.md#queue). _Worker_ is single-threaded, and intended to be run in parallel on multiple instances. _Worker_ uses EC2 auto-scaling to respond to increased demand by launching new instances. One worker is kept alive at all times on the same EC2 instance as _Webhook_.
+This Python script accepts new source runs from the [`tasks` queue](persistence.md#queue), converts them into output Zip archives with CSV files, uploads those to [S3](persistence.md#s3), and notifies the [dequeuer](#dequeuer) via the [`due`, `done`, and `heartbeat` queues](persistence.md#queue). _Worker_ is single-threaded, and intended to be run in parallel on multiple instances. _Worker_ uses EC2 auto-scaling to respond to increased demand by launching new instances. One worker is kept alive at all times on the same EC2 instance as _Webhook_.
 
 The actual work is done a separate sub-process, [using the `openaddr-process-one` script](https://github.com/openaddresses/machine/blob/2.5.0/setup.py#L41).
 
@@ -37,7 +37,7 @@ The actual work is done a separate sub-process, [using the `openaddr-process-one
 
 Collects the results from runs that are completed and reports to GitHub and to Cloudwatch.
 
-This Python script watches the [`done` and `due` queues](persistence.md#queue). Run status is updated based on the contents of those queues: if a run appears in the `due` queue first, it will be marked as failed and any subsequent `done` queue item will be ignored. If a run appears in the `done` queue first, it will be marked as successful. Statuses are [posted to the Github status API](https://developer.github.com/v3/repos/statuses/) for runs connected to a CI job initiated by _Webhook_ and [to the `runs` table](persistence.md#db) with links.
+This Python script watches the [`done`, `due`, and `heartbeat` queues](persistence.md#queue). Run status is updated based on the contents of those queues: if a run appears in the `due` queue first, it will be marked as failed and any subsequent `done` queue item will be ignored. If a run appears in the `done` queue first, it will be marked as successful. Statuses are [posted to the Github status API](https://developer.github.com/v3/repos/statuses/) for runs connected to a CI job initiated by _Webhook_ and [to the `runs` table](persistence.md#db) with links.
 
 This script also watches the overall size of the queue, and [updates Cloudwatch metrics](https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#metrics:metricFilter=Pattern%253Dopenaddr.ci) to determine when [the _Worker_ pool](#worker) needs to grow or shrink.
 

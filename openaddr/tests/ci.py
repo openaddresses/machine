@@ -28,7 +28,7 @@ from ..ci import (
     pop_task_from_donequeue, pop_task_from_taskqueue, pop_task_from_duequeue,
     create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE,
     enqueue_sources, find_batch_sources, render_set_maps, render_index_maps,
-    is_merged_to_master, get_commit_info
+    is_merged_to_master, get_commit_info, HEARTBEAT_QUEUE, flush_heartbeat_queue
     )
 
 from ..ci.objects import (
@@ -847,6 +847,7 @@ class TestHook (unittest.TestCase):
         self.assertNotIn('sa', colls['us_west'])
         self.assertNotIn('europe', colls)
     
+    @patch('openaddr.ci.HEARTBEAT_INTERVAL', new=timedelta(seconds=1))
     def test_webhook_badjson_content(self):
         ''' Push a single commit with bad JSON source directly to master.
         '''
@@ -869,7 +870,8 @@ class TestHook (unittest.TestCase):
             task_q = db_queue(conn, TASK_QUEUE)
             done_q = db_queue(conn, DONE_QUEUE)
             due_q = db_queue(conn, DUE_QUEUE)
-            pop_task_from_taskqueue(self.s3, task_q, done_q, due_q, self.output_dir)
+            beat_q = db_queue(conn, HEARTBEAT_QUEUE)
+            pop_task_from_taskqueue(self.s3, task_q, done_q, due_q, beat_q, self.output_dir)
             pop_task_from_donequeue(done_q, self.github_auth)
             
         self.assertEqual(self.last_status_state, 'failure', 'Bad JSON should lead to failure')
@@ -1450,10 +1452,11 @@ class TestRuns (unittest.TestCase):
             task_Q = db_queue(conn, TASK_QUEUE)
             done_Q = db_queue(conn, DONE_QUEUE)
             due_Q = db_queue(conn, DUE_QUEUE)
+            beat_Q = db_queue(conn, HEARTBEAT_QUEUE)
 
             files = {source_path: (en64(source), source_id)}
             job_id = create_queued_job(task_Q, files, *self.fake_queued_job_args_unmerged)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
             self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
             
             # Work done! 
@@ -1478,6 +1481,8 @@ class TestRuns (unittest.TestCase):
                 self.assertEqual(db_source_id, source_id)
                 self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
                 self.assertIs(is_merged, False, 'Needs to be unmerged')
+
+            flush_heartbeat_queue(beat_Q)
      
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=2))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
@@ -1502,13 +1507,14 @@ class TestRuns (unittest.TestCase):
             task_Q = db_queue(conn, TASK_QUEUE)
             done_Q = db_queue(conn, DONE_QUEUE)
             due_Q = db_queue(conn, DUE_QUEUE)
+            beat_Q = db_queue(conn, HEARTBEAT_QUEUE)
 
             files = {source_path: (en64(source), source_id)}
             job_id = create_queued_job(task_Q, files, *self.fake_queued_job_args)
         
             # Bad things will happen and the job will fail.
             with self.assertRaises(NotImplementedError) as e:
-                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
+                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
 
             # Should do nothing, because a Done task was never sent.
             pop_task_from_donequeue(done_Q, None)
@@ -1543,6 +1549,8 @@ class TestRuns (unittest.TestCase):
                 self.assertEqual(db_source_path, source_path)
                 self.assertEqual(db_source_id, source_id)
                 self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
+
+            flush_heartbeat_queue(beat_Q)
      
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
@@ -1567,10 +1575,11 @@ class TestRuns (unittest.TestCase):
             task_Q = db_queue(conn, TASK_QUEUE)
             done_Q = db_queue(conn, DONE_QUEUE)
             due_Q = db_queue(conn, DUE_QUEUE)
+            beat_Q = db_queue(conn, HEARTBEAT_QUEUE)
 
             files = {source_path: (en64(source), source_id)}
             job_id = create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
 
             # Should do nothing, because no Due task is yet scheduled.
             pop_task_from_duequeue(due_Q, None)
@@ -1605,6 +1614,8 @@ class TestRuns (unittest.TestCase):
                 self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
                 self.assertTrue(is_merged)
 
+            flush_heartbeat_queue(beat_Q)
+
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
@@ -1631,12 +1642,13 @@ class TestRuns (unittest.TestCase):
             task_Q = db_queue(conn, TASK_QUEUE)
             done_Q = db_queue(conn, DONE_QUEUE)
             due_Q = db_queue(conn, DUE_QUEUE)
+            beat_Q = db_queue(conn, HEARTBEAT_QUEUE)
 
             do_work.side_effect = returns_plausible_result
 
             files = {source_path: (en64(source), source_id)}
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
             self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
             
             # Work done!
@@ -1657,7 +1669,7 @@ class TestRuns (unittest.TestCase):
             self.last_status_state = None
 
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
             self.assertEqual(self.last_status_state, None, 'Should be nothing still')
             
             # Work done again!
@@ -1682,7 +1694,7 @@ class TestRuns (unittest.TestCase):
             self.last_status_state = None
 
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
             self.assertEqual(self.last_status_state, None, 'Should be nothing still')
             
             # Work done a third time!
@@ -1703,6 +1715,8 @@ class TestRuns (unittest.TestCase):
                 self.assertEqual(third_nonce, second_nonce, 'The two runs should share the same nonce')
                 self.assertEqual(third_copyof, first_run_id, 'The third run should be a copy of the first')
                 self.assertEqual(third_is_merged, first_is_merged, 'The third run should also be merged')
+
+            flush_heartbeat_queue(beat_Q)
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
@@ -1730,10 +1744,11 @@ class TestRuns (unittest.TestCase):
             task_Q = db_queue(conn, TASK_QUEUE)
             done_Q = db_queue(conn, DONE_QUEUE)
             due_Q = db_queue(conn, DUE_QUEUE)
+            beat_Q = db_queue(conn, HEARTBEAT_QUEUE)
 
             files = {source_path: (en64(source), source_id)}
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
             self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
             
             # Work done!
@@ -1753,7 +1768,7 @@ class TestRuns (unittest.TestCase):
             sleep(1.5)
 
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
             self.assertEqual(self.last_status_state, None, 'Should be nothing still')
             
             # Work done again!
@@ -1765,6 +1780,8 @@ class TestRuns (unittest.TestCase):
                 db.execute("SELECT state->>'nonce' FROM runs")
                 (nonce1, ), (nonce2, ) = db.fetchall()
                 self.assertNotEqual(nonce1, nonce2, 'There should have been two different runs')
+
+            flush_heartbeat_queue(beat_Q)
 
 class TestWorker (unittest.TestCase):
 
@@ -2136,6 +2153,7 @@ class TestBatch (unittest.TestCase):
             task_Q = db_queue(conn, TASK_QUEUE)
             done_Q = db_queue(conn, DONE_QUEUE)
             due_Q = db_queue(conn, DUE_QUEUE)
+            beat_Q = db_queue(conn, HEARTBEAT_QUEUE)
             
             owner, repository = 'openaddresses', 'hooked-on-sources'
             with task_Q as db: new_set = add_set(db, owner, repository)
@@ -2146,7 +2164,7 @@ class TestBatch (unittest.TestCase):
             # There is a task for us in the queue, run it successfully.
             #
             next(enqueued)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
             pop_task_from_donequeue(done_Q, self.github_auth)
             
             sleep(1.1)
@@ -2156,7 +2174,7 @@ class TestBatch (unittest.TestCase):
             # There is a task for us in the queue, make it take too long.
             #
             next(enqueued)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
             
             sleep(1.1)
             pop_task_from_duequeue(due_Q, self.github_auth)
@@ -2196,6 +2214,7 @@ class TestBatch (unittest.TestCase):
             task_Q = db_queue(conn, TASK_QUEUE)
             done_Q = db_queue(conn, DONE_QUEUE)
             due_Q = db_queue(conn, DUE_QUEUE)
+            beat_Q = db_queue(conn, HEARTBEAT_QUEUE)
             
             owner, repository = 'openaddresses', 'hooked-on-sources'
             with task_Q as db: new_set = add_set(db, owner, repository)
@@ -2204,7 +2223,7 @@ class TestBatch (unittest.TestCase):
             
             # Burn through all the runs
             for _ in enqueued:
-                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, self.output_dir)
+                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
                 pop_task_from_donequeue(done_Q, self.github_auth)
                 pop_task_from_duequeue(due_Q, self.github_auth)
             
