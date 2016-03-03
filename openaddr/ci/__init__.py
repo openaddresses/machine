@@ -778,14 +778,15 @@ def pop_task_from_duequeue(queue, github_auth):
         if job_id:
             update_job_status(db, job_id, job_url, filename, run_status, False, github_auth)
 
-def clear_heartbeat_queue(queue):
+def flush_heartbeat_queue(queue):
     ''' Clear out heartbeat queue, logging each one.
     '''
     with queue as db:
-        task = queue.get()
-        while task is not None:
+        for task in queue:
+            if task is None:
+                break
+
             _L.info('Got heartbeat {}: {}'.format(task.id, task.data))
-            task = queue.get()
 
 def db_connect(dsn=None, user=None, password=None, host=None, port=None, database=None, sslmode=None):
     ''' Connect to database.

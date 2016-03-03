@@ -28,7 +28,7 @@ from ..ci import (
     pop_task_from_donequeue, pop_task_from_taskqueue, pop_task_from_duequeue,
     create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE,
     enqueue_sources, find_batch_sources, render_set_maps, render_index_maps,
-    is_merged_to_master, get_commit_info, HEARTBEAT_QUEUE, clear_heartbeat_queue
+    is_merged_to_master, get_commit_info, HEARTBEAT_QUEUE, flush_heartbeat_queue
     )
 
 from ..ci.objects import (
@@ -1482,7 +1482,7 @@ class TestRuns (unittest.TestCase):
                 self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
                 self.assertIs(is_merged, False, 'Needs to be unmerged')
 
-            clear_heartbeat_queue(beat_Q)
+            flush_heartbeat_queue(beat_Q)
      
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=2))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
@@ -1550,7 +1550,7 @@ class TestRuns (unittest.TestCase):
                 self.assertEqual(db_source_id, source_id)
                 self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
 
-            clear_heartbeat_queue(beat_Q)
+            flush_heartbeat_queue(beat_Q)
      
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
@@ -1614,7 +1614,7 @@ class TestRuns (unittest.TestCase):
                 self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
                 self.assertTrue(is_merged)
 
-            clear_heartbeat_queue(beat_Q)
+            flush_heartbeat_queue(beat_Q)
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
@@ -1716,7 +1716,7 @@ class TestRuns (unittest.TestCase):
                 self.assertEqual(third_copyof, first_run_id, 'The third run should be a copy of the first')
                 self.assertEqual(third_is_merged, first_is_merged, 'The third run should also be merged')
 
-            clear_heartbeat_queue(beat_Q)
+            flush_heartbeat_queue(beat_Q)
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
@@ -1781,7 +1781,7 @@ class TestRuns (unittest.TestCase):
                 (nonce1, ), (nonce2, ) = db.fetchall()
                 self.assertNotEqual(nonce1, nonce2, 'There should have been two different runs')
 
-            clear_heartbeat_queue(beat_Q)
+            flush_heartbeat_queue(beat_Q)
 
 class TestWorker (unittest.TestCase):
 
