@@ -64,7 +64,7 @@ WORKER_COOLDOWN = timedelta(seconds=5)
 GITHUB_RETRY_DELAY = timedelta(seconds=5)
 
 # Time to wait between heartbeat pings from workers.
-HEARTBEAT_INTERVAL = timedelta(seconds=20)
+HEARTBEAT_INTERVAL = timedelta(minutes=5)
 
 def td2str(td):
     ''' Convert a timedelta to a string formatted like '3h'.
