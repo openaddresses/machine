@@ -871,7 +871,7 @@ class TestHook (unittest.TestCase):
             done_q = db_queue(conn, DONE_QUEUE)
             due_q = db_queue(conn, DUE_QUEUE)
             beat_q = db_queue(conn, HEARTBEAT_QUEUE)
-            pop_task_from_taskqueue(self.s3, task_q, done_q, due_q, beat_q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_q, done_q, due_q, beat_q, self.output_dir, 'test')
             pop_task_from_donequeue(done_q, self.github_auth)
             
         self.assertEqual(self.last_status_state, 'failure', 'Bad JSON should lead to failure')
@@ -1456,7 +1456,7 @@ class TestRuns (unittest.TestCase):
 
             files = {source_path: (en64(source), source_id)}
             job_id = create_queued_job(task_Q, files, *self.fake_queued_job_args_unmerged)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, 'test')
             self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
             
             # Work done! 
@@ -1514,7 +1514,7 @@ class TestRuns (unittest.TestCase):
         
             # Bad things will happen and the job will fail.
             with self.assertRaises(NotImplementedError) as e:
-                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
+                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, 'test')
 
             # Should do nothing, because a Done task was never sent.
             pop_task_from_donequeue(done_Q, None)
@@ -1579,7 +1579,7 @@ class TestRuns (unittest.TestCase):
 
             files = {source_path: (en64(source), source_id)}
             job_id = create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, 'test')
 
             # Should do nothing, because no Due task is yet scheduled.
             pop_task_from_duequeue(due_Q, None)
@@ -1648,7 +1648,7 @@ class TestRuns (unittest.TestCase):
 
             files = {source_path: (en64(source), source_id)}
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, 'test')
             self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
             
             # Work done!
@@ -1669,7 +1669,7 @@ class TestRuns (unittest.TestCase):
             self.last_status_state = None
 
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, 'test')
             self.assertEqual(self.last_status_state, None, 'Should be nothing still')
             
             # Work done again!
@@ -1694,7 +1694,7 @@ class TestRuns (unittest.TestCase):
             self.last_status_state = None
 
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, 'test')
             self.assertEqual(self.last_status_state, None, 'Should be nothing still')
             
             # Work done a third time!
@@ -1748,7 +1748,7 @@ class TestRuns (unittest.TestCase):
 
             files = {source_path: (en64(source), source_id)}
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, 'test')
             self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
             
             # Work done!
@@ -1768,7 +1768,7 @@ class TestRuns (unittest.TestCase):
             sleep(1.5)
 
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, 'test')
             self.assertEqual(self.last_status_state, None, 'Should be nothing still')
             
             # Work done again!
@@ -2164,7 +2164,7 @@ class TestBatch (unittest.TestCase):
             # There is a task for us in the queue, run it successfully.
             #
             next(enqueued)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, 'test')
             pop_task_from_donequeue(done_Q, self.github_auth)
             
             sleep(1.1)
@@ -2174,7 +2174,7 @@ class TestBatch (unittest.TestCase):
             # There is a task for us in the queue, make it take too long.
             #
             next(enqueued)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, 'test')
             
             sleep(1.1)
             pop_task_from_duequeue(due_Q, self.github_auth)
@@ -2223,7 +2223,7 @@ class TestBatch (unittest.TestCase):
             
             # Burn through all the runs
             for _ in enqueued:
-                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir)
+                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, 'test')
                 pop_task_from_donequeue(done_Q, self.github_auth)
                 pop_task_from_duequeue(due_Q, self.github_auth)
             

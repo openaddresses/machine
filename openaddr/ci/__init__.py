@@ -628,7 +628,7 @@ def is_merged_to_master(db, set_id, job_id, commit_sha, github_auth):
 def _worker_id():
     return hex(getnode()).rstrip('L')
 
-def _wait_for_work_lock(lock, heartbeat_queue):
+def _wait_for_work_lock(lock, heartbeat_queue, worker_kind):
     ''' Wait around for worker while sending heartbeat pings.
     '''
     sleep(.1)
@@ -639,9 +639,9 @@ def _wait_for_work_lock(lock, heartbeat_queue):
 
         # Keep this put() outside the lock, so threads don't confuse Postgres.
         sleep(HEARTBEAT_INTERVAL.seconds + HEARTBEAT_INTERVAL.days * 86400)
-        heartbeat_queue.put({'worker_id': _worker_id()})
+        heartbeat_queue.put({'worker_id': _worker_id(), 'worker_kind': worker_kind})
 
-def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, output_dir):
+def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, output_dir, worker_kind):
     '''
     '''
     with task_queue as db:
@@ -686,7 +686,8 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
         from . import worker # <-- TODO: un-suck this.
 
         work_lock = threading.Lock()
-        work_wait = threading.Thread(target=_wait_for_work_lock, args=(work_lock, heartbeat_queue))
+        work_args = work_lock, heartbeat_queue, worker_kind
+        work_wait = threading.Thread(target=_wait_for_work_lock, args=work_args)
 
         with work_lock:
             heartbeat_queue.put({'worker_id': _worker_id()})

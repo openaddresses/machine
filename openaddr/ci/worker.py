@@ -143,6 +143,8 @@ parser.add_argument('-q', '--quiet', help='Turn off most logging',
                     action='store_const', dest='loglevel',
                     const=logging.WARNING, default=logging.INFO)
 
+worker_kind = os.environ.get('WORKER_KIND')
+
 @log_function_errors
 def main():
     ''' Single threaded worker to serve the job queue.
@@ -161,7 +163,7 @@ def main():
                 done_Q = db_queue(conn, DONE_QUEUE)
                 due_Q = db_queue(conn, DUE_QUEUE)
                 beat_Q = db_queue(conn, HEARTBEAT_QUEUE)
-                pop_task_from_taskqueue(s3, task_Q, done_Q, due_Q, beat_Q, worker_dir)
+                pop_task_from_taskqueue(s3, task_Q, done_Q, due_Q, beat_Q, worker_dir, worker_kind)
         except:
             _L.error('Error in worker main()', exc_info=True)
             time.sleep(5)
