@@ -7,7 +7,7 @@ from boto import connect_cloudwatch
 from . import (
     db_connect, db_queue, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, load_config,
     pop_task_from_donequeue, pop_task_from_duequeue, setup_logger,
-    HEARTBEAT_QUEUE, flush_heartbeat_queue
+    HEARTBEAT_QUEUE, flush_heartbeat_queue, get_recent_workers
     )
 
 def main():
@@ -38,13 +38,19 @@ def main():
                     continue
 
                 # Report basic information about current status.
+                with beat_Q as db:
+                    recent_workers = get_recent_workers(db)
+                    workers_n = sum(map(len, recent_workers.values()))
+                
                 task_n, done_n, due_n = map(len, (task_Q, done_Q, due_Q))
-                _L.info('Queue lengths: {task_n} tasks, {done_n} done, {due_n} due'.format(**locals()))
+                _L.info('{workers_n} active workers; queue lengths: {task_n} tasks, {done_n} done, {due_n} due'.format(**locals()))
                 
                 if cw:
                     cw.put_metric_data('openaddr.ci', 'tasks queue', task_n, unit='Count')
                     cw.put_metric_data('openaddr.ci', 'done queue', done_n, unit='Count')
                     cw.put_metric_data('openaddr.ci', 'due queue', due_n, unit='Count')
+                    cw.put_metric_data('openaddr.ci', 'expected results', task_n + workers_n, unit='Count')
+                    cw.put_metric_data('openaddr.ci', 'active workers', workers_n, unit='Count')
 
                 checkin_time = time() + 30
 
