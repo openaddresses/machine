@@ -75,7 +75,7 @@ AWS_ACCESS_KEY_ID=#{aws_access_id}
 AWS_SECRET_ACCESS_KEY=#{aws_secret_key}
 AWS_SNS_ARN=#{aws_sns_arn}
 AWS_S3_BUCKET=#{aws_s3_bucket}
-WORKER_KIND=${worker_kind}
+WORKER_KIND=#{worker_kind}
 CONF
 end
 
