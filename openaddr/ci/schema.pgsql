@@ -5,8 +5,10 @@ DROP TABLE IF EXISTS zips;
 DROP TABLE IF EXISTS runs;
 DROP TABLE IF EXISTS sets;
 DROP TABLE IF EXISTS jobs;
+DROP TABLE IF EXISTS heartbeats;
 DROP TYPE IF EXISTS zip_collection;
 DROP TYPE IF EXISTS zip_licensing;
+DROP TYPE IF EXISTS heartbeat_kind;
 DROP SEQUENCE IF EXISTS ints;
 
 CREATE SEQUENCE ints;
@@ -77,6 +79,15 @@ CREATE TABLE zips
 
 CREATE INDEX runs_set_ids ON runs (set_id);
 CREATE INDEX runs_source_paths ON runs (source_path);
+
+CREATE TYPE heartbeat_kind AS ENUM ('permanent', 'temporary');
+
+CREATE TABLE heartbeats
+(
+    worker_id       VARCHAR(32) NOT NULL,
+    worker_kind     heartbeat_kind,
+    datetime        TIMESTAMP WITH TIME ZONE
+);
 
 --
 -- Two views mimicking Nelson's dashboard tables that were
