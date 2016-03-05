@@ -1,3 +1,6 @@
+2016-03-05: 2.18.1
+- Populating "expected results" and "active workers" metrics.
+
 2016-03-05: 2.18.0
 - Added heartbeats table with summary of recently-active workers.
 
