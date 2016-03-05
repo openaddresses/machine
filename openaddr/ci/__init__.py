@@ -18,7 +18,7 @@ from base64 import b64decode
 from tempfile import mkdtemp
 from functools import wraps
 from shutil import rmtree
-from time import sleep
+from time import time, sleep
 import threading, sys
 import json, os
 
@@ -634,15 +634,19 @@ def _worker_id():
 def _wait_for_work_lock(lock, heartbeat_queue, worker_kind):
     ''' Wait around for worker while sending heartbeat pings.
     '''
-    sleep(.1)
+    next_put = time()
 
     while True:
-        if lock.acquire(False):
-            break
+        sleep(.1)
 
-        # Keep this put() outside the lock, so threads don't confuse Postgres.
-        sleep(HEARTBEAT_INTERVAL.seconds + HEARTBEAT_INTERVAL.days * 86400)
-        heartbeat_queue.put({'worker_id': _worker_id(), 'worker_kind': worker_kind})
+        if lock.acquire(False):
+            # Got the lock, we are done.
+            break
+        
+        if time() > next_put:
+            # Keep this put() outside the lock, so threads don't confuse Postgres.
+            heartbeat_queue.put({'worker_id': _worker_id(), 'worker_kind': worker_kind})
+            next_put += HEARTBEAT_INTERVAL.seconds + HEARTBEAT_INTERVAL.days * 86400
 
 def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, output_dir, worker_kind):
     '''
