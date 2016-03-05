@@ -66,6 +66,9 @@ GITHUB_RETRY_DELAY = timedelta(seconds=5)
 # Time to wait between heartbeat pings from workers.
 HEARTBEAT_INTERVAL = timedelta(minutes=5)
 
+# Valid worker kinds for heartbeats table.
+PERMANENT_KIND, TEMPORARY_KIND = 'permanent', 'temporary'
+
 def td2str(td):
     ''' Convert a timedelta to a string formatted like '3h'.
     
@@ -796,8 +799,23 @@ def flush_heartbeat_queue(queue):
                                  OR worker_kind = %s)''',
                        (id, kind, kind))
             
-            db.execute('INSERT INTO heartbeats (worker_id, worker_kind) VALUES (%s, %s)',
+            db.execute('''INSERT INTO heartbeats (worker_id, worker_kind, datetime)
+                          VALUES (%s, %s, NOW())''',
                        (id, kind))
+
+def get_recent_workers(db):
+    '''
+    '''
+    recent_workers = {PERMANENT_KIND: [], TEMPORARY_KIND: [], None: []}
+    
+    db.execute('''SELECT worker_kind, worker_id
+                  FROM heartbeats WHERE datetime >= NOW() - INTERVAL %s''',
+               (HEARTBEAT_INTERVAL * 3, ))
+
+    for (kind, id) in db.fetchall():
+        recent_workers[kind].append(id)
+    
+    return recent_workers
 
 def db_connect(dsn=None, user=None, password=None, host=None, port=None, database=None, sslmode=None):
     ''' Connect to database.

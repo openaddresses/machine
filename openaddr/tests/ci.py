@@ -28,7 +28,8 @@ from ..ci import (
     pop_task_from_donequeue, pop_task_from_taskqueue, pop_task_from_duequeue,
     create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE,
     enqueue_sources, find_batch_sources, render_set_maps, render_index_maps,
-    is_merged_to_master, get_commit_info, HEARTBEAT_QUEUE, flush_heartbeat_queue
+    is_merged_to_master, get_commit_info, HEARTBEAT_QUEUE, flush_heartbeat_queue,
+    get_recent_workers, PERMANENT_KIND, TEMPORARY_KIND
     )
 
 from ..ci.objects import (
@@ -1456,7 +1457,7 @@ class TestRuns (unittest.TestCase):
 
             files = {source_path: (en64(source), source_id)}
             job_id = create_queued_job(task_Q, files, *self.fake_queued_job_args_unmerged)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, None)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND)
             self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
             
             # Work done! 
@@ -1485,9 +1486,8 @@ class TestRuns (unittest.TestCase):
             flush_heartbeat_queue(beat_Q)
             
             with beat_Q as db:
-                db.execute('SELECT worker_id, worker_kind FROM heartbeats')
-                ((worker_id, worker_kind), ) = db.fetchall()
-                self.assertIsNone(worker_kind)
+                recent_workers = get_recent_workers(db)
+                self.assertEqual(len(recent_workers[TEMPORARY_KIND]), 1)
      
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=2))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
@@ -1519,7 +1519,7 @@ class TestRuns (unittest.TestCase):
         
             # Bad things will happen and the job will fail.
             with self.assertRaises(NotImplementedError) as e:
-                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, None)
+                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
 
             # Should do nothing, because a Done task was never sent.
             pop_task_from_donequeue(done_Q, None)
@@ -1558,9 +1558,8 @@ class TestRuns (unittest.TestCase):
             flush_heartbeat_queue(beat_Q)
             
             with beat_Q as db:
-                db.execute('SELECT worker_id, worker_kind FROM heartbeats')
-                ((worker_id, worker_kind), ) = db.fetchall()
-                self.assertIsNone(worker_kind)
+                recent_workers = get_recent_workers(db)
+                self.assertEqual(len(recent_workers[PERMANENT_KIND]), 1)
      
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
@@ -1589,7 +1588,7 @@ class TestRuns (unittest.TestCase):
 
             files = {source_path: (en64(source), source_id)}
             job_id = create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, None)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND)
 
             # Should do nothing, because no Due task is yet scheduled.
             pop_task_from_duequeue(due_Q, None)
@@ -1627,9 +1626,8 @@ class TestRuns (unittest.TestCase):
             flush_heartbeat_queue(beat_Q)
             
             with beat_Q as db:
-                db.execute('SELECT worker_id, worker_kind FROM heartbeats')
-                ((worker_id, worker_kind), ) = db.fetchall()
-                self.assertIsNone(worker_kind)
+                recent_workers = get_recent_workers(db)
+                self.assertEqual(len(recent_workers[TEMPORARY_KIND]), 1)
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
@@ -1663,7 +1661,7 @@ class TestRuns (unittest.TestCase):
 
             files = {source_path: (en64(source), source_id)}
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, None)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
             self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
             
             # Work done!
@@ -1684,7 +1682,7 @@ class TestRuns (unittest.TestCase):
             self.last_status_state = None
 
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, None)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
             self.assertEqual(self.last_status_state, None, 'Should be nothing still')
             
             # Work done again!
@@ -1709,7 +1707,7 @@ class TestRuns (unittest.TestCase):
             self.last_status_state = None
 
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, None)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
             self.assertEqual(self.last_status_state, None, 'Should be nothing still')
             
             # Work done a third time!
@@ -1734,9 +1732,8 @@ class TestRuns (unittest.TestCase):
             flush_heartbeat_queue(beat_Q)
             
             with beat_Q as db:
-                db.execute('SELECT worker_id, worker_kind FROM heartbeats')
-                ((worker_id, worker_kind), ) = db.fetchall()
-                self.assertIsNone(worker_kind)
+                recent_workers = get_recent_workers(db)
+                self.assertEqual(len(recent_workers[PERMANENT_KIND]), 1)
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
@@ -1768,7 +1765,7 @@ class TestRuns (unittest.TestCase):
 
             files = {source_path: (en64(source), source_id)}
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, None)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND)
             self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
             
             # Work done!
@@ -1788,7 +1785,7 @@ class TestRuns (unittest.TestCase):
             sleep(1.5)
 
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, None)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
             self.assertEqual(self.last_status_state, None, 'Should be nothing still')
             
             # Work done again!
@@ -1804,9 +1801,8 @@ class TestRuns (unittest.TestCase):
             flush_heartbeat_queue(beat_Q)
             
             with beat_Q as db:
-                db.execute('SELECT worker_id, worker_kind FROM heartbeats')
-                ((worker_id, worker_kind), ) = db.fetchall()
-                self.assertIsNone(worker_kind)
+                recent_workers = get_recent_workers(db)
+                self.assertEqual(len(recent_workers[PERMANENT_KIND]), 1)
 
 class TestWorker (unittest.TestCase):
 
@@ -2189,7 +2185,7 @@ class TestBatch (unittest.TestCase):
             # There is a task for us in the queue, run it successfully.
             #
             next(enqueued)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, None)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND)
             pop_task_from_donequeue(done_Q, self.github_auth)
             
             sleep(1.1)
@@ -2199,7 +2195,7 @@ class TestBatch (unittest.TestCase):
             # There is a task for us in the queue, make it take too long.
             #
             next(enqueued)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, None)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
             
             sleep(1.1)
             pop_task_from_duequeue(due_Q, self.github_auth)
@@ -2248,7 +2244,7 @@ class TestBatch (unittest.TestCase):
             
             # Burn through all the runs
             for _ in enqueued:
-                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, None)
+                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND)
                 pop_task_from_donequeue(done_Q, self.github_auth)
                 pop_task_from_duequeue(due_Q, self.github_auth)
             
