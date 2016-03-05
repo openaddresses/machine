@@ -1,4 +1,5 @@
 {
+    "worker_kind": null,
     "web_docroot": "/var/www/html",
     "username": "openaddr",
     "db_user": "openaddr",
