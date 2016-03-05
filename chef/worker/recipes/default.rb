@@ -10,6 +10,7 @@ aws_secret_key = node[:aws_secret_key]
 aws_s3_bucket = node[:aws_s3_bucket]
 aws_sns_arn = node[:aws_sns_arn]
 
+worker_kind = node['worker_kind']
 gag_github_status = node['gag_github_status']
 database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=require"
 web_docroot = node['web_docroot']
@@ -74,6 +75,7 @@ AWS_ACCESS_KEY_ID=#{aws_access_id}
 AWS_SECRET_ACCESS_KEY=#{aws_secret_key}
 AWS_SNS_ARN=#{aws_sns_arn}
 AWS_S3_BUCKET=#{aws_s3_bucket}
+WORKER_KIND=#{worker_kind}
 CONF
 end
 
