@@ -19,4 +19,4 @@ For database, EC2, or AWS credentials and other privileged access to the
 internals documented here, contact [Ian Dees](https://github.com/iandees)
 or [Michal Migurski](https://github.com/migurski).
 
-This documentation is current as-of [Machine 2.5.0](https://github.com/openaddresses/machine/releases/tag/2.5.0).
+This documentation is current as-of [Machine 2.18.0](https://github.com/openaddresses/machine/releases/tag/2.18.0).
