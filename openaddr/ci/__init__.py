@@ -690,7 +690,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
         work_wait = threading.Thread(target=_wait_for_work_lock, args=work_args)
 
         with work_lock:
-            heartbeat_queue.put({'worker_id': _worker_id()})
+            heartbeat_queue.put({'worker_id': _worker_id(), 'worker_kind': worker_kind})
             work_wait.start()
 
             source_name, _ = splitext(relpath(passed_on_kwargs['name'], 'sources'))
@@ -788,6 +788,16 @@ def flush_heartbeat_queue(queue):
                 break
 
             _L.info('Got heartbeat {}: {}'.format(task.id, task.data))
+            id, kind = task.data.get('worker_id'), task.data.get('worker_kind')
+            
+            db.execute('''DELETE FROM heartbeats
+                          WHERE worker_id = %s
+                            AND ((worker_kind IS NULL AND %s IS NULL)
+                                 OR worker_kind = %s)''',
+                       (id, kind, kind))
+            
+            db.execute('INSERT INTO heartbeats (worker_id, worker_kind) VALUES (%s, %s)',
+                       (id, kind))
 
 def db_connect(dsn=None, user=None, password=None, host=None, port=None, database=None, sslmode=None):
     ''' Connect to database.
