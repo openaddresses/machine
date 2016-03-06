@@ -618,6 +618,23 @@ class TestAPI (unittest.TestCase):
                                 (True, 3456, 'us_west', '', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-us_west.zip'),
                                 (True, 456, 'us_west', 'sa', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-us_west-sa.zip'),
                                 (False, 5678, 'europe', '', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-europe-sa.zip')])
+                
+                db.execute('''INSERT INTO sets
+                              (id, owner, repository, commit_sha, datetime_start, datetime_end, render_world, render_europe, render_usa)
+                              VALUES
+                              (1, 'openaddresses', 'openaddresses', NULL, '2016-03-05 19:31:21.030958-08', NULL, NULL, NULL, NULL),
+                              (2, 'openaddresses', 'openaddresses', NULL, '2016-03-04 19:31:21.030958-08', '2016-03-05 19:31:21.030958-08', NULL, NULL, NULL),
+                              (3, 'openaddresses', 'openaddresses', NULL, '2016-02-27 19:31:21.030958-08', '2016-03-05 19:31:21.030958-08', NULL, NULL, NULL)
+                              ''')
+                
+                db.execute('''INSERT INTO runs
+                              (id, source_path, source_id, source_data, datetime_tz, state, status, copy_of, code_version, worker_id, job_id, set_id, commit_sha, is_merged)
+                              VALUES
+                              (1, 'sources/a1.json', 'abc', '\x646566', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "license": "f", "cache": "c", "source": "a1.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "process time": "m", "processed": "l"}', true, NULL, '2.18.1', NULL, NULL, 2, NULL, true),
+                              (2, 'sources/a2.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "c", "source": "a2.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "p", "process time": "m", "processed": "l"}', true, NULL, '2.18.1', NULL, NULL, 2, NULL, true),
+                              (3, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "c", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "p", "process time": "m", "processed": "l"}', true, NULL, '2.18.1', NULL, NULL, 2, NULL, true),
+                              (4, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "zzz", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "p", "process time": "m", "processed": "l"}', true, NULL, '2.18.1', NULL, NULL, NULL, NULL, false)
+                              ''')
 
         self.client = app.test_client()
     
@@ -649,6 +666,69 @@ class TestAPI (unittest.TestCase):
         self.assertEqual(colls['us_west']['']['license'], 'Freely Shareable')
         self.assertNotIn('sa', colls['us_west'])
         self.assertNotIn('europe', colls)
+    
+    def test_state_txt(self):
+        now = datetime.now()
+        yesterday = now - timedelta(days=1)
+        last_week = now - timedelta(days=7)
+        
+        # Old-style run predating attribution columns.
+        run_state1 = {
+            'source': 'a1.json', 'skipped': 'b', 'cache': 'c', 'sample': 'd',
+            'website': 'e', 'license': 'f', 'geometry type': 'g',
+            'address count': 'h', 'version': 'i', 'fingerprint': 'j',
+            'cache time': 'k', 'processed': 'l', 'process time': 'm',
+            'output': 'n'
+            }
+        
+        # New-style run including attribution columns.
+        run_state2 = {'attribution required': 'true', 'attribution name': 'p'}
+        run_state2.update(run_state1)
+        run_state2['source'] = 'a2.json'
+        
+        # Newer-style run including share-alike columns.
+        run_state3 = {'share-alike': 'true'}
+        run_state3.update(run_state2)
+        run_state3['source'] = 'a3.json'
+
+        # Unmerged and should never show up.
+        run_state4 = {}
+        run_state4.update(run_state3)
+        run_state4['cache'] = 'zzz'
+        
+        for path in ('/state.txt', '/sets/2/state.txt'):
+            got2 = self.client.get(path)
+            self.assertEqual(got2.status_code, 200)
+        
+            # El-Cheapo CSV parser.
+            lines = got2.data.decode('utf8').split('\r\n')[:4]
+            head, row1, row2, row3 = [row.split('\t') for row in lines]
+            got_state1 = dict(zip(head, row1))
+            got_state2 = dict(zip(head, row2))
+            got_state3 = dict(zip(head, row3))
+            
+            self.assertEqual(got_state1['code version'], __version__)
+            self.assertEqual(got_state2['code version'], __version__)
+            self.assertEqual(got_state3['code version'], __version__)
+        
+            for key in ('source', 'cache', 'sample', 'geometry type', 'address count',
+                        'version', 'fingerprint', 'cache time', 'processed', 'output',
+                        'process time', 'attribution required', 'attribution name',
+                        'share-alike'):
+                self.assertIn(key, got_state1)
+                self.assertIn(key, got_state2)
+        
+            for (key, value) in got_state1.items():
+                if key in run_state1:
+                    self.assertEqual(value, run_state1[key])
+        
+            for (key, value) in got_state2.items():
+                if key in run_state2:
+                    self.assertEqual(value, run_state2[key])
+        
+            for (key, value) in got_state3.items():
+                if key in run_state3:
+                    self.assertEqual(value, run_state3[key])
 
 class TestHook (unittest.TestCase):
 

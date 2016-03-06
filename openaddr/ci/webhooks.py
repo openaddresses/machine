@@ -28,14 +28,9 @@ from .objects import (
     load_collection_zips_dict, read_latest_run
     )
 
-from ..compat import expand_uri, csvIO, csvDictWriter
+from ..compat import expand_uri
 from ..summarize import summarize_runs, GLASS_HALF_FULL, GLASS_HALF_EMPTY, nice_integer, break_state
 from .webcommon import log_application_errors, nice_domain
-
-CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
-             'version', 'fingerprint', 'cache time', 'processed', 'process time', \
-             'output', 'attribution required', 'attribution name', 'share-alike', \
-             'code version'
 
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
 
@@ -99,33 +94,6 @@ def app_index():
                                   set.repository, GLASS_HALF_FULL)
 
     return render_template('index.html', set=None, zips=zips, **summary_data)
-
-@webhooks.route('/state.txt', methods=['GET'])
-@log_application_errors
-def app_get_state_txt():
-    '''
-    '''
-    with db_connect(current_app.config['DATABASE_URL']) as conn:
-        with db_cursor(conn) as db:
-            set = read_latest_set(db, 'openaddresses', 'openaddresses')
-            runs = read_completed_runs_to_date(db, set.id)
-    
-    buffer = csvIO()
-    output = csvDictWriter(buffer, CSV_HEADER, dialect='excel-tab', encoding='utf8')
-    output.writerow({col: col for col in CSV_HEADER})
-    for run in sorted(runs, key=attrgetter('source_path')):
-        run_state = run.state or {}
-        row = {col: run_state.get(col, None) for col in CSV_HEADER}
-        row['source'] = os.path.relpath(run.source_path, 'sources')
-        row['code version'] = run.code_version
-        row['cache'] = nice_domain(row['cache'])
-        row['sample'] = nice_domain(row['sample'])
-        row['processed'] = nice_domain(row['processed'])
-        row['output'] = nice_domain(row['output'])
-        output.writerow(row)
-
-    return Response(buffer.getvalue(),
-                    headers={'Content-Type': 'text/plain; charset=utf8'})
 
 @webhooks.route('/hook', methods=['POST'])
 @log_application_errors
@@ -278,32 +246,6 @@ def app_get_set(set_id):
                                   set.repository, GLASS_HALF_EMPTY)
 
     return render_template('set.html', set=set, **summary_data)
-
-@webhooks.route('/sets/<set_id>/state.txt', methods=['GET'])
-@log_application_errors
-def app_get_set_state_txt(set_id):
-    '''
-    '''
-    with db_connect(current_app.config['DATABASE_URL']) as conn:
-        with db_cursor(conn) as db:
-            runs = new_read_completed_set_runs(db, set_id)
-    
-    buffer = csvIO()
-    output = csvDictWriter(buffer, CSV_HEADER, dialect='excel-tab', encoding='utf8')
-    output.writerow({col: col for col in CSV_HEADER})
-    for run in sorted(runs, key=attrgetter('source_path')):
-        run_state = run.state or {}
-        row = {col: run_state.get(col, None) for col in CSV_HEADER}
-        row['source'] = os.path.relpath(run.source_path, 'sources')
-        row['code version'] = run.code_version
-        row['cache'] = nice_domain(row['cache'])
-        row['sample'] = nice_domain(row['sample'])
-        row['processed'] = nice_domain(row['processed'])
-        row['output'] = nice_domain(row['output'])
-        output.writerow(row)
-
-    return Response(buffer.getvalue(),
-                    headers={'Content-Type': 'text/plain; charset=utf8'})
 
 @webhooks.route('/runs/<run_id>/sample.html')
 @log_application_errors
