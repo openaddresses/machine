@@ -1276,29 +1276,24 @@ class TestHook (unittest.TestCase):
                 set_run(db, run_id4, 'sources/a3.json', 'ghi', b'jkl',
                         run_state4, True, None, None, None, False, None)
         
-        got1 = self.client.get('/latest/set')
-        self.assertEqual(got1.status_code, 302)
-        self.assertTrue(got1.headers.get('Location').endswith('/sets/2'))
-
-        for path in ('/state.txt', '/sets/2/state.txt'):
-            got2 = self.client.get(path)
-            self.assertEqual(got2.status_code, 200)
+                latest_set = read_latest_set(db, 'openaddresses', 'openaddresses')
+                latest_set_runs = read_completed_runs_to_date(db, latest_set.id)
+                set_2_runs = read_completed_runs_to_date(db, 2)
         
-            # El-Cheapo CSV parser.
-            lines = got2.data.decode('utf8').split('\r\n')[:4]
-            head, row1, row2, row3 = [row.split('\t') for row in lines]
-            got_state1 = dict(zip(head, row1))
-            got_state2 = dict(zip(head, row2))
-            got_state3 = dict(zip(head, row3))
+        for runs in (latest_set_runs, set_2_runs):
+            self.assertEqual(len(runs), 3)
+        
+            got_state1 = dict(runs[0].state)
+            got_state2 = dict(runs[1].state)
+            got_state3 = dict(runs[2].state)
             
-            self.assertEqual(got_state1['code version'], __version__)
-            self.assertEqual(got_state2['code version'], __version__)
-            self.assertEqual(got_state3['code version'], __version__)
+            self.assertEqual(runs[0].code_version, __version__)
+            self.assertEqual(runs[1].code_version, __version__)
+            self.assertEqual(runs[2].code_version, __version__)
         
             for key in ('source', 'cache', 'sample', 'geometry type', 'address count',
                         'version', 'fingerprint', 'cache time', 'processed', 'output',
-                        'process time', 'attribution required', 'attribution name',
-                        'share-alike'):
+                        'process time'):
                 self.assertIn(key, got_state1)
                 self.assertIn(key, got_state2)
         
