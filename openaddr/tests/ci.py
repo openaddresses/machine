@@ -50,6 +50,7 @@ from ..ci.collect import (
 from ..jobs import JOB_TIMEOUT
 from ..ci.worker import make_source_filename
 from ..ci.webhooks import apply_webhooks_blueprint
+from ..ci.webapi import apply_webapi_blueprint
 from .. import compat, LocalProcessedResult
 from . import FakeS3
 
@@ -592,6 +593,63 @@ class TestObjects (unittest.TestCase):
             self.assertEqual(len(read_run.mock_calls), 2, 'Should not see a new call to read_run()')
             self.assertEqual(len(self.db.execute.mock_calls), 5)
 
+class TestAPI (unittest.TestCase):
+
+    def setUp(self):
+        '''
+        '''
+        os.environ['GITHUB_TOKEN'] = ''
+        os.environ['DATABASE_URL'] = DATABASE_URL
+        os.environ['WEBHOOK_SECRETS'] = 'hello,world'
+
+        app = Flask(__name__)
+        app.config.update(load_config())
+        apply_webapi_blueprint(app)
+
+        recreate_db.recreate(app.config['DATABASE_URL'])
+        
+        with db_connect(app.config['DATABASE_URL']) as conn:
+            with db_cursor(conn) as db:
+                db.executemany('''INSERT INTO zips
+                                  (datetime, is_current, content_length, collection, license_attr, url)
+                                  VALUES (NOW(), %s, %s, %s, %s, %s)''',
+                               [(True, 1234, 'global', '', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-global.zip'),
+                                (True, 2345, 'global', 'sa', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-global-sa.zip'),
+                                (True, 3456, 'us_west', '', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-us_west.zip'),
+                                (True, 456, 'us_west', 'sa', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-us_west-sa.zip'),
+                                (False, 5678, 'europe', '', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-europe-sa.zip')])
+
+        self.client = app.test_client()
+    
+    def tearDown(self):
+        '''
+        '''
+        del os.environ['GITHUB_TOKEN']
+        del os.environ['DATABASE_URL']
+        del os.environ['WEBHOOK_SECRETS']
+
+    def test_data_index(self):
+        '''
+        '''
+        got = self.client.get('index.json')
+        index = json.loads(got.data)
+        colls = index.get('collections', {})
+        
+        self.assertEqual(index['run_states_url'], 'http://localhost/state.txt')
+        self.assertEqual(index['latest_run_processed_url'], 'http://localhost/latest/run/{source}.zip')
+        
+        self.assertEqual(colls['global']['']['url'], 'http://data.openaddresses.io/openaddr-collected-global.zip')
+        self.assertEqual(colls['global']['sa']['url'], 'http://data.openaddresses.io/openaddr-collected-global-sa.zip')
+        self.assertEqual(colls['us_west']['']['url'], 'http://data.openaddresses.io/openaddr-collected-us_west.zip')
+        self.assertEqual(colls['global']['']['content_length'], 1234)
+        self.assertEqual(colls['global']['sa']['content_length'], 2345)
+        self.assertEqual(colls['us_west']['']['content_length'], 3456)
+        self.assertEqual(colls['global']['']['license'], 'Freely Shareable')
+        self.assertEqual(colls['global']['sa']['license'], 'Share-Alike Required')
+        self.assertEqual(colls['us_west']['']['license'], 'Freely Shareable')
+        self.assertNotIn('sa', colls['us_west'])
+        self.assertNotIn('europe', colls)
+
 class TestHook (unittest.TestCase):
 
     def setUp(self):
@@ -606,17 +664,6 @@ class TestHook (unittest.TestCase):
         apply_webhooks_blueprint(app)
 
         recreate_db.recreate(app.config['DATABASE_URL'])
-        
-        with db_connect(app.config['DATABASE_URL']) as conn:
-            with db_cursor(conn) as db:
-                db.executemany('''INSERT INTO zips
-                                  (datetime, is_current, content_length, collection, license_attr, url)
-                                  VALUES (NOW(), %s, %s, %s, %s, %s)''',
-                               [(True, 1234, 'global', '', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-global.zip'),
-                                (True, 2345, 'global', 'sa', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-global-sa.zip'),
-                                (True, 3456, 'us_west', '', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-us_west.zip'),
-                                (True, 456, 'us_west', 'sa', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-us_west-sa.zip'),
-                                (False, 5678, 'europe', '', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-europe-sa.zip')])
 
         self.output_dir = mkdtemp(prefix='TestHook-')
         self.database_url = app.config['DATABASE_URL']
@@ -830,28 +877,6 @@ class TestHook (unittest.TestCase):
         
         print('Unknowable Request {} "{}"'.format(request.method, url.geturl()), file=sys.stderr)
         raise ValueError('Unknowable Request {} "{}"'.format(request.method, url.geturl()))
-
-    def test_data_index(self):
-        '''
-        '''
-        got = self.client.get('index.json')
-        index = json.loads(got.data)
-        colls = index.get('collections', {})
-        
-        self.assertEqual(index['run_states_url'], 'http://localhost/state.txt')
-        self.assertEqual(index['latest_run_processed_url'], 'http://localhost/latest/run/{source}.zip')
-        
-        self.assertEqual(colls['global']['']['url'], 'http://data.openaddresses.io/openaddr-collected-global.zip')
-        self.assertEqual(colls['global']['sa']['url'], 'http://data.openaddresses.io/openaddr-collected-global-sa.zip')
-        self.assertEqual(colls['us_west']['']['url'], 'http://data.openaddresses.io/openaddr-collected-us_west.zip')
-        self.assertEqual(colls['global']['']['content_length'], 1234)
-        self.assertEqual(colls['global']['sa']['content_length'], 2345)
-        self.assertEqual(colls['us_west']['']['content_length'], 3456)
-        self.assertEqual(colls['global']['']['license'], 'Freely Shareable')
-        self.assertEqual(colls['global']['sa']['license'], 'Share-Alike Required')
-        self.assertEqual(colls['us_west']['']['license'], 'Freely Shareable')
-        self.assertNotIn('sa', colls['us_west'])
-        self.assertNotIn('europe', colls)
     
     @patch('openaddr.ci.HEARTBEAT_INTERVAL', new=timedelta(seconds=1))
     def test_webhook_badjson_content(self):

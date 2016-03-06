@@ -2,7 +2,7 @@ import logging; _L = logging.getLogger('openaddr.ci.webhooks')
 
 from functools import wraps
 from operator import itemgetter, attrgetter
-from urllib.parse import urljoin, urlparse, urlunparse
+from urllib.parse import urljoin
 from collections import OrderedDict
 from csv import DictWriter
 import hashlib, hmac
@@ -30,6 +30,7 @@ from .objects import (
 
 from ..compat import expand_uri, csvIO, csvDictWriter
 from ..summarize import summarize_runs, GLASS_HALF_FULL, GLASS_HALF_EMPTY, nice_integer, break_state
+from .webcommon import log_application_errors, nice_domain
 
 CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
              'version', 'fingerprint', 'cache time', 'processed', 'process time', \
@@ -37,22 +38,6 @@ CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
              'code version'
 
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
-
-def log_application_errors(route_function):
-    ''' Error-logging decorator for route functions.
-    
-        Don't do much, but get an error out to the logger.
-    '''
-    @wraps(route_function)
-    def decorated_function(*args, **kwargs):
-        try:
-            return route_function(*args, **kwargs)
-        except Exception as e:
-            request_info = ' '.join([request.method, request.path])
-            _L.error(e, extra={'request_info': request_info}, exc_info=True)
-            raise
-
-    return decorated_function
 
 def enforce_signature(route_function):
     ''' Look for a signature and bark if it's wrong.
@@ -114,37 +99,6 @@ def app_index():
                                   set.repository, GLASS_HALF_FULL)
 
     return render_template('index.html', set=None, zips=zips, **summary_data)
-
-@webhooks.route('/index.json')
-@log_application_errors
-def app_index_json():
-    with db_connect(current_app.config['DATABASE_URL']) as conn:
-        with db_cursor(conn) as db:
-            zips = load_collection_zips_dict(db)
-    
-    collections = {}
-    licenses = {'': 'Freely Shareable', 'sa': 'Share-Alike Required'}
-    
-    for ((collection, license), zip) in zips.items():
-        if zip.content_length < 1024:
-            # too small, probably empty
-            continue
-
-        if collection not in collections:
-            collections[collection] = dict()
-        
-        if license not in collections[collection]:
-            collections[collection][license] = dict()
-        
-        d = dict(url=nice_domain(zip.url), content_length=zip.content_length)
-        d['license'] = licenses[license]
-        collections[collection][license] = d
-    
-    return jsonify({
-        'run_states_url': urljoin(request.url, u'/state.txt'),
-        'latest_run_processed_url': urljoin(request.url, u'/latest/run/{source}.zip'),
-        'collections': collections
-        })
 
 @webhooks.route('/state.txt', methods=['GET'])
 @log_application_errors
@@ -389,23 +343,6 @@ def nice_size(size):
         return '{:.1f}{}'.format(size, suffix)
     else:
         return '{:.0f}{}'.format(size, suffix)
-
-def nice_domain(url):
-    '''
-    '''
-    parsed = urlparse(url)
-    _ = None
-    
-    if parsed.hostname == u'data.openaddresses.io':
-        return urlunparse((u'http', parsed.hostname, parsed.path, _, _, _))
-    
-    if parsed.hostname == u's3.amazonaws.com' and parsed.path.startswith(u'/data.openaddresses.io/'):
-        return urlunparse((u'http', u'data.openaddresses.io', parsed.path[22:], _, _, _))
-    
-    if parsed.hostname == u'data.openaddresses.io.s3.amazonaws.com':
-        return urlunparse((u'http', u'data.openaddresses.io', parsed.path, _, _, _))
-    
-    return url
 
 def apply_webhooks_blueprint(app):
     '''
