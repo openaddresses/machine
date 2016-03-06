@@ -854,9 +854,18 @@ class SnsHandler(logging.Handler):
         
         self.sns.publish(self.arn, self.format(record), subject[:79])
 
+# Remember whether logger has been set up before.
+_logger_status = {'set up': False}
+
 def setup_logger(sns_arn, log_level=logging.DEBUG):
     ''' Set up logging for openaddr code.
     '''
+    if _logger_status['set up']:
+        # Do this exactly once, so repeated handlers don't stack up.
+        return
+    else:
+        _logger_status['set up'] = True
+    
     # Get a handle for the openaddr logger and its children
     openaddr_logger = logging.getLogger('openaddr')
 

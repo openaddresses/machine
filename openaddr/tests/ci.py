@@ -18,6 +18,7 @@ import hmac, hashlib, mock
 
 import unittest, json, os, sys, itertools
 
+from flask import Flask
 from requests import get, ConnectionError
 from httmock import HTTMock, response
 
@@ -29,7 +30,7 @@ from ..ci import (
     create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE,
     enqueue_sources, find_batch_sources, render_set_maps, render_index_maps,
     is_merged_to_master, get_commit_info, HEARTBEAT_QUEUE, flush_heartbeat_queue,
-    get_recent_workers, PERMANENT_KIND, TEMPORARY_KIND
+    get_recent_workers, PERMANENT_KIND, TEMPORARY_KIND, load_config
     )
 
 from ..ci.objects import (
@@ -48,6 +49,7 @@ from ..ci.collect import (
 
 from ..jobs import JOB_TIMEOUT
 from ..ci.worker import make_source_filename
+from ..ci.webhooks import apply_webhooks_blueprint
 from .. import compat, LocalProcessedResult
 from . import FakeS3
 
@@ -598,7 +600,10 @@ class TestHook (unittest.TestCase):
         os.environ['GITHUB_TOKEN'] = ''
         os.environ['DATABASE_URL'] = DATABASE_URL
         os.environ['WEBHOOK_SECRETS'] = 'hello,world'
-        from ..ci.webhooks import app
+
+        app = Flask(__name__)
+        app.config.update(load_config())
+        apply_webhooks_blueprint(app)
 
         recreate_db.recreate(app.config['DATABASE_URL'])
         
@@ -1979,14 +1984,15 @@ class TestBatch (unittest.TestCase):
         os.environ['GITHUB_TOKEN'] = ''
         os.environ['DATABASE_URL'] = DATABASE_URL
         os.environ['WEBHOOK_SECRETS'] = 'hello,world'
-        from ..ci.webhooks import app
+        
+        config = load_config()
 
-        recreate_db.recreate(app.config['DATABASE_URL'])
+        recreate_db.recreate(config['DATABASE_URL'])
         self.s3 = FakeS3()
 
         self.output_dir = mkdtemp(prefix='TestBatch-')
-        self.database_url = app.config['DATABASE_URL']
-        self.github_auth = app.config['GITHUB_AUTH']
+        self.database_url = config['DATABASE_URL']
+        self.github_auth = config['GITHUB_AUTH']
         
         self.request_index = 0
     

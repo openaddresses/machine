@@ -1,2 +1,2 @@
-web: gunicorn -w 4 --bind 0.0.0.0:$PORT openaddr.ci.webhooks:app
+web: gunicorn -w 4 --bind 0.0.0.0:$PORT openaddr.ci.web:app
 dequeue: python -m openaddr.ci.run_dequeue

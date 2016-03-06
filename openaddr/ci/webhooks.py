@@ -407,16 +407,17 @@ def nice_domain(url):
     
     return url
 
-app = Flask(__name__)
-app.config.update(load_config())
-app.register_blueprint(webhooks)
+def apply_webhooks_blueprint(app):
+    '''
+    '''
+    app.register_blueprint(webhooks)
 
-app.jinja_env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
-app.jinja_env.filters['element_id'] = lambda value: value.replace("'", '-')
-app.jinja_env.filters['nice_integer'] = nice_integer
-app.jinja_env.filters['breakstate'] = break_state
-app.jinja_env.filters['nice_size'] = nice_size
+    app.jinja_env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
+    app.jinja_env.filters['element_id'] = lambda value: value.replace("'", '-')
+    app.jinja_env.filters['nice_integer'] = nice_integer
+    app.jinja_env.filters['breakstate'] = break_state
+    app.jinja_env.filters['nice_size'] = nice_size
 
-@app.before_first_request
-def app_prepare():
-    setup_logger(os.environ.get('AWS_SNS_ARN'), logging.WARNING)
+    @app.before_first_request
+    def app_prepare():
+        setup_logger(os.environ.get('AWS_SNS_ARN'), logging.WARNING)
