@@ -2,7 +2,7 @@ import logging; _L = logging.getLogger('openaddr.ci.webhooks')
 
 from functools import wraps
 from operator import itemgetter, attrgetter
-from urllib.parse import urljoin, urlparse, urlunparse
+from urllib.parse import urljoin
 from collections import OrderedDict
 from csv import DictWriter
 import hashlib, hmac
@@ -28,31 +28,11 @@ from .objects import (
     load_collection_zips_dict, read_latest_run
     )
 
-from ..compat import expand_uri, csvIO, csvDictWriter
+from ..compat import expand_uri
 from ..summarize import summarize_runs, GLASS_HALF_FULL, GLASS_HALF_EMPTY, nice_integer, break_state
-
-CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
-             'version', 'fingerprint', 'cache time', 'processed', 'process time', \
-             'output', 'attribution required', 'attribution name', 'share-alike', \
-             'code version'
+from .webcommon import log_application_errors, nice_domain
 
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
-
-def log_application_errors(route_function):
-    ''' Error-logging decorator for route functions.
-    
-        Don't do much, but get an error out to the logger.
-    '''
-    @wraps(route_function)
-    def decorated_function(*args, **kwargs):
-        try:
-            return route_function(*args, **kwargs)
-        except Exception as e:
-            request_info = ' '.join([request.method, request.path])
-            _L.error(e, extra={'request_info': request_info}, exc_info=True)
-            raise
-
-    return decorated_function
 
 def enforce_signature(route_function):
     ''' Look for a signature and bark if it's wrong.
@@ -114,64 +94,6 @@ def app_index():
                                   set.repository, GLASS_HALF_FULL)
 
     return render_template('index.html', set=None, zips=zips, **summary_data)
-
-@webhooks.route('/index.json')
-@log_application_errors
-def app_index_json():
-    with db_connect(current_app.config['DATABASE_URL']) as conn:
-        with db_cursor(conn) as db:
-            zips = load_collection_zips_dict(db)
-    
-    collections = {}
-    licenses = {'': 'Freely Shareable', 'sa': 'Share-Alike Required'}
-    
-    for ((collection, license), zip) in zips.items():
-        if zip.content_length < 1024:
-            # too small, probably empty
-            continue
-
-        if collection not in collections:
-            collections[collection] = dict()
-        
-        if license not in collections[collection]:
-            collections[collection][license] = dict()
-        
-        d = dict(url=nice_domain(zip.url), content_length=zip.content_length)
-        d['license'] = licenses[license]
-        collections[collection][license] = d
-    
-    return jsonify({
-        'run_states_url': urljoin(request.url, u'/state.txt'),
-        'latest_run_processed_url': urljoin(request.url, u'/latest/run/{source}.zip'),
-        'collections': collections
-        })
-
-@webhooks.route('/state.txt', methods=['GET'])
-@log_application_errors
-def app_get_state_txt():
-    '''
-    '''
-    with db_connect(current_app.config['DATABASE_URL']) as conn:
-        with db_cursor(conn) as db:
-            set = read_latest_set(db, 'openaddresses', 'openaddresses')
-            runs = read_completed_runs_to_date(db, set.id)
-    
-    buffer = csvIO()
-    output = csvDictWriter(buffer, CSV_HEADER, dialect='excel-tab', encoding='utf8')
-    output.writerow({col: col for col in CSV_HEADER})
-    for run in sorted(runs, key=attrgetter('source_path')):
-        run_state = run.state or {}
-        row = {col: run_state.get(col, None) for col in CSV_HEADER}
-        row['source'] = os.path.relpath(run.source_path, 'sources')
-        row['code version'] = run.code_version
-        row['cache'] = nice_domain(row['cache'])
-        row['sample'] = nice_domain(row['sample'])
-        row['processed'] = nice_domain(row['processed'])
-        row['output'] = nice_domain(row['output'])
-        output.writerow(row)
-
-    return Response(buffer.getvalue(),
-                    headers={'Content-Type': 'text/plain; charset=utf8'})
 
 @webhooks.route('/hook', methods=['POST'])
 @log_application_errors
@@ -325,32 +247,6 @@ def app_get_set(set_id):
 
     return render_template('set.html', set=set, **summary_data)
 
-@webhooks.route('/sets/<set_id>/state.txt', methods=['GET'])
-@log_application_errors
-def app_get_set_state_txt(set_id):
-    '''
-    '''
-    with db_connect(current_app.config['DATABASE_URL']) as conn:
-        with db_cursor(conn) as db:
-            runs = new_read_completed_set_runs(db, set_id)
-    
-    buffer = csvIO()
-    output = csvDictWriter(buffer, CSV_HEADER, dialect='excel-tab', encoding='utf8')
-    output.writerow({col: col for col in CSV_HEADER})
-    for run in sorted(runs, key=attrgetter('source_path')):
-        run_state = run.state or {}
-        row = {col: run_state.get(col, None) for col in CSV_HEADER}
-        row['source'] = os.path.relpath(run.source_path, 'sources')
-        row['code version'] = run.code_version
-        row['cache'] = nice_domain(row['cache'])
-        row['sample'] = nice_domain(row['sample'])
-        row['processed'] = nice_domain(row['processed'])
-        row['output'] = nice_domain(row['output'])
-        output.writerow(row)
-
-    return Response(buffer.getvalue(),
-                    headers={'Content-Type': 'text/plain; charset=utf8'})
-
 @webhooks.route('/runs/<run_id>/sample.html')
 @log_application_errors
 def app_get_run_sample(run_id):
@@ -390,33 +286,17 @@ def nice_size(size):
     else:
         return '{:.0f}{}'.format(size, suffix)
 
-def nice_domain(url):
+def apply_webhooks_blueprint(app):
     '''
     '''
-    parsed = urlparse(url)
-    _ = None
-    
-    if parsed.hostname == u'data.openaddresses.io':
-        return urlunparse((u'http', parsed.hostname, parsed.path, _, _, _))
-    
-    if parsed.hostname == u's3.amazonaws.com' and parsed.path.startswith(u'/data.openaddresses.io/'):
-        return urlunparse((u'http', u'data.openaddresses.io', parsed.path[22:], _, _, _))
-    
-    if parsed.hostname == u'data.openaddresses.io.s3.amazonaws.com':
-        return urlunparse((u'http', u'data.openaddresses.io', parsed.path, _, _, _))
-    
-    return url
+    app.register_blueprint(webhooks)
 
-app = Flask(__name__)
-app.config.update(load_config())
-app.register_blueprint(webhooks)
+    app.jinja_env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
+    app.jinja_env.filters['element_id'] = lambda value: value.replace("'", '-')
+    app.jinja_env.filters['nice_integer'] = nice_integer
+    app.jinja_env.filters['breakstate'] = break_state
+    app.jinja_env.filters['nice_size'] = nice_size
 
-app.jinja_env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
-app.jinja_env.filters['element_id'] = lambda value: value.replace("'", '-')
-app.jinja_env.filters['nice_integer'] = nice_integer
-app.jinja_env.filters['breakstate'] = break_state
-app.jinja_env.filters['nice_size'] = nice_size
-
-@app.before_first_request
-def app_prepare():
-    setup_logger(os.environ.get('AWS_SNS_ARN'), logging.WARNING)
+    @app.before_first_request
+    def app_prepare():
+        setup_logger(os.environ.get('AWS_SNS_ARN'), logging.WARNING)

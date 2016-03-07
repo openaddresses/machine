@@ -24,7 +24,7 @@ from openaddr.tests.render import TestRender
 from openaddr.tests.dotmap import TestDotmap
 from openaddr.tests.util import TestEsri2GeoJSON, TestUtilities
 from openaddr.tests.summarize import TestSummarizeFunctions
-from openaddr.tests.ci import TestHook, TestRuns, TestWorker, TestBatch, TestObjects, TestCollect
+from openaddr.tests.ci import TestHook, TestRuns, TestWorker, TestBatch, TestObjects, TestCollect, TestAPI
 
 if __name__ == '__main__':
     # Allow the user to turn on logging with -l or --logall

@@ -18,6 +18,7 @@ import hmac, hashlib, mock
 
 import unittest, json, os, sys, itertools
 
+from flask import Flask
 from requests import get, ConnectionError
 from httmock import HTTMock, response
 
@@ -29,7 +30,7 @@ from ..ci import (
     create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE,
     enqueue_sources, find_batch_sources, render_set_maps, render_index_maps,
     is_merged_to_master, get_commit_info, HEARTBEAT_QUEUE, flush_heartbeat_queue,
-    get_recent_workers, PERMANENT_KIND, TEMPORARY_KIND
+    get_recent_workers, PERMANENT_KIND, TEMPORARY_KIND, load_config
     )
 
 from ..ci.objects import (
@@ -48,6 +49,8 @@ from ..ci.collect import (
 
 from ..jobs import JOB_TIMEOUT
 from ..ci.worker import make_source_filename
+from ..ci.webhooks import apply_webhooks_blueprint
+from ..ci.webapi import apply_webapi_blueprint
 from .. import compat, LocalProcessedResult
 from . import FakeS3
 
@@ -590,7 +593,7 @@ class TestObjects (unittest.TestCase):
             self.assertEqual(len(read_run.mock_calls), 2, 'Should not see a new call to read_run()')
             self.assertEqual(len(self.db.execute.mock_calls), 5)
 
-class TestHook (unittest.TestCase):
+class TestAPI (unittest.TestCase):
 
     def setUp(self):
         '''
@@ -598,7 +601,10 @@ class TestHook (unittest.TestCase):
         os.environ['GITHUB_TOKEN'] = ''
         os.environ['DATABASE_URL'] = DATABASE_URL
         os.environ['WEBHOOK_SECRETS'] = 'hello,world'
-        from ..ci.webhooks import app
+
+        app = Flask(__name__)
+        app.config.update(load_config())
+        apply_webapi_blueprint(app)
 
         recreate_db.recreate(app.config['DATABASE_URL'])
         
@@ -612,6 +618,132 @@ class TestHook (unittest.TestCase):
                                 (True, 3456, 'us_west', '', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-us_west.zip'),
                                 (True, 456, 'us_west', 'sa', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-us_west-sa.zip'),
                                 (False, 5678, 'europe', '', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-europe-sa.zip')])
+                
+                db.execute('''INSERT INTO sets
+                              (id, owner, repository, commit_sha, datetime_start, datetime_end, render_world, render_europe, render_usa)
+                              VALUES
+                              (1, 'openaddresses', 'openaddresses', NULL, '2016-03-05 19:31:21.030958-08', NULL, NULL, NULL, NULL),
+                              (2, 'openaddresses', 'openaddresses', NULL, '2016-03-04 19:31:21.030958-08', '2016-03-05 19:31:21.030958-08', NULL, NULL, NULL),
+                              (3, 'openaddresses', 'openaddresses', NULL, '2016-02-27 19:31:21.030958-08', '2016-03-05 19:31:21.030958-08', NULL, NULL, NULL)
+                              ''')
+                
+                db.execute('''INSERT INTO runs
+                              (id, source_path, source_id, source_data, datetime_tz, state, status, copy_of, code_version, worker_id, job_id, set_id, commit_sha, is_merged)
+                              VALUES
+                              (1, 'sources/a1.json', 'abc', '\x646566', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "license": "f", "cache": "c", "source": "a1.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "process time": "m", "processed": "l"}', true, NULL, '2.18.1', NULL, NULL, 2, NULL, true),
+                              (2, 'sources/a2.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "c", "source": "a2.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "p", "process time": "m", "processed": "l"}', true, NULL, '2.18.1', NULL, NULL, 2, NULL, true),
+                              (3, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "c", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "p", "process time": "m", "processed": "l"}', true, NULL, '2.18.1', NULL, NULL, 2, NULL, true),
+                              (4, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "zzz", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "p", "process time": "m", "processed": "l"}', true, NULL, '2.18.1', NULL, NULL, NULL, NULL, false)
+                              ''')
+
+        self.client = app.test_client()
+    
+    def tearDown(self):
+        '''
+        '''
+        del os.environ['GITHUB_TOKEN']
+        del os.environ['DATABASE_URL']
+        del os.environ['WEBHOOK_SECRETS']
+
+    def test_data_index(self):
+        '''
+        '''
+        got = self.client.get('index.json')
+        index = json.loads(got.data)
+        colls = index.get('collections', {})
+        
+        self.assertEqual(index['run_states_url'], 'http://localhost/state.txt')
+        self.assertEqual(index['latest_run_processed_url'], 'http://localhost/latest/run/{source}.zip')
+        
+        self.assertEqual(colls['global']['']['url'], 'http://data.openaddresses.io/openaddr-collected-global.zip')
+        self.assertEqual(colls['global']['sa']['url'], 'http://data.openaddresses.io/openaddr-collected-global-sa.zip')
+        self.assertEqual(colls['us_west']['']['url'], 'http://data.openaddresses.io/openaddr-collected-us_west.zip')
+        self.assertEqual(colls['global']['']['content_length'], 1234)
+        self.assertEqual(colls['global']['sa']['content_length'], 2345)
+        self.assertEqual(colls['us_west']['']['content_length'], 3456)
+        self.assertEqual(colls['global']['']['license'], 'Freely Shareable')
+        self.assertEqual(colls['global']['sa']['license'], 'Share-Alike Required')
+        self.assertEqual(colls['us_west']['']['license'], 'Freely Shareable')
+        self.assertNotIn('sa', colls['us_west'])
+        self.assertNotIn('europe', colls)
+    
+    def test_state_txt(self):
+        now = datetime.now()
+        yesterday = now - timedelta(days=1)
+        last_week = now - timedelta(days=7)
+        
+        # Old-style run predating attribution columns.
+        run_state1 = {
+            'source': 'a1.json', 'skipped': 'b', 'cache': 'c', 'sample': 'd',
+            'website': 'e', 'license': 'f', 'geometry type': 'g',
+            'address count': 'h', 'version': 'i', 'fingerprint': 'j',
+            'cache time': 'k', 'processed': 'l', 'process time': 'm',
+            'output': 'n'
+            }
+        
+        # New-style run including attribution columns.
+        run_state2 = {'attribution required': 'true', 'attribution name': 'p'}
+        run_state2.update(run_state1)
+        run_state2['source'] = 'a2.json'
+        
+        # Newer-style run including share-alike columns.
+        run_state3 = {'share-alike': 'true'}
+        run_state3.update(run_state2)
+        run_state3['source'] = 'a3.json'
+
+        # Unmerged and should never show up.
+        run_state4 = {}
+        run_state4.update(run_state3)
+        run_state4['cache'] = 'zzz'
+        
+        for path in ('/state.txt', '/sets/2/state.txt'):
+            got2 = self.client.get(path)
+            self.assertEqual(got2.status_code, 200)
+        
+            # El-Cheapo CSV parser.
+            lines = got2.data.decode('utf8').split('\r\n')[:4]
+            head, row1, row2, row3 = [row.split('\t') for row in lines]
+            got_state1 = dict(zip(head, row1))
+            got_state2 = dict(zip(head, row2))
+            got_state3 = dict(zip(head, row3))
+            
+            self.assertEqual(got_state1['code version'], __version__)
+            self.assertEqual(got_state2['code version'], __version__)
+            self.assertEqual(got_state3['code version'], __version__)
+        
+            for key in ('source', 'cache', 'sample', 'geometry type', 'address count',
+                        'version', 'fingerprint', 'cache time', 'processed', 'output',
+                        'process time', 'attribution required', 'attribution name',
+                        'share-alike'):
+                self.assertIn(key, got_state1)
+                self.assertIn(key, got_state2)
+        
+            for (key, value) in got_state1.items():
+                if key in run_state1:
+                    self.assertEqual(value, run_state1[key])
+        
+            for (key, value) in got_state2.items():
+                if key in run_state2:
+                    self.assertEqual(value, run_state2[key])
+        
+            for (key, value) in got_state3.items():
+                if key in run_state3:
+                    self.assertEqual(value, run_state3[key])
+
+class TestHook (unittest.TestCase):
+
+    def setUp(self):
+        '''
+        '''
+        os.environ['GITHUB_TOKEN'] = ''
+        os.environ['DATABASE_URL'] = DATABASE_URL
+        os.environ['WEBHOOK_SECRETS'] = 'hello,world'
+
+        app = Flask(__name__)
+        app.config.update(load_config())
+        apply_webhooks_blueprint(app)
+
+        recreate_db.recreate(app.config['DATABASE_URL'])
 
         self.output_dir = mkdtemp(prefix='TestHook-')
         self.database_url = app.config['DATABASE_URL']
@@ -825,28 +957,6 @@ class TestHook (unittest.TestCase):
         
         print('Unknowable Request {} "{}"'.format(request.method, url.geturl()), file=sys.stderr)
         raise ValueError('Unknowable Request {} "{}"'.format(request.method, url.geturl()))
-
-    def test_data_index(self):
-        '''
-        '''
-        got = self.client.get('index.json')
-        index = json.loads(got.data)
-        colls = index.get('collections', {})
-        
-        self.assertEqual(index['run_states_url'], 'http://localhost/state.txt')
-        self.assertEqual(index['latest_run_processed_url'], 'http://localhost/latest/run/{source}.zip')
-        
-        self.assertEqual(colls['global']['']['url'], 'http://data.openaddresses.io/openaddr-collected-global.zip')
-        self.assertEqual(colls['global']['sa']['url'], 'http://data.openaddresses.io/openaddr-collected-global-sa.zip')
-        self.assertEqual(colls['us_west']['']['url'], 'http://data.openaddresses.io/openaddr-collected-us_west.zip')
-        self.assertEqual(colls['global']['']['content_length'], 1234)
-        self.assertEqual(colls['global']['sa']['content_length'], 2345)
-        self.assertEqual(colls['us_west']['']['content_length'], 3456)
-        self.assertEqual(colls['global']['']['license'], 'Freely Shareable')
-        self.assertEqual(colls['global']['sa']['license'], 'Share-Alike Required')
-        self.assertEqual(colls['us_west']['']['license'], 'Freely Shareable')
-        self.assertNotIn('sa', colls['us_west'])
-        self.assertNotIn('europe', colls)
     
     @patch('openaddr.ci.HEARTBEAT_INTERVAL', new=timedelta(seconds=1))
     def test_webhook_badjson_content(self):
@@ -1246,29 +1356,24 @@ class TestHook (unittest.TestCase):
                 set_run(db, run_id4, 'sources/a3.json', 'ghi', b'jkl',
                         run_state4, True, None, None, None, False, None)
         
-        got1 = self.client.get('/latest/set')
-        self.assertEqual(got1.status_code, 302)
-        self.assertTrue(got1.headers.get('Location').endswith('/sets/2'))
-
-        for path in ('/state.txt', '/sets/2/state.txt'):
-            got2 = self.client.get(path)
-            self.assertEqual(got2.status_code, 200)
+                latest_set = read_latest_set(db, 'openaddresses', 'openaddresses')
+                latest_set_runs = read_completed_runs_to_date(db, latest_set.id)
+                set_2_runs = read_completed_runs_to_date(db, 2)
         
-            # El-Cheapo CSV parser.
-            lines = got2.data.decode('utf8').split('\r\n')[:4]
-            head, row1, row2, row3 = [row.split('\t') for row in lines]
-            got_state1 = dict(zip(head, row1))
-            got_state2 = dict(zip(head, row2))
-            got_state3 = dict(zip(head, row3))
+        for runs in (latest_set_runs, set_2_runs):
+            self.assertEqual(len(runs), 3)
+        
+            got_state1 = dict(runs[0].state)
+            got_state2 = dict(runs[1].state)
+            got_state3 = dict(runs[2].state)
             
-            self.assertEqual(got_state1['code version'], __version__)
-            self.assertEqual(got_state2['code version'], __version__)
-            self.assertEqual(got_state3['code version'], __version__)
+            self.assertEqual(runs[0].code_version, __version__)
+            self.assertEqual(runs[1].code_version, __version__)
+            self.assertEqual(runs[2].code_version, __version__)
         
             for key in ('source', 'cache', 'sample', 'geometry type', 'address count',
                         'version', 'fingerprint', 'cache time', 'processed', 'output',
-                        'process time', 'attribution required', 'attribution name',
-                        'share-alike'):
+                        'process time'):
                 self.assertIn(key, got_state1)
                 self.assertIn(key, got_state2)
         
@@ -1979,14 +2084,15 @@ class TestBatch (unittest.TestCase):
         os.environ['GITHUB_TOKEN'] = ''
         os.environ['DATABASE_URL'] = DATABASE_URL
         os.environ['WEBHOOK_SECRETS'] = 'hello,world'
-        from ..ci.webhooks import app
+        
+        config = load_config()
 
-        recreate_db.recreate(app.config['DATABASE_URL'])
+        recreate_db.recreate(config['DATABASE_URL'])
         self.s3 = FakeS3()
 
         self.output_dir = mkdtemp(prefix='TestBatch-')
-        self.database_url = app.config['DATABASE_URL']
-        self.github_auth = app.config['GITHUB_AUTH']
+        self.database_url = config['DATABASE_URL']
+        self.github_auth = config['GITHUB_AUTH']
         
         self.request_index = 0
     
