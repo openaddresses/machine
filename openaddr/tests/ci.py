@@ -630,10 +630,10 @@ class TestAPI (unittest.TestCase):
                 db.execute('''INSERT INTO runs
                               (id, source_path, source_id, source_data, datetime_tz, state, status, copy_of, code_version, worker_id, job_id, set_id, commit_sha, is_merged)
                               VALUES
-                              (1, 'sources/a1.json', 'abc', '\x646566', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "license": "f", "cache": "c", "source": "a1.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "process time": "m", "processed": "l"}', true, NULL, '2.18.1', NULL, NULL, 2, NULL, true),
-                              (2, 'sources/a2.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "c", "source": "a2.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "p", "process time": "m", "processed": "l"}', true, NULL, '2.18.1', NULL, NULL, 2, NULL, true),
-                              (3, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "c", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "p", "process time": "m", "processed": "l"}', true, NULL, '2.18.1', NULL, NULL, 2, NULL, true),
-                              (4, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "zzz", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "p", "process time": "m", "processed": "l"}', true, NULL, '2.18.1', NULL, NULL, NULL, NULL, false)
+                              (1, 'sources/a1.json', 'abc', '\x646566', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "license": "f", "cache": "c", "source": "a1.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
+                              (2, 'sources/a2.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "c", "source": "a2.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "p", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
+                              (3, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "c", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "p", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
+                              (4, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "zzz", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "p", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, NULL, NULL, false)
                               ''')
 
         self.client = app.test_client()
@@ -707,9 +707,9 @@ class TestAPI (unittest.TestCase):
             got_state2 = dict(zip(head, row2))
             got_state3 = dict(zip(head, row3))
             
-            self.assertEqual(got_state1['code version'], __version__)
-            self.assertEqual(got_state2['code version'], __version__)
-            self.assertEqual(got_state3['code version'], __version__)
+            self.assertEqual(got_state1['code version'], 'x.y.z')
+            self.assertEqual(got_state2['code version'], 'x.y.z')
+            self.assertEqual(got_state3['code version'], 'x.y.z')
         
             for key in ('source', 'cache', 'sample', 'geometry type', 'address count',
                         'version', 'fingerprint', 'cache time', 'processed', 'output',
