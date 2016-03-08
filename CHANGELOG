@@ -1,3 +1,6 @@
+2016-03-08: 2.18.4
+- Fixed memory error when iterating over CSV rows in csv_source_to_csv().
+
 2016-03-07: 2.18.3
 - Fixed typo in test.
 
