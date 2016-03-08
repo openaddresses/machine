@@ -1,3 +1,7 @@
+2016-03-07: 2.18.2
+- Extended job timeout to 9 hours.
+- Moved API-like code to ci.webapi Flask Blueprint.
+
 2016-03-05: 2.18.1
 - Populating "expected results" and "active workers" metrics.
 
