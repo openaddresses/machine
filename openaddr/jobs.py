@@ -26,7 +26,7 @@ from . import process_one, compat
 #
 
 # After this long, a job will be killed with SIGALRM
-JOB_TIMEOUT = timedelta(hours=3)
+JOB_TIMEOUT = timedelta(hours=9)
 
 class JobTimeoutException(Exception):
     ''' Exception raised if a per-job timeout fires.
