@@ -29,7 +29,7 @@ The actual work is done a separate sub-process, [using the `openaddr-process-one
 * _Worker_ code can be found [in `openaddr/ci/worker.py`](https://github.com/openaddresses/machine/blob/2.18.0/openaddr/ci/worker.py).
 * `openaddr-process-one` code can be found [in `openaddr/process_one.py`](https://github.com/openaddresses/machine/blob/2.18.0/openaddr/process_one.py).
 * Configured in an [EC2 auto-scaling group]( https://console.aws.amazon.com/ec2/autoscaling/home?region=us-east-1#AutoScalingGroups:id=CI+Workers+2.x;view=details) with [launch configuration]( https://console.aws.amazon.com/ec2/autoscaling/home?region=us-east-1#LaunchConfigurations:id=CI+Workers+2.x).
-* The time allotted for a single source run is [currently limited to 3 hours](https://github.com/openaddresses/machine/blob/2.18.0/openaddr/jobs.py#L29).
+* The time allotted for a single source run is [currently limited to 9 hours](https://github.com/openaddresses/machine/blob/2.18.0/openaddr/jobs.py#L29).
 * No public URLs.
 
 <a name="dequeue">Dequeuer</a>
