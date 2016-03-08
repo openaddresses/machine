@@ -658,7 +658,9 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
             writer = csvDictWriter(dest_fp, out_fieldnames)
             writer.writeheader()
             # For every row in the source CSV
-            for (source_row, row_number) in zip(reader, itertools.count(1)):
+            row_number = 0
+            for source_row in reader:
+                row_number += 1
                 if len(source_row) != num_fields:
                     _L.debug("Skipping row. Got %d columns, expected %d", len(source_row), num_fields)
                     continue
