@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 
 from . import (
     db_connect, db_queue, TASK_QUEUE, load_config, setup_logger,
-    enqueue_sources, find_batch_sources
+    enqueue_sources, find_batch_sources, get_batch_run_times
     )
 
 from .objects import add_set
@@ -72,14 +72,10 @@ def main():
             minimum_capacity = count(1)
         
             with task_Q as db:
-                from . import get_batch_run_times
                 run_times = get_batch_run_times(db, args.owner, args.repository)
 
             sources = find_batch_sources(args.owner, args.repository, github_auth, run_times)
-
-            print len(list(sources))
-            return 1
-
+            
             with task_Q as db:
                 new_set = add_set(db, args.owner, args.repository)
 

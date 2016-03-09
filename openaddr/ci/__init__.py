@@ -356,18 +356,19 @@ def find_batch_sources(owner, repository, github_auth, run_times={}):
         yield source
 
 def get_batch_run_times(db, owner, repository):
+    ''' Return dictionary of source paths to run time strings like '00:01:23'.
     '''
-    '''
-    from .objects import read_latest_set, read_completed_runs_to_date
-    last_set = read_latest_set(db, owner, repository)
-    run_times = {run.source_path: run.state['process time']
-                 for run in read_completed_runs_to_date(db, last_set.id)
-                 if run.state}
-    
-    return run_times
+    last_set = objects.read_latest_set(db, owner, repository)
+
+    return {run.source_path: run.state['process time']
+            for run in objects.read_completed_runs_to_date(db, last_set.id)
+            if run.state}
 
 def _find_batch_source_urls(owner, repository, github_auth):
-    ''' Starting with a Github repo API URL, generate a stream of sources.
+    ''' Starting with a Github repo API URL, return a list of sources.
+    
+        Sources are dictionaries, with keys commit_sha, url to content on Github,
+        blob_sha for git blob, and path like 'sources/xx/yy.json'.
     '''
     resp = get('https://api.github.com/', auth=github_auth)
     if resp.status_code >= 400:
@@ -406,24 +407,6 @@ def _find_batch_source_urls(owner, repository, github_auth):
             if ext == '.json':
                 sources_list.append(dict(commit_sha=commit_sha, url=source['url'],
                                          blob_sha=source['sha'], path=source['path']))
-
-                continue
-            
-                _L.debug('Getting source {url}'.format(**source))
-                try:
-                    more_source = get(source['url'], auth=github_auth).json()
-                except ConnectionError:
-                    _L.info('Retrying to download {url}'.format(**source))
-                    try:
-                        sleep(GITHUB_RETRY_DELAY.seconds + GITHUB_RETRY_DELAY.days * 86400)
-                        more_source = get(source['url'], auth=github_auth).json()
-                    except ConnectionError:
-                        _L.error('Failed to download {url}'.format(**source))
-                        raise
-
-                #yield dict(commit_sha=commit_sha, url=source['url'],
-                #           blob_sha=source['sha'], path=source['path'],
-                #           content=more_source['content'])
 
     return sources_list
 
