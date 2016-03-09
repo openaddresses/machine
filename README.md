@@ -11,7 +11,7 @@ Status
 This code is being used to process the complete OA dataset on an expected-weekly
 basis, with output visible at [data.openaddresses.io](http://data.openaddresses.io).
 
-[![Build Status](https://travis-ci.org/openaddresses/machine.svg?branch=master)](https://travis-ci.org/openaddresses/machine)
+[![Build Status](https://circleci.com/gh/openaddresses/machine.svg?style=shield&circle-token=59617abd38437b390cb7becc24a008a513aa8782)](https://circleci.com/gh/openaddresses/machine/tree/master)
 
 Usage
 -----
