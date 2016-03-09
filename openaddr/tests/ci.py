@@ -30,7 +30,8 @@ from ..ci import (
     create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE,
     enqueue_sources, find_batch_sources, render_set_maps, render_index_maps,
     is_merged_to_master, get_commit_info, HEARTBEAT_QUEUE, flush_heartbeat_queue,
-    get_recent_workers, PERMANENT_KIND, TEMPORARY_KIND, load_config
+    get_recent_workers, PERMANENT_KIND, TEMPORARY_KIND, load_config,
+    get_batch_run_times
     )
 
 from ..ci.objects import (
@@ -2196,6 +2197,25 @@ class TestBatch (unittest.TestCase):
         
         print('Unknowable Request {} "{}"'.format(request.method, url.geturl()), file=sys.stderr)
         raise ValueError('Unknowable Request {} "{}"'.format(request.method, url.geturl()))
+    
+    def test_get_batch_run_times(self):
+        '''
+        '''
+        _ = mock.Mock()
+        
+        with patch('openaddr.ci.objects.read_latest_set') as read_latest_set, patch('openaddr.ci.objects.read_completed_runs_to_date') as read_completed_runs_to_date:
+            read_completed_runs_to_date.return_value = [
+                Run(_, 'sources/foo.json', _, _, _, {'process time': '01:01'}, _, _, _, _, _, _, _, _),
+                Run(_, 'sources/bar.json', _, _, _, {'process time': '00:01'}, _, _, _, _, _, _, _, _),
+                Run(_, 'sources/baz.json', _, _, _, {'process time': '00:01'}, _, _, _, _, _, _, _, _),
+                ]
+
+            run_times = get_batch_run_times(_, 'openaddresses', 'openaddresses')
+            
+            self.assertEqual(run_times['sources/foo.json'], '01:01')
+            self.assertEqual(run_times['sources/bar.json'], '00:01')
+            self.assertEqual(run_times['sources/baz.json'], '00:01')
+            self.assertEqual(len(run_times), 3)
     
     def test_is_merged_to_master(self):
         '''

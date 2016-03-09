@@ -328,8 +328,47 @@ def update_success_status(status_url, job_url, filenames, github_auth):
     
     return post_github_status(status_url, status, github_auth)
 
-def find_batch_sources(owner, repository, github_auth):
+def find_batch_sources(owner, repository, github_auth, run_times={}):
     ''' Starting with a Github repo API URL, generate a stream of master sources.
+    '''
+    source_urls = list(_find_batch_source_urls(owner, repository, github_auth))
+    
+    # sort with the shortest known runs at the end, keeping the 9999's alphabetical.
+    source_urls.sort(key=lambda su: su['path'])
+    source_urls.sort(key=lambda su: (run_times.get(su['path']) or '9999'), reverse=True)
+    
+    for source_url in source_urls:
+        _L.debug('Getting source {url}'.format(**source_url))
+        try:
+            more_source = get(source_url['url'], auth=github_auth).json()
+        except ConnectionError:
+            _L.info('Retrying to download {url}'.format(**source))
+            try:
+                sleep(GITHUB_RETRY_DELAY.seconds + GITHUB_RETRY_DELAY.days * 86400)
+                more_source = get(source_url['url'], auth=github_auth).json()
+            except ConnectionError:
+                _L.error('Failed to download {url}'.format(**source_url))
+                raise
+
+        source = dict(content=more_source['content'])
+        source.update(source_url)
+        
+        yield source
+
+def get_batch_run_times(db, owner, repository):
+    ''' Return dictionary of source paths to run time strings like '00:01:23'.
+    '''
+    last_set = objects.read_latest_set(db, owner, repository)
+
+    return {run.source_path: run.state['process time']
+            for run in objects.read_completed_runs_to_date(db, last_set.id)
+            if run.state}
+
+def _find_batch_source_urls(owner, repository, github_auth):
+    ''' Starting with a Github repo API URL, return a list of sources.
+    
+        Sources are dictionaries, with keys commit_sha, url to content on Github,
+        blob_sha for git blob, and path like 'sources/xx/yy.json'.
     '''
     resp = get('https://api.github.com/', auth=github_auth)
     if resp.status_code >= 400:
@@ -348,7 +387,7 @@ def find_batch_sources(owner, repository, github_auth):
     
     contents_url += '{?ref}' # So that we are consistently at the same commit.
     sources_urls = [expand_uri(contents_url, dict(path='sources', ref=commit_sha))]
-    sources_dict = dict()
+    sources_list = list()
 
     for sources_url in sources_urls:
         _L.debug('Getting sources {sources_url}'.format(**locals()))
@@ -366,21 +405,10 @@ def find_batch_sources(owner, repository, github_auth):
             path_base, ext = splitext(source['path'])
         
             if ext == '.json':
-                _L.debug('Getting source {url}'.format(**source))
-                try:
-                    more_source = get(source['url'], auth=github_auth).json()
-                except ConnectionError:
-                    _L.info('Retrying to download {url}'.format(**source))
-                    try:
-                        sleep(GITHUB_RETRY_DELAY.seconds + GITHUB_RETRY_DELAY.days * 86400)
-                        more_source = get(source['url'], auth=github_auth).json()
-                    except ConnectionError:
-                        _L.error('Failed to download {url}'.format(**source))
-                        raise
+                sources_list.append(dict(commit_sha=commit_sha, url=source['url'],
+                                         blob_sha=source['sha'], path=source['path']))
 
-                yield dict(commit_sha=commit_sha, url=source['url'],
-                           blob_sha=source['sha'], path=source['path'],
-                           content=more_source['content'])
+    return sources_list
 
 def enqueue_sources(queue, the_set, sources):
     ''' Batch task generator, yields counts of remaining expected paths.
