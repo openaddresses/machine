@@ -65,13 +65,20 @@ def main():
     next_queue_interval, next_autoscale_interval = 60, 86400 * 1.5
 
     try:
-        sources = find_batch_sources(args.owner, args.repository, github_auth)
-
         with db_connect(args.database_url) as conn:
             task_Q = db_queue(conn, TASK_QUEUE)
             next_queue_report = time() + next_queue_interval
             next_autoscale_grow = time() + next_autoscale_interval
             minimum_capacity = count(1)
+        
+            with task_Q as db:
+                from . import get_batch_run_times
+                run_times = get_batch_run_times(db, args.owner, args.repository)
+
+            sources = find_batch_sources(args.owner, args.repository, github_auth, run_times)
+
+            print len(list(sources))
+            return 1
 
             with task_Q as db:
                 new_set = add_set(db, args.owner, args.repository)
