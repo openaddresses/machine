@@ -357,7 +357,7 @@ class EsriRestDownloadTask(DownloadTask):
             'returnCountOnly': 'true',
             'f': 'json',
         }
-        response = request('GET', url, params=query_args, headers=self.headers)
+        response = request('POST', url, headers=self.headers, data=query_args)
         count_json = self.handle_esri_errors(response, "Could not retrieve row count from ESRI source")
         return count_json
 
@@ -371,7 +371,7 @@ class EsriRestDownloadTask(DownloadTask):
                 dict(statisticType='max', onStatisticField=oid_field_name, outStatisticFieldName='THE_MAX'),
             ], separators=(',', ':'))
         }
-        response = request('GET', url, params=query_args, headers=self.headers)
+        response = request('POST', url, headers=self.headers, data=query_args)
         metadata = self.handle_esri_errors(response, "Could not retrieve min/max oid values from ESRI source")
 
         # Some servers (specifically version 10.11, it seems) will respond with SQL statements
@@ -386,7 +386,7 @@ class EsriRestDownloadTask(DownloadTask):
             'returnIdsOnly': 'true',
             'f': 'json',
         }
-        response = request('GET', url, params=query_args, headers=self.headers)
+        response = request('POST', url, headers=self.headers, data=query_args)
         oid_data = self.handle_esri_errors(response, "Could not retrieve object IDs from ESRI source")
         return oid_data
 

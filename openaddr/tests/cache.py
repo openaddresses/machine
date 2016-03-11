@@ -77,9 +77,9 @@ class TestCacheEsriDownload (unittest.TestCase):
             if path == '/ArcGIS/rest/services/basemap/MapServer/1/query':
                 body_data = parse_qs(request.body) if request.body else {}
 
-                if qs.get('returnIdsOnly') == ['true']:
+                if body_data.get('returnIdsOnly') == ['true']:
                     local_path = join(data_dirname, 'us-ca-carson-ids-only.json')
-                elif qs.get('returnCountOnly') == ['true']:
+                elif body_data.get('returnCountOnly') == ['true']:
                     local_path = join(data_dirname, 'us-ca-carson-count-only.json')
                 elif body_data.get('outSR') == ['4326']:
                     local_path = join(data_dirname, 'us-ca-carson-0.json')
@@ -94,9 +94,9 @@ class TestCacheEsriDownload (unittest.TestCase):
             if path == '/arcgis/rest/services/ADDRESSES/MapServer/2/query':
                 body_data = parse_qs(request.body) if request.body else {}
 
-                if qs.get('returnIdsOnly') == ['true']:
+                if body_data.get('returnIdsOnly') == ['true']:
                     local_path = join(data_dirname, 'us-mo-columbia-ids-only.json')
-                elif qs.get('returnCountOnly') == ['true']:
+                elif body_data.get('returnCountOnly') == ['true']:
                     local_path = join(data_dirname, 'us-mo-columbia-count-only.json')
                 elif body_data.get('outSR') == ['4326']:
                     local_path = join(data_dirname, 'us-mo-columbia-0.json')
@@ -111,11 +111,11 @@ class TestCacheEsriDownload (unittest.TestCase):
             if path == '/arcgis/rest/services/Viewers/Madison/MapServer/13/query':
                 body_data = parse_qs(request.body) if request.body else {}
 
-                if qs.get('returnIdsOnly') == ['true']:
+                if body_data.get('returnIdsOnly') == ['true']:
                     local_path = join(data_dirname, 'us-ms-madison-ids-only.json')
-                elif qs.get('returnCountOnly') == ['true']:
+                elif body_data.get('returnCountOnly') == ['true']:
                     local_path = join(data_dirname, 'us-ms-madison-count-only.json')
-                elif qs.get('outStatistics'):
+                elif body_data.get('outStatistics'):
                     local_path = join(data_dirname, 'us-ms-madison-outStatistics.json')
                 elif body_data.get('outSR') == ['4326']:
                     local_path = join(data_dirname, 'us-ms-madison-0.json')
@@ -130,7 +130,7 @@ class TestCacheEsriDownload (unittest.TestCase):
             if path == '/arcgis/rest/services/Recreation/FeatureServer/0/query':
                 body_data = parse_qs(request.body) if request.body else {}
 
-                if qs.get('returnCountOnly') == ['true']:
+                if body_data.get('returnCountOnly') == ['true']:
                     local_path = join(data_dirname, 'us-esri-test-count-only.json')
                 elif body_data.get('outSR') == ['4326']:
                     local_path = join(data_dirname, 'us-esri-test-0.json')
@@ -145,7 +145,7 @@ class TestCacheEsriDownload (unittest.TestCase):
             if path == '/arcgis/rest/services/Public/Public_Parcels/MapServer/0/query':
                 body_data = parse_qs(request.body) if request.body else {}
 
-                if qs.get('returnCountOnly') == ['true']:
+                if body_data.get('returnCountOnly') == ['true']:
                     local_path = join(data_dirname, 'us-mn-washington-count-only.json')
                 elif body_data.get('resultRecordCount') == ['1']:
                     local_path = join(data_dirname, 'us-mn-washington-0.json')
@@ -162,9 +162,9 @@ class TestCacheEsriDownload (unittest.TestCase):
             if path == '/arcgis/rest/services/Address_Parcels/MapServer/0/query':
                 body_data = parse_qs(request.body) if request.body else {}
 
-                if qs.get('returnCountOnly') == ['true']:
+                if body_data.get('returnCountOnly') == ['true']:
                     local_path = join(data_dirname, 'us-ca-tuolumne-count-only.json')
-                elif qs.get('outStatistics'):
+                elif body_data.get('outStatistics'):
                     local_path = join(data_dirname, 'us-ca-tuolumne-statistics.json')
                 elif body_data.get('outSR') == ['4326']:
                     local_path = join(data_dirname, 'us-ca-tuolumne-0.json')
@@ -179,11 +179,11 @@ class TestCacheEsriDownload (unittest.TestCase):
             if path == '/prodarcgis/rest/services/External/MapServer/5/query':
                 body_data = parse_qs(request.body) if request.body else {}
 
-                if qs.get('returnCountOnly') == ['true']:
+                if body_data.get('returnCountOnly') == ['true']:
                     local_path = join(data_dirname, 'us-mi-kent-count-only.json')
-                elif qs.get('outStatistics'):
+                elif body_data.get('outStatistics'):
                     local_path = join(data_dirname, 'us-mi-kent-statistics.json')
-                elif qs.get('returnIdsOnly'):
+                elif body_data.get('returnIdsOnly'):
                     local_path = join(data_dirname, 'us-mi-kent-ids-only.json')
                 elif body_data.get('outSR') == ['4326']:
                     local_path = join(data_dirname, 'us-mi-kent-0.json')
