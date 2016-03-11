@@ -19,12 +19,12 @@ class TestCacheExtensionGuessing (unittest.TestCase):
         '''
         scheme, host, path, _, query, _ = urlparse(url.geturl())
         tests_dirname = dirname(__file__)
-        
+
         if host == 'fake-cwd.local':
             with open(tests_dirname + path, 'rb') as file:
                 type, _ = mimetypes.guess_type(file.name)
                 return httmock.response(200, file.read(), headers={'Content-Type': type})
-        
+
         elif (host, path) == ('www.ci.berkeley.ca.us', '/uploadedFiles/IT/GIS/Parcels.zip'):
             with open(join(tests_dirname, 'data', 'us-ca-berkeley-excerpt.zip'), 'rb') as file:
                 return httmock.response(200, file.read(), headers={'Content-Type': 'application/octet-stream'})
@@ -43,7 +43,7 @@ class TestCacheExtensionGuessing (unittest.TestCase):
             return httmock.response(200, b'FAKE,FAKE\n'*99, headers={'Content-Type': 'text/csv', 'Content-Disposition': 'attachment; filename=PropertyReport.csv'})
 
         raise NotImplementedError(url.geturl())
-    
+
     def test_urls(self):
         with httmock.HTTMock(self.response_content):
             assert guess_url_file_extension('http://fake-cwd.local/conforms/lake-man-3740.csv') == '.csv'
@@ -60,7 +60,7 @@ class TestCacheEsriDownload (unittest.TestCase):
         ''' Prepare a clean temporary directory, and work there.
         '''
         self.workdir = tempfile.mkdtemp(prefix='testCache-')
-    
+
     def tearDown(self):
         shutil.rmtree(self.workdir)
 
@@ -70,20 +70,20 @@ class TestCacheEsriDownload (unittest.TestCase):
         scheme, host, path, _, query, _ = urlparse(url.geturl())
         data_dirname = join(dirname(__file__), 'data')
         local_path = False
-        
+
         if host == 'www.carsonproperty.info':
             qs = parse_qs(query)
-            
+
             if path == '/ArcGIS/rest/services/basemap/MapServer/1/query':
                 body_data = parse_qs(request.body) if request.body else {}
 
-                if qs.get('returnIdsOnly') == ['true']:
+                if body_data.get('returnIdsOnly') == ['true']:
                     local_path = join(data_dirname, 'us-ca-carson-ids-only.json')
-                elif qs.get('returnCountOnly') == ['true']:
+                elif body_data.get('returnCountOnly') == ['true']:
                     local_path = join(data_dirname, 'us-ca-carson-count-only.json')
                 elif body_data.get('outSR') == ['4326']:
                     local_path = join(data_dirname, 'us-ca-carson-0.json')
-            
+
             elif path == '/ArcGIS/rest/services/basemap/MapServer/1':
                 if qs.get('f') == ['json']:
                     local_path = join(data_dirname, 'us-ca-carson-metadata.json')
@@ -94,9 +94,9 @@ class TestCacheEsriDownload (unittest.TestCase):
             if path == '/arcgis/rest/services/ADDRESSES/MapServer/2/query':
                 body_data = parse_qs(request.body) if request.body else {}
 
-                if qs.get('returnIdsOnly') == ['true']:
+                if body_data.get('returnIdsOnly') == ['true']:
                     local_path = join(data_dirname, 'us-mo-columbia-ids-only.json')
-                elif qs.get('returnCountOnly') == ['true']:
+                elif body_data.get('returnCountOnly') == ['true']:
                     local_path = join(data_dirname, 'us-mo-columbia-count-only.json')
                 elif body_data.get('outSR') == ['4326']:
                     local_path = join(data_dirname, 'us-mo-columbia-0.json')
@@ -107,19 +107,19 @@ class TestCacheEsriDownload (unittest.TestCase):
 
         if host == 'gis.cmpdd.org':
             qs = parse_qs(query)
-            
+
             if path == '/arcgis/rest/services/Viewers/Madison/MapServer/13/query':
                 body_data = parse_qs(request.body) if request.body else {}
 
-                if qs.get('returnIdsOnly') == ['true']:
+                if body_data.get('returnIdsOnly') == ['true']:
                     local_path = join(data_dirname, 'us-ms-madison-ids-only.json')
-                elif qs.get('returnCountOnly') == ['true']:
+                elif body_data.get('returnCountOnly') == ['true']:
                     local_path = join(data_dirname, 'us-ms-madison-count-only.json')
-                elif qs.get('outStatistics'):
+                elif body_data.get('outStatistics'):
                     local_path = join(data_dirname, 'us-ms-madison-outStatistics.json')
                 elif body_data.get('outSR') == ['4326']:
                     local_path = join(data_dirname, 'us-ms-madison-0.json')
-            
+
             elif path == '/arcgis/rest/services/Viewers/Madison/MapServer/13':
                 if qs.get('f') == ['json']:
                     local_path = join(data_dirname, 'us-ms-madison-metadata.json')
@@ -130,7 +130,7 @@ class TestCacheEsriDownload (unittest.TestCase):
             if path == '/arcgis/rest/services/Recreation/FeatureServer/0/query':
                 body_data = parse_qs(request.body) if request.body else {}
 
-                if qs.get('returnCountOnly') == ['true']:
+                if body_data.get('returnCountOnly') == ['true']:
                     local_path = join(data_dirname, 'us-esri-test-count-only.json')
                 elif body_data.get('outSR') == ['4326']:
                     local_path = join(data_dirname, 'us-esri-test-0.json')
@@ -145,7 +145,7 @@ class TestCacheEsriDownload (unittest.TestCase):
             if path == '/arcgis/rest/services/Public/Public_Parcels/MapServer/0/query':
                 body_data = parse_qs(request.body) if request.body else {}
 
-                if qs.get('returnCountOnly') == ['true']:
+                if body_data.get('returnCountOnly') == ['true']:
                     local_path = join(data_dirname, 'us-mn-washington-count-only.json')
                 elif body_data.get('resultRecordCount') == ['1']:
                     local_path = join(data_dirname, 'us-mn-washington-0.json')
@@ -156,15 +156,34 @@ class TestCacheEsriDownload (unittest.TestCase):
                 if qs.get('f') == ['json']:
                     local_path = join(data_dirname, 'us-mn-washington-metadata.json')
 
+        if host == 'ags3.lincoln.ne.gov':
+            qs = parse_qs(query)
+
+            if path == '/arcgis/rest/services/Assessor/Pub_Parcels/MapServer/0/query':
+                body_data = parse_qs(request.body) if request.body else {}
+
+                if body_data.get('returnCountOnly') == ['true']:
+                    local_path = join(data_dirname, 'us-ne-lancaster-count-only.json')
+                elif body_data.get('outStatistics'):
+                    local_path = join(data_dirname, 'us-ne-lancaster-statistics.json')
+                elif body_data.get('where') == ['OBJECTID > 76080666 AND OBJECTID <= 76080666']:
+                    local_path = join(data_dirname, 'us-ne-lancaster-0.json')
+                elif body_data.get('outFields') == ['*']:
+                    local_path = join(data_dirname, 'us-ne-lancaster-0-allfields.json')
+
+            elif path == '/arcgis/rest/services/Assessor/Pub_Parcels/MapServer/0':
+                if qs.get('f') == ['json']:
+                    local_path = join(data_dirname, 'us-ne-lancaster-metadata.json')
+
         if host == 'gis.co.tuolumne.ca.us':
             qs = parse_qs(query)
 
             if path == '/arcgis/rest/services/Address_Parcels/MapServer/0/query':
                 body_data = parse_qs(request.body) if request.body else {}
 
-                if qs.get('returnCountOnly') == ['true']:
+                if body_data.get('returnCountOnly') == ['true']:
                     local_path = join(data_dirname, 'us-ca-tuolumne-count-only.json')
-                elif qs.get('outStatistics'):
+                elif body_data.get('outStatistics'):
                     local_path = join(data_dirname, 'us-ca-tuolumne-statistics.json')
                 elif body_data.get('outSR') == ['4326']:
                     local_path = join(data_dirname, 'us-ca-tuolumne-0.json')
@@ -179,11 +198,11 @@ class TestCacheEsriDownload (unittest.TestCase):
             if path == '/prodarcgis/rest/services/External/MapServer/5/query':
                 body_data = parse_qs(request.body) if request.body else {}
 
-                if qs.get('returnCountOnly') == ['true']:
+                if body_data.get('returnCountOnly') == ['true']:
                     local_path = join(data_dirname, 'us-mi-kent-count-only.json')
-                elif qs.get('outStatistics'):
+                elif body_data.get('outStatistics'):
                     local_path = join(data_dirname, 'us-mi-kent-statistics.json')
-                elif qs.get('returnIdsOnly'):
+                elif body_data.get('returnIdsOnly'):
                     local_path = join(data_dirname, 'us-mi-kent-ids-only.json')
                 elif body_data.get('outSR') == ['4326']:
                     local_path = join(data_dirname, 'us-mi-kent-0.json')
@@ -196,9 +215,9 @@ class TestCacheEsriDownload (unittest.TestCase):
             type, _ = mimetypes.guess_type(local_path)
             with open(local_path, 'rb') as file:
                 return httmock.response(200, file.read(), headers={'Content-Type': type})
-        
+
         raise NotImplementedError(url.geturl())
-    
+
     def test_download_carson(self):
         """ ESRI Caching Supports Object ID Enumeration """
         with httmock.HTTMock(self.response_content):
@@ -266,3 +285,17 @@ class TestCacheEsriDownload (unittest.TestCase):
         with httmock.HTTMock(self.response_content):
             task = EsriRestDownloadTask('us-mn-washington')
             task.download(['http://maps.co.washington.mn.us/arcgis/rest/services/Public/Public_Parcels/MapServer/0'], self.workdir, conform)
+
+        conform = {
+            "type": "geojson",
+            "number": "SIT_ST_NUM",
+            "street": [
+                "SIT_ST_DIR",
+                "SIT_ST_NAME",
+                "SIT_ST_TYPE"
+            ],
+            "unit": "SIT_APT_NUM"
+        }
+        with httmock.HTTMock(self.response_content):
+            task = EsriRestDownloadTask('us-ne-lancaster')
+            task.download(['http://ags3.lincoln.ne.gov/arcgis/rest/services/Assessor/Pub_Parcels/MapServer/0'], self.workdir, conform)

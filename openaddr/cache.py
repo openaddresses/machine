@@ -71,23 +71,23 @@ class CacheResult:
 
 def compare_cache_details(filepath, resultdir, data):
     ''' Compare cache file with known source data, return cache and fingerprint.
-    
+
         Checks if fresh data is already cached, returns a new file path if not.
     '''
     if not exists(filepath):
         raise Exception('cached file {} is missing'.format(filepath))
-        
+
     fingerprint = md5()
 
     with open(filepath, 'rb') as file:
         for line in file:
             fingerprint.update(line)
-    
+
     # Determine if anything needs to be done at all.
     if urlparse(data.get('cache', '')).scheme == 'http' and 'fingerprint' in data:
         if fingerprint.hexdigest() == data['fingerprint']:
             return data['cache'], data['fingerprint']
-    
+
     cache_name = basename(filepath)
 
     if not exists(resultdir):
@@ -95,7 +95,7 @@ def compare_cache_details(filepath, resultdir, data):
 
     move(filepath, join(resultdir, cache_name))
     data_cache = 'file://' + join(abspath(resultdir), cache_name)
-    
+
     return data_cache, fingerprint.hexdigest()
 
 class DownloadError(Exception):
@@ -130,17 +130,17 @@ def guess_url_file_extension(url):
     '''
     scheme, _, path, _, query, _ = urlparse(url)
     mimetypes.add_type('application/x-zip-compressed', '.zip', False)
-    
+
     _, likely_ext = os.path.splitext(path)
     bad_extensions = '', '.cgi', '.php', '.aspx', '.asp', '.do'
-    
+
     if not query and likely_ext not in bad_extensions:
         #
         # Trust simple URLs without meaningless filename extensions.
         #
         _L.debug(u'URL says "{}" for {}'.format(likely_ext, url))
         path_ext = likely_ext
-    
+
     else:
         #
         # Get a dictionary of headers and a few bytes of content from the URL.
@@ -156,9 +156,9 @@ def guess_url_file_extension(url):
                 content_chunk = file.read(99)
         else:
             raise ValueError('Unknown scheme "{}": {}'.format(scheme, url))
-    
+
         path_ext = False
-        
+
         # Guess path extension from Content-Type header
         if 'content-type' in headers:
             content_type = headers['content-type'].split(';')[0]
@@ -181,7 +181,7 @@ def guess_url_file_extension(url):
                     else:
                         _L.debug('Content-Disposition disagrees: "{}"'.format(match.group('filename')))
                         path_ext = False
-        
+
         if not path_ext:
             #
             # Headers didn't clearly define a known extension.
@@ -190,7 +190,7 @@ def guess_url_file_extension(url):
             mime_type = get_content_mimetype(content_chunk)
             _L.debug('file says "{}" for {}'.format(mime_type, url))
             path_ext = mimetypes.guess_extension(mime_type, False)
-    
+
     return path_ext
 
 def get_content_mimetype(chunk):
@@ -256,7 +256,7 @@ class URLDownloadTask(DownloadTask):
 
             if resp.status_code in range(400, 499):
                 raise DownloadError('{} response from {}'.format(resp.status_code, source_url))
-            
+
             size = 0
             with open(file_path, 'wb') as fp:
                 for chunk in resp.iter_content(self.CHUNK):
@@ -357,7 +357,7 @@ class EsriRestDownloadTask(DownloadTask):
             'returnCountOnly': 'true',
             'f': 'json',
         }
-        response = request('GET', url, params=query_args, headers=self.headers)
+        response = request('POST', url, headers=self.headers, data=query_args)
         count_json = self.handle_esri_errors(response, "Could not retrieve row count from ESRI source")
         return count_json
 
@@ -371,7 +371,7 @@ class EsriRestDownloadTask(DownloadTask):
                 dict(statisticType='max', onStatisticField=oid_field_name, outStatisticFieldName='THE_MAX'),
             ], separators=(',', ':'))
         }
-        response = request('GET', url, params=query_args, headers=self.headers)
+        response = request('POST', url, headers=self.headers, data=query_args)
         metadata = self.handle_esri_errors(response, "Could not retrieve min/max oid values from ESRI source")
 
         # Some servers (specifically version 10.11, it seems) will respond with SQL statements
@@ -386,11 +386,11 @@ class EsriRestDownloadTask(DownloadTask):
             'returnIdsOnly': 'true',
             'f': 'json',
         }
-        response = request('GET', url, params=query_args, headers=self.headers)
+        response = request('POST', url, headers=self.headers, data=query_args)
         oid_data = self.handle_esri_errors(response, "Could not retrieve object IDs from ESRI source")
         return oid_data
 
-    def can_handle_pagination(self, query_url, query_fields):
+    def can_handle_fields_and_pagination(self, query_url, query_fields):
         check_args = {
             'resultOffset': 0,
             'resultRecordCount': 1,
@@ -411,6 +411,26 @@ class EsriRestDownloadTask(DownloadTask):
             return False
 
         return data.get('error') and data['error']['message'] != "Failed to execute query."
+
+    def can_handle_fields_and_paged_where(self, query_url, query_fields, query_where):
+        check_args = {
+            'where': query_where,
+            'returnGeometry': 'false',
+            'outFields': ','.join(query_fields),
+            'f': 'json',
+        }
+        response = request('POST', query_url, headers=self.headers, data=check_args)
+
+        try:
+            data = response.json()
+        except:
+            _L.error("Could not parse response from pagination check {} as JSON:\n\n{}".format(
+                response.request.url,
+                response.text,
+            ))
+            return False
+
+        return data.get('error') and data['error']['message'] != "Invalid or missing input parameters."
 
     def find_oid_field_name(self, metadata):
         oid_field_name = metadata.get('objectIdField')
@@ -466,7 +486,7 @@ class EsriRestDownloadTask(DownloadTask):
                 continue
 
             metadata = self.get_layer_metadata(source_url)
-            
+
             if query_fields is None:
                 field_names = [f['name'] for f in metadata['fields']]
             else:
@@ -500,7 +520,7 @@ class EsriRestDownloadTask(DownloadTask):
                 # There's a bug where some servers won't handle these queries in combination with a list of
                 # fields specified. We'll make a single, 1 row query here to check if the server supports this
                 # and switch to querying for all fields if specifying the fields fails.
-                if query_fields and not self.can_handle_pagination(query_url, query_fields):
+                if query_fields and not self.can_handle_fields_and_pagination(query_url, query_fields):
                     _L.info("Source does not support pagination with fields specified, so querying for all fields.")
                     query_fields = None
 
@@ -528,6 +548,14 @@ class EsriRestDownloadTask(DownloadTask):
 
                     try:
                         (oid_min, oid_max) = self.get_layer_min_max(query_url, oid_field_name)
+
+                        # There's a bug where some servers won't handle these queries in combination with a list of
+                        # fields specified. We'll make a single, 1 row query here to check if the server supports this
+                        # and switch to querying for all fields if specifying the fields fails.
+                        single_row_oid_where = '{} > {} AND {} <= {}'.format(oid_field_name, oid_min, oid_field_name, oid_min)
+                        if query_fields and not self.can_handle_fields_and_paged_where(query_url, query_fields, single_row_oid_where):
+                            _L.info("Source does not support pagination with fields specified, so querying for all fields.")
+                            query_fields = None
 
                         for page_min in range(oid_min - 1, oid_max, page_size):
                             page_max = min(page_min + page_size, oid_max)

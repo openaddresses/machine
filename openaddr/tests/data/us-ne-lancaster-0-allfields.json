@@ -1,0 +1,461 @@
+{
+    "displayFieldName": "PID",
+    "fieldAliases": {
+        "OBJECTID": "OBJECTID",
+        "GIS.CPO.PARCEL_POLY.AREA": "AREA",
+        "PERIMETER": "PERIMETER",
+        "PRECINCT": "PRECINCT",
+        "SECTION_": "SECTION_",
+        "BLOCK": "BLOCK",
+        "PARCEL": "PARCEL",
+        "SUBPARCEL": "SUBPARCEL",
+        "PID": "PID",
+        "GLOBALID": "GLOBALID",
+        "PROP_ID": "PROP_ID",
+        "PROPOWN_ID": "PROPOWN_ID",
+        "OWNER": "OWNER",
+        "CO_OWNER": "CO_OWNER",
+        "OWN_ST_NUM": "OWN_ST_NUM",
+        "OWN_ST_DIR": "OWN_ST_DIR",
+        "OWN_ST_NAME": "OWN_ST_NAME",
+        "OWN_ST_TYPE": "OWN_ST_TYPE",
+        "OWN_APT_NUM": "OWN_APT_NUM",
+        "OWNER_ADDR": "OWNER_ADDR",
+        "OWN_CITY": "OWN_CITY",
+        "OWN_STATE": "OWN_STATE",
+        "OWN_ZIP": "OWN_ZIP",
+        "SITUS": "SITUS",
+        "SIT_ST_NUM": "SIT_ST_NUM",
+        "SIT_ST_DIR": "SIT_ST_DIR",
+        "SIT_ST_NAME": "SIT_ST_NAME",
+        "SIT_ST_TYPE": "SIT_ST_TYPE",
+        "SIT_APT_NUM": "SIT_APT_NUM",
+        "CITY_CODE": "CITY_CODE",
+        "TAX_DIST": "TAX_DIST",
+        "LEGAL": "LEGAL",
+        "PROP_CLASS": "PROP_CLASS",
+        "PRIME_USE": "PRIME_USE",
+        "NBH": "NBH",
+        "ACRES": "ACRES",
+        "VAL_METHOD": "VAL_METHOD",
+        "ASSESSED": "ASSESSED",
+        "GREENBELT": "GREENBELT",
+        "address": "address",
+        "area_mod": "area_mod",
+        "PHOTO_PATH": "PHOTO_PATH",
+        "SHAPE.area": "SHAPE.area",
+        "SHAPE.len": "SHAPE.len"
+    },
+    "geometryType": "esriGeometryPolygon",
+    "spatialReference": {
+        "wkid": 4326,
+        "latestWkid": 4326
+    },
+    "fields": [
+        {
+            "name": "OBJECTID",
+            "type": "esriFieldTypeOID",
+            "alias": "OBJECTID"
+        },
+        {
+            "name": "GIS.CPO.PARCEL_POLY.AREA",
+            "type": "esriFieldTypeDouble",
+            "alias": "AREA"
+        },
+        {
+            "name": "PERIMETER",
+            "type": "esriFieldTypeDouble",
+            "alias": "PERIMETER"
+        },
+        {
+            "name": "PRECINCT",
+            "type": "esriFieldTypeString",
+            "alias": "PRECINCT",
+            "length": 2
+        },
+        {
+            "name": "SECTION_",
+            "type": "esriFieldTypeString",
+            "alias": "SECTION_",
+            "length": 2
+        },
+        {
+            "name": "BLOCK",
+            "type": "esriFieldTypeString",
+            "alias": "BLOCK",
+            "length": 3
+        },
+        {
+            "name": "PARCEL",
+            "type": "esriFieldTypeString",
+            "alias": "PARCEL",
+            "length": 3
+        },
+        {
+            "name": "SUBPARCEL",
+            "type": "esriFieldTypeString",
+            "alias": "SUBPARCEL",
+            "length": 3
+        },
+        {
+            "name": "PID",
+            "type": "esriFieldTypeString",
+            "alias": "PID",
+            "length": 13
+        },
+        {
+            "name": "GLOBALID",
+            "type": "esriFieldTypeGlobalID",
+            "alias": "GLOBALID",
+            "length": 38
+        },
+        {
+            "name": "PROP_ID",
+            "type": "esriFieldTypeInteger",
+            "alias": "PROP_ID"
+        },
+        {
+            "name": "PROPOWN_ID",
+            "type": "esriFieldTypeInteger",
+            "alias": "PROPOWN_ID"
+        },
+        {
+            "name": "OWNER",
+            "type": "esriFieldTypeString",
+            "alias": "OWNER",
+            "length": 167
+        },
+        {
+            "name": "CO_OWNER",
+            "type": "esriFieldTypeString",
+            "alias": "CO_OWNER",
+            "length": 167
+        },
+        {
+            "name": "OWN_ST_NUM",
+            "type": "esriFieldTypeString",
+            "alias": "OWN_ST_NUM",
+            "length": 20
+        },
+        {
+            "name": "OWN_ST_DIR",
+            "type": "esriFieldTypeString",
+            "alias": "OWN_ST_DIR",
+            "length": 5
+        },
+        {
+            "name": "OWN_ST_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "OWN_ST_NAME",
+            "length": 64
+        },
+        {
+            "name": "OWN_ST_TYPE",
+            "type": "esriFieldTypeString",
+            "alias": "OWN_ST_TYPE",
+            "length": 5
+        },
+        {
+            "name": "OWN_APT_NUM",
+            "type": "esriFieldTypeString",
+            "alias": "OWN_APT_NUM",
+            "length": 20
+        },
+        {
+            "name": "OWNER_ADDR",
+            "type": "esriFieldTypeString",
+            "alias": "OWNER_ADDR",
+            "length": 600
+        },
+        {
+            "name": "OWN_CITY",
+            "type": "esriFieldTypeString",
+            "alias": "OWN_CITY",
+            "length": 40
+        },
+        {
+            "name": "OWN_STATE",
+            "type": "esriFieldTypeString",
+            "alias": "OWN_STATE",
+            "length": 2
+        },
+        {
+            "name": "OWN_ZIP",
+            "type": "esriFieldTypeString",
+            "alias": "OWN_ZIP",
+            "length": 10
+        },
+        {
+            "name": "SITUS",
+            "type": "esriFieldTypeString",
+            "alias": "SITUS",
+            "length": 500
+        },
+        {
+            "name": "SIT_ST_NUM",
+            "type": "esriFieldTypeString",
+            "alias": "SIT_ST_NUM",
+            "length": 20
+        },
+        {
+            "name": "SIT_ST_DIR",
+            "type": "esriFieldTypeString",
+            "alias": "SIT_ST_DIR",
+            "length": 5
+        },
+        {
+            "name": "SIT_ST_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "SIT_ST_NAME",
+            "length": 64
+        },
+        {
+            "name": "SIT_ST_TYPE",
+            "type": "esriFieldTypeString",
+            "alias": "SIT_ST_TYPE",
+            "length": 5
+        },
+        {
+            "name": "SIT_APT_NUM",
+            "type": "esriFieldTypeString",
+            "alias": "SIT_APT_NUM",
+            "length": 20
+        },
+        {
+            "name": "CITY_CODE",
+            "type": "esriFieldTypeString",
+            "alias": "CITY_CODE",
+            "length": 40
+        },
+        {
+            "name": "TAX_DIST",
+            "type": "esriFieldTypeString",
+            "alias": "TAX_DIST",
+            "length": 20
+        },
+        {
+            "name": "LEGAL",
+            "type": "esriFieldTypeString",
+            "alias": "LEGAL",
+            "length": 320
+        },
+        {
+            "name": "PROP_CLASS",
+            "type": "esriFieldTypeString",
+            "alias": "PROP_CLASS",
+            "length": 20
+        },
+        {
+            "name": "PRIME_USE",
+            "type": "esriFieldTypeString",
+            "alias": "PRIME_USE",
+            "length": 20
+        },
+        {
+            "name": "NBH",
+            "type": "esriFieldTypeString",
+            "alias": "NBH",
+            "length": 20
+        },
+        {
+            "name": "ACRES",
+            "type": "esriFieldTypeDouble",
+            "alias": "ACRES"
+        },
+        {
+            "name": "VAL_METHOD",
+            "type": "esriFieldTypeString",
+            "alias": "VAL_METHOD",
+            "length": 50
+        },
+        {
+            "name": "ASSESSED",
+            "type": "esriFieldTypeDouble",
+            "alias": "ASSESSED"
+        },
+        {
+            "name": "GREENBELT",
+            "type": "esriFieldTypeString",
+            "alias": "GREENBELT",
+            "length": 10
+        },
+        {
+            "name": "address",
+            "type": "esriFieldTypeString",
+            "alias": "address",
+            "length": 500
+        },
+        {
+            "name": "area_mod",
+            "type": "esriFieldTypeDouble",
+            "alias": "area_mod"
+        },
+        {
+            "name": "PHOTO_PATH",
+            "type": "esriFieldTypeString",
+            "alias": "PHOTO_PATH",
+            "length": 513
+        },
+        {
+            "name": "SHAPE.area",
+            "type": "esriFieldTypeDouble",
+            "alias": "SHAPE.area"
+        },
+        {
+            "name": "SHAPE.len",
+            "type": "esriFieldTypeDouble",
+            "alias": "SHAPE.len"
+        }
+    ],
+    "features": [
+        {
+            "attributes": {
+                "OBJECTID": 75980666,
+                "GIS.CPO.PARCEL_POLY.AREA": null,
+                "PERIMETER": 4195.0439555599996,
+                "PRECINCT": "19",
+                "SECTION_": "06",
+                "BLOCK": "300",
+                "PARCEL": "006",
+                "SUBPARCEL": "000",
+                "PID": "1906300006000",
+                "GLOBALID": "{698CDD8E-6DAB-4713-85C9-6612692C2174}",
+                "PROP_ID": 110630,
+                "PROPOWN_ID": 356217,
+                "OWNER": "SCHMIDT, JEROLD B",
+                "CO_OWNER": null,
+                "OWN_ST_NUM": "22500",
+                "OWN_ST_DIR": "N",
+                "OWN_ST_NAME": "27",
+                "OWN_ST_TYPE": "ST",
+                "OWN_APT_NUM": null,
+                "OWNER_ADDR": "22500 N 27 ST    ",
+                "OWN_CITY": "CERESCO",
+                "OWN_STATE": "NE",
+                "OWN_ZIP": "68017",
+                "SITUS": "22500 N 27 ST, RURAL, NE",
+                "SIT_ST_NUM": "22500",
+                "SIT_ST_DIR": "N",
+                "SIT_ST_NAME": "27",
+                "SIT_ST_TYPE": "ST",
+                "SIT_APT_NUM": null,
+                "CITY_CODE": "RURAL",
+                "TAX_DIST": "0078",
+                "LEGAL": "S6, T12, R7, 6th Principal Meridian, LOT 12 SW",
+                "PROP_CLASS": "A1",
+                "PRIME_USE": "13",
+                "NBH": "3600N",
+                "ACRES": 21,
+                "VAL_METHOD": "MKT",
+                "ASSESSED": 258500,
+                "GREENBELT": "1.000000",
+                "address": "22500 N 27 ST, RURAL, NE",
+                "area_mod": null,
+                "PHOTO_PATH": "http://lancaster-orion.tylerhost.net/Infrastructure/DocumentManagement/ISAPI/DocumentIsapi.dll?FileName=B0BC74A3-993F-4150-8615-38E1BE50AA52.jpg&FilePath=\\\\DWPATFILE1\\orion\\DocumentUploadLANCASTER\\BegPath\\2013-06-11&SiteID=LANCASTER&Operation=GET",
+                "SHAPE.area": 914618.82218907308,
+                "SHAPE.len": 4195.0439555657522
+            },
+            "geometry": {
+                "rings": [
+                    [
+                        [
+                            -96.6759119,
+                            41.0326944
+                        ],
+                        [
+                            -96.6759123,
+                            41.0309969
+                        ],
+                        [
+                            -96.6812717,
+                            41.0310735
+                        ],
+                        [
+                            -96.6812714,
+                            41.032771
+                        ],
+                        [
+                            -96.6759119,
+                            41.0326944
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "attributes": {
+                "OBJECTID": 75980667,
+                "GIS.CPO.PARCEL_POLY.AREA": null,
+                "PERIMETER": 1870.42066183,
+                "PRECINCT": "13",
+                "SECTION_": "05",
+                "BLOCK": "300",
+                "PARCEL": "002",
+                "SUBPARCEL": "000",
+                "PID": "1305300002000",
+                "GLOBALID": "{82C834A4-998B-4DD4-AFFC-1959DFAA2340}",
+                "PROP_ID": 53499,
+                "PROPOWN_ID": 177561,
+                "OWNER": "GERDES, MERLIN L & CYNTHIA L",
+                "CO_OWNER": null,
+                "OWN_ST_NUM": "3500",
+                "OWN_ST_DIR": "W",
+                "OWN_ST_NAME": "LITTLE SALT",
+                "OWN_ST_TYPE": "RD",
+                "OWN_APT_NUM": null,
+                "OWNER_ADDR": "3500 W LITTLE SALT RD    ",
+                "OWN_CITY": "VALPARAISO",
+                "OWN_STATE": "NE",
+                "OWN_ZIP": "68065",
+                "SITUS": "3500 W LITTLE SALT RD, RURAL, NE",
+                "SIT_ST_NUM": "3500",
+                "SIT_ST_DIR": "W",
+                "SIT_ST_NAME": "LITTLE SALT",
+                "SIT_ST_TYPE": "RD",
+                "SIT_APT_NUM": null,
+                "CITY_CODE": "RURAL",
+                "TAX_DIST": "0081",
+                "LEGAL": "S5, T12, R6, 6th Principal Meridian, LOT 1 SW",
+                "PROP_CLASS": "R1",
+                "PRIME_USE": "12",
+                "NBH": "3600N",
+                "ACRES": 5.0099999999999998,
+                "VAL_METHOD": "MKT",
+                "ASSESSED": 249400,
+                "GREENBELT": "0.000000",
+                "address": "3500 W LITTLE SALT RD, RURAL, NE",
+                "area_mod": null,
+                "PHOTO_PATH": "http://lancaster-orion.tylerhost.net/Infrastructure/DocumentManagement/ISAPI/DocumentIsapi.dll?FileName=DFA2E783-7092-4E30-A671-D78C389DF50A.jpg&FilePath=\\\\DWPATFILE1\\orion\\DocumentUploadLANCASTER\\BegPath\\2013-06-19&SiteID=LANCASTER&Operation=GET",
+                "SHAPE.area": 218315.10862106946,
+                "SHAPE.len": 1870.420661837416
+            },
+            "geometry": {
+                "rings": [
+                    [
+                        [
+                            -96.7692797,
+                            41.0325951
+                        ],
+                        [
+                            -96.7692886,
+                            41.0313623
+                        ],
+                        [
+                            -96.77105,
+                            41.0313696
+                        ],
+                        [
+                            -96.7710412,
+                            41.0326023
+                        ],
+                        [
+                            -96.7692797,
+                            41.0325951
+                        ]
+                    ]
+                ]
+            }
+        }
+    ],
+    "exceededTransferLimit": true
+}
