@@ -156,6 +156,25 @@ class TestCacheEsriDownload (unittest.TestCase):
                 if qs.get('f') == ['json']:
                     local_path = join(data_dirname, 'us-mn-washington-metadata.json')
 
+        if host == 'ags3.lincoln.ne.gov':
+            qs = parse_qs(query)
+
+            if path == '/arcgis/rest/services/Assessor/Pub_Parcels/MapServer/0/query':
+                body_data = parse_qs(request.body) if request.body else {}
+
+                if body_data.get('returnCountOnly') == ['true']:
+                    local_path = join(data_dirname, 'us-ne-lancaster-count-only.json')
+                elif body_data.get('outStatistics'):
+                    local_path = join(data_dirname, 'us-ne-lancaster-statistics.json')
+                elif body_data.get('where') == ['OBJECTID > 76080666 AND OBJECTID <= 76080666']:
+                    local_path = join(data_dirname, 'us-ne-lancaster-0.json')
+                elif body_data.get('outFields') == ['*']:
+                    local_path = join(data_dirname, 'us-ne-lancaster-0-allfields.json')
+
+            elif path == '/arcgis/rest/services/Assessor/Pub_Parcels/MapServer/0':
+                if qs.get('f') == ['json']:
+                    local_path = join(data_dirname, 'us-ne-lancaster-metadata.json')
+
         if host == 'gis.co.tuolumne.ca.us':
             qs = parse_qs(query)
 
@@ -266,3 +285,17 @@ class TestCacheEsriDownload (unittest.TestCase):
         with httmock.HTTMock(self.response_content):
             task = EsriRestDownloadTask('us-mn-washington')
             task.download(['http://maps.co.washington.mn.us/arcgis/rest/services/Public/Public_Parcels/MapServer/0'], self.workdir, conform)
+
+        conform = {
+            "type": "geojson",
+            "number": "SIT_ST_NUM",
+            "street": [
+                "SIT_ST_DIR",
+                "SIT_ST_NAME",
+                "SIT_ST_TYPE"
+            ],
+            "unit": "SIT_APT_NUM"
+        }
+        with httmock.HTTMock(self.response_content):
+            task = EsriRestDownloadTask('us-ne-lancaster')
+            task.download(['http://ags3.lincoln.ne.gov/arcgis/rest/services/Assessor/Pub_Parcels/MapServer/0'], self.workdir, conform)

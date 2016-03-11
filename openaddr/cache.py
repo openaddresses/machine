@@ -390,7 +390,7 @@ class EsriRestDownloadTask(DownloadTask):
         oid_data = self.handle_esri_errors(response, "Could not retrieve object IDs from ESRI source")
         return oid_data
 
-    def can_handle_pagination(self, query_url, query_fields):
+    def can_handle_fields_and_pagination(self, query_url, query_fields):
         check_args = {
             'resultOffset': 0,
             'resultRecordCount': 1,
@@ -411,6 +411,26 @@ class EsriRestDownloadTask(DownloadTask):
             return False
 
         return data.get('error') and data['error']['message'] != "Failed to execute query."
+
+    def can_handle_fields_and_paged_where(self, query_url, query_fields, query_where):
+        check_args = {
+            'where': query_where,
+            'returnGeometry': 'false',
+            'outFields': ','.join(query_fields),
+            'f': 'json',
+        }
+        response = request('POST', query_url, headers=self.headers, data=check_args)
+
+        try:
+            data = response.json()
+        except:
+            _L.error("Could not parse response from pagination check {} as JSON:\n\n{}".format(
+                response.request.url,
+                response.text,
+            ))
+            return False
+
+        return data.get('error') and data['error']['message'] != "Invalid or missing input parameters."
 
     def find_oid_field_name(self, metadata):
         oid_field_name = metadata.get('objectIdField')
@@ -500,7 +520,7 @@ class EsriRestDownloadTask(DownloadTask):
                 # There's a bug where some servers won't handle these queries in combination with a list of
                 # fields specified. We'll make a single, 1 row query here to check if the server supports this
                 # and switch to querying for all fields if specifying the fields fails.
-                if query_fields and not self.can_handle_pagination(query_url, query_fields):
+                if query_fields and not self.can_handle_fields_and_pagination(query_url, query_fields):
                     _L.info("Source does not support pagination with fields specified, so querying for all fields.")
                     query_fields = None
 
@@ -528,6 +548,14 @@ class EsriRestDownloadTask(DownloadTask):
 
                     try:
                         (oid_min, oid_max) = self.get_layer_min_max(query_url, oid_field_name)
+
+                        # There's a bug where some servers won't handle these queries in combination with a list of
+                        # fields specified. We'll make a single, 1 row query here to check if the server supports this
+                        # and switch to querying for all fields if specifying the fields fails.
+                        single_row_oid_where = '{} > {} AND {} <= {}'.format(oid_field_name, oid_min, oid_field_name, oid_min)
+                        if query_fields and not self.can_handle_fields_and_paged_where(query_url, query_fields, single_row_oid_where):
+                            _L.info("Source does not support pagination with fields specified, so querying for all fields.")
+                            query_fields = None
 
                         for page_min in range(oid_min - 1, oid_max, page_size):
                             page_max = min(page_min + page_size, oid_max)
