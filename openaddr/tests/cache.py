@@ -19,12 +19,12 @@ class TestCacheExtensionGuessing (unittest.TestCase):
         '''
         scheme, host, path, _, query, _ = urlparse(url.geturl())
         tests_dirname = dirname(__file__)
-        
+
         if host == 'fake-cwd.local':
             with open(tests_dirname + path, 'rb') as file:
                 type, _ = mimetypes.guess_type(file.name)
                 return httmock.response(200, file.read(), headers={'Content-Type': type})
-        
+
         elif (host, path) == ('www.ci.berkeley.ca.us', '/uploadedFiles/IT/GIS/Parcels.zip'):
             with open(join(tests_dirname, 'data', 'us-ca-berkeley-excerpt.zip'), 'rb') as file:
                 return httmock.response(200, file.read(), headers={'Content-Type': 'application/octet-stream'})
@@ -43,7 +43,7 @@ class TestCacheExtensionGuessing (unittest.TestCase):
             return httmock.response(200, b'FAKE,FAKE\n'*99, headers={'Content-Type': 'text/csv', 'Content-Disposition': 'attachment; filename=PropertyReport.csv'})
 
         raise NotImplementedError(url.geturl())
-    
+
     def test_urls(self):
         with httmock.HTTMock(self.response_content):
             assert guess_url_file_extension('http://fake-cwd.local/conforms/lake-man-3740.csv') == '.csv'
@@ -60,7 +60,7 @@ class TestCacheEsriDownload (unittest.TestCase):
         ''' Prepare a clean temporary directory, and work there.
         '''
         self.workdir = tempfile.mkdtemp(prefix='testCache-')
-    
+
     def tearDown(self):
         shutil.rmtree(self.workdir)
 
@@ -70,10 +70,10 @@ class TestCacheEsriDownload (unittest.TestCase):
         scheme, host, path, _, query, _ = urlparse(url.geturl())
         data_dirname = join(dirname(__file__), 'data')
         local_path = False
-        
+
         if host == 'www.carsonproperty.info':
             qs = parse_qs(query)
-            
+
             if path == '/ArcGIS/rest/services/basemap/MapServer/1/query':
                 body_data = parse_qs(request.body) if request.body else {}
 
@@ -83,7 +83,7 @@ class TestCacheEsriDownload (unittest.TestCase):
                     local_path = join(data_dirname, 'us-ca-carson-count-only.json')
                 elif body_data.get('outSR') == ['4326']:
                     local_path = join(data_dirname, 'us-ca-carson-0.json')
-            
+
             elif path == '/ArcGIS/rest/services/basemap/MapServer/1':
                 if qs.get('f') == ['json']:
                     local_path = join(data_dirname, 'us-ca-carson-metadata.json')
@@ -107,7 +107,7 @@ class TestCacheEsriDownload (unittest.TestCase):
 
         if host == 'gis.cmpdd.org':
             qs = parse_qs(query)
-            
+
             if path == '/arcgis/rest/services/Viewers/Madison/MapServer/13/query':
                 body_data = parse_qs(request.body) if request.body else {}
 
@@ -119,7 +119,7 @@ class TestCacheEsriDownload (unittest.TestCase):
                     local_path = join(data_dirname, 'us-ms-madison-outStatistics.json')
                 elif body_data.get('outSR') == ['4326']:
                     local_path = join(data_dirname, 'us-ms-madison-0.json')
-            
+
             elif path == '/arcgis/rest/services/Viewers/Madison/MapServer/13':
                 if qs.get('f') == ['json']:
                     local_path = join(data_dirname, 'us-ms-madison-metadata.json')
@@ -196,9 +196,9 @@ class TestCacheEsriDownload (unittest.TestCase):
             type, _ = mimetypes.guess_type(local_path)
             with open(local_path, 'rb') as file:
                 return httmock.response(200, file.read(), headers={'Content-Type': type})
-        
+
         raise NotImplementedError(url.geturl())
-    
+
     def test_download_carson(self):
         """ ESRI Caching Supports Object ID Enumeration """
         with httmock.HTTMock(self.response_content):
