@@ -20,7 +20,6 @@ from subprocess import check_output
 from tempfile import mkstemp
 from hashlib import sha1
 from shutil import move
-from time import time
 
 import requests
 import requests_ftp
@@ -576,12 +575,7 @@ class EsriRestDownloadTask(DownloadTask):
                 writer = csvDictWriter(f, fieldnames=field_names, encoding='utf-8')
                 writer.writeheader()
 
-                due = time() + 7200
                 for query_args in page_args:
-
-                    if time() > due:
-                        raise RuntimeError('Ran out of time caching Esri features')
-
                     try:
                         response = request('POST', query_url, headers=self.headers, data=query_args)
 
