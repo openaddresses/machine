@@ -631,10 +631,10 @@ class TestAPI (unittest.TestCase):
                 db.execute('''INSERT INTO runs
                               (id, source_path, source_id, source_data, datetime_tz, state, status, copy_of, code_version, worker_id, job_id, set_id, commit_sha, is_merged)
                               VALUES
-                              (1, 'sources/a1.json', 'abc', '\x646566', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "license": "f", "cache": "c", "source": "a1.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
-                              (2, 'sources/a2.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "c", "source": "a2.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "p", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
-                              (3, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "c", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "p", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
-                              (4, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "zzz", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "p", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, NULL, NULL, false)
+                              (1, 'sources/a1.json', 'abc', '\x646566', '2016-03-05 19:31:21.03762-08', '{"website": "http://a1.example.com", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "license": "f", "cache": "c", "source": "a1.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
+                              (2, 'sources/a2.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "http://example.com/a2", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "c", "source": "a2.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "A2 GmbH", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
+                              (3, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "http://a3.example.org", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "c", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "A3 Inc.", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
+                              (4, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "http://example.org/a3", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "zzz", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "A3 Inc.", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, NULL, NULL, false)
                               ''')
 
         self.client = app.test_client()
@@ -674,7 +674,9 @@ class TestAPI (unittest.TestCase):
         '''
         got = self.client.get('latest/licenses.json')
         licenses = json.loads(got.data)
-        self.assertIn('poot', licenses)
+        self.assertIn('a1.json', licenses)
+        self.assertIn('a2.json', licenses)
+        self.assertIn('a3.json', licenses)
     
     def test_state_txt(self):
         now = datetime.now()
@@ -691,18 +693,19 @@ class TestAPI (unittest.TestCase):
             }
         
         # New-style run including attribution columns.
-        run_state2 = {'attribution required': 'true', 'attribution name': 'p'}
-        run_state2.update(run_state1)
+        run_state2 = {k: v for (k, v) in run_state1.items()}
+        run_state2['attribution required'] = 'true'
+        run_state2['attribution name'] = 'A2 GmbH'
         run_state2['source'] = 'a2.json'
         
         # Newer-style run including share-alike columns.
-        run_state3 = {'share-alike': 'true'}
-        run_state3.update(run_state2)
+        run_state3 = {k: v for (k, v) in run_state2.items()}
+        run_state3['share-alike'] = 'true'
+        run_state3['attribution name'] = 'A3 Inc.'
         run_state3['source'] = 'a3.json'
 
         # Unmerged and should never show up.
-        run_state4 = {}
-        run_state4.update(run_state3)
+        run_state4 = {k: v for (k, v) in run_state3.items()}
         run_state4['cache'] = 'zzz'
         
         for path in ('/state.txt', '/sets/2/state.txt'):

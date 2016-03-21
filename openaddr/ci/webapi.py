@@ -61,8 +61,24 @@ def app_licenses_json():
         with db_cursor(conn) as db:
             set = read_latest_set(db, 'openaddresses', 'openaddresses')
             runs = read_completed_runs_to_date(db, set.id)
+
+    licenses = dict()
     
-    return jsonify({'poot': 'poot'})
+    for run in runs:
+        run_state = run.state or {}
+        source = os.path.relpath(run.source_path, 'sources')
+    
+        attribution = 'No'
+        if run_state.get('attribution flag') != 'false':
+            attribution = run_state.get('attribution name')
+        
+        licenses[source] = {
+            'website': run_state.get('website'),
+            'license': run_state.get('license'),
+            'attribution': attribution
+            }
+    
+    return jsonify(licenses)
 
 @webapi.route('/state.txt', methods=['GET'])
 @log_application_errors
