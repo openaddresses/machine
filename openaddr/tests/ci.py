@@ -631,10 +631,10 @@ class TestAPI (unittest.TestCase):
                 db.execute('''INSERT INTO runs
                               (id, source_path, source_id, source_data, datetime_tz, state, status, copy_of, code_version, worker_id, job_id, set_id, commit_sha, is_merged)
                               VALUES
-                              (1, 'sources/a1.json', 'abc', '\x646566', '2016-03-05 19:31:21.03762-08', '{"website": "http://a1.example.com", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "license": "f", "cache": "c", "source": "a1.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
-                              (2, 'sources/a2.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "http://example.com/a2", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "c", "source": "a2.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "A2 GmbH", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
-                              (3, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "http://a3.example.org", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "c", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "A3 Inc.", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
-                              (4, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "http://example.org/a3", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "zzz", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "A3 Inc.", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, NULL, NULL, false)
+                              (1, 'sources/a1.json', 'abc', '\x646566', '2016-03-05 19:31:21.03762-08', '{"website": "http://a1.example.com", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "license": "CC-BY-SA", "cache": "c", "source": "a1.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
+                              (2, 'sources/a2.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "http://example.com/a2", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "ODbL", "cache": "c", "source": "a2.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "A2 GmbH", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
+                              (3, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "http://a3.example.org", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "CC0", "cache": "c", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "A3 Inc.", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
+                              (4, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "http://example.org/a3", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "CC0", "cache": "zzz", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "A3 Inc.", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, NULL, NULL, false)
                               ''')
 
         self.client = app.test_client()
@@ -674,9 +674,23 @@ class TestAPI (unittest.TestCase):
         '''
         got = self.client.get('latest/licenses.json')
         licenses = json.loads(got.data)
+
+        self.assertEqual(len(licenses), 3)
         self.assertIn('a1.json', licenses)
         self.assertIn('a2.json', licenses)
         self.assertIn('a3.json', licenses)
+
+        self.assertEqual(licenses['a1.json']['website'], 'http://a1.example.com')
+        self.assertIsNone(licenses['a1.json']['attribution'])
+        self.assertEqual(licenses['a1.json']['license'], 'CC-BY-SA')
+        
+        self.assertEqual(licenses['a2.json']['website'], 'http://example.com/a2')
+        self.assertEqual(licenses['a2.json']['attribution'], 'A2 GmbH')
+        self.assertEqual(licenses['a2.json']['license'], 'ODbL')
+        
+        self.assertEqual(licenses['a3.json']['website'], 'http://a3.example.org')
+        self.assertEqual(licenses['a3.json']['attribution'], 'A3 Inc.')
+        self.assertEqual(licenses['a3.json']['license'], 'CC0')
     
     def test_state_txt(self):
         now = datetime.now()
