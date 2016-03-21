@@ -5,6 +5,7 @@ from operator import attrgetter
 import json, os
 
 from flask import Response, Blueprint, request, current_app, jsonify
+from flask.ext.cors import CORS
 
 from .objects import (
     load_collection_zips_dict, read_latest_set, read_completed_runs_to_date,
@@ -21,6 +22,7 @@ CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
              'code version'
 
 webapi = Blueprint('webapi', __name__)
+CORS(webapi)
 
 @webapi.route('/index.json')
 @log_application_errors

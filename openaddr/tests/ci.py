@@ -649,7 +649,9 @@ class TestAPI (unittest.TestCase):
     def test_data_index(self):
         '''
         '''
-        got = self.client.get('index.json')
+        got = self.client.get('index.json', headers=dict(Origin='http://example.com'))
+        self.assertIn('Access-Control-Allow-Origin', got.headers)
+
         index = json.loads(got.data)
         colls = index.get('collections', {})
         
@@ -672,7 +674,9 @@ class TestAPI (unittest.TestCase):
     def test_latest_licenses(self):
         '''
         '''
-        got = self.client.get('latest/licenses.json')
+        got = self.client.get('latest/licenses.json', headers=dict(Origin='http://example.com'))
+        self.assertIn('Access-Control-Allow-Origin', got.headers)
+
         licenses = json.loads(got.data)
 
         self.assertEqual(len(licenses), 3)
@@ -723,7 +727,9 @@ class TestAPI (unittest.TestCase):
         run_state4['cache'] = 'zzz'
         
         for path in ('/state.txt', '/sets/2/state.txt'):
-            got2 = self.client.get(path)
+            got2 = self.client.get(path, headers=dict(Origin='http://example.com'))
+            self.assertIn('Access-Control-Allow-Origin', got2.headers)
+
             self.assertEqual(got2.status_code, 200)
         
             # El-Cheapo CSV parser.
