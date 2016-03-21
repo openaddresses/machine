@@ -56,26 +56,35 @@ def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
     logfile_path = os.path.join(workdir, 'logfile.txt')
     cmd = 'openaddr-process-one', '-l', logfile_path, out_fn, oa_dir
     try:
+        known_error, cmd_status = False, 0
         timeout_seconds = JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400
         result_stdout = compat.check_output(cmd, timeout=timeout_seconds)
+    except compat.TimeoutExpired as e:
+        known_error, cmd_status, result_stdout = True, None, getattr(e, 'stdout', None)
+    except compat.CalledProcessError as e:
+        known_error, cmd_status, result_stdout = True, e.returncode, e.output
+    except Exception:
+        known_error, cmd_status = False, None
+        raise
+    else:
         if hasattr(result_stdout, 'decode'):
             # "The actual encoding of the output data may depend on the command
             # being invoked" - https://docs.python.org/3/library/subprocess.html
             result_stdout = result_stdout.decode('utf8', 'replace')
+    finally:
+        if known_error:
+            # Something went wrong; throw back an error result.
+            key_name = '/runs/{run}/logfile.txt'.format(run=run_id)
+            try:
+                url, _ = upload_file(s3, key_name, logfile_path)
+            except IOError:
+                output = dict()
+            else:
+                output = dict(output=url)
 
-    except compat.CalledProcessError as e:
-        # Something went wrong; throw back an error result.
-        key_name = '/runs/{run}/logfile.txt'.format(run=run_id)
-        try:
-            url, _ = upload_file(s3, key_name, logfile_path)
-        except IOError:
-            output = dict()
-        else:
-            output = dict(output=url)
-
-        return dict(result_code=e.returncode, result_stdout=e.output,
-                    message='Something went wrong in {0}'.format(*cmd),
-                    output=output)
+            return dict(result_code=cmd_status, result_stdout=result_stdout,
+                        message='Something went wrong in {0}'.format(*cmd),
+                        output=output)
 
     result = dict(result_code=0, result_stdout=result_stdout,
                   message=MAGIC_OK_MESSAGE)
