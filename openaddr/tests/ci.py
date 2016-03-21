@@ -1734,6 +1734,90 @@ class TestRuns (unittest.TestCase):
             with beat_Q as db:
                 recent_workers = get_recent_workers(db)
                 self.assertEqual(len(recent_workers[TEMPORARY_KIND]), 1)
+     
+    @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
+    @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.compat.check_output')
+    def test_failure_logging_run(self, check_output):
+        ''' Test a run that fails without producing JSON output.
+        '''
+        def takes_a_long_time(cmd, timeout):
+            with open(cmd[2], 'w') as file:
+                file.write('Took too long.\n')
+            raise compat.CalledProcessError(1, cmd, 'Took too long')
+
+        check_output.side_effect = takes_a_long_time
+
+        source = b'''{
+            "coverage": { "US Census": {"geoid": "0653000", "place": "Oakland city", "state": "California"} },
+            "data": "http://data.openoakland.org/sites/default/files/OakParcelsGeo2013_0.zip"
+            }'''
+        
+        source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
+        
+        with db_connect(self.database_url) as conn, HTTMock(self.response_content):
+            task_Q = db_queue(conn, TASK_QUEUE)
+            done_Q = db_queue(conn, DONE_QUEUE)
+            due_Q = db_queue(conn, DUE_QUEUE)
+            beat_Q = db_queue(conn, HEARTBEAT_QUEUE)
+
+            files = {source_path: (en64(source), source_id)}
+            job_id = create_queued_job(task_Q, files, *self.fake_queued_job_args)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND)
+
+            # The job eventually completes, but it's too late
+            pop_task_from_donequeue(done_Q, None)
+            self.assertEqual(self.last_status_state, 'failure', 'Should have failed')
+            
+            # Find a record of this run.
+            with done_Q as db:
+                db.execute('SELECT state FROM runs')
+                ((state, ), ) = db.fetchall()
+            
+            # Look for log file message in output.
+            self.assertIn('Took too long.', self.s3._read_fake_key(urlparse(state['output']).path))
+
+    @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
+    @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.compat.check_output')
+    def test_failure_nonlogging_run(self, check_output):
+        ''' Test a run that fails without producing JSON output.
+        '''
+        def takes_a_long_time(cmd, timeout):
+            raise compat.CalledProcessError(1, cmd, 'Took too long')
+
+        check_output.side_effect = takes_a_long_time
+
+        source = b'''{
+            "coverage": { "US Census": {"geoid": "0653000", "place": "Oakland city", "state": "California"} },
+            "data": "http://data.openoakland.org/sites/default/files/OakParcelsGeo2013_0.zip"
+            }'''
+        
+        source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
+        
+        with db_connect(self.database_url) as conn, HTTMock(self.response_content):
+            task_Q = db_queue(conn, TASK_QUEUE)
+            done_Q = db_queue(conn, DONE_QUEUE)
+            due_Q = db_queue(conn, DUE_QUEUE)
+            beat_Q = db_queue(conn, HEARTBEAT_QUEUE)
+
+            files = {source_path: (en64(source), source_id)}
+            job_id = create_queued_job(task_Q, files, *self.fake_queued_job_args)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND)
+
+            # The job eventually completes, but it's too late
+            pop_task_from_donequeue(done_Q, None)
+            self.assertEqual(self.last_status_state, 'failure', 'Should have failed')
+            
+            # Find a record of this run.
+            with done_Q as db:
+                db.execute('SELECT state FROM runs')
+                ((state, ), ) = db.fetchall()
+            
+            # Look for log file message in output.
+            self.assertNotIn('output', state)
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))

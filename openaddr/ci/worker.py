@@ -53,7 +53,8 @@ def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
     os.mkdir(oa_dir)
 
     # Invoke the job to do
-    cmd = 'openaddr-process-one', '-l', os.path.join(workdir, 'logfile.txt'), out_fn, oa_dir
+    logfile_path = os.path.join(workdir, 'logfile.txt')
+    cmd = 'openaddr-process-one', '-l', logfile_path, out_fn, oa_dir
     try:
         timeout_seconds = JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400
         result_stdout = compat.check_output(cmd, timeout=timeout_seconds)
@@ -64,8 +65,17 @@ def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
 
     except compat.CalledProcessError as e:
         # Something went wrong; throw back an error result.
+        key_name = '/runs/{run}/logfile.txt'.format(run=run_id)
+        try:
+            url, _ = upload_file(s3, key_name, logfile_path)
+        except IOError:
+            output = dict()
+        else:
+            output = dict(output=url)
+
         return dict(result_code=e.returncode, result_stdout=e.output,
-                    message='Something went wrong in {0}'.format(*cmd))
+                    message='Something went wrong in {0}'.format(*cmd),
+                    output=output)
 
     result = dict(result_code=0, result_stdout=result_stdout,
                   message=MAGIC_OK_MESSAGE)
