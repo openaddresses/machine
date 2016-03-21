@@ -655,6 +655,7 @@ class TestAPI (unittest.TestCase):
         
         self.assertEqual(index['run_states_url'], 'http://localhost/state.txt')
         self.assertEqual(index['latest_run_processed_url'], 'http://localhost/latest/run/{source}.zip')
+        self.assertEqual(index['licenses_url'], 'http://localhost/latest/licenses.json')
         
         self.assertEqual(colls['global']['']['url'], 'http://data.openaddresses.io/openaddr-collected-global.zip')
         self.assertEqual(colls['global']['sa']['url'], 'http://data.openaddresses.io/openaddr-collected-global-sa.zip')
@@ -667,6 +668,13 @@ class TestAPI (unittest.TestCase):
         self.assertEqual(colls['us_west']['']['license'], 'Freely Shareable')
         self.assertNotIn('sa', colls['us_west'])
         self.assertNotIn('europe', colls)
+    
+    def test_latest_licenses(self):
+        '''
+        '''
+        got = self.client.get('latest/licenses.json')
+        licenses = json.loads(got.data)
+        self.assertIn('poot', licenses)
     
     def test_state_txt(self):
         now = datetime.now()

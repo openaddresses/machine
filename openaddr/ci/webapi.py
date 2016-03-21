@@ -50,8 +50,19 @@ def app_index_json():
     return jsonify({
         'run_states_url': urljoin(request.url, u'/state.txt'),
         'latest_run_processed_url': urljoin(request.url, u'/latest/run/{source}.zip'),
+        'licenses_url': urljoin(request.url, u'/latest/licenses.json'),
         'collections': collections
         })
+
+@webapi.route('/latest/licenses.json')
+@log_application_errors
+def app_licenses_json():
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            set = read_latest_set(db, 'openaddresses', 'openaddresses')
+            runs = read_completed_runs_to_date(db, set.id)
+    
+    return jsonify({'poot': 'poot'})
 
 @webapi.route('/state.txt', methods=['GET'])
 @log_application_errors
