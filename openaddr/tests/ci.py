@@ -677,24 +677,28 @@ class TestAPI (unittest.TestCase):
         got = self.client.get('latest/licenses.json', headers=dict(Origin='http://example.com'))
         self.assertIn('Access-Control-Allow-Origin', got.headers)
 
-        licenses = json.loads(got.data)
+        licenses = json.loads(got.data)['licenses']
+        licenses.sort(key=lambda l: l['sources'][0][0])
+        
+        self.assertEqual(len(licenses[0]['sources']), 1)
+        self.assertEqual(licenses[0]['sources'][0][0], 'a1.json')
+        self.assertEqual(licenses[0]['sources'][0][1], 'http://a1.example.com')
+        self.assertIsNone(licenses[0]['attribution'])
+        self.assertEqual(licenses[0]['license'], 'CC-BY-SA')
+
+        self.assertEqual(len(licenses[1]['sources']), 1)
+        self.assertEqual(licenses[1]['sources'][0][0], 'a2.json')
+        self.assertEqual(licenses[1]['sources'][0][1], 'http://example.com/a2')
+        self.assertEqual(licenses[1]['attribution'], 'A2 GmbH')
+        self.assertEqual(licenses[1]['license'], 'ODbL')
+        
+        self.assertEqual(len(licenses[2]['sources']), 1)
+        self.assertEqual(licenses[2]['sources'][0][0], 'a3.json')
+        self.assertEqual(licenses[2]['sources'][0][1], 'http://a3.example.org')
+        self.assertEqual(licenses[2]['attribution'], 'A3 Inc.')
+        self.assertEqual(licenses[2]['license'], 'CC0')
 
         self.assertEqual(len(licenses), 3)
-        self.assertIn('a1.json', licenses)
-        self.assertIn('a2.json', licenses)
-        self.assertIn('a3.json', licenses)
-
-        self.assertEqual(licenses['a1.json']['website'], 'http://a1.example.com')
-        self.assertIsNone(licenses['a1.json']['attribution'])
-        self.assertEqual(licenses['a1.json']['license'], 'CC-BY-SA')
-        
-        self.assertEqual(licenses['a2.json']['website'], 'http://example.com/a2')
-        self.assertEqual(licenses['a2.json']['attribution'], 'A2 GmbH')
-        self.assertEqual(licenses['a2.json']['license'], 'ODbL')
-        
-        self.assertEqual(licenses['a3.json']['website'], 'http://a3.example.org')
-        self.assertEqual(licenses['a3.json']['attribution'], 'A3 Inc.')
-        self.assertEqual(licenses['a3.json']['license'], 'CC0')
     
     def test_state_txt(self):
         now = datetime.now()

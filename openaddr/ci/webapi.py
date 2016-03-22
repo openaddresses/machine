@@ -2,6 +2,7 @@ import logging; _L = logging.getLogger('openaddr.ci.webapi')
 
 from urllib.parse import urljoin
 from operator import attrgetter
+from collections import defaultdict
 import json, os
 
 from flask import Response, Blueprint, request, current_app, jsonify
@@ -64,23 +65,23 @@ def app_licenses_json():
             set = read_latest_set(db, 'openaddresses', 'openaddresses')
             runs = read_completed_runs_to_date(db, set.id)
 
-    licenses = dict()
+    licenses = defaultdict(list)
     
     for run in runs:
         run_state = run.state or {}
         source = os.path.relpath(run.source_path, 'sources')
     
-        attribution = 'No'
-        if run_state.get('attribution flag') != 'false':
+        attribution = None
+        if run_state.get('attribution required') != 'false':
             attribution = run_state.get('attribution name')
         
-        licenses[source] = {
-            'website': run_state.get('website'),
-            'license': run_state.get('license'),
-            'attribution': attribution
-            }
+        key = run_state.get('license'), attribution
+        licenses[key].append((source, run_state.get('website')))
+        
+    licenses = [dict(license=lic, attribution=attr, sources=sorted(srcs))
+                for ((lic, attr), srcs) in sorted(licenses.items())]
     
-    return jsonify(licenses)
+    return jsonify(licenses=licenses)
 
 @webapi.route('/state.txt', methods=['GET'])
 @log_application_errors
