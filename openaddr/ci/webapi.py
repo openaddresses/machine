@@ -2,9 +2,11 @@ import logging; _L = logging.getLogger('openaddr.ci.webapi')
 
 from urllib.parse import urljoin
 from operator import attrgetter
+from collections import defaultdict
 import json, os
 
 from flask import Response, Blueprint, request, current_app, jsonify
+from flask.ext.cors import CORS
 
 from .objects import (
     load_collection_zips_dict, read_latest_set, read_completed_runs_to_date,
@@ -21,6 +23,7 @@ CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
              'code version'
 
 webapi = Blueprint('webapi', __name__)
+CORS(webapi)
 
 @webapi.route('/index.json')
 @log_application_errors
@@ -50,8 +53,35 @@ def app_index_json():
     return jsonify({
         'run_states_url': urljoin(request.url, u'/state.txt'),
         'latest_run_processed_url': urljoin(request.url, u'/latest/run/{source}.zip'),
+        'licenses_url': urljoin(request.url, u'/latest/licenses.json'),
         'collections': collections
         })
+
+@webapi.route('/latest/licenses.json')
+@log_application_errors
+def app_licenses_json():
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            set = read_latest_set(db, 'openaddresses', 'openaddresses')
+            runs = read_completed_runs_to_date(db, set.id)
+
+    licenses = defaultdict(list)
+    
+    for run in runs:
+        run_state = run.state or {}
+        source = os.path.relpath(run.source_path, 'sources')
+    
+        attribution = None
+        if run_state.get('attribution required') != 'false':
+            attribution = run_state.get('attribution name')
+        
+        key = run_state.get('license'), attribution
+        licenses[key].append((source, run_state.get('website')))
+        
+    licenses = [dict(license=lic, attribution=attr, sources=sorted(srcs))
+                for ((lic, attr), srcs) in sorted(licenses.items())]
+    
+    return jsonify(licenses=licenses)
 
 @webapi.route('/state.txt', methods=['GET'])
 @log_application_errors

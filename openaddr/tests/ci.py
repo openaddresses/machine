@@ -631,10 +631,10 @@ class TestAPI (unittest.TestCase):
                 db.execute('''INSERT INTO runs
                               (id, source_path, source_id, source_data, datetime_tz, state, status, copy_of, code_version, worker_id, job_id, set_id, commit_sha, is_merged)
                               VALUES
-                              (1, 'sources/a1.json', 'abc', '\x646566', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "license": "f", "cache": "c", "source": "a1.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
-                              (2, 'sources/a2.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "c", "source": "a2.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "p", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
-                              (3, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "c", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "p", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
-                              (4, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "e", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "f", "cache": "zzz", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "p", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, NULL, NULL, false)
+                              (1, 'sources/a1.json', 'abc', '\x646566', '2016-03-05 19:31:21.03762-08', '{"website": "http://a1.example.com", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "license": "CC-BY-SA", "cache": "c", "source": "a1.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
+                              (2, 'sources/a2.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "http://example.com/a2", "skipped": "b", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "ODbL", "cache": "c", "source": "a2.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "A2 GmbH", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
+                              (3, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "http://a3.example.org", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "CC0", "cache": "c", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "A3 Inc.", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, 2, NULL, true),
+                              (4, 'sources/a3.json', 'ghi', '\x6a6b6c', '2016-03-05 19:31:21.03762-08', '{"website": "http://example.org/a3", "skipped": "b", "share-alike": "true", "sample": "d", "fingerprint": "j", "address count": "h", "attribution required": "true", "license": "CC0", "cache": "zzz", "source": "a3.json", "version": "i", "geometry type": "g", "cache time": "k", "output": "n", "attribution name": "A3 Inc.", "process time": "m", "processed": "l"}', true, NULL, 'x.y.z', NULL, NULL, NULL, NULL, false)
                               ''')
 
         self.client = app.test_client()
@@ -649,12 +649,15 @@ class TestAPI (unittest.TestCase):
     def test_data_index(self):
         '''
         '''
-        got = self.client.get('index.json')
+        got = self.client.get('index.json', headers=dict(Origin='http://example.com'))
+        self.assertIn('Access-Control-Allow-Origin', got.headers)
+
         index = json.loads(got.data)
         colls = index.get('collections', {})
         
         self.assertEqual(index['run_states_url'], 'http://localhost/state.txt')
         self.assertEqual(index['latest_run_processed_url'], 'http://localhost/latest/run/{source}.zip')
+        self.assertEqual(index['licenses_url'], 'http://localhost/latest/licenses.json')
         
         self.assertEqual(colls['global']['']['url'], 'http://data.openaddresses.io/openaddr-collected-global.zip')
         self.assertEqual(colls['global']['sa']['url'], 'http://data.openaddresses.io/openaddr-collected-global-sa.zip')
@@ -667,6 +670,35 @@ class TestAPI (unittest.TestCase):
         self.assertEqual(colls['us_west']['']['license'], 'Freely Shareable')
         self.assertNotIn('sa', colls['us_west'])
         self.assertNotIn('europe', colls)
+    
+    def test_latest_licenses(self):
+        '''
+        '''
+        got = self.client.get('latest/licenses.json', headers=dict(Origin='http://example.com'))
+        self.assertIn('Access-Control-Allow-Origin', got.headers)
+
+        licenses = json.loads(got.data)['licenses']
+        licenses.sort(key=lambda l: l['sources'][0][0])
+        
+        self.assertEqual(len(licenses[0]['sources']), 1)
+        self.assertEqual(licenses[0]['sources'][0][0], 'a1.json')
+        self.assertEqual(licenses[0]['sources'][0][1], 'http://a1.example.com')
+        self.assertIsNone(licenses[0]['attribution'])
+        self.assertEqual(licenses[0]['license'], 'CC-BY-SA')
+
+        self.assertEqual(len(licenses[1]['sources']), 1)
+        self.assertEqual(licenses[1]['sources'][0][0], 'a2.json')
+        self.assertEqual(licenses[1]['sources'][0][1], 'http://example.com/a2')
+        self.assertEqual(licenses[1]['attribution'], 'A2 GmbH')
+        self.assertEqual(licenses[1]['license'], 'ODbL')
+        
+        self.assertEqual(len(licenses[2]['sources']), 1)
+        self.assertEqual(licenses[2]['sources'][0][0], 'a3.json')
+        self.assertEqual(licenses[2]['sources'][0][1], 'http://a3.example.org')
+        self.assertEqual(licenses[2]['attribution'], 'A3 Inc.')
+        self.assertEqual(licenses[2]['license'], 'CC0')
+
+        self.assertEqual(len(licenses), 3)
     
     def test_state_txt(self):
         now = datetime.now()
@@ -683,22 +715,25 @@ class TestAPI (unittest.TestCase):
             }
         
         # New-style run including attribution columns.
-        run_state2 = {'attribution required': 'true', 'attribution name': 'p'}
-        run_state2.update(run_state1)
+        run_state2 = {k: v for (k, v) in run_state1.items()}
+        run_state2['attribution required'] = 'true'
+        run_state2['attribution name'] = 'A2 GmbH'
         run_state2['source'] = 'a2.json'
         
         # Newer-style run including share-alike columns.
-        run_state3 = {'share-alike': 'true'}
-        run_state3.update(run_state2)
+        run_state3 = {k: v for (k, v) in run_state2.items()}
+        run_state3['share-alike'] = 'true'
+        run_state3['attribution name'] = 'A3 Inc.'
         run_state3['source'] = 'a3.json'
 
         # Unmerged and should never show up.
-        run_state4 = {}
-        run_state4.update(run_state3)
+        run_state4 = {k: v for (k, v) in run_state3.items()}
         run_state4['cache'] = 'zzz'
         
         for path in ('/state.txt', '/sets/2/state.txt'):
-            got2 = self.client.get(path)
+            got2 = self.client.get(path, headers=dict(Origin='http://example.com'))
+            self.assertIn('Access-Control-Allow-Origin', got2.headers)
+
             self.assertEqual(got2.status_code, 200)
         
             # El-Cheapo CSV parser.

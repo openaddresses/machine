@@ -67,6 +67,9 @@ setup(
         # http://flask.pocoo.org
         'Flask == 0.10.1',
         
+        # http://flask-cors.corydolphin.com
+        'Flask-Cors == 2.1.2',
+        
         # http://gunicorn.org
         'gunicorn == 19.3.0',
 
