@@ -1,3 +1,6 @@
+2016-03-22: 2.19.0
+- Added /latest/licenses.json API response to ci.webapi.
+
 2016-03-20: 2.18.7
 - Added output log back to timed-out runs.
 
