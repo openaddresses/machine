@@ -196,7 +196,14 @@ def app_get_sets():
             past_id = int(request.args.get('past', 0)) or None
             sets = read_sets(db, past_id)
     
-    return render_template('sets.html', sets=sets)
+    n = int(request.args.get('n', '1'))
+
+    if sets:
+        next_link = './?n={n}&past={id}'.format(id=sets[-1].id, n=(n+len(sets)))
+    else:
+        next_link = False
+    
+    return render_template('sets.html', sets=sets, next_link=next_link, n=n)
 
 @webhooks.route('/latest/set', methods=['GET'])
 @log_application_errors
