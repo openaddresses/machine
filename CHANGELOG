@@ -1,3 +1,7 @@
+2016-04-02: 2.19.1
+- Fixed URL behavior behind SSL proxy with Werkzeug ProxyFix.
+- Started asking for SSL-enabled map URLs in some places.
+
 2016-03-22: 2.19.0
 - Added /latest/licenses.json API response to ci.webapi.
 
