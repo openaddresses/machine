@@ -70,6 +70,9 @@ setup(
         # http://flask-cors.corydolphin.com
         'Flask-Cors == 2.1.2',
         
+        # https://www.palletsproject.com/projects/werkzeug/
+        'Werkzeug == 0.11.5',
+        
         # http://gunicorn.org
         'gunicorn == 19.3.0',
 
