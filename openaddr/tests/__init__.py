@@ -1161,9 +1161,6 @@ class FakeKey:
         self.s3 = fake_s3
     
     def generate_url(self, **kwargs):
-        if kwargs.get('force_http', None) is not True:
-            raise ValueError("S3 generate_url() makes bad https:// URLs")
-    
         return 'http://fake-s3.local' + self.name
 
     def set_contents_from_string(self, string, **kwargs):
