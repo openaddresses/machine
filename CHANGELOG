@@ -1,3 +1,7 @@
+2016-04-03: 2.19.2
+- Fixed too-wide nav on iOS and /sets list item paging numbers.
+- Reduced autoscale growth interval for batch sets.
+
 2016-04-02: 2.19.1
 - Fixed URL behavior behind SSL proxy with Werkzeug ProxyFix.
 - Started asking for SSL-enabled map URLs in some places.
