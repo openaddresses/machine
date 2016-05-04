@@ -2734,19 +2734,19 @@ class TestCollect (unittest.TestCase):
         
         # Addresses that should trigger expansion.
         input1 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID\n-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77\n-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11\n-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,74-1033-146\n-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,74-1033-122\n-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26\n-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222\n'
-        expand_and_add_csv_to_zipfile(output, 'us/ca/alameda.csv', BytesIO(input1.encode('utf8')), True)
-        expand_and_add_csv_to_zipfile(output, 'us/ca/alameda.csv', BytesIO(input1.encode('utf8')), False)
+        expand_and_add_csv_to_zipfile(output, u'us/ca/älameda.csv', BytesIO(input1.encode('utf8')), True)
+        expand_and_add_csv_to_zipfile(output, u'us/ca/älameda.csv', BytesIO(input1.encode('utf8')), False)
 
         # Collections with missing columns and non-ASCII characters.
         input2 = u'LON,LAT,NUMBER,STREET,CITY,DISTRICT,REGION,POSTCODE\n-122.2359742,37.7362507,85,MAITLAND DR,ALAMEDA,,,94502\n-122.2353881,37.7223605,1360,S LOOP RD,ALAMEDA,,,94502\n-122.2385597,37.7284071,3508,CATALINA AV,ALAMEDA,,,94502\n-122.2368942,37.7305041,3512,MCSHERRY WY,ALAMEDA,,,94502\n-122.2349371,37.7357455,514,FLOWER LA,ALAMEDA,,,94502\n-122.2367819,37.7342157,1014,HOLLY ST,ALAMEDA,,,94502\n'
-        expand_and_add_csv_to_zipfile(output, 'us/ca/alameda.csv', BytesIO(input2.encode('utf8')), False)
+        expand_and_add_csv_to_zipfile(output, u'us/ca/älameda.csv', BytesIO(input2.encode('utf8')), False)
         input3 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID\n8.6885893,50.1042197,12,Abtsgäßchen,,Frankfurt am Main,,,60594,\n8.6885485,50.1041506,14,Abtsgäßchen,,Frankfurt am Main,,,60594,\n'
         expand_and_add_csv_to_zipfile(output, 'de/he/frankfurt.csv', BytesIO(input3.encode('utf8')), False)
         
         self.assertEqual(len(output.write.mock_calls), 8)
 
-        self.assertEqual(output.write.mock_calls[0][1][1], 'us/ca/alameda.csv')
-        self.assertEqual(output.write.mock_calls[1][1][1], 'summary/us/ca/alameda-summary.csv')
+        self.assertEqual(output.write.mock_calls[0][1][1], u'us/ca/älameda.csv')
+        self.assertEqual(output.write.mock_calls[1][1][1], u'summary/us/ca/älameda-summary.csv')
         self.assertEqual(output.write.mock_calls[2][1][1], output.write.mock_calls[0][1][1])
         self.assertEqual(output.write.mock_calls[3][1][1], output.write.mock_calls[1][1][1])
         self.assertEqual(output.write.mock_calls[4][1][1], output.write.mock_calls[0][1][1])
