@@ -1,3 +1,6 @@
+2016-05-03: 2.19.4
+- Fixed VRT content encoding bug in collection code.
+
 2016-05-03: 2.19.3
 - Fixed filename encoding bug in collection code.
 
