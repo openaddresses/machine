@@ -257,7 +257,7 @@ def _add_spatial_summary_to_zipfile(zip_out, arc_filename, size, squares):
     with open(join(dirname(__file__), 'templates', 'source-summary.vrt'), 'rb') as file:
         args = dict(filename=basename(support_csvname))
         args.update(name=splitext(args['filename'])[0])
-        vrt_content = file.read().decode('utf8').format(**args)
+        vrt_content = file.read().decode('utf8').format(**args).encode('utf8')
 
     # Write the contents of the summary file VRT.
     zip_out.writestr(support_vrtname, vrt_content)

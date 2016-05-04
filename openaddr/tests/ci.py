@@ -2724,13 +2724,18 @@ class TestCollect (unittest.TestCase):
         '''
         output = mock.Mock()
         output_write_contents = list()
+        output_writestr_contents = list()
 
         def remember_write_contents(fn, _):
             with open(fn) as file:
                 # Python 2.7 and 3 use different line endings in csv module:
                 output_write_contents.append([line.strip() for line in file])
 
+        def remember_writestr_contents(_, bytes):
+            output_writestr_contents.append(bytes)
+
         output.write.side_effect = remember_write_contents
+        output.writestr.side_effect = remember_writestr_contents
         
         # Addresses that should trigger expansion.
         input1 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID\n-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77\n-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11\n-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,74-1033-146\n-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,74-1033-122\n-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26\n-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222\n'
@@ -2753,6 +2758,10 @@ class TestCollect (unittest.TestCase):
         self.assertEqual(output.write.mock_calls[5][1][1], output.write.mock_calls[1][1][1])
         self.assertEqual(output.write.mock_calls[6][1][1], 'de/he/frankfurt.csv')
         self.assertEqual(output.write.mock_calls[7][1][1], 'summary/de/he/frankfurt-summary.csv')
+        
+        self.assertIn(u'älameda'.encode('utf8'), output_writestr_contents[0])
+        self.assertIn(u'älameda'.encode('utf8'), output_writestr_contents[1])
+        self.assertIn(u'älameda'.encode('utf8'), output_writestr_contents[2])
 
         self.assertEqual(output_write_contents[0],
             [
