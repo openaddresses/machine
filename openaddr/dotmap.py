@@ -22,7 +22,7 @@ from .ci import db_connect, db_cursor, setup_logger
 from .ci.objects import read_latest_set, read_completed_runs_to_date
 from . import iterate_local_processed_files
 
-MAPBOX_API_BASE = 'https://api.mapbox.com/uploads/v1/'
+from mapbox import Uploader
 
 def connect_db(dsn):
     ''' Prepare old-style arguments to connect_db().
@@ -55,81 +55,32 @@ def mapbox_upload(mbtiles_path, tileset, username, api_key):
     
         https://github.com/openaddresses/openaddresses.io/blob/gh-pages/_src/make_mbtiles.sh
     '''
-    _L.info("Uploading {} to Mapbox {}'s {}".format(basename(mbtiles_path), username, tileset))
-    
-    session_token, access_id, secret_key, bucket, s3_key, url \
-        = _mapbox_get_credentials(username, api_key)
+    _L.info("Uploading {} to Mapbox {}'s {}".format(mbtiles_path, username, tileset))
 
-    _upload_to_s3(mbtiles_path, session_token, access_id, secret_key, bucket, s3_key)
-    _mapbox_create_upload(url, tileset, username, api_key)
+    service = Uploader(access_token=api_key)
 
-def _mapbox_get_credentials(username, api_key):
-    ''' Get a tuple of Mapbox API upload credentials.
-    
-        Returns sessionToken, accessKeyId, secretAccessKey, bucket, key, url.
-    
-        https://www.mapbox.com/developers/api/uploads/#Stage.a.file.on.Amazon.S3
-    '''
-    template = urljoin(MAPBOX_API_BASE, '{username}/credentials{?access_token}')
-    api_url = expand(template, dict(username=username, access_token=api_key))
-    _L.debug('GET {}'.format(urlparse(api_url).path))
-    got = requests.get(api_url)
-    
-    if got.status_code not in range(200, 299):
-        raise Exception('Not {}'.format(got.status_code))
-    
-    resp = got.json()
-    
-    return (resp['sessionToken'], resp['accessKeyId'], resp['secretAccessKey'],
-            resp['bucket'], resp['key'], resp['url'])
+    upload_resp = service.upload(mbtiles_path, tileset)
+    if upload_resp.status_code == 409:
+        for i in range(5):
+            sleep(5)
+            upload_resp = service.upload(mbtiles_path, tileset)
+            if upload_resp.status_code != 409:
+                break
 
-def _upload_to_s3(mbtiles_path, session_token, access_id, secret_key, bucket, s3_key):
-    ''' Upload MBTiles file to S3 using Mapbox credentials.
-    
-        https://www.mapbox.com/developers/api/uploads/#Stage.a.file.on.Amazon.S3
-    '''
-    session = boto3.session.Session(access_id, secret_key, session_token)
-    s3 = session.resource('s3')
-    bucket = s3.Bucket(bucket)
+    assert upload_resp.status_code == 201
 
-    _L.debug('{} --> {}'.format(mbtiles_path, s3_key))
-    bucket.upload_file(mbtiles_path, s3_key)
-
-def _mapbox_create_upload(url, tileset, username, api_key):
-    ''' Create Mapbox upload for credentials and S3 URL, wait for completion.
+    # # you can wait for the upload to finish processing, but I wouldn't recommend it
+    # upload_id = upload_resp.json()['id']
+    # _L.info("Waiting for upload to finish processing...")
+    # for i in range(60):
+    #     status_resp = service.status(upload_id).json()
+    #     if status_resp.get('complete'):
+    #         break
+    #     else:
+    #         _L.info("Job status: {}".format(status_resp))
+    #     sleep(5)
         
-        https://www.mapbox.com/developers/api/uploads/#Create.a.new.upload
-    '''
-    template = urljoin(MAPBOX_API_BASE, '{username}{?access_token}')
-    api_url = expand(template, dict(username=username, access_token=api_key))
-    data = json.dumps(dict(tileset=tileset, url=url))
-    _L.debug('POST {} {}'.format(urlparse(api_url).path, repr(data)))
 
-    posted = requests.post(api_url, data=data, headers={'Content-Type': 'application/json'})
-    
-    if posted.status_code not in range(200, 299):
-        raise Exception('Not {}'.format(posted.status_code))
-    
-    resp = posted.json()
-    return _mapbox_wait_for_upload(resp['id'], username, api_key)
-
-def _mapbox_wait_for_upload(id, username, api_key):
-    ''' Wait for upload completion.
-        
-        https://www.mapbox.com/developers/api/uploads/#Retrieve.state.of.an.upload
-    '''
-
-    template = urljoin(MAPBOX_API_BASE, '{username}/{id}{?access_token}')
-    api_url = expand(template, dict(username=username, id=id, access_token=api_key))
-
-    while True:
-        _L.debug('GET {}'.format(urlparse(api_url).path))
-        got = requests.get(api_url)
-
-        if got.json().get('complete') is True:
-            break
-        
-        sleep(30)
 
 parser = ArgumentParser(description='Make a dot map.')
 
