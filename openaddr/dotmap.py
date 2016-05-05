@@ -124,9 +124,11 @@ def _mapbox_wait_for_upload(id, username, api_key):
 
     while True:
         _L.debug('GET {}'.format(urlparse(api_url).path))
-        got = requests.get(api_url)
-
-        if got.json().get('complete') is True:
+        status = requests.get(api_url).json()
+        
+        if status.get('error') is not None:
+            raise RuntimeError(str(status['error']))
+        elif status.get('complete') is True:
             break
         
         sleep(30)
