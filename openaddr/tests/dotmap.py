@@ -101,6 +101,18 @@ class TestDotmap (unittest.TestCase):
             data = '''{"complete": true, "created": "2015-09-27T23:20:25.520Z", "owner": "joe-blow", "error": null, "modified": "2015-09-27T23:20:25.520Z", "tileset": "oa.tiles", "progress": 1, "id": "0xARGLEBARGLE"}'''
             return response(200, data.encode('utf8'), headers=response_headers)
         
+        if MHP == ('GET', 'api.mapbox.com', '/uploads/v1/goofus/credentials') and query.get('access_token') == '0xDEADBEEF':
+            data = '''{"bucket":"tilestream-tilesets-production","key":"_pending/goofus/cif4x7i1u03zcsakungpjhsxm","accessKeyId":"ASIAJTY66UOXKMZULHGQ","secretAccessKey":"1K0QxeZcVLxuatCM6HQxcPMncLDsyuvov3R0wANj","sessionToken":"AQoDYXdzEIf//////////wEakAN7iz5LVmkeitlx3vZ3uRdUKc9xgYviuTyQAh7Xcg905hhThTMMYSuxHIGGr/IdY0K6/hF543ys52BOgnFHV+ROKKk6jVXt3OIEjvEDi89zxzwWCvWxo1KncvgouHegzNXgxbzFEfGMydnLKwzdIT9nREOqWtZMIre7v6FNTQ21A3aHX7a6litzgwY6LQjFDs/0xCPNSiebD5Z6b3Gl6HzMC8D3lujqTA2nxkcSFxQ1iaiBSDkJRBrJN1a+4LvMyhS5NZcihBZYMYQCw1N4bLHh1tZuGb3bR8lKxh3ZBaDRCW3KrI+ER3qoob98PT1QvXvATwuuWn5k1doSjGBfbC309bfHItfi8cQB+ZwhhcDC7gJM52LCFEeoE4uvLqHzxqt1a2GLBTuCZ9JuEYCub06lplrkcgBOdyukqaMZlopHwQG+raXSfUY12Xqdw4vrnH90kW16YJ/TcJPwh8EK8gCQR+xvhX2hp7rWocFR9sIwv77gYTgU8YckizelzRcl4FDZV+79Jl3rpRuk5Hgy2aQdIMrBqLAF","url":"https://tilestream-tilesets-production.s3.amazonaws.com/_pending/goofus/cif4x7i1u03zcsakungpjhsxm"}'''
+            return response(200, data.encode('utf8'), headers=response_headers)
+        
+        if MHP == ('POST', 'api.mapbox.com', '/uploads/v1/goofus') and query.get('access_token') == '0xDEADBEEF':
+            data = '''{"complete": false, "created": "2015-09-27T23:20:25.520Z", "owner": "goofus", "error": null, "modified": "2015-09-27T23:20:25.520Z", "tileset": "oa.tiles", "progress": 0, "id": "0xARGLEBARGLE"}'''
+            return response(200, data.encode('utf8'), headers=response_headers)
+        
+        if MHP == ('GET', 'api.mapbox.com', '/uploads/v1/goofus/0xARGLEBARGLE') and query.get('access_token') == '0xDEADBEEF':
+            data = '''{"complete": true, "created": "2015-09-27T23:20:25.520Z", "owner": "goofus", "error": "Error: Streams are crossed", "modified": "2015-09-27T23:20:25.520Z", "tileset": "oa.tiles", "progress": 1, "id": "0xARGLEBARGLE"}'''
+            return response(200, data.encode('utf8'), headers=response_headers)
+        
         print('Unknowable Request {} "{}"'.format(request.method, url.geturl()), file=stderr)
         raise ValueError('Unknowable Request {} "{}"'.format(request.method, url.geturl()))
         
@@ -133,3 +145,8 @@ class TestDotmap (unittest.TestCase):
     def test_mapbox_create_upload(self):
         with HTTMock(self.response_content):
             _mapbox_create_upload('http://example.com/whatever', 'oa.tiles', 'joe-blow', '0xDEADBEEF')
+    
+    def test_mapbox_create_upload_error(self):
+        with self.assertRaises(RuntimeError):
+            with HTTMock(self.response_content):
+                _mapbox_create_upload('http://example.com/whatever', 'oa.tiles', 'goofus', '0xDEADBEEF')
