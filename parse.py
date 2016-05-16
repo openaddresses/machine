@@ -1,31 +1,12 @@
 #!/usr/bin/env python3
 import csv
 import os
+import pprint
 import requests
 import zipfile
+import fiona
+from shapely.geometry import MultiPolygon, shape
 
-state = []
-
-with open('state.txt', 'r') as statefile:
-  statereader = csv.reader(statefile, delimiter='	')
-  for row in statereader:
-    state.append(row)
-
-header = state.pop(0)
-
-# purge non-polygon geometries from state
-###########################################################################
-to_purge = []
-
-for source in state:
-  if 'Polygon' not in source[header.index('geometry type')]:
-    to_purge.append(source)  # can't modify list during iteration
-
-
-for source in to_purge:
-  state.remove(source)
-
-###########################################################################
 """Fetch directly to disk, low memory usage"""
 def fetch(url, filepath):
   r = requests.get(url, stream=True)
@@ -41,22 +22,22 @@ def unzip(filepath, dest):
   with zipfile.ZipFile(filepath) as zf:
     zf.extractall(dest)
 
-def parse_source(idx):
-  print('parsing {} [{}]'.format(state[idx][header.index('source')], idx))
+def parse_source(source, idx):
+  print('parsing {} [{}]'.format(source[header.index('source')], idx))
+
   path = './workspace/{}'.format(idx)
   if not os.path.exists(path):
     os.makedirs(path)
 
-  # Download cache file
-  cache_url = state[idx][header.index('cache')]
-  fetch(cache_url, path + '/cache.zip')
-  unzip(path + '/cache.zip', path + '/cached_files')
-  # What metadata do we need to differentiate different 'polygon' sources? Where is/will that be stored?
+  if not os.path.isfile(path +'/cache.zip'):
+    cache_url = source[header.index('cache')]
+    fetch(cache_url, path + '/cache.zip')
 
-  import shapefile
-  sf = shapefile.Reader(path + '/cached_files/PARCELS')
+  if not os.path.exists(path + '/cached_files'):
+    unzip(path + '/cache.zip', path + '/cached_files')
 
-  print(sf.shapes())
+  with fiona.drivers():
+    return fiona.open(path + '/cached_files/PARCELS.shp')
 
 def geometry_stats():
   geometries = {}
@@ -70,6 +51,37 @@ def geometry_stats():
 
   print(geometries)
 
-###########################################################################
+if __name__=='__main__':
+  state = []
+  if not os.path.isfile('./state.txt'):
+    fetch('http://results.openaddresses.io/state.txt', './state.txt')
 
-parse_source(4)
+  with open('state.txt', 'r') as statefile:
+    statereader = csv.reader(statefile, delimiter='	')
+    for row in statereader:
+      state.append(row)
+
+  header = state.pop(0)
+
+  # purge non-polygon geometries from state
+  to_purge = []
+
+  for source in state:
+    if 'Polygon' not in source[header.index('geometry type')]:
+      to_purge.append(source)  # can't modify list during iteration
+
+
+  for source in to_purge:
+    state.remove(source)
+
+  f = parse_source(state[4], 4)
+  objects = []
+  for obj in f:  # this is a lossy process needed to get shapely to consume this data
+    if 'geometry' in obj and obj['geometry']:  # needed for 'geometry': None
+      if 'type' in obj['geometry']:
+        if obj['geometry']['type'] == 'Polygon':
+          objects.append(obj['geometry'])
+
+  shapes = [shape(obj) for obj in objects]
+  p = MultiPolygon(shapes)
+  print(p)
