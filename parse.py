@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import resource
+import traceback
 import csv
 import os
 import re
@@ -6,10 +8,10 @@ import pprint
 import requests
 import zipfile
 import fiona
-from shapely.geometry import MultiPolygon, shape
+from shapely.geometry import MultiPolygon, shape, mapping
 from shapely.wkt import dumps
 
-extensions = ['shp']
+extensions = ['shp', 'geojson']
 
 """Fetch directly to disk, low memory usage"""
 def fetch(url, filepath):
@@ -27,7 +29,7 @@ def unzip(filepath, dest):
     zf.extractall(dest)
 
 def parse_source(source, idx):
-  #print('parsing {} [{}]'.format(source[header.index('source')], idx))
+  print('parsing {} [{}]'.format(source[header.index('source')], idx))
 
   try:
     path = './workspace/{}'.format(idx)
@@ -36,7 +38,8 @@ def parse_source(source, idx):
 
     if not os.path.isfile(path +'/cache.zip'):
       cache_url = source[header.index('cache')]
-      fetch(cache_url, path + '/cache.zip')  # some of these are csv, not zip
+      cache_filename = re.search('/[^/]*$', cache_url).group()
+      fetch(cache_url, path + cache_filename)  # some of these are csv, not zip
 
     if not os.path.exists(path + '/cached_files'):
       unzip(path + '/cache.zip', path + '/cached_files')
@@ -44,7 +47,7 @@ def parse_source(source, idx):
     files = os.listdir(path + '/cached_files')
     shapefile = None
     for f in files:
-      if re.match('.*\.{}$'.format('|'.join(extensions)), f):
+      if re.match('.*\.({})$'.format('|'.join(extensions)), f):
         shapefile = f
 
     if shapefile and os.path.isfile(path + '/cached_files/{}'.format(shapefile)):
@@ -68,16 +71,48 @@ def geometry_stats():
 
   print(geometries)
 
-def convert_to_shapely(f):
+def convert_to_shapely(source):
+  #print('mem3 {}'.format(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss))
+  '''
   objects = []
   for obj in f:  # this is a lossy process needed to get shapely to consume this data
     if 'geometry' in obj and obj['geometry']:  # needed for 'geometry': None
       if 'type' in obj['geometry']:
         if obj['geometry']['type'] == 'Polygon':
           objects.append(obj['geometry'])
+  try:
+    objects = f
 
-  shapes = [shape(obj) for obj in objects]
-  return MultiPolygon(shapes)
+    #print('mem4 {}'.format(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss))
+    shapes = [shape(obj) for obj in objects]
+    #print('mem5 {}'.format(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss))
+    return MultiPolygon(shapes)
+  except Exception as e:
+    return None
+  '''
+  shapes = []
+
+  for f in source:
+    try:
+      geom = shape(f['geometry'])
+      if not geom.is_valid:
+        clean = geom.buffer(0.0)
+        assert clean.is_valid
+        assert clean.geom_type == 'Polygon'
+        geom = clean
+      #f['geometry'] = mapping(geom)
+
+      if geom.geom_type == 'Polygon':
+        shapes.append(geom)
+
+    except Exception as e:
+      #print(e)
+      #traceback.print_exc(file=sys.stdout)
+      pass
+
+  x = MultiPolygon(shapes)
+  del shapes
+  return x
 
 if __name__=='__main__':
   state = []
@@ -105,10 +140,19 @@ if __name__=='__main__':
   succ_count = 0
 
   for idx in range(0, len(state)):
+    #print('mem0 {}'.format(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss))
     f = parse_source(state[idx], idx)
+    #print('mem1 {}'.format(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss))
     if f:
       s = convert_to_shapely(f)
       if s:
+        #print('mem6 {}'.format(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss))
         #print(dumps(s))
-        print("{} passed".format(idx))
+        del s
         succ_count += 1
+        print("{} passed ({}/{})".format(idx, succ_count, len(state)))
+      else:
+        print("{} failed [conversion]".format(idx))
+      del f
+    else:
+      print("{} failed [parsing]".format(idx))
