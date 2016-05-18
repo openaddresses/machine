@@ -1,139 +1,150 @@
-#!/usr/bin/env python3
-import resource
-import traceback
 import csv
-import os
-import re
-import pprint
-import requests
-import zipfile
 import fiona
-from shapely.geometry import MultiPolygon, shape, mapping
+import os
+import sys
+import re
+import shutil
+
+from shapely.geometry import shape, MultiPolygon
 from shapely.wkt import dumps
+from utils import fetch, unzip
 
-extensions = ['shp', 'geojson']
-
-
-def fetch(url, filepath):
-    r = requests.get(url, stream=True)
-    with open(filepath, 'wb') as f:
-        for chunk in r.iter_content(chunk_size=1024):
-            if chunk:  # filter out keep-alive new chunks
-                f.write(chunk)
-                f.flush()
-
-    return filepath
+fiona_extensions = ['shp', 'geojson']
 
 
-def unzip(filepath, dest):
-    with zipfile.ZipFile(filepath) as zf:
-        zf.extractall(dest)
-
-
-def parse_source(source, idx):
-    print('parsing {} [{}]'.format(source[header.index('source')], idx))
-
+def to_shapely_obj(data):
     try:
-        path = './workspace/{}'.format(idx)
-        if not os.path.exists(path):
-            os.makedirs(path)
+        geom = shape(data['geometry'])
+        if not geom.is_valid:
+            clean = geom.buffer(0.0)
+            assert clean.is_valid
+            assert clean.geom_type == 'Polygon'
+            geom = clean
 
-        if not os.path.isfile(path + '/cache.zip'):
-            cache_url = source[header.index('cache')]
-            cache_filename = re.search('/[^/]*$', cache_url).group()
-            fetch(cache_url, path + cache_filename)
+        if geom.geom_type == 'Polygon':
+            return geom
 
-        if not os.path.exists(path + '/cached_files'):
-            unzip(path + '/cache.zip', path + '/cached_files')
-
-        files = os.listdir(path + '/cached_files')
-        shapefile = None
-        for f in files:
-            if re.match('.*\.({})$'.format('|'.join(extensions)), f):
-                shapefile = f
-
-        sf_path = path + '/cached_files/{}'.format(shapefile)
-        if shapefile and os.path.isfile(sf_path):
-            with fiona.drivers():
-                return fiona.open(path + '/cached_files/{}'.format(shapefile))
-        else:
-            return None
     except Exception as e:
-        print('error in parse_source. {}'.format(e))
-        return None
+        pass
+        print('[-] error converting shape. {}'.format(e))
+
+    return None
 
 
-def geometry_stats():
-    geometries = {}
+def import_with_fiona(fpath):
+    try:
+        with fiona.drivers():
+            shapes = []
 
-    for row in state:
-        geometry = row[header.index('geometry type')]
-        try:
-            geometries[geometry] += 1
-        except KeyError:
-            geometries[geometry] = 1
+            dat = fiona.open(fpath)
+            for s in dat:
+                x = to_shapely_obj(s)
+                if x:
+                    shapes.append(x)
 
-    print(geometries)
+            if len(shapes):
+                return shapes
+
+    except Exception as e:
+        pass
+        print('[-] error importing file. {}'.format(e))
+
+    return []
 
 
-def convert_to_shapely(source):
+def import_csv(fpath):
+    try:
+        with open(fpath, 'r') as f:
+            if f.read():
+                print("[+] read csv")
+    except Exception as e:
+        print('[-] error importing csv. {}'.format(e))
+
+
+def parse_source(source, idx, header):
+    path = './workspace/{}'.format(idx)
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    cache_url = source[header.index('cache')]
+    cache_filename = re.search('/[^/]*$', cache_url).group()
+    fetch(cache_url, path + cache_filename)
+
+    files = os.listdir(path)
+    for f in files:
+        if re.match('.*\.zip$', f):
+            unzip(path + '/' + f, path)
+
     shapes = []
+    files = os.listdir(path)
+    print(files)
+    for f in files:
+        if re.match('.*\.({})$'.format('|'.join(fiona_extensions)), f):
+            print('[+] found valid file. ' + f)
+            objs = import_with_fiona(path + '/' + f)
+            for obj in objs:
+                shapes.append(obj)
+        elif re.match('.*\.csv$', f):
+            print('[+] found csv file')
+            objs = import_csv(path + '/' + f)
+            for obj in objs:
+                shapes.append(obj)
 
-    for f in source:
+    shutil.rmtree(path)
+
+    if shapes:
+        print('[+] shapes exist, assuming success.')
+        return MultiPolygon(shapes)
+
+    print('[-] did not find shapes. files in archive: {}'.format(files))
+    return None
+
+
+def parse_statefile(state, header):
+    for idx in range(0, len(state)):
+        sys.stdout.flush()
         try:
-            geom = shape(f['geometry'])
-            if not geom.is_valid:
-                clean = geom.buffer(0.0)
-                assert clean.is_valid
-                assert clean.geom_type == 'Polygon'
-                geom = clean
-
-            if geom.geom_type == 'Polygon':
-                shapes.append(geom)
-
+            data = parse_source(state[idx], idx, header)
+            if data:
+                wkt_file = open("./output/{}.wkt".format(idx), 'w')
+                wkt_file.write(dumps(data))
+                wkt_file.close()
         except Exception as e:
-            print('error in convert_to_shapely. {}'.format(e))
-
-    x = MultiPolygon(shapes)
-    del shapes
-    return x
+            pass
+            print('[-] error parsing source. {}'.format(e))
 
 
-if __name__ == '__main__':
+def load_state():
     state = []
-    if not os.path.isfile('./state.txt'):
-        fetch('http://results.openaddresses.io/state.txt', './state.txt')
-
     with open('state.txt', 'r') as statefile:
         statereader = csv.reader(statefile, delimiter='	')
         for row in statereader:
             state.append(row)
 
     header = state.pop(0)
+    return state, header
 
-    # purge non-polygon geometries from state
-    to_purge = []
+
+def filter_polygons(state, header):
+    filtered_state = []
 
     for source in state:
-        if 'Polygon' not in source[header.index('geometry type')]:
-            to_purge.append(source)    # can't modify list during iteration
+        if 'Polygon' in source[header.index('geometry type')]:
+            filtered_state.append(source)
 
-    for source in to_purge:
-        state.remove(source)
+    return filtered_state
 
-    succ_count = 0
 
-    for idx in range(0, len(state)):
-        f = parse_source(state[idx], idx)
-        if f:
-            s = convert_to_shapely(f)
-            if s:
-                # print(dumps(s))
-                del s
-                succ_count += 1
-                print("{} passed ({}/{})".format(idx, succ_count, len(state)))
-            else:
-                print("{} failed [conversion]".format(idx))
-            del f
-        else:
-            print("{} failed [parsing]".format(idx))
+if __name__ == '__main__':
+    if not os.path.isfile('./state.txt'):
+        print('[+] fetching state.txt')
+        fetch('http://results.openaddresses.io/state.txt', './state.txt')
+
+    path = './output'
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    raw_state, header = load_state()
+    state = filter_polygons(raw_state, header)
+
+    parse_statefile(state, header)
