@@ -1,4 +1,5 @@
 import requests
+import os
 import zipfile
 
 
@@ -16,3 +17,12 @@ def fetch(url, filepath):
 def unzip(filepath, dest):
     with zipfile.ZipFile(filepath) as zf:
         zf.extractall(dest)
+
+
+def rlistdir(path):
+    files = []
+    for dirpath, dirnames, filenames in os.walk(path):
+        for f in filenames:
+            files.append(os.path.join(dirpath, f))
+
+    return files

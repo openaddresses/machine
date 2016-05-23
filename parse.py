@@ -6,16 +6,17 @@ import re
 import shutil
 
 from shapely.geometry import shape, MultiPolygon
-from shapely.wkt import dumps
-from utils import fetch, unzip
+from shapely.wkt import dumps, loads
+from utils import fetch, unzip, rlistdir
 
+csv.field_size_limit(sys.maxsize)
 fiona_extensions = ['shp', 'geojson']
 
 
 def to_shapely_obj(data):
     try:
         geom = shape(data['geometry'])
-        if not geom.is_valid:
+        if not geom.is_valid:  # sends warnings to stderr
             clean = geom.buffer(0.0)
             assert clean.is_valid
             assert clean.geom_type == 'Polygon'
@@ -25,40 +26,43 @@ def to_shapely_obj(data):
             return geom
 
     except Exception as e:
-        pass
-        print('[-] error converting shape. {}'.format(e))
+        print('  [-] error converting shape. {}'.format(e))
 
     return None
 
 
 def import_with_fiona(fpath):
+    shapes = []
+
     try:
         with fiona.drivers():
-            shapes = []
-
             dat = fiona.open(fpath)
             for s in dat:
                 x = to_shapely_obj(s)
                 if x:
                     shapes.append(x)
-
-            if len(shapes):
-                return shapes
-
     except Exception as e:
-        pass
-        print('[-] error importing file. {}'.format(e))
+        print('  [-] error importing file. {}'.format(e))
 
-    return []
+    return shapes
 
 
 def import_csv(fpath):
+    data = []
     try:
+        csvdata = []
         with open(fpath, 'r') as f:
-            if f.read():
-                print("[+] read csv")
+            statereader = csv.reader(f, delimiter=',')
+            for row in statereader:
+                csvdata.append(row)
+        header = csvdata.pop(0)
+        for row in csvdata:
+            raw_geom = row[header.index('OA:geom')]
+            data.append(loads(raw_geom))
     except Exception as e:
-        print('[-] error importing csv. {}'.format(e))
+        print('  [-] error importing csv. {}'.format(e))
+
+    return data
 
 
 def parse_source(source, idx, header):
@@ -70,48 +74,46 @@ def parse_source(source, idx, header):
     cache_filename = re.search('/[^/]*$', cache_url).group()
     fetch(cache_url, path + cache_filename)
 
-    files = os.listdir(path)
+    files = rlistdir(path)
     for f in files:
-        if re.match('.*\.zip$', f):
-            unzip(path + '/' + f, path)
+        if re.match('.*\.(zip|obj|exe)$', f):  # some files had mislabelled ext
+            unzip(f, path)
 
     shapes = []
-    files = os.listdir(path)
-    print(files)
+    files = rlistdir(path)
     for f in files:
         if re.match('.*\.({})$'.format('|'.join(fiona_extensions)), f):
-            print('[+] found valid file. ' + f)
-            objs = import_with_fiona(path + '/' + f)
+            objs = import_with_fiona(f)
             for obj in objs:
                 shapes.append(obj)
         elif re.match('.*\.csv$', f):
-            print('[+] found csv file')
-            objs = import_csv(path + '/' + f)
+            objs = import_csv(f)
             for obj in objs:
                 shapes.append(obj)
 
     shutil.rmtree(path)
 
     if shapes:
-        print('[+] shapes exist, assuming success.')
+        print('  [+] shapes exist, assuming success.')
         return MultiPolygon(shapes)
 
-    print('[-] did not find shapes. files in archive: {}'.format(files))
+    print('  [-] did not find shapes. files in archive: {}'.format(files))
     return None
 
 
 def parse_statefile(state, header):
+    ct = 0
     for idx in range(0, len(state)):
-        sys.stdout.flush()
+        print('[+] parsing {} [{}/{}]'.format(idx, ct, len(state)))
         try:
             data = parse_source(state[idx], idx, header)
             if data:
+                ct += 1
                 wkt_file = open("./output/{}.wkt".format(idx), 'w')
                 wkt_file.write(dumps(data))
                 wkt_file.close()
         except Exception as e:
-            pass
-            print('[-] error parsing source. {}'.format(e))
+            print('  [-] error parsing source. {}'.format(e))
 
 
 def load_state():
