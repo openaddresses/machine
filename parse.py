@@ -1,15 +1,15 @@
 import csv
 import os
-import sys
 import re
 import shutil
+import sys
 
 from shapely.geometry import MultiPolygon
 from shapely.wkt import dumps
 from utils import fetch, unzip, rlistdir, import_with_fiona, import_csv
 
-csv.field_size_limit(sys.maxsize)
 fiona_extensions = ['shp', 'geojson']
+csv.field_size_limit(sys.maxsize)
 
 
 def parse_source(source, idx, header):

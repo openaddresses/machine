@@ -1,10 +1,15 @@
-import requests
-import os
-import zipfile
+import csv
 import fiona
+import os
+import requests
+import sys
+import zipfile
 
 from shapely.geometry import shape
 from shapely.wkt import loads
+
+clean_geometries = False
+csv.field_size_limit(sys.maxsize)
 
 
 def fetch(url, filepath):
@@ -49,11 +54,11 @@ def to_shapely_obj(data):
     """
     try:
         geom = shape(data['geometry'])
-        if not geom.is_valid:  # sends warnings to stderr
-            clean = geom.buffer(0.0)  # attempt to clean shape
-            assert clean.is_valid
-            assert clean.geom_type == 'Polygon'
-            geom = clean
+        if clean_geometries:
+            if not geom.is_valid:  # sends warnings to stderr
+                clean = geom.buffer(0.0)  # attempt to clean shape
+                assert clean.is_valid
+                geom = clean
 
         if geom.geom_type == 'Polygon':
             return geom
@@ -104,4 +109,3 @@ def import_csv(fpath):
         print('  [-] error importing csv. {}'.format(e))
 
     return data
-
