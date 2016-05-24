@@ -1,71 +1,26 @@
 import csv
-import fiona
 import os
 import sys
 import re
 import shutil
 
-from shapely.geometry import shape, MultiPolygon
-from shapely.wkt import dumps, loads
-from utils import fetch, unzip, rlistdir
+from shapely.geometry import MultiPolygon
+from shapely.wkt import dumps
+from utils import fetch, unzip, rlistdir, import_with_fiona, import_csv
 
 csv.field_size_limit(sys.maxsize)
 fiona_extensions = ['shp', 'geojson']
 
 
-def to_shapely_obj(data):
-    try:
-        geom = shape(data['geometry'])
-        if not geom.is_valid:  # sends warnings to stderr
-            clean = geom.buffer(0.0)
-            assert clean.is_valid
-            assert clean.geom_type == 'Polygon'
-            geom = clean
-
-        if geom.geom_type == 'Polygon':
-            return geom
-
-    except Exception as e:
-        print('  [-] error converting shape. {}'.format(e))
-
-    return None
-
-
-def import_with_fiona(fpath):
-    shapes = []
-
-    try:
-        with fiona.drivers():
-            dat = fiona.open(fpath)
-            for s in dat:
-                x = to_shapely_obj(s)
-                if x:
-                    shapes.append(x)
-    except Exception as e:
-        print('  [-] error importing file. {}'.format(e))
-
-    return shapes
-
-
-def import_csv(fpath):
-    data = []
-    try:
-        csvdata = []
-        with open(fpath, 'r') as f:
-            statereader = csv.reader(f, delimiter=',')
-            for row in statereader:
-                csvdata.append(row)
-        header = csvdata.pop(0)
-        for row in csvdata:
-            raw_geom = row[header.index('OA:geom')]
-            data.append(loads(raw_geom))
-    except Exception as e:
-        print('  [-] error importing csv. {}'.format(e))
-
-    return data
-
-
 def parse_source(source, idx, header):
+    """Import data from a single source in state.txt
+
+    source: a line of imported csv
+    idx: an index that's used to create a folder on disk for
+      temporarily working with the given data.
+    header: the first line of csv, so that we know which columns
+      contain the data we want to parse.
+    """
     path = './workspace/{}'.format(idx)
     if not os.path.exists(path):
         os.makedirs(path)
@@ -102,6 +57,11 @@ def parse_source(source, idx, header):
 
 
 def parse_statefile(state, header):
+    """Imports all available data from state.txt
+
+    Note: We catch all errors during processing, give a warning,
+    and churn on, this is the preferred data processing method.
+    """
     ct = 0
     for idx in range(0, len(state)):
         print('[+] parsing {} [{}/{}]'.format(idx, ct, len(state)))
@@ -117,6 +77,11 @@ def parse_statefile(state, header):
 
 
 def load_state():
+    """Loads a python representation of the state file.
+
+    Looks in the current working directory, and returns both
+    the state, and the column header as a different object.
+    """
     state = []
     with open('state.txt', 'r') as statefile:
         statereader = csv.reader(statefile, delimiter='	')
@@ -128,6 +93,11 @@ def load_state():
 
 
 def filter_polygons(state, header):
+    """Removes any non-polygon sources from the state file.
+
+    We are only interested in parsing parcel data, which is
+    marked as Polygon in the state file.
+    """
     filtered_state = []
 
     for source in state:
@@ -138,6 +108,11 @@ def filter_polygons(state, header):
 
 
 if __name__ == '__main__':
+    """Parse parcel data from the latest state file.
+
+    Download state.txt if it doesn't exist, and dump all
+    csv data into ./output
+    """
     if not os.path.isfile('./state.txt'):
         print('[+] fetching state.txt')
         fetch('http://results.openaddresses.io/state.txt', './state.txt')
