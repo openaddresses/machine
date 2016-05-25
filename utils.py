@@ -52,7 +52,7 @@ def to_shapely_obj(data):
 
     Accepts a fiona shape object and converts it to shapely.
     """
-    try:
+    if 'geometry' in data and data['geometry']:
         geom = shape(data['geometry'])
         if clean_geometries:
             if not geom.is_valid:  # sends warnings to stderr
@@ -63,37 +63,63 @@ def to_shapely_obj(data):
         if geom.geom_type == 'Polygon':
             return geom
 
-    except Exception as e:  # TODO: add stack trace here.
-        print('  [-] error converting shape. {}'.format(e))
-
     return None
 
 
-def import_with_fiona(fpath):
+def scrape_fiona_metadata(obj):
+    """What does this data look like?
+
+    """
+
+    #  shape = {'properties': obj['properties']}
+    shape = {'properties': None}
+    return shape
+
+
+def scrape_csv_metadata(row, header):
+    props = {}
+    """
+    for key in header:
+        if key != 'OA:geom':
+            props[key] = row[header.index(key)]
+    """
+
+    shape = {'properties': props}
+    return shape
+
+
+def import_with_fiona(fpath, source):
     """Return a list of shapely geometries.
 
     Given a filepath, import data using fiona and cast to shapely.
     """
     shapes = []
+    print(source)
 
     try:
         with fiona.drivers():
-            dat = fiona.open(fpath)
-            for s in dat:
-                x = to_shapely_obj(s)
-                if x:
-                    shapes.append(x)
+            data = fiona.open(fpath)
+            for obj in data:
+                try:
+                    shape = scrape_fiona_metadata(obj)
+                    shape['geom'] = to_shapely_obj(obj)
+                    if shape['geom']:
+                        shapes.append(shape)
+                except Exception as e:
+                    print('  [-] error loading shape from fiona. {}'.format(e))
     except Exception as e:
         print('  [-] error importing file. {}'.format(e))
 
     return shapes
 
 
-def import_csv(fpath):
+def import_csv(fpath, source):
     """Import a csv document into shapely objects.
 
     Uses shapely to import a WKT file.
     """
+    print(source)
+
     data = []
     try:
         csvdata = []
@@ -103,8 +129,12 @@ def import_csv(fpath):
                 csvdata.append(row)
         header = csvdata.pop(0)
         for row in csvdata:
-            raw_geom = row[header.index('OA:geom')]
-            data.append(loads(raw_geom))
+            try:
+                shape = scrape_csv_metadata(row, header)
+                shape['geom'] = loads(row[header.index('OA:geom')])
+                data.append(shape)
+            except Exception as e:
+                print('  [-] error loading shape from csv. {}'.format(e))
     except Exception as e:
         print('  [-] error importing csv. {}'.format(e))
 

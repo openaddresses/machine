@@ -4,7 +4,6 @@ import re
 import shutil
 import sys
 
-from shapely.geometry import MultiPolygon
 from shapely.wkt import dumps
 from utils import fetch, unzip, rlistdir, import_with_fiona, import_csv
 
@@ -38,22 +37,31 @@ def parse_source(source, idx, header):
     files = rlistdir(path)
     for f in files:
         if re.match('.*\.({})$'.format('|'.join(fiona_extensions)), f):
-            objs = import_with_fiona(f)
+            objs = import_with_fiona(f, source[0])
             for obj in objs:
                 shapes.append(obj)
         elif re.match('.*\.csv$', f):
-            objs = import_csv(f)
+            objs = import_csv(f, source[0])
             for obj in objs:
                 shapes.append(obj)
 
     shutil.rmtree(path)
 
-    if shapes:
-        print('  [+] shapes exist, assuming success.')
-        return MultiPolygon(shapes)
+    if not shapes:
+        print('  [-] did not find shapes. files in archive: {}'.format(files))
+    return shapes
 
-    print('  [-] did not find shapes. files in archive: {}'.format(files))
-    return None
+
+def writeout(fp, data):
+    for row in data:
+        """
+        for obj, key in row['properties'].items():
+            output += '{}:{}|'.format(key, obj)
+        output += ',{}'.format(dumps(row['geom']))
+        """
+        fp.write(dumps(row['geom']) + '\n')
+
+    fp.close()
 
 
 def parse_statefile(state, header):
@@ -64,16 +72,15 @@ def parse_statefile(state, header):
     """
     ct = 0
     for idx in range(0, len(state)):
-        print('[+] parsing {} [{}/{}]'.format(idx, ct, len(state)))
         try:
             data = parse_source(state[idx], idx, header)
             if data:
                 ct += 1
                 wkt_file = open("./output/{}.wkt".format(idx), 'w')
-                wkt_file.write(dumps(data))
-                wkt_file.close()
+                writeout(wkt_file, data)
         except Exception as e:
             print('  [-] error parsing source. {}'.format(e))
+        print('parsed {} [{}/{}]'.format(idx + 1, ct, len(state)))
 
 
 def load_state():
