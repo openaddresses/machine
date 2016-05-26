@@ -8,7 +8,7 @@ import zipfile
 import traceback
 
 from shapely.geometry import shape
-from shapely.wkt import loads
+from shapely.wkt import loads, dumps
 from openaddr.conform import conform_smash_case, row_transform_and_convert
 
 clean_geometries = False
@@ -79,9 +79,8 @@ def scrape_fiona_metadata(obj, source):
     cleaned_prop = {k: str(v or '') for (k, v) in  obj['properties'].items()}
 
     metadata = row_transform_and_convert(cleaned_json, cleaned_prop)
-    shape = {'properties': metadata}
 
-    return shape
+    return metadata
 
 
 def scrape_csv_metadata(row, header, source):
@@ -94,9 +93,9 @@ def scrape_csv_metadata(row, header, source):
             props[key] = row[header.index(key)]
 
     cleaned_prop = {k: str(v or '') for (k, v) in  props.items()}
+    metadata = row_transform_and_convert(cleaned_json, cleaned_prop)
 
-    shape = {'properties': cleaned_prop}
-    return shape
+    return metadata
 
 
 def import_with_fiona(fpath, source):
@@ -112,8 +111,9 @@ def import_with_fiona(fpath, source):
             for obj in data:
                 try:
                     shape = scrape_fiona_metadata(obj, source)
-                    shape['geom'] = to_shapely_obj(obj)
-                    if shape['geom']:
+                    geom = to_shapely_obj(obj)
+                    if geom:
+                        shape['geom'] = dumps(geom)
                         shapes.append(shape)
                 except Exception as e:
                     print('  [-] error loading shape from fiona. {}'.format(e))
@@ -141,7 +141,7 @@ def import_csv(fpath, source):
         for row in csvdata:
             try:
                 shape = scrape_csv_metadata(row, header, source)
-                shape['geom'] = loads(row[header.index('OA:geom')])
+                shape['geom'] = row[header.index('OA:geom')]
                 data.append(shape)
             except Exception as e:
                 print('  [-] error loading shape from csv. {}'.format(e))

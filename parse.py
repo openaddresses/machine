@@ -1,4 +1,5 @@
 import csv
+import traceback
 import os
 import re
 import shutil
@@ -53,16 +54,12 @@ def parse_source(source, idx, header):
 
 
 def writeout(fp, data):
-    keys = sorted(data[0]['properties'].keys())
+    keys = list(data[0].keys())
 
-    for key in keys:
-        fp.write('{},'.format(key))
-    fp.write('geom\n')
-
+    writer = csv.DictWriter(fp, fieldnames=keys)
+    writer.writeheader()
     for row in data:
-        for key in keys:
-            fp.write('{},'.format(row['properties'][key]))  # trailing comma
-        fp.write(dumps(row['geom']) + '\n')
+        writer.writerow(row)
 
     fp.close()
 
@@ -83,6 +80,7 @@ def parse_statefile(state, header):
                 writeout(wkt_file, data)
         except Exception as e:
             print('  [-] error parsing source. {}'.format(e))
+            traceback.print_exc(file=sys.stdout)
         print('parsed {} [{}/{}]'.format(idx + 1, ct, len(state)))
 
 
