@@ -53,12 +53,15 @@ def parse_source(source, idx, header):
 
 
 def writeout(fp, data):
+    keys = sorted(data[0]['properties'].keys())
+
+    for key in keys:
+        fp.write('{},'.format(key))
+    fp.write('geom\n')
+
     for row in data:
-        """
-        for obj, key in row['properties'].items():
-            output += '{}:{}|'.format(key, obj)
-        output += ',{}'.format(dumps(row['geom']))
-        """
+        for key in keys:
+            fp.write('{},'.format(row['properties'][key]))  # trailing comma
         fp.write(dumps(row['geom']) + '\n')
 
     fp.close()

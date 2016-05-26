@@ -1,12 +1,15 @@
 import csv
+import json
 import fiona
 import os
 import requests
 import sys
 import zipfile
+import traceback
 
 from shapely.geometry import shape
 from shapely.wkt import loads
+from openaddr.conform import conform_smash_case, row_transform_and_convert
 
 clean_geometries = False
 csv.field_size_limit(sys.maxsize)
@@ -66,25 +69,33 @@ def to_shapely_obj(data):
     return None
 
 
-def scrape_fiona_metadata(obj):
+def scrape_fiona_metadata(obj, source):
     """What does this data look like?
 
     """
 
-    #  shape = {'properties': obj['properties']}
-    shape = {'properties': None}
+    source_json = json.loads(open('./openaddresses/sources/{}'.format(source)).read())
+    cleaned_json = conform_smash_case(source_json)
+    cleaned_prop = {k: str(v or '') for (k, v) in  obj['properties'].items()}
+
+    metadata = row_transform_and_convert(cleaned_json, cleaned_prop)
+    shape = {'properties': metadata}
+
     return shape
 
 
-def scrape_csv_metadata(row, header):
+def scrape_csv_metadata(row, header, source):
     props = {}
-    """
+
+    source_json = json.loads(open('./openaddresses/sources/{}'.format(source)).read())
+    cleaned_json = conform_smash_case(source_json)
     for key in header:
         if key != 'OA:geom':
             props[key] = row[header.index(key)]
-    """
 
-    shape = {'properties': props}
+    cleaned_prop = {k: str(v or '') for (k, v) in  props.items()}
+
+    shape = {'properties': cleaned_prop}
     return shape
 
 
@@ -94,19 +105,19 @@ def import_with_fiona(fpath, source):
     Given a filepath, import data using fiona and cast to shapely.
     """
     shapes = []
-    print(source)
 
     try:
         with fiona.drivers():
             data = fiona.open(fpath)
             for obj in data:
                 try:
-                    shape = scrape_fiona_metadata(obj)
+                    shape = scrape_fiona_metadata(obj, source)
                     shape['geom'] = to_shapely_obj(obj)
                     if shape['geom']:
                         shapes.append(shape)
                 except Exception as e:
                     print('  [-] error loading shape from fiona. {}'.format(e))
+                    traceback.print_exc(file=sys.stdout)
     except Exception as e:
         print('  [-] error importing file. {}'.format(e))
 
@@ -118,7 +129,6 @@ def import_csv(fpath, source):
 
     Uses shapely to import a WKT file.
     """
-    print(source)
 
     data = []
     try:
@@ -130,7 +140,7 @@ def import_csv(fpath, source):
         header = csvdata.pop(0)
         for row in csvdata:
             try:
-                shape = scrape_csv_metadata(row, header)
+                shape = scrape_csv_metadata(row, header, source)
                 shape['geom'] = loads(row[header.index('OA:geom')])
                 data.append(shape)
             except Exception as e:
