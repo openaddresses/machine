@@ -7,6 +7,8 @@ import sys
 import zipfile
 import traceback
 
+import config
+
 from shapely.geometry import shape
 from shapely.wkt import loads, dumps
 from openaddr.conform import conform_smash_case, row_transform_and_convert
@@ -74,7 +76,7 @@ def scrape_fiona_metadata(obj, source):
 
     """
 
-    source_json = json.loads(open('./openaddresses/sources/{}'.format(source)).read())
+    source_json = json.loads(open('{}/sources/{}'.format(config.openaddr_dir, source)).read())
     cleaned_json = conform_smash_case(source_json)
     cleaned_prop = {k: str(v or '') for (k, v) in  obj['properties'].items()}
 
@@ -86,7 +88,7 @@ def scrape_fiona_metadata(obj, source):
 def scrape_csv_metadata(row, header, source):
     props = {}
 
-    source_json = json.loads(open('./openaddresses/sources/{}'.format(source)).read())
+    source_json = json.loads(open('{}/sources/{}'.format(config.openaddr_dir, source)).read())
     cleaned_json = conform_smash_case(source_json)
     for key in header:
         if key != 'OA:geom':

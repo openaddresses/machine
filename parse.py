@@ -5,6 +5,8 @@ import re
 import shutil
 import sys
 
+import config
+
 from shapely.wkt import dumps
 from utils import fetch, unzip, rlistdir, import_with_fiona, import_csv
 
@@ -76,7 +78,7 @@ def parse_statefile(state, header):
             data = parse_source(state[idx], idx, header)
             if data:
                 ct += 1
-                wkt_file = open("./output/{}.wkt".format(idx), 'w')
+                wkt_file = open("{}/{}.wkt".format(config.output_dir, idx), 'w')
                 writeout(wkt_file, data)
         except Exception as e:
             print('  [-] error parsing source. {}'.format(e))
@@ -91,8 +93,8 @@ def load_state():
     the state, and the column header as a different object.
     """
     state = []
-    with open('state.txt', 'r') as statefile:
-        statereader = csv.reader(statefile, delimiter='	')
+    with open(config.statefile_path, 'r') as statefile:
+        statereader = csv.reader(statefile, dialect='excel-tab')
         for row in statereader:
             state.append(row)
 
@@ -121,13 +123,12 @@ if __name__ == '__main__':
     Download state.txt if it doesn't exist, and dump all
     csv data into ./output
     """
-    if not os.path.isfile('./state.txt'):
+    if not os.path.isfile(config.statefile_path):
         print('[+] fetching state.txt')
-        fetch('http://results.openaddresses.io/state.txt', './state.txt')
+        fetch('http://results.openaddresses.io/state.txt', config.statefile_path)
 
-    path = './output'
-    if not os.path.exists(path):
-        os.makedirs(path)
+    if not os.path.exists(config.output_dir):
+        os.makedirs(config.output_dir)
 
     raw_state, header = load_state()
     state = filter_polygons(raw_state, header)
