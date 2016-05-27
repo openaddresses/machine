@@ -1,4 +1,5 @@
 import csv
+import logging
 import os
 import re
 import shutil
@@ -7,11 +8,14 @@ import traceback
 
 import config
 
+from openaddr.jobs import setup_logger
 from shapely.wkt import dumps
 from utils import fetch, unzip, rlistdir, import_with_fiona, import_csv
 
-csv.field_size_limit(sys.maxsize)
+_L = logging.getLogger('openaddr.parcels')
 
+csv.field_size_limit(sys.maxsize)
+setup_logger()
 
 def parse_source(source, idx, header):
     """
@@ -45,7 +49,7 @@ def parse_source(source, idx, header):
     shutil.rmtree(path)
 
     if not shapes:
-        print('did not find shapes. files in archive: {}'.format(files))
+        _L.warning('failed to parse source. did not find shapes. files in archive: {}'.format(files))
 
     return shapes
 
@@ -80,10 +84,9 @@ def parse_statefile(state, header):
                 wkt_file = open("{}/{}.wkt".format(config.output_dir, idx), 'w')
                 writeout(wkt_file, data)
         except Exception as e:
-            print('error parsing source. {}'.format(e))
-            traceback.print_exc(file=sys.stdout)
+            _L.warning('error parsing source. {}'.format(e))
 
-        print('parsed {} [{}/{}]'.format(idx + 1, ct, len(state)))
+        _L.info('parsed {} [{}/{}]'.format(idx + 1, ct, len(state)))
 
 
 def load_state():

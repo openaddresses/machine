@@ -1,19 +1,24 @@
 import csv
-import json
 import fiona
+import json
+import logging
 import os
 import requests
 import sys
-import zipfile
 import traceback
+import zipfile
 
 import config
 
 from shapely.geometry import shape
 from shapely.wkt import loads, dumps
 from openaddr.conform import conform_smash_case, row_transform_and_convert
+from openaddr.jobs import setup_logger
+
+_L = logging.getLogger('openaddr.parcels')
 
 csv.field_size_limit(sys.maxsize)
+setup_logger()
 
 
 def fetch(url, filepath):
@@ -115,10 +120,9 @@ def import_with_fiona(fpath, source):
                         shape['geom'] = dumps(geom)
                         shapes.append(shape)
                 except Exception as e:
-                    print('error loading shape from fiona. {}'.format(e))
-                    traceback.print_exc(file=sys.stdout)
+                    _L.warning('error loading shape from fiona. {}'.format(e))
     except Exception as e:
-        print('error importing file. {}'.format(e))
+        _L.warning('error importing file. {}'.format(e))
 
     return shapes
 
@@ -145,8 +149,8 @@ def import_csv(fpath, source):
                 shape['geom'] = row[header.index('OA:geom')]
                 data.append(shape)
             except Exception as e:
-                print('error loading shape from csv. {}'.format(e))
+                _L.warning('error loading shape from csv. {}'.format(e))
     except Exception as e:
-        print('error importing csv. {}'.format(e))
+        _L.warning('error importing csv. {}'.format(e))
 
     return data
