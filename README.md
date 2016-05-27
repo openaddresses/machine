@@ -1,3 +1,7 @@
+### Overview
+
+This script will fetch the latest [state.txt](http://results.openaddresses.io/state.txt) file, and parse as much parcel data as it can.
+
 ### Installation
 
 * Tested on Ubuntu 14.04 server. 16GB RAM.
@@ -16,7 +20,7 @@
 Update `config.py` with the directory of the openaddresses repo.
 
 ```
-# python3 parse.py
+# python3 -u parse.py
 ```
 
 *Note* - gdal was a pain to install on osx and ubuntu, here are some steps I needed to take.
