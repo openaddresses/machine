@@ -80,9 +80,11 @@ def parse_statefile(state, header):
         try:
             data = parse_source(state[idx], idx, header)
             if data:
-                ct += 1
-                wkt_file = open("{}/{}.wkt".format(config.output_dir, idx), 'w')
+                filename = re.sub(r'\.[^\.]*$', '.csv', state[idx][header.index('source')])
+                os.makedirs('{}/{}'.format(config.output_dir, re.sub(r'\/[^\/]*$', '', filename)))
+                wkt_file = open("{}/{}".format(config.output_dir, filename), 'w')
                 writeout(wkt_file, data)
+                ct += 1
         except Exception as e:
             _L.warning('error parsing source. {}'.format(e))
 
