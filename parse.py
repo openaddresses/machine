@@ -1,29 +1,23 @@
 import csv
-import traceback
 import os
 import re
 import shutil
 import sys
+import traceback
 
 import config
 
 from shapely.wkt import dumps
 from utils import fetch, unzip, rlistdir, import_with_fiona, import_csv
 
-fiona_extensions = ['shp', 'geojson']
 csv.field_size_limit(sys.maxsize)
 
 
 def parse_source(source, idx, header):
-    """Import data from a single source in state.txt
-
-    source: a line of imported csv
-    idx: an index that's used to create a folder on disk for
-      temporarily working with the given data.
-    header: the first line of csv, so that we know which columns
-      contain the data we want to parse.
     """
-    path = './workspace/{}'.format(idx)
+    Import data from a single source based on the data type.
+    """
+    path = '{}/{}'.format(config.workspace_dir, idx)
     if not os.path.exists(path):
         os.makedirs(path)
 
@@ -39,7 +33,7 @@ def parse_source(source, idx, header):
     shapes = []
     files = rlistdir(path)
     for f in files:
-        if re.match('.*\.({})$'.format('|'.join(fiona_extensions)), f):
+        if re.match('.*\.({})$'.format('|'.join(config.fiona_extensions)), f):
             objs = import_with_fiona(f, source[0])
             for obj in objs:
                 shapes.append(obj)
@@ -51,11 +45,15 @@ def parse_source(source, idx, header):
     shutil.rmtree(path)
 
     if not shapes:
-        print('  [-] did not find shapes. files in archive: {}'.format(files))
+        print('did not find shapes. files in archive: {}'.format(files))
+
     return shapes
 
 
 def writeout(fp, data):
+    """
+    Write the csv file.
+    """
     keys = list(data[0].keys())
 
     writer = csv.DictWriter(fp, fieldnames=keys)
@@ -67,7 +65,8 @@ def writeout(fp, data):
 
 
 def parse_statefile(state, header):
-    """Imports all available data from state.txt
+    """
+    Imports all available data from state.
 
     Note: We catch all errors during processing, give a warning,
     and churn on, this is the preferred data processing method.
@@ -81,16 +80,15 @@ def parse_statefile(state, header):
                 wkt_file = open("{}/{}.wkt".format(config.output_dir, idx), 'w')
                 writeout(wkt_file, data)
         except Exception as e:
-            print('  [-] error parsing source. {}'.format(e))
+            print('error parsing source. {}'.format(e))
             traceback.print_exc(file=sys.stdout)
+
         print('parsed {} [{}/{}]'.format(idx + 1, ct, len(state)))
 
 
 def load_state():
-    """Loads a python representation of the state file.
-
-    Looks in the current working directory, and returns both
-    the state, and the column header as a different object.
+    """
+    Loads a python representation of the state file.
     """
     state = []
     with open(config.statefile_path, 'r') as statefile:
@@ -103,7 +101,8 @@ def load_state():
 
 
 def filter_polygons(state, header):
-    """Removes any non-polygon sources from the state file.
+    """
+    Removes any non-polygon sources from the state file.
 
     We are only interested in parsing parcel data, which is
     marked as Polygon in the state file.
@@ -118,14 +117,8 @@ def filter_polygons(state, header):
 
 
 if __name__ == '__main__':
-    """Parse parcel data from the latest state file.
-
-    Download state.txt if it doesn't exist, and dump all
-    csv data into ./output
-    """
     if not os.path.isfile(config.statefile_path):
-        print('[+] fetching state.txt')
-        fetch('http://results.openaddresses.io/state.txt', config.statefile_path)
+        fetch(config.state_url, config.statefile_path)
 
     if not os.path.exists(config.output_dir):
         os.makedirs(config.output_dir)

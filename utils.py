@@ -17,11 +17,6 @@ csv.field_size_limit(sys.maxsize)
 
 
 def fetch(url, filepath):
-    """Get a file from a URL
-
-    Writes directly to disk, without caching the whole file in
-    RAM.
-    """
     r = requests.get(url, stream=True)
     with open(filepath, 'wb') as f:
         for chunk in r.iter_content(chunk_size=1024):
@@ -33,13 +28,13 @@ def fetch(url, filepath):
 
 
 def unzip(filepath, dest):
-    """Unzip $filepath to $dest"""
     with zipfile.ZipFile(filepath) as zf:
         zf.extractall(dest)
 
 
 def rlistdir(path):
-    """Get all files from $path recursively.
+    """
+    Recursively return all files in path.
 
     Does not follow symlinks.
     """
@@ -52,9 +47,8 @@ def rlistdir(path):
 
 
 def to_shapely_obj(data):
-    """Return a clean shapely object.
-
-    Accepts a fiona shape object and converts it to shapely.
+    """
+    Converts a fiona geometry to a shapely object.
     """
     if 'geometry' in data and data['geometry']:
         geom = shape(data['geometry'])
@@ -71,10 +65,9 @@ def to_shapely_obj(data):
 
 
 def scrape_fiona_metadata(obj, source):
-    """What does this data look like?
-
     """
-
+    Uses openaddress machine code to scrape metadata from a fiona object.
+    """
     source_json = json.loads(open('{}/sources/{}'.format(config.openaddr_dir, source)).read())
     cleaned_json = conform_smash_case(source_json)
     cleaned_prop = {k: str(v or '') for (k, v) in  obj['properties'].items()}
@@ -85,6 +78,9 @@ def scrape_fiona_metadata(obj, source):
 
 
 def scrape_csv_metadata(row, header, source):
+    """
+    Uses openaddress machine code to scrape metadata from a csv row.
+    """
     props = {}
 
     source_json = json.loads(open('{}/sources/{}'.format(config.openaddr_dir, source)).read())
@@ -100,9 +96,11 @@ def scrape_csv_metadata(row, header, source):
 
 
 def import_with_fiona(fpath, source):
-    """Return a list of shapely geometries.
+    """
+    Use fiona to import a parcel file.
 
-    Given a filepath, import data using fiona and cast to shapely.
+    Return a list of dict objects containing WKT-formatted geometries in 
+    addition to any metadata.
     """
     shapes = []
 
@@ -117,18 +115,20 @@ def import_with_fiona(fpath, source):
                         shape['geom'] = dumps(geom)
                         shapes.append(shape)
                 except Exception as e:
-                    print('  [-] error loading shape from fiona. {}'.format(e))
+                    print('error loading shape from fiona. {}'.format(e))
                     traceback.print_exc(file=sys.stdout)
     except Exception as e:
-        print('  [-] error importing file. {}'.format(e))
+        print('error importing file. {}'.format(e))
 
     return shapes
 
 
 def import_csv(fpath, source):
-    """Import a csv document into shapely objects.
+    """
+    Import a csv file
 
-    Uses shapely to import a WKT file.
+    Return a list of dict objects containing WKT-formatted geometries in 
+    addition to any metadata.
     """
 
     data = []
@@ -145,8 +145,8 @@ def import_csv(fpath, source):
                 shape['geom'] = row[header.index('OA:geom')]
                 data.append(shape)
             except Exception as e:
-                print('  [-] error loading shape from csv. {}'.format(e))
+                print('error loading shape from csv. {}'.format(e))
     except Exception as e:
-        print('  [-] error importing csv. {}'.format(e))
+        print('error importing csv. {}'.format(e))
 
     return data
