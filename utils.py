@@ -13,7 +13,6 @@ from shapely.geometry import shape
 from shapely.wkt import loads, dumps
 from openaddr.conform import conform_smash_case, row_transform_and_convert
 
-clean_geometries = False
 csv.field_size_limit(sys.maxsize)
 
 
@@ -59,7 +58,7 @@ def to_shapely_obj(data):
     """
     if 'geometry' in data and data['geometry']:
         geom = shape(data['geometry'])
-        if clean_geometries:
+        if config.clean_geom:
             if not geom.is_valid:  # sends warnings to stderr
                 clean = geom.buffer(0.0)  # attempt to clean shape
                 assert clean.is_valid
