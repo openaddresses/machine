@@ -156,7 +156,7 @@ class CollectorPublisher:
 
         attribution = 'No'
         if result.run_state.get('attribution flag') != 'false':
-            attribution = result.run_state.get('attribution name')
+            attribution = result.run_state.get('attribution name') or 'Yes'
     
         self.sources[result.source_base] = {
             'website': result.run_state.get('website') or 'Unknown',
