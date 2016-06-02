@@ -21,10 +21,6 @@ def parse_source(source, idx, header):
     """
     Import data from a single source based on the data type.
     """
-    path = '{}/{}'.format(config.workspace_dir, idx)
-    if not os.path.exists(path):
-        os.makedirs(path)
-
     cache_url = source[header.index('cache')]
     cache_filename = re.search('/[^/]*$', cache_url).group()
     fetch(cache_url, path + cache_filename)
@@ -81,7 +77,9 @@ def parse_statefile(state, header):
             data = parse_source(state[idx], idx, header)
             if data:
                 filename = re.sub(r'\.[^\.]*$', '.csv', state[idx][header.index('source')])
-                os.makedirs('{}/{}'.format(config.output_dir, re.sub(r'\/[^\/]*$', '', filename)))
+                path = '{}/{}'.format(config.output_dir, re.sub(r'\/[^\/]*$', '', filename))
+                if not os.path.exists(path):
+                    os.makedirs(path)
                 wkt_file = open("{}/{}".format(config.output_dir, filename), 'w')
                 writeout(wkt_file, data)
                 ct += 1
