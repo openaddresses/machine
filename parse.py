@@ -21,6 +21,10 @@ def parse_source(source, idx, header):
     """
     Import data from a single source based on the data type.
     """
+    path = '{}/{}'.format(config.workspace_dir, idx)
+    if not os.path.exists(path):
+        os.makedirs(path)
+
     cache_url = source[header.index('cache')]
     cache_filename = re.search('/[^/]*$', cache_url).group()
     fetch(cache_url, path + cache_filename)
