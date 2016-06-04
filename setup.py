@@ -20,6 +20,11 @@ if sys.version_info[0] == 2:
 
         # https://pypi.python.org/pypi/python-memcached
         'python-memcached == 1.57',
+
+        # https://github.com/kennethreitz/requests/issues/2022#issuecomment-143348232
+        'ndg-httpsclient == 0.4.0',
+        'pyOpenSSL == 16.0.0',
+        'pyasn1 == 0.1.9',
     ]
 else:
     conditional_requirements += [
