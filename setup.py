@@ -22,6 +22,7 @@ if sys.version_info[0] == 2:
         'python-memcached == 1.57',
 
         # https://github.com/kennethreitz/requests/issues/2022#issuecomment-143348232
+        'setuptools == 22.0.5',
         'ndg-httpsclient == 0.4.0',
         'pyOpenSSL == 16.0.0',
         'pyasn1 == 0.1.9',
