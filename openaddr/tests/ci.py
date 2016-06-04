@@ -2554,26 +2554,30 @@ class TestCollect (unittest.TestCase):
     def test_collector_publisher(self):
         '''
         '''
-        s3, db, collected_zip = mock.Mock(), mock.Mock(), mock.Mock()
-        s3.new_key.return_value.generate_url.return_value = 'http://internet/collected-local.zip'
+        S3, db, collected_zip = mock.Mock(), mock.Mock(), mock.Mock()
+        S3.new_key.return_value.generate_url.return_value = 'http://internet/collected-local.zip'
         collected_zip.filename = 'collected-local.zip'
         
         with patch('openaddr.ci.collect.add_source_to_zipfile') as add_source_to_zipfile:
-            collector_publisher = CollectorPublisher(s3, collected_zip, 'everywhere', 'yo')
+            collector_publisher = CollectorPublisher(S3, collected_zip, 'everywhere', 'yo')
             
             s1 = {'license': 'ODbL', 'attribution name': 'ABC Co.'}
             s2 = {'website': 'http://example.com', 'attribution flag': 'false'}
+            s3 = {'attribution flag': 'true', 'attribution name': ''}
             r1 = LocalProcessedResult('abc', 'abc.zip', s1, None)
             r2 = LocalProcessedResult('def', 'def.zip', s2, None)
+            r3 = LocalProcessedResult('ghi', 'ghi.zip', s3, None)
             
             collector_publisher.collect(r1)
             collector_publisher.collect(r2)
+            collector_publisher.collect(r3)
             
             collector_publisher.publish(db)
 
             add_source_to_zipfile.assert_has_calls([
                 mock.call(collected_zip, r1),
-                mock.call(collected_zip, r2)
+                mock.call(collected_zip, r2),
+                mock.call(collected_zip, r3)
                 ])
         
         self.assertEqual(len(collected_zip.writestr.mock_calls), 1)
@@ -2581,13 +2585,14 @@ class TestCollect (unittest.TestCase):
         self.assertEqual(filename, 'LICENSE.txt')
         self.assertTrue('abc\nWebsite: Unknown\nLicense: ODbL\nRequired attribution: ABC Co.\n' in content.decode('utf8'))
         self.assertTrue('def\nWebsite: http://example.com\nLicense: Unknown\nRequired attribution: No\n' in content.decode('utf8'))
+        self.assertTrue('ghi\nWebsite: Unknown\nLicense: Unknown\nRequired attribution: Yes\n' in content.decode('utf8'))
         
         collected_zip.close.assert_called_once_with()
 
-        s3.new_key.assert_called_once_with('collected-local.zip')
-        s3.new_key.return_value.generate_url.assert_called_once_with(expires_in=0, query_auth=False, force_http=True)
+        S3.new_key.assert_called_once_with('collected-local.zip')
+        S3.new_key.return_value.generate_url.assert_called_once_with(expires_in=0, query_auth=False, force_http=True)
 
-        s3.new_key.return_value.set_contents_from_filename.assert_called_once_with(
+        S3.new_key.return_value.set_contents_from_filename.assert_called_once_with(
             'collected-local.zip', policy='public-read',
             headers={'Content-Type': 'application/zip'})
         
