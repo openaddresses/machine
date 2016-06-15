@@ -897,21 +897,27 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
-        with open(join(dirname(state_path), state['output'])) as file:
-            print(file.name)
-            print(file.read())
-        
         output_path = join(dirname(state_path), state['processed'])
         
         with csvopen(output_path, encoding='utf8') as input:
             rows = list(csvDictReader(input, encoding='utf8'))
-            self.assertEqual(len(rows), 11)
+            self.assertEqual(len(rows), 12)
             self.assertEqual(rows[2]['NUMBER'], u'1')
             self.assertEqual(rows[3]['NUMBER'], u'10')
+            self.assertEqual(rows[-2]['NUMBER'], u'2211')
             self.assertEqual(rows[-1]['NUMBER'], u'2211')
             self.assertEqual(rows[2]['STREET'], u'SW RICHARDSON ST')
             self.assertEqual(rows[3]['STREET'], u'SW PORTER ST')
+            self.assertEqual(rows[-2]['STREET'], u'SE OCHOCO ST')
             self.assertEqual(rows[-1]['STREET'], u'SE OCHOCO ST')
+            self.assertTrue(bool(rows[2]['LAT']))
+            self.assertTrue(bool(rows[2]['LON']))
+            self.assertTrue(bool(rows[3]['LAT']))
+            self.assertTrue(bool(rows[3]['LON']))
+            self.assertFalse(bool(rows[-2]['LAT']))
+            self.assertFalse(bool(rows[-2]['LON']))
+            self.assertTrue(bool(rows[-1]['LAT']))
+            self.assertTrue(bool(rows[-1]['LON']))
 
 class TestState (unittest.TestCase):
     

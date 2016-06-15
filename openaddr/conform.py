@@ -720,8 +720,14 @@ def row_extract_and_reproject(source_definition, source_row):
         if n in out_row: del out_row[n]
 
     # Convert commas to periods for decimal numbers. (Not using locale.)
-    source_x = source_x.replace(',', '.')
-    source_y = source_y.replace(',', '.')
+    try:
+        source_x = source_x.replace(',', '.')
+        source_y = source_y.replace(',', '.')
+    except AttributeError:
+        # Add blank data to the output CSV and get out
+        out_row[X_FIELDNAME] = None
+        out_row[Y_FIELDNAME] = None
+        return out_row
 
     # Reproject the coordinates if necessary
     if "srs" not in source_definition["conform"]:
