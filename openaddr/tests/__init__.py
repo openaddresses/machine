@@ -112,6 +112,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('gis3.oit.ohio.gov', '/LBRS/_downloads/TRU_ADDS.zip'):
             local_path = join(data_dirname, 'TRU_ADDS-excerpt.zip')
         
+        if (host, path) == ('ftp02.portlandoregon.gov', '/CivicApps/address.zip'):
+            local_path = join(data_dirname, 'us-or-portland.zip')
+        
         if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1/query'):
             qs = parse_qs(query)
             body_data = parse_qs(request.body) if request.body else {}
@@ -882,6 +885,33 @@ class TestOA (unittest.TestCase):
         for (sample_datum, row) in zip(sample_data[1:], rows[0:]):
             self.assertEqual(sample_datum[9], row['NUMBER'])
             self.assertEqual(sample_datum[13], row['STREET'])
+
+    def test_single_us_or_portland(self):
+        ''' Test complete process_one.process on data.
+        '''
+        source = join(self.src_dir, 'us/or/portland.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+
+        with open(join(dirname(state_path), state['output'])) as file:
+            print(file.name)
+            print(file.read())
+        
+        output_path = join(dirname(state_path), state['processed'])
+        
+        with csvopen(output_path, encoding='utf8') as input:
+            rows = list(csvDictReader(input, encoding='utf8'))
+            self.assertEqual(len(rows), 11)
+            self.assertEqual(rows[2]['NUMBER'], u'1')
+            self.assertEqual(rows[3]['NUMBER'], u'10')
+            self.assertEqual(rows[-1]['NUMBER'], u'2211')
+            self.assertEqual(rows[2]['STREET'], u'SW RICHARDSON ST')
+            self.assertEqual(rows[3]['STREET'], u'SW PORTER ST')
+            self.assertEqual(rows[-1]['STREET'], u'SE OCHOCO ST')
 
 class TestState (unittest.TestCase):
     
