@@ -1,3 +1,6 @@
+2016-06-14: 2.19.7
+- Fixed error in Portland, OR source.
+
 2016-06-04: 2.19.6
 - Fixed attribution wording in collections LICENSE.txt.
 - Hopefully fixed SSL handshake bug for Luxembourg data source.
