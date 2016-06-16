@@ -9,6 +9,8 @@ from tempfile import mkdtemp
 from csv import DictReader
 from shutil import rmtree
 from os import remove
+import email.parser
+import urllib.parse
 
 from ..cache import EsriRestDownloadTask
 from ..conform import GEOM_FIELDNAME
@@ -58,14 +60,30 @@ def write_vrt_file(csv_path):
     
     return vrt_path
 
-def esri2geojson(esri_url, geojson_path):
+def _collect_headers(strings):
+    headers, parser = {}, email.parser.Parser()
+    
+    for string in strings:
+        headers.update(dict(parser.parsestr(string)))
+    
+    return headers
+
+def _collect_params(strings):
+    params = {}
+    
+    for string in strings:
+        params.update(dict(urllib.parse.parse_qsl(string)))
+    
+    return params
+
+def esri2geojson(esri_url, geojson_path, headers, params):
     ''' Convert single ESRI feature service URL to GeoJSON file.
     '''
     workdir = mkdtemp(prefix='esri2geojson-')
     ogr.UseExceptions()
 
     try:
-        task = EsriRestDownloadTask('esri')
+        task = EsriRestDownloadTask('esri', params=params, headers=headers)
         (csv_path, ) = task.download([esri_url], workdir)
 
         _L.info('Saved {esri_url} to {csv_path}'.format(**locals()))
@@ -103,13 +121,21 @@ parser.add_argument('-q', '--quiet', help='Turn off most logging',
                     action='store_const', dest='loglevel',
                     const=logging.WARNING, default=logging.INFO)
 
+parser.add_argument('-H', '--header', help='Add an HTTP header for ESRI server',
+                    action='append', dest='header')
+
+parser.add_argument('-p', '--param', help='Add a URL parameter for ESRI server',
+                    action='append', dest='param')
+
 def main():
     from ..jobs import setup_logger
 
     args = parser.parse_args()
     setup_logger(logfile=args.logfile, log_level=args.loglevel)
+    
+    headers, params = _collect_headers(args.header), _collect_params(args.param)
 
-    return esri2geojson(args.esri_url, args.geojson_path)
+    return esri2geojson(args.esri_url, args.geojson_path, headers, params)
 
 if __name__ == '__main__':
     exit(main())
