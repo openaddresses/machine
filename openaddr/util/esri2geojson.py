@@ -76,7 +76,7 @@ def _collect_params(strings):
     
     return params
 
-def esri2geojson(esri_url, geojson_path, headers, params):
+def esri2geojson(esri_url, geojson_path, headers={}, params={}):
     ''' Convert single ESRI feature service URL to GeoJSON file.
     '''
     workdir = mkdtemp(prefix='esri2geojson-')

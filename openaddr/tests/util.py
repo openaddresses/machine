@@ -89,10 +89,19 @@ class TestEsri2GeoJSON (unittest.TestCase):
         data_dirname = join(dirname(__file__), 'data')
         local_path = None
         
-        if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1/query'):
+        if host == '96.31.228.112':
+            if request.headers.get('Host') != 'www.carsonproperty.info':
+                return response(404, 'Unknown whatever')
+        
+        if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1/query') \
+        or (host, path) == ('96.31.228.112', '/ArcGIS/rest/services/basemap/MapServer/1/query'):
             qs = parse_qs(query)
             body_data = parse_qs(request.body) if request.body else {}
 
+            if 'token' in dict(qs):
+                if 'nada' not in dict(qs)['token']:
+                    return response(404, 'Bad token')
+        
             if qs.get('returnIdsOnly') == ['true']:
                 local_path = join(data_dirname, 'us-ca-carson-ids-only.json')
             elif qs.get('returnCountOnly') == ['true']:
@@ -100,8 +109,13 @@ class TestEsri2GeoJSON (unittest.TestCase):
             elif body_data.get('outSR') == ['4326']:
                 local_path = join(data_dirname, 'us-ca-carson-0.json')
 
-        if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1'):
+        if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1') \
+        or (host, path) == ('96.31.228.112', '/ArcGIS/rest/services/basemap/MapServer/1'):
             qs = parse_qs(query)
+
+            if 'token' in dict(qs):
+                if 'nada' not in dict(qs)['token']:
+                    return response(404, 'Bad token')
 
             if qs.get('f') == ['json']:
                 local_path = join(data_dirname, 'us-ca-carson-metadata.json')
@@ -120,6 +134,25 @@ class TestEsri2GeoJSON (unittest.TestCase):
         
         with HTTMock(self.response_content):
             esri2geojson(esri_url, geojson_path)
+        
+        with open(geojson_path) as file:
+            data = json.load(file)
+        
+        self.assertEqual(data['type'], 'FeatureCollection')
+        self.assertEqual(len(data['features']), 5)
+
+        self.assertEqual(data['features'][0]['type'], 'Feature')
+        self.assertEqual(data['features'][0]['geometry']['type'], 'Point')
+        self.assertEqual(data['features'][0]['properties']['ADDRESS'], '555 E CARSON ST 122')
+    
+    def test_conversion_extras(self):
+    
+        esri_url = 'http://96.31.228.112/ArcGIS/rest/services/basemap/MapServer/1'
+        geojson_path = join(self.testdir, 'out.geojson')
+        
+        with HTTMock(self.response_content):
+            esri2geojson(esri_url, geojson_path, params={'token': 'nada'},
+                         headers={'Host': 'www.carsonproperty.info'})
         
         with open(geojson_path) as file:
             data = json.load(file)
