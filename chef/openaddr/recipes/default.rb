@@ -5,6 +5,7 @@ package 'python-dev'
 package 'libpq-dev'
 package 'memcached'
 package 'libffi-dev'
+package 'gdal-bin'
 
 execute "pip install -U ." do
   cwd File.join(File.dirname(__FILE__), '..', '..', '..')

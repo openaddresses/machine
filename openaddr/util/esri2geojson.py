@@ -14,6 +14,7 @@ import urllib.parse
 
 from ..cache import EsriRestDownloadTask
 from ..conform import GEOM_FIELDNAME
+from ..compat import check_output
 
 from osgeo import ogr
 
@@ -40,10 +41,9 @@ def write_vrt_file(csv_path):
             <OGRVRTLayer name="{csv_base}">
                 <SrcDataSource>{csv_path}</SrcDataSource>
                 <SrcLayer>{csv_base}</SrcLayer>
-                <GeometryField encoding="WKT" name="vrt_geom" field="{geom_name}" reportSrcColumn="FALSE">
-                    <GeometryType>{geom_type}</GeometryType>
-                    <SRS>EPSG:4326</SRS>
-                </GeometryField>
+                <GeometryType>{geom_type}</GeometryType>
+                <LayerSRS>EPSG:4326</LayerSRS>
+                <GeometryField encoding="WKT" name="vrt_geom" field="{geom_name}" reportSrcColumn="FALSE"></GeometryField>
             </OGRVRTLayer>
         </OGRVRTDataSource>'''
     
@@ -76,8 +76,8 @@ def _collect_params(strings):
     
     return params
 
-def esri2geojson(esri_url, geojson_path, headers={}, params={}):
-    ''' Convert single ESRI feature service URL to GeoJSON file.
+def esri2ogrfile(esri_url, output_path, headers={}, params={}):
+    ''' Convert single ESRI feature service URL to OGR file.
     '''
     workdir = mkdtemp(prefix='esri2geojson-')
     ogr.UseExceptions()
@@ -89,22 +89,26 @@ def esri2geojson(esri_url, geojson_path, headers={}, params={}):
         _L.info('Saved {esri_url} to {csv_path}'.format(**locals()))
     
         vrt_path = write_vrt_file(csv_path)
-    
-        ds_in = ogr.Open(vrt_path)
-        driver = ogr.GetDriverByName('GeoJSON')
-    
-        if exists(geojson_path):
-            remove(geojson_path)
-    
-        ds_out = driver.CopyDataSource(ds_in, geojson_path)
-        ds_out.Release()
+        
+        format_name = {
+            '.shp': 'ESRI Shapefile',
+            '.geojson': 'GeoJSON'
+            }.get(splitext(output_path)[1])
+        
+        if exists(output_path):
+            remove(output_path)
+        
+        print(check_output(('ogr2ogr', '-f', format_name, output_path, vrt_path)))
 
-        _L.info('Converted {csv_path} to {geojson_path}'.format(**locals()))
+        _L.info('Converted {csv_path} to {output_path}'.format(**locals()))
     
     finally:
         rmtree(workdir)
 
         _L.info('Removed {workdir}'.format(**locals()))
+
+# Provided for compatibility
+esri2geojson = esri2ogrfile
 
 parser = ArgumentParser(description='Convert single ESRI feature service URL to GeoJSON file.')
 
