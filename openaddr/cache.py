@@ -103,11 +103,18 @@ class DownloadError(Exception):
 
 class DownloadTask(object):
 
-    def __init__(self, source_prefix):
+    def __init__(self, source_prefix, params={}, headers={}):
+        '''
+        
+            params: Additional query parameters, used by EsriRestDownloadTask.
+            headers: Additional HTTP headers.
+        '''
         self.source_prefix = source_prefix
         self.headers = {
             'User-Agent': 'openaddresses-extract/1.0 (https://github.com/openaddresses/openaddresses)',
         }
+        self.headers.update(dict(**headers))
+        self.query_params = dict(**params)
 
 
     @classmethod
@@ -343,33 +350,34 @@ class EsriRestDownloadTask(DownloadTask):
         return os.path.join(dir_path, name_base + path_ext)
 
     def get_layer_metadata(self, url):
-        query_args = {
-            'f': 'json'
-        }
+        query_args = dict(**self.query_params)
+        query_args.update({'f': 'json'})
         response = request('GET', url, params=query_args, headers=self.headers)
         metadata = self.handle_esri_errors(response, "Could not retrieve field names from ESRI source")
         return metadata
 
     def get_layer_feature_count(self, url):
-        query_args = {
+        query_args = dict(**self.query_params)
+        query_args.update({
             'where': '1=1',
             'returnCountOnly': 'true',
             'f': 'json',
-        }
+        })
         response = request('GET', url, params=query_args, headers=self.headers)
         count_json = self.handle_esri_errors(response, "Could not retrieve row count from ESRI source")
         return count_json
 
     def get_layer_min_max(self, url, oid_field_name):
         """ Find the min and max values for the OID field. """
-        query_args = {
+        query_args = dict(**self.query_params)
+        query_args.update({
             'f': 'json',
             'outFields': '',
             'outStatistics': json.dumps([
                 dict(statisticType='min', onStatisticField=oid_field_name, outStatisticFieldName='THE_MIN'),
                 dict(statisticType='max', onStatisticField=oid_field_name, outStatisticFieldName='THE_MAX'),
             ], separators=(',', ':'))
-        }
+        })
         response = request('GET', url, params=query_args, headers=self.headers)
         metadata = self.handle_esri_errors(response, "Could not retrieve min/max oid values from ESRI source")
 
@@ -380,24 +388,26 @@ class EsriRestDownloadTask(DownloadTask):
         return (min(min_max_values), max(min_max_values))
 
     def get_layer_oids(self, url):
-        query_args = {
+        query_args = dict(**self.query_params)
+        query_args.update({
             'where': '1=1',  # So we get everything
             'returnIdsOnly': 'true',
             'f': 'json',
-        }
+        })
         response = request('GET', url, params=query_args, headers=self.headers)
         oid_data = self.handle_esri_errors(response, "Could not retrieve object IDs from ESRI source")
         return oid_data
 
     def can_handle_pagination(self, query_url, query_fields):
-        check_args = {
+        check_args = dict(**self.query_params)
+        check_args.update({
             'resultOffset': 0,
             'resultRecordCount': 1,
             'where': '1=1',
             'returnGeometry': 'false',
             'outFields': ','.join(query_fields),
             'f': 'json',
-        }
+        })
         response = request('POST', query_url, headers=self.headers, data=check_args)
 
         try:
@@ -504,7 +514,8 @@ class EsriRestDownloadTask(DownloadTask):
                     query_fields = None
 
                 for offset in range(0, row_count, page_size):
-                    page_args.append({
+                    query_args = dict(**self.query_params)
+                    query_args.update({
                         'resultOffset': offset,
                         'resultRecordCount': page_size,
                         'where': '1=1',
@@ -514,6 +525,7 @@ class EsriRestDownloadTask(DownloadTask):
                         'outFields': ','.join(query_fields or ['*']),
                         'f': 'json',
                     })
+                    page_args.append(query_args)
                 _L.info("Built {} requests using resultOffset method".format(len(page_args)))
             else:
                 # If not, we can still use the `where` argument to paginate
@@ -530,7 +542,8 @@ class EsriRestDownloadTask(DownloadTask):
 
                         for page_min in range(oid_min - 1, oid_max, page_size):
                             page_max = min(page_min + page_size, oid_max)
-                            page_args.append({
+                            query_args = dict(**self.query_params)
+                            query_args.update({
                                 'where': '{} > {} AND {} <= {}'.format(
                                     oid_field_name,
                                     page_min,
@@ -543,6 +556,7 @@ class EsriRestDownloadTask(DownloadTask):
                                 'outFields': ','.join(query_fields or ['*']),
                                 'f': 'json',
                             })
+                            page_args.append(query_args)
                         _L.info("Built {} requests using OID where clause method".format(len(page_args)))
 
                         # If we reach this point we don't need to fall through to enumerating all object IDs
@@ -561,7 +575,8 @@ class EsriRestDownloadTask(DownloadTask):
 
                     for i in range(0, len(oids), 100):
                         oid_chunk = map(long if PY2 else int, oids[i:i+100])
-                        page_args.append({
+                        query_args = dict(**self.query_params)
+                        query_args.update({
                             'objectIds': ','.join(map(str, oid_chunk)),
                             'geometryPrecision': 7,
                             'returnGeometry': 'true',
@@ -569,6 +584,7 @@ class EsriRestDownloadTask(DownloadTask):
                             'outFields': ','.join(query_fields or ['*']),
                             'f': 'json',
                         })
+                        page_args.append(query_args)
                     _L.info("Built {} requests using OID enumeration method".format(len(page_args)))
 
             with csvopen(file_path, 'w', encoding='utf-8') as f:
