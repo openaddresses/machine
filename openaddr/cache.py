@@ -463,11 +463,10 @@ class EsriRestDownloadTask(DownloadTask):
         download_path = os.path.join(workdir, 'esri')
         mkdirsp(download_path)
 
-        query_fields = self.field_names_to_request(conform)
-
         for source_url in source_urls:
             size = 0
             file_path = self.get_file_path(source_url, download_path)
+            query_fields = []
 
             if os.path.exists(file_path):
                 output_files.append(file_path)
@@ -506,13 +505,6 @@ class EsriRestDownloadTask(DownloadTask):
                (metadata.get('advancedQueryCapabilities') and metadata['advancedQueryCapabilities']['supportsPagination']):
                 # If the layer supports pagination, we can use resultOffset/resultRecordCount to paginate
 
-                # There's a bug where some servers won't handle these queries in combination with a list of
-                # fields specified. We'll make a single, 1 row query here to check if the server supports this
-                # and switch to querying for all fields if specifying the fields fails.
-                if query_fields and not self.can_handle_pagination(query_url, query_fields):
-                    _L.info("Source does not support pagination with fields specified, so querying for all fields.")
-                    query_fields = None
-
                 for offset in range(0, row_count, page_size):
                     query_args = dict(**self.query_params)
                     query_args.update({
@@ -522,7 +514,7 @@ class EsriRestDownloadTask(DownloadTask):
                         'geometryPrecision': 7,
                         'returnGeometry': 'true',
                         'outSR': 4326,
-                        'outFields': ','.join(query_fields or ['*']),
+                        'outFields': '*',
                         'f': 'json',
                     })
                     page_args.append(query_args)
@@ -553,7 +545,7 @@ class EsriRestDownloadTask(DownloadTask):
                                 'geometryPrecision': 7,
                                 'returnGeometry': 'true',
                                 'outSR': 4326,
-                                'outFields': ','.join(query_fields or ['*']),
+                                'outFields': '*',
                                 'f': 'json',
                             })
                             page_args.append(query_args)
@@ -581,7 +573,7 @@ class EsriRestDownloadTask(DownloadTask):
                             'geometryPrecision': 7,
                             'returnGeometry': 'true',
                             'outSR': 4326,
-                            'outFields': ','.join(query_fields or ['*']),
+                            'outFields': '*',
                             'f': 'json',
                         })
                         page_args.append(query_args)
