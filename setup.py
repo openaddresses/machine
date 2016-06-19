@@ -94,7 +94,7 @@ setup(
         'psycopg2 == 2.6.1',
 
         # https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1306991/comments/10
-        'requests == 2.2.1',
+        'requests == 2.10.0',
 
         # https://pypi.python.org/pypi/requests-ftp, appears no longer maintained.
         'requests-ftp == 0.2.0',
