@@ -466,7 +466,6 @@ class EsriRestDownloadTask(DownloadTask):
         for source_url in source_urls:
             size = 0
             file_path = self.get_file_path(source_url, download_path)
-            query_fields = []
 
             if os.path.exists(file_path):
                 output_files.append(file_path)
@@ -475,10 +474,7 @@ class EsriRestDownloadTask(DownloadTask):
 
             metadata = self.get_layer_metadata(source_url)
 
-            if query_fields is None:
-                field_names = [f['name'] for f in metadata['fields']]
-            else:
-                field_names = query_fields[:]
+            field_names = [f['name'] for f in metadata['fields']]
 
             if X_FIELDNAME not in field_names:
                 field_names.append(X_FIELDNAME)
