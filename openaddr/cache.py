@@ -70,23 +70,23 @@ class CacheResult:
 
 def compare_cache_details(filepath, resultdir, data):
     ''' Compare cache file with known source data, return cache and fingerprint.
-    
+
         Checks if fresh data is already cached, returns a new file path if not.
     '''
     if not exists(filepath):
         raise Exception('cached file {} is missing'.format(filepath))
-        
+
     fingerprint = md5()
 
     with open(filepath, 'rb') as file:
         for line in file:
             fingerprint.update(line)
-    
+
     # Determine if anything needs to be done at all.
     if urlparse(data.get('cache', '')).scheme == 'http' and 'fingerprint' in data:
         if fingerprint.hexdigest() == data['fingerprint']:
             return data['cache'], data['fingerprint']
-    
+
     cache_name = basename(filepath)
 
     if not exists(resultdir):
@@ -94,7 +94,7 @@ def compare_cache_details(filepath, resultdir, data):
 
     move(filepath, join(resultdir, cache_name))
     data_cache = 'file://' + join(abspath(resultdir), cache_name)
-    
+
     return data_cache, fingerprint.hexdigest()
 
 class DownloadError(Exception):
@@ -105,7 +105,7 @@ class DownloadTask(object):
 
     def __init__(self, source_prefix, params={}, headers={}):
         '''
-        
+
             params: Additional query parameters, used by EsriRestDownloadTask.
             headers: Additional HTTP headers.
         '''
@@ -136,17 +136,17 @@ def guess_url_file_extension(url):
     '''
     scheme, _, path, _, query, _ = urlparse(url)
     mimetypes.add_type('application/x-zip-compressed', '.zip', False)
-    
+
     _, likely_ext = os.path.splitext(path)
     bad_extensions = '', '.cgi', '.php', '.aspx', '.asp', '.do'
-    
+
     if not query and likely_ext not in bad_extensions:
         #
         # Trust simple URLs without meaningless filename extensions.
         #
         _L.debug(u'URL says "{}" for {}'.format(likely_ext, url))
         path_ext = likely_ext
-    
+
     else:
         #
         # Get a dictionary of headers and a few bytes of content from the URL.
@@ -162,9 +162,9 @@ def guess_url_file_extension(url):
                 content_chunk = file.read(99)
         else:
             raise ValueError('Unknown scheme "{}": {}'.format(scheme, url))
-    
+
         path_ext = False
-        
+
         # Guess path extension from Content-Type header
         if 'content-type' in headers:
             content_type = headers['content-type'].split(';')[0]
@@ -187,7 +187,7 @@ def guess_url_file_extension(url):
                     else:
                         _L.debug('Content-Disposition disagrees: "{}"'.format(match.group('filename')))
                         path_ext = False
-        
+
         if not path_ext:
             #
             # Headers didn't clearly define a known extension.
@@ -196,7 +196,7 @@ def guess_url_file_extension(url):
             mime_type = get_content_mimetype(content_chunk)
             _L.debug('file says "{}" for {}'.format(mime_type, url))
             path_ext = mimetypes.guess_extension(mime_type, False)
-    
+
     return path_ext
 
 def get_content_mimetype(chunk):
@@ -262,7 +262,7 @@ class URLDownloadTask(DownloadTask):
 
             if resp.status_code in range(400, 499):
                 raise DownloadError('{} response from {}'.format(resp.status_code, source_url))
-            
+
             size = 0
             with open(file_path, 'wb') as fp:
                 for chunk in resp.iter_content(self.CHUNK):
@@ -475,7 +475,7 @@ class EsriRestDownloadTask(DownloadTask):
                 continue
 
             metadata = self.get_layer_metadata(source_url)
-            
+
             if query_fields is None:
                 field_names = [f['name'] for f in metadata['fields']]
             else:
