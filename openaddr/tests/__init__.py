@@ -353,7 +353,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
 
         self.assertTrue(state['cache'] is not None)
-        self.assertEqual(state['fingerprint'], '9494df65d13eb9b99f97bcdf0ba55a5f')
+        self.assertEqual(state['fingerprint'], '3926017394c9ff4d6a68718a0a503620')
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point 2.5D')
@@ -390,7 +390,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
 
         self.assertTrue(state['cache'] is not None)
-        self.assertEqual(state['fingerprint'], '169d24669244b870acd30cea35fd0d03')
+        self.assertEqual(state['fingerprint'], '3926017394c9ff4d6a68718a0a503620')
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point 2.5D')
@@ -416,7 +416,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
 
         self.assertTrue(state['cache'] is not None)
-        self.assertEqual(state['fingerprint'], '169d24669244b870acd30cea35fd0d03')
+        self.assertEqual(state['fingerprint'], '3926017394c9ff4d6a68718a0a503620')
         self.assertTrue(state['processed'] is not None)
         self.assertTrue(state['sample'] is not None)
         self.assertEqual(state['geometry type'], 'Point 2.5D')
@@ -790,13 +790,13 @@ class TestOA (unittest.TestCase):
         self.assertEqual(len(sample_data), 6)
         self.assertIn('OA:geom', sample_data[0])
         self.assertIn('UNITNUM', sample_data[0])
-        self.assertEqual('423', sample_data[1][0])
-        self.assertEqual(['W', ' ', '28TH DIVISION', 'HWY'], sample_data[1][1:5])
-        self.assertEqual('1', sample_data[1][6])
-        self.assertEqual('2', sample_data[2][6])
-        self.assertEqual('3', sample_data[3][6])
-        self.assertEqual('4', sample_data[4][6])
-        self.assertEqual('5', sample_data[5][6])
+        self.assertEqual('423', sample_data[1][2])
+        self.assertEqual(['W', '28TH DIVISION', 'HWY'], sample_data[1][4:7])
+        self.assertEqual('1', sample_data[1][9])
+        self.assertEqual('2', sample_data[2][9])
+        self.assertEqual('3', sample_data[3][9])
+        self.assertEqual('4', sample_data[4][9])
+        self.assertEqual('5', sample_data[5][9])
 
         output_path = join(dirname(state_path), state['processed'])
 
@@ -831,14 +831,13 @@ class TestOA (unittest.TestCase):
         self.assertEqual(len(sample_data), 6)
         self.assertIn('OA:geom', sample_data[0])
         self.assertIn('BLDG_NUM', sample_data[0])
-        self.assertEqual('7710', sample_data[1][0])
-        self.assertEqual([' ', 'IVERSON', 'AVE', 'S'], sample_data[1][3:7])
-        self.assertEqual('7710', sample_data[1][0])
-        self.assertEqual('9884', sample_data[2][0])
-        self.assertEqual('9030', sample_data[3][0])
-        self.assertEqual('23110', sample_data[4][0])
-        self.assertEqual(' ', sample_data[5][0])
-        
+        self.assertEqual('7710', sample_data[1][6])
+        self.assertEqual([' ', 'IVERSON', 'AVE', 'S'], sample_data[1][8:12])
+        self.assertEqual('9884', sample_data[2][6])
+        self.assertEqual('9030', sample_data[3][6])
+        self.assertEqual('23110', sample_data[4][6])
+        self.assertEqual(' ', sample_data[5][6])
+
         output_path = join(dirname(state_path), state['processed'])
 
         with csvopen(output_path, encoding='utf8') as input:
