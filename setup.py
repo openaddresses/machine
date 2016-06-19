@@ -11,10 +11,10 @@ if sys.version_info[0] == 2:
     conditional_requirements += [
         # http://python-future.org
         'future >= 0.14.3',
-        
+
         # https://github.com/jdunck/python-unicodecsv
         'unicodecsv >= 0.11.2',
-        
+
         # https://code.google.com/p/python-subprocess32/
         'subprocess32 == 3.2.6',
 
@@ -71,13 +71,13 @@ setup(
 
         # http://flask.pocoo.org
         'Flask == 0.10.1',
-        
+
         # http://flask-cors.corydolphin.com
         'Flask-Cors == 2.1.2',
-        
+
         # https://www.palletsproject.com/projects/werkzeug/
         'Werkzeug == 0.11.5',
-        
+
         # http://gunicorn.org
         'gunicorn == 19.3.0',
 
@@ -86,13 +86,13 @@ setup(
 
         # https://github.com/uri-templates/uritemplate-py/
         'uritemplate == 0.6',
-        
+
         # https://github.com/malthe/pq/
         'pq == 1.3',
-        
+
         # http://initd.org/psycopg/
         'psycopg2 == 2.6.1',
-        
+
         # https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1306991/comments/10
         'requests == 2.2.1',
 
@@ -101,7 +101,7 @@ setup(
 
         # https://github.com/patrys/httmock
         'httmock >= 1.2',
-        
+
         # https://boto3.readthedocs.org
         'boto3 == 1.1.4',
 
