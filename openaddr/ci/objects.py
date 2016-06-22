@@ -63,6 +63,15 @@ class Run:
         self.commit_sha = commit_sha
         self.is_merged = is_merged
 
+class RunState:
+    '''
+    '''
+    def __init__(self, json_blob):
+        self.json_blob = json_blob
+    
+    def to_json(self):
+        return json.dumps(self.json_blob)
+
 class Zip:
     '''
     '''
@@ -232,7 +241,7 @@ def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
                   is_merged = %s, set_id = %s, datetime_tz = NOW()
                   WHERE id = %s''',
                (filename, content_b64, file_id,
-               json.dumps(run_state), run_status, worker_id,
+               run_state.to_json(), run_status, worker_id,
                __version__, job_id, commit_sha, is_merged,
                set_id, run_id))
 

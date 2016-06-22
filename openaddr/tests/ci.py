@@ -39,7 +39,7 @@ from ..ci.objects import (
     Set, add_set, complete_set, update_set_renders, read_set, read_sets,
     add_run, set_run, copy_run, get_completed_file_run, get_completed_run,
     read_completed_set_runs, new_read_completed_set_runs, read_latest_set,
-    read_run, read_completed_runs_to_date, read_latest_run, Run
+    read_run, read_completed_runs_to_date, read_latest_run, Run, RunState
     )
 
 from ..ci.collect import (
@@ -285,7 +285,7 @@ class TestObjects (unittest.TestCase):
     def test_set_run(self):
         ''' Check behavior of objects.add_set()
         '''
-        set_run(self.db, 456, '', '', b'', {}, True, 'xyz', '', '', False, 123)
+        set_run(self.db, 456, '', '', b'', RunState({}), True, 'xyz', '', '', False, 123)
 
         self.db.execute.assert_called_once_with(
                '''UPDATE runs SET
@@ -1342,28 +1342,32 @@ class TestHook (unittest.TestCase):
         last_week = now - timedelta(days=7)
         
         # Old-style run predating attribution columns.
-        run_state1 = {
+        _run_state1 = {
             'source': 'a1.json', 'skipped': 'b', 'cache': 'c', 'sample': 'd',
             'website': 'e', 'license': 'f', 'geometry type': 'g',
             'address count': 'h', 'version': 'i', 'fingerprint': 'j',
             'cache time': 'k', 'processed': 'l', 'process time': 'm',
             'output': 'n'
             }
+        run_state1 = RunState(_run_state1)
         
         # New-style run including attribution columns.
-        run_state2 = {'attribution required': 'true', 'attribution name': 'p'}
-        run_state2.update(run_state1)
-        run_state2['source'] = 'a2.json'
+        _run_state2 = {'attribution required': 'true', 'attribution name': 'p'}
+        _run_state2.update(_run_state1)
+        _run_state2['source'] = 'a2.json'
+        run_state2 = RunState(_run_state2)
         
         # Newer-style run including share-alike columns.
-        run_state3 = {'share-alike': 'true'}
-        run_state3.update(run_state2)
-        run_state3['source'] = 'a3.json'
+        _run_state3 = {'share-alike': 'true'}
+        _run_state3.update(_run_state2)
+        _run_state3['source'] = 'a3.json'
+        run_state3 = RunState(_run_state3)
 
         # Unmerged and should never show up.
-        run_state4 = {}
-        run_state4.update(run_state3)
-        run_state4['cache'] = 'zzz'
+        _run_state4 = {}
+        _run_state4.update(_run_state3)
+        _run_state4['cache'] = 'zzz'
+        run_state4 = RunState(_run_state4)
         
         # Look for the task in the task queue.
         with db_connect(self.database_url) as conn:
@@ -1414,16 +1418,16 @@ class TestHook (unittest.TestCase):
                 self.assertIn(key, got_state2)
         
             for (key, value) in got_state1.items():
-                if key in run_state1:
-                    self.assertEqual(value, run_state1[key])
+                if key in _run_state1:
+                    self.assertEqual(value, _run_state1[key])
         
             for (key, value) in got_state2.items():
-                if key in run_state2:
-                    self.assertEqual(value, run_state2[key])
+                if key in _run_state2:
+                    self.assertEqual(value, _run_state2[key])
         
             for (key, value) in got_state3.items():
-                if key in run_state3:
-                    self.assertEqual(value, run_state3[key])
+                if key in _run_state3:
+                    self.assertEqual(value, _run_state3[key])
     
     def test_get_latest_run(self):
         '''
@@ -1437,20 +1441,25 @@ class TestHook (unittest.TestCase):
             'share-alike': 'true'
             }
         
-        run_state1 = {k: v for (k, v) in run_states.items()}
-        run_state1.update({'source': 'a1.json', 'processed': 'https://s3.amazonaws.com/data.openaddresses.io/runs/1/a1.zip'})
+        _run_state1 = {k: v for (k, v) in run_states.items()}
+        _run_state1.update({'source': 'a1.json', 'processed': 'https://s3.amazonaws.com/data.openaddresses.io/runs/1/a1.zip'})
+        run_state1 = RunState(_run_state1)
         
-        run_state2 = {k: v for (k, v) in run_states.items()}
-        run_state2.update({'source': 'a2.json', 'processed': 'http://data.openaddresses.io.s3.amazonaws.com/runs/2/a2.zip'})
+        _run_state2 = {k: v for (k, v) in run_states.items()}
+        _run_state2.update({'source': 'a2.json', 'processed': 'http://data.openaddresses.io.s3.amazonaws.com/runs/2/a2.zip'})
+        run_state2 = RunState(_run_state2)
         
-        run_state3 = {k: v for (k, v) in run_states.items()}
-        run_state3.update({'source': 'a3.json', 'processed': 'http://data.openaddresses.io/runs/3/a3.zip'})
+        _run_state3 = {k: v for (k, v) in run_states.items()}
+        _run_state3.update({'source': 'a3.json', 'processed': 'http://data.openaddresses.io/runs/3/a3.zip'})
+        run_state3 = RunState(_run_state3)
         
-        run_state4 = {k: v for (k, v) in run_states.items()}
-        run_state4.update({'source': 'a4.json', 'processed': 'http://future.openaddresses.io/runs/4/a4.zip'})
+        _run_state4 = {k: v for (k, v) in run_states.items()}
+        _run_state4.update({'source': 'a4.json', 'processed': 'http://future.openaddresses.io/runs/4/a4.zip'})
+        run_state4 = RunState(_run_state4)
         
-        run_state5 = {k: v for (k, v) in run_states.items()}
-        run_state5.update({'source': 'a5.json', 'processed': 'http://s3.amazonaws.com/past.openaddresses.io/runs/5/a5.zip'})
+        _run_state5 = {k: v for (k, v) in run_states.items()}
+        _run_state5.update({'source': 'a5.json', 'processed': 'http://s3.amazonaws.com/past.openaddresses.io/runs/5/a5.zip'})
+        run_state5 = RunState(_run_state5)
 
         with db_connect(self.database_url) as conn:
             with db_cursor(conn) as db:
@@ -2384,7 +2393,7 @@ class TestBatch (unittest.TestCase):
                     file_names.add(task.data['name'])
                     with task_Q as db:
                         set_run(db, add_run(db), task.data['name'], None, None,
-                                None, True, None, None, None, False, task.data['set_id'])
+                                RunState(None), True, None, None, None, False, task.data['set_id'])
         
             # Find a record of the one set.
             with task_Q as db:
