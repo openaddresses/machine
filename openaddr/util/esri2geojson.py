@@ -125,10 +125,10 @@ parser.add_argument('-q', '--quiet', help='Turn off most logging',
                     action='store_const', dest='loglevel',
                     const=logging.WARNING, default=logging.INFO)
 
-parser.add_argument('-H', '--header', help='Add an HTTP header for ESRI server',
+parser.add_argument('-H', '--header', default=[], help='Add an HTTP header for ESRI server',
                     action='append', dest='header')
 
-parser.add_argument('-p', '--param', help='Add a URL parameter for ESRI server',
+parser.add_argument('-p', '--param', default=[], help='Add a URL parameter for ESRI server',
                     action='append', dest='param')
 
 def main():
