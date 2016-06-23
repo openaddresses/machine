@@ -46,6 +46,8 @@ class Run:
                  set_id, commit_sha, is_merged):
         '''
         '''
+        assert hasattr(state, 'to_json'), 'Run state should have to_json() method'
+        
         self.id = id
         self.source_path = source_path
         self.source_id = source_id
@@ -67,8 +69,16 @@ class RunState:
     '''
     '''
     def __init__(self, json_blob):
+        okay_keys = set(('source', 'cache', 'sample', 'geometry type',
+            'address count', 'version', 'fingerprint', 'cache time', 'processed',
+            'output', 'process time', 'website', 'skipped', 'license',
+            'share-alike', 'attribution required', 'attribution name'))
+        blob_keys = dict(json_blob or {}).keys()
+        unexpected = set(blob_keys) - okay_keys
+        
+        assert len(unexpected) == 0, 'RunState should not have keys {}'.format(', '.join(unexpected))
         self.json_blob = json_blob
-    
+        
     def to_json(self):
         return json.dumps(self.json_blob)
 
@@ -281,7 +291,7 @@ def read_run(db, run_id):
         return None
     else:
         return Run(id, source_path, source_id, source_data, datetime_tz,
-                   state, status, copy_of, code_version, worker_id,
+                   RunState(state), status, copy_of, code_version, worker_id,
                    job_id, set_id, commit_sha, is_merged)
     
 def get_completed_file_run(db, file_id, interval):
@@ -333,7 +343,7 @@ def new_read_completed_set_runs(db, set_id):
                   WHERE set_id = %s AND status IS NOT NULL''',
                (set_id, ))
     
-    return [Run(*row) for row in db.fetchall()]
+    return [Run(*row[:5]+(RunState(row[5]),)+row[6:]) for row in db.fetchall()]
 
 def read_completed_runs_to_date(db, starting_set_id):
     ''' Get only successful runs.
@@ -389,7 +399,7 @@ def read_completed_runs_to_date(db, starting_set_id):
                   WHERE id IN %s''',
                (run_ids, ))
     
-    return [Run(*row) for row in db.fetchall()]
+    return [Run(*row[:5]+(RunState(row[5]),)+row[6:]) for row in db.fetchall()]
 
 def read_latest_run(db, source_path):
     '''

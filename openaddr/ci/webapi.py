@@ -72,11 +72,11 @@ def app_licenses_json():
         source = os.path.relpath(run.source_path, 'sources')
     
         attribution = None
-        if run_state.get('attribution required') != 'false':
-            attribution = run_state.get('attribution name')
+        if run_state.json_blob.get('attribution required') != 'false':
+            attribution = run_state.json_blob.get('attribution name')
         
-        key = run_state.get('license'), attribution
-        licenses[key].append((source, run_state.get('website')))
+        key = run_state.json_blob.get('license'), attribution
+        licenses[key].append((source, run_state.json_blob.get('website')))
         
     licenses = [dict(license=lic, attribution=attr, sources=sorted(srcs))
                 for ((lic, attr), srcs) in sorted(licenses.items())]
@@ -98,7 +98,7 @@ def app_get_state_txt():
     output.writerow({col: col for col in CSV_HEADER})
     for run in sorted(runs, key=attrgetter('source_path')):
         run_state = run.state or {}
-        row = {col: run_state.get(col, None) for col in CSV_HEADER}
+        row = {col: run_state.json_blob.get(col, None) for col in CSV_HEADER}
         row['source'] = os.path.relpath(run.source_path, 'sources')
         row['code version'] = run.code_version
         row['cache'] = nice_domain(row['cache'])
@@ -124,7 +124,7 @@ def app_get_set_state_txt(set_id):
     output.writerow({col: col for col in CSV_HEADER})
     for run in sorted(runs, key=attrgetter('source_path')):
         run_state = run.state or {}
-        row = {col: run_state.get(col, None) for col in CSV_HEADER}
+        row = {col: run_state.json_blob.get(col, None) for col in CSV_HEADER}
         row['source'] = os.path.relpath(run.source_path, 'sources')
         row['code version'] = run.code_version
         row['cache'] = nice_domain(row['cache'])

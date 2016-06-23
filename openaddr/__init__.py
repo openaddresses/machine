@@ -240,7 +240,7 @@ def iterate_local_processed_files(runs):
     
     for run in sorted(runs, key=key, reverse=True):
         source_base, _ = splitext(relpath(run.source_path, 'sources'))
-        processed_url = run.state and run.state.get('processed')
+        processed_url = run.state and run.state.json_blob.get('processed')
         run_state = run.state
     
         if not processed_url:

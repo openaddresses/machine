@@ -230,10 +230,10 @@ def app_get_latest_run(source):
         with db_cursor(conn) as db:
             run = read_latest_run(db, source_path)
 
-    if run is None or not run.state.get('processed'):
+    if run is None or not run.state.json_blob.get('processed'):
         return Response('No latest run found', 404)
     
-    return redirect(nice_domain(run.state.get('processed')), 302)
+    return redirect(nice_domain(run.state.json_blob.get('processed')), 302)
 
 @webhooks.route('/sets/<set_id>/', methods=['GET'])
 @log_application_errors

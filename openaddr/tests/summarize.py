@@ -10,7 +10,7 @@ import mock
 
 from .. import __version__
 from ..compat import expand_uri
-from ..ci.objects import Run
+from ..ci.objects import Run, RunState
 from ..summarize import (
     state_conform_type, is_coverage_complete, run_counts, convert_run,
     summarize_runs, GLASS_HALF_EMPTY, break_state, nice_integer
@@ -59,7 +59,7 @@ class TestSummarizeFunctions (unittest.TestCase):
         '''
         '''
         _ = None
-        make_run = lambda state: Run(_, _, _, b'', _, state, _, _, _, _, _, _, _, _)
+        make_run = lambda state: Run(_, _, _, b'', _, RunState(state), _, _, _, _, _, _, _, _)
         
         runs = [
             make_run({}),
@@ -97,7 +97,7 @@ class TestSummarizeFunctions (unittest.TestCase):
                  'sample': 'http://example.com/sample.json'}
         
         run = Run(456, u'sources/pl/foö.json', 'abc', source_b64, datetime.utcnow(),
-                  state, True, None, '', '', None, None, 'def', False)
+                  RunState(state), True, None, '', '', None, None, 'def', False)
         
         with HTTMock(self.response_content):
             conv = convert_run(memcache, run, url_template)
@@ -139,7 +139,7 @@ class TestSummarizeFunctions (unittest.TestCase):
                  'sample': 'http://example.com/sample.json'}
         
         run = Run(456, u'sources/pl/foö.json', 'abc', source_b64, datetime.utcnow(),
-                  state, True, None, '', '', None, None, 'def', False)
+                  RunState(state), True, None, '', '', None, None, 'def', False)
         
         with mock.patch('requests.get') as get:
             conv = convert_run(memcache, run, url_template)

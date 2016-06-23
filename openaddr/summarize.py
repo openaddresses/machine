@@ -96,26 +96,26 @@ def convert_run(memcache, run, url_template):
     run_state = run.state or {}
 
     converted_run = {
-        'address count': run_state.get('address count'),
-        'cache': run_state.get('cache'),
-        'cache time': run_state.get('cache time'),
+        'address count': run_state.json_blob.get('address count'),
+        'cache': run_state.json_blob.get('cache'),
+        'cache time': run_state.json_blob.get('cache time'),
         'cache_date': run.datetime_tz.strftime('%Y-%m-%d'),
         'conform': bool(source.get('conform', False)),
-        'conform type': state_conform_type(run_state),
+        'conform type': state_conform_type(run_state.json_blob),
         'coverage complete': is_coverage_complete(source),
-        'fingerprint': run_state.get('fingerprint'),
-        'geometry type': run_state.get('geometry type'),
+        'fingerprint': run_state.json_blob.get('fingerprint'),
+        'geometry type': run_state.json_blob.get('geometry type'),
         'href': expand_uri(url_template, run.__dict__),
-        'output': run_state.get('output'),
-        'process time': run_state.get('process time'),
-        'processed': run_state.get('processed'),
-        'sample': run_state.get('sample'),
+        'output': run_state.json_blob.get('output'),
+        'process time': run_state.json_blob.get('process time'),
+        'processed': run_state.json_blob.get('processed'),
+        'sample': run_state.json_blob.get('sample'),
         'sample_link': expand_uri('/runs/{id}/sample.html', dict(id=run.id)),
         'shortname': splitext(relpath(run.source_path, 'sources'))[0],
         'skip': bool(source.get('skip', False)),
         'source': relpath(run.source_path, 'sources'),
         'type': source.get('type', '').lower(),
-        'version': run_state.get('version')
+        'version': run_state.json_blob.get('version')
         }
 
     _set_cached(memcache, cache_key, converted_run)
@@ -128,9 +128,9 @@ def run_counts(runs):
     
     return {
         'sources': len(runs),
-        'cached': sum([int(bool(state.get('cache'))) for state in states]),
-        'processed': sum([int(bool(state.get('processed'))) for state in states]),
-        'addresses': sum([int(state.get('address count') or 0) for state in states])
+        'cached': sum([int(bool(state.json_blob.get('cache'))) for state in states]),
+        'processed': sum([int(bool(state.json_blob.get('processed'))) for state in states]),
+        'addresses': sum([int(state.json_blob.get('address count') or 0) for state in states])
         }
 
 def sort_run_dicts(dicts, sort_order):

@@ -1403,9 +1403,9 @@ class TestHook (unittest.TestCase):
         for runs in (latest_set_runs, set_2_runs):
             self.assertEqual(len(runs), 3)
         
-            got_state1 = dict(runs[0].state)
-            got_state2 = dict(runs[1].state)
-            got_state3 = dict(runs[2].state)
+            got_state1 = dict(runs[0].state.json_blob)
+            got_state2 = dict(runs[1].state.json_blob)
+            got_state3 = dict(runs[2].state.json_blob)
             
             self.assertEqual(runs[0].code_version, __version__)
             self.assertEqual(runs[1].code_version, __version__)
@@ -1876,10 +1876,10 @@ class TestRuns (unittest.TestCase):
             }'''
         
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
-        nonce = itertools.count(1)
+        fprint = itertools.count(1)
         
         def returns_plausible_result(s3, run_id, source_name, content, output_dir):
-            return dict(message='Something went wrong', output={"source": "user_input.txt", "nonce": next(nonce)}, result_code=0, result_stdout='...')
+            return dict(message='Something went wrong', output={"source": "user_input.txt", "fingerprint": next(fprint)}, result_code=0, result_stdout='...')
         
         def raises_an_error(s3, run_id, source_name, content, output_dir):
             raise Exception('Worker did not know to re-use previous run')
@@ -1904,8 +1904,8 @@ class TestRuns (unittest.TestCase):
             
             # Find a record of this run.
             with done_Q as db:
-                db.execute("SELECT id, copy_of, state->>'nonce', is_merged, source_path, source_id, source_data FROM runs")
-                ((first_run_id, first_copyof, first_nonce, first_is_merged, db_source_path, db_source_id, db_source_data), ) = db.fetchall()
+                db.execute("SELECT id, copy_of, state->>'fingerprint', is_merged, source_path, source_id, source_data FROM runs")
+                ((first_run_id, first_copyof, first_fprint, first_is_merged, db_source_path, db_source_id, db_source_data), ) = db.fetchall()
                 self.assertEqual(db_source_path, source_path)
                 self.assertEqual(db_source_id, source_id)
                 self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
@@ -1929,12 +1929,12 @@ class TestRuns (unittest.TestCase):
                 (count, ) = db.fetchone()
                 self.assertEqual(count, 2, 'There should have been two runs')
 
-                db.execute('''SELECT id, copy_of, state->>'nonce', is_merged FROM runs
+                db.execute('''SELECT id, copy_of, state->>'fingerprint', is_merged FROM runs
                               ORDER BY id DESC LIMIT 1''')
 
-                ((second_run_id, second_copyof, second_nonce, second_is_merged), ) = db.fetchall()
+                ((second_run_id, second_copyof, second_fprint, second_is_merged), ) = db.fetchall()
                 self.assertNotEqual(second_run_id, first_run_id, 'The two runs should be distinct')
-                self.assertEqual(second_nonce, first_nonce, 'The two runs should share the same nonce')
+                self.assertEqual(second_fprint, first_fprint, 'The two runs should share the same fingerprint')
                 self.assertEqual(second_copyof, first_run_id, 'The second run should be a copy of the first')
                 self.assertEqual(second_is_merged, first_is_merged, 'The second run should also be merged')
 
@@ -1954,12 +1954,12 @@ class TestRuns (unittest.TestCase):
                 (count, ) = db.fetchone()
                 self.assertEqual(count, 3, 'There should have been three runs')
 
-                db.execute('''SELECT id, copy_of, state->>'nonce', is_merged FROM runs
+                db.execute('''SELECT id, copy_of, state->>'fingerprint', is_merged FROM runs
                               ORDER BY id DESC LIMIT 1''')
 
-                ((third_run_id, third_copyof, third_nonce, third_is_merged), ) = db.fetchall()
+                ((third_run_id, third_copyof, third_fprint, third_is_merged), ) = db.fetchall()
                 self.assertNotEqual(third_run_id, first_run_id, 'The two runs should be distinct')
-                self.assertEqual(third_nonce, second_nonce, 'The two runs should share the same nonce')
+                self.assertEqual(third_fprint, second_fprint, 'The two runs should share the same fingerprint')
                 self.assertEqual(third_copyof, first_run_id, 'The third run should be a copy of the first')
                 self.assertEqual(third_is_merged, first_is_merged, 'The third run should also be merged')
 
@@ -1983,10 +1983,10 @@ class TestRuns (unittest.TestCase):
             }'''
         
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
-        nonce = itertools.count(1)
+        fprint = itertools.count(1)
         
         def returns_plausible_result(s3, run_id, source_name, content, output_dir):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "nonce": next(nonce)}, result_code=0, result_stdout='...')
+            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "fingerprint": next(fprint)}, result_code=0, result_stdout='...')
         
         do_work.side_effect = returns_plausible_result
 
@@ -2028,9 +2028,9 @@ class TestRuns (unittest.TestCase):
             
             # Verify that two runs now exist.
             with done_Q as db:
-                db.execute("SELECT state->>'nonce' FROM runs")
-                (nonce1, ), (nonce2, ) = db.fetchall()
-                self.assertNotEqual(nonce1, nonce2, 'There should have been two different runs')
+                db.execute("SELECT state->>'fingerprint' FROM runs")
+                (fprint1, ), (fprint2, ) = db.fetchall()
+                self.assertNotEqual(fprint1, fprint2, 'There should have been two different runs')
 
             flush_heartbeat_queue(beat_Q)
             
@@ -2333,9 +2333,9 @@ class TestBatch (unittest.TestCase):
         
         with patch('openaddr.ci.objects.read_latest_set') as read_latest_set, patch('openaddr.ci.objects.read_completed_runs_to_date') as read_completed_runs_to_date:
             read_completed_runs_to_date.return_value = [
-                Run(_, 'sources/foo.json', _, _, _, {'process time': '01:01'}, _, _, _, _, _, _, _, _),
-                Run(_, 'sources/bar.json', _, _, _, {'process time': '00:01'}, _, _, _, _, _, _, _, _),
-                Run(_, 'sources/baz.json', _, _, _, {'process time': '00:01'}, _, _, _, _, _, _, _, _),
+                Run(_, 'sources/foo.json', _, _, _, RunState({'process time': '01:01'}), _, _, _, _, _, _, _, _),
+                Run(_, 'sources/bar.json', _, _, _, RunState({'process time': '00:01'}), _, _, _, _, _, _, _, _),
+                Run(_, 'sources/baz.json', _, _, _, RunState({'process time': '00:01'}), _, _, _, _, _, _, _, _),
                 ]
 
             run_times = get_batch_run_times(_, 'openaddresses', 'openaddresses')

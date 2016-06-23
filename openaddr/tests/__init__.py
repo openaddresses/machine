@@ -49,7 +49,7 @@ from .. import (
     iterate_local_processed_files, download_processed_file
     )
 
-from ..ci.objects import Run
+from ..ci.objects import Run, RunState
 from ..cache import CacheResult
 from ..conform import ConformResult
 
@@ -1063,13 +1063,13 @@ class TestPackage (unittest.TestCase):
     
         runs = [
             Run(000, 'sources/000.json', '___', b'', None,
-                state0, None, None, None, None, None, None, None, None),
+                RunState(state0), None, None, None, None, None, None, None, None),
             Run(123, 'sources/123.json', 'abc', b'', None,
-                state1, None, None, None, None, None, None, None, None),
+                RunState(state1), None, None, None, None, None, None, None, None),
             Run(456, 'sources/456.json', 'def', b'', None,
-                {'processed': None}, None, None, None, None, None, None, None, None),
+                RunState({'processed': None}), None, None, None, None, None, None, None, None),
             Run(789, 'sources/7/9.json', 'ghi', b'', None,
-                state3, None, None, None, None, None, None, None, None),
+                RunState(state3), None, None, None, None, None, None, None, None),
             ]
         
         failure = cycle((True, True, False))
@@ -1091,10 +1091,10 @@ class TestPackage (unittest.TestCase):
             
             self.assertEqual(local_processed_result1.source_base, '123')
             self.assertEqual(local_processed_result1.filename, 'nonexistent file')
-            self.assertEqual(local_processed_result1.run_state, state1)
+            self.assertEqual(local_processed_result1.run_state.json_blob, state1)
             self.assertEqual(local_processed_result2.source_base, '7/9')
             self.assertEqual(local_processed_result2.filename, 'nonexistent file')
-            self.assertEqual(local_processed_result2.run_state, state3)
+            self.assertEqual(local_processed_result2.run_state.json_blob, state3)
 
     def response_content(self, url, request):
         '''
