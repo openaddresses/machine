@@ -26,7 +26,8 @@ from osgeo import ogr, osr
 ogr.UseExceptions()
 
 # The canonical output schema for conform
-OPENADDR_CSV_SCHEMA = ["LON", "LAT", "NUMBER", "STREET", "UNIT", "CITY", "DISTRICT", "REGION", "POSTCODE", "ID"]
+OPENADDR_CSV_SCHEMA = ['LON', 'LAT', 'NUMBER', 'STREET', 'UNIT', 'CITY',
+                       'DISTRICT', 'REGION', 'POSTCODE', 'ID', 'HASH']
 
 # Field names for use in cached CSV files.
 # We add columns to the extracted CSV with our own data with these names.

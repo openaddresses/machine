@@ -18,7 +18,8 @@ from ..conform import (
     row_extract_and_reproject, row_convert_to_out, row_fxn_join,
     row_canonicalize_unit_and_number, conform_smash_case, conform_cli,
     csvopen, csvDictReader, convert_regexp_replace, conform_license,
-    conform_attribution, conform_sharealike, normalize_ogr_filename_case
+    conform_attribution, conform_sharealike, normalize_ogr_filename_case,
+    OPENADDR_CSV_SCHEMA
     )
 
 class TestConformTransforms (unittest.TestCase):
@@ -288,7 +289,7 @@ class TestConformCli (unittest.TestCase):
 
         with csvopen(dest_path) as fp:
             reader = csvDictReader(fp)
-            self.assertEqual(["LON", "LAT", "NUMBER", "STREET", "UNIT", "CITY", "DISTRICT", "REGION", "POSTCODE", "ID"], reader.fieldnames)
+            self.assertEqual(OPENADDR_CSV_SCHEMA, reader.fieldnames)
 
             rows = list(reader)
 
