@@ -46,6 +46,8 @@ class Run:
                  set_id, commit_sha, is_merged):
         '''
         '''
+        assert hasattr(state, 'to_json'), 'Run state should have to_json() method'
+        
         self.id = id
         self.source_path = source_path
         self.source_id = source_id
@@ -62,6 +64,50 @@ class Run:
         self.set_id = set_id
         self.commit_sha = commit_sha
         self.is_merged = is_merged
+
+class RunState:
+    '''
+    '''
+    key_attrs = {key: key.replace(' ', '_').replace('-', '_')
+        for key in ('source', 'cache', 'sample', 'geometry type',
+        'address count', 'version', 'fingerprint', 'cache time', 'processed',
+        'output', 'process time', 'website', 'skipped', 'license',
+        'share-alike', 'attribution required', 'attribution name')}
+
+    def __init__(self, json_blob):
+        blob_dict = dict(json_blob or {})
+        self.keys = blob_dict.keys()
+        
+        self.source = blob_dict.get('source')
+        self.cache = blob_dict.get('cache')
+        self.sample = blob_dict.get('sample')
+        self.geometry_type = blob_dict.get('geometry type')
+        self.address_count = blob_dict.get('address count')
+        self.version = blob_dict.get('version')
+        self.fingerprint = blob_dict.get('fingerprint')
+        self.cache_time = blob_dict.get('cache time')
+        self.processed = blob_dict.get('processed')
+        self.output = blob_dict.get('output')
+        self.process_time = blob_dict.get('process time')
+        self.website = blob_dict.get('website')
+        self.skipped = blob_dict.get('skipped')
+        self.license = blob_dict.get('license')
+        self.share_alike = blob_dict.get('share-alike')
+        self.attribution_required = blob_dict.get('attribution required')
+        self.attribution_name = blob_dict.get('attribution name')
+
+        unexpected = ', '.join(set(self.keys) - set(RunState.key_attrs.keys()))
+        assert len(unexpected) == 0, 'RunState should not have keys {}'.format(unexpected)
+    
+    def get(self, json_key):
+        if json_key == 'code version':
+            # account for ci.webapi.CSV_HEADER mismatch
+            json_key = 'version'
+    
+        return getattr(self, RunState.key_attrs[json_key])
+        
+    def to_json(self):
+        return json.dumps({k: self.get(k) for k in self.keys})
 
 class Zip:
     '''
@@ -232,7 +278,7 @@ def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
                   is_merged = %s, set_id = %s, datetime_tz = NOW()
                   WHERE id = %s''',
                (filename, content_b64, file_id,
-               json.dumps(run_state), run_status, worker_id,
+               run_state.to_json(), run_status, worker_id,
                __version__, job_id, commit_sha, is_merged,
                set_id, run_id))
 
@@ -272,7 +318,7 @@ def read_run(db, run_id):
         return None
     else:
         return Run(id, source_path, source_id, source_data, datetime_tz,
-                   state, status, copy_of, code_version, worker_id,
+                   RunState(state), status, copy_of, code_version, worker_id,
                    job_id, set_id, commit_sha, is_merged)
     
 def get_completed_file_run(db, file_id, interval):
@@ -324,7 +370,7 @@ def new_read_completed_set_runs(db, set_id):
                   WHERE set_id = %s AND status IS NOT NULL''',
                (set_id, ))
     
-    return [Run(*row) for row in db.fetchall()]
+    return [Run(*row[:5]+(RunState(row[5]),)+row[6:]) for row in db.fetchall()]
 
 def read_completed_runs_to_date(db, starting_set_id):
     ''' Get only successful runs.
@@ -380,7 +426,7 @@ def read_completed_runs_to_date(db, starting_set_id):
                   WHERE id IN %s''',
                (run_ids, ))
     
-    return [Run(*row) for row in db.fetchall()]
+    return [Run(*row[:5]+(RunState(row[5]),)+row[6:]) for row in db.fetchall()]
 
 def read_latest_run(db, source_path):
     '''

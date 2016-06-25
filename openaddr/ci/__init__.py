@@ -5,7 +5,7 @@ from .. import jobs, render
 
 from .objects import (
     add_job, write_job, read_job, complete_set, update_set_renders,
-    add_run, set_run, copy_run, read_completed_set_runs,
+    add_run, set_run, copy_run, read_completed_set_runs, RunState,
     get_completed_file_run, get_completed_run, new_read_completed_set_runs
     )
 
@@ -360,7 +360,7 @@ def get_batch_run_times(db, owner, repository):
     '''
     last_set = objects.read_latest_set(db, owner, repository)
 
-    return {run.source_path: run.state['process time']
+    return {run.source_path: run.state.process_time
             for run in objects.read_completed_runs_to_date(db, last_set.id)
             if run.state}
 
@@ -758,7 +758,7 @@ def pop_task_from_donequeue(queue, github_auth):
         _L.info(u'Got file {name} from done queue'.format(**task.data))
         results = task.data['result']
         message = results['message']
-        run_state = results.get('output', None)
+        run_state = RunState(results.get('output', None))
         content_b64 = task.data['content_b64']
         commit_sha = task.data['commit_sha']
         worker_id = task.data.get('worker_id')
@@ -810,7 +810,7 @@ def pop_task_from_duequeue(queue, github_auth):
         run_status = False
         is_merged = is_merged_to_master(db, set_id, job_id, commit_sha, github_auth)
 
-        set_run(db, run_id, filename, file_id, content_b64, None, run_status,
+        set_run(db, run_id, filename, file_id, content_b64, RunState(None), run_status,
                 job_id, worker_id, commit_sha, is_merged, set_id)
 
         if job_id:

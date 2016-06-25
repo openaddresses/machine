@@ -14,6 +14,7 @@ from zipfile import ZipFile
 from io import BytesIO, StringIO
 from mock import patch
 from time import sleep
+from uuid import uuid4
 import hmac, hashlib, mock
 
 import unittest, json, os, sys, itertools
@@ -39,7 +40,7 @@ from ..ci.objects import (
     Set, add_set, complete_set, update_set_renders, read_set, read_sets,
     add_run, set_run, copy_run, get_completed_file_run, get_completed_run,
     read_completed_set_runs, new_read_completed_set_runs, read_latest_set,
-    read_run, read_completed_runs_to_date, read_latest_run, Run
+    read_run, read_completed_runs_to_date, read_latest_run, Run, RunState
     )
 
 from ..ci.collect import (
@@ -78,6 +79,27 @@ class TestObjects (unittest.TestCase):
 
     def setUp(self):
         self.db = mock.Mock()
+    
+    def test_runstate(self):
+        ''' Check initialization of RunState
+        '''
+        keys = ('source', 'cache', 'sample', 'geometry type', 'processed',
+            'address count', 'version', 'fingerprint', 'cache time',
+            'output', 'process time', 'website', 'skipped', 'license',
+            'share-alike', 'attribution required', 'attribution name')
+        
+        for key in keys:
+            value = str(uuid4())
+            state = RunState({key: value})
+            self.assertEqual(state.get(key), value)
+            
+            attr = key.replace(' ', '_').replace('-', '_')
+            self.assertEqual(getattr(state, attr), value)
+
+        value = str(uuid4())
+        state = RunState({'version': value})
+        self.assertEqual(state.get('version'), value)
+        self.assertEqual(state.version, value)
 
     def test_add_job(self):
         ''' Check behavior of objects.add_job()
@@ -285,7 +307,7 @@ class TestObjects (unittest.TestCase):
     def test_set_run(self):
         ''' Check behavior of objects.add_set()
         '''
-        set_run(self.db, 456, '', '', b'', {}, True, 'xyz', '', '', False, 123)
+        set_run(self.db, 456, '', '', b'', RunState({}), True, 'xyz', '', '', False, 123)
 
         self.db.execute.assert_called_once_with(
                '''UPDATE runs SET
@@ -1342,28 +1364,32 @@ class TestHook (unittest.TestCase):
         last_week = now - timedelta(days=7)
         
         # Old-style run predating attribution columns.
-        run_state1 = {
+        _run_state1 = {
             'source': 'a1.json', 'skipped': 'b', 'cache': 'c', 'sample': 'd',
             'website': 'e', 'license': 'f', 'geometry type': 'g',
             'address count': 'h', 'version': 'i', 'fingerprint': 'j',
             'cache time': 'k', 'processed': 'l', 'process time': 'm',
             'output': 'n'
             }
+        run_state1 = RunState(_run_state1)
         
         # New-style run including attribution columns.
-        run_state2 = {'attribution required': 'true', 'attribution name': 'p'}
-        run_state2.update(run_state1)
-        run_state2['source'] = 'a2.json'
+        _run_state2 = {'attribution required': 'true', 'attribution name': 'p'}
+        _run_state2.update(_run_state1)
+        _run_state2['source'] = 'a2.json'
+        run_state2 = RunState(_run_state2)
         
         # Newer-style run including share-alike columns.
-        run_state3 = {'share-alike': 'true'}
-        run_state3.update(run_state2)
-        run_state3['source'] = 'a3.json'
+        _run_state3 = {'share-alike': 'true'}
+        _run_state3.update(_run_state2)
+        _run_state3['source'] = 'a3.json'
+        run_state3 = RunState(_run_state3)
 
         # Unmerged and should never show up.
-        run_state4 = {}
-        run_state4.update(run_state3)
-        run_state4['cache'] = 'zzz'
+        _run_state4 = {}
+        _run_state4.update(_run_state3)
+        _run_state4['cache'] = 'zzz'
+        run_state4 = RunState(_run_state4)
         
         # Look for the task in the task queue.
         with db_connect(self.database_url) as conn:
@@ -1399,9 +1425,9 @@ class TestHook (unittest.TestCase):
         for runs in (latest_set_runs, set_2_runs):
             self.assertEqual(len(runs), 3)
         
-            got_state1 = dict(runs[0].state)
-            got_state2 = dict(runs[1].state)
-            got_state3 = dict(runs[2].state)
+            got_state1 = json.loads(runs[0].state.to_json())
+            got_state2 = json.loads(runs[1].state.to_json())
+            got_state3 = json.loads(runs[2].state.to_json())
             
             self.assertEqual(runs[0].code_version, __version__)
             self.assertEqual(runs[1].code_version, __version__)
@@ -1414,16 +1440,16 @@ class TestHook (unittest.TestCase):
                 self.assertIn(key, got_state2)
         
             for (key, value) in got_state1.items():
-                if key in run_state1:
-                    self.assertEqual(value, run_state1[key])
+                if key in _run_state1:
+                    self.assertEqual(value, _run_state1[key])
         
             for (key, value) in got_state2.items():
-                if key in run_state2:
-                    self.assertEqual(value, run_state2[key])
+                if key in _run_state2:
+                    self.assertEqual(value, _run_state2[key])
         
             for (key, value) in got_state3.items():
-                if key in run_state3:
-                    self.assertEqual(value, run_state3[key])
+                if key in _run_state3:
+                    self.assertEqual(value, _run_state3[key])
     
     def test_get_latest_run(self):
         '''
@@ -1437,20 +1463,25 @@ class TestHook (unittest.TestCase):
             'share-alike': 'true'
             }
         
-        run_state1 = {k: v for (k, v) in run_states.items()}
-        run_state1.update({'source': 'a1.json', 'processed': 'https://s3.amazonaws.com/data.openaddresses.io/runs/1/a1.zip'})
+        _run_state1 = {k: v for (k, v) in run_states.items()}
+        _run_state1.update({'source': 'a1.json', 'processed': 'https://s3.amazonaws.com/data.openaddresses.io/runs/1/a1.zip'})
+        run_state1 = RunState(_run_state1)
         
-        run_state2 = {k: v for (k, v) in run_states.items()}
-        run_state2.update({'source': 'a2.json', 'processed': 'http://data.openaddresses.io.s3.amazonaws.com/runs/2/a2.zip'})
+        _run_state2 = {k: v for (k, v) in run_states.items()}
+        _run_state2.update({'source': 'a2.json', 'processed': 'http://data.openaddresses.io.s3.amazonaws.com/runs/2/a2.zip'})
+        run_state2 = RunState(_run_state2)
         
-        run_state3 = {k: v for (k, v) in run_states.items()}
-        run_state3.update({'source': 'a3.json', 'processed': 'http://data.openaddresses.io/runs/3/a3.zip'})
+        _run_state3 = {k: v for (k, v) in run_states.items()}
+        _run_state3.update({'source': 'a3.json', 'processed': 'http://data.openaddresses.io/runs/3/a3.zip'})
+        run_state3 = RunState(_run_state3)
         
-        run_state4 = {k: v for (k, v) in run_states.items()}
-        run_state4.update({'source': 'a4.json', 'processed': 'http://future.openaddresses.io/runs/4/a4.zip'})
+        _run_state4 = {k: v for (k, v) in run_states.items()}
+        _run_state4.update({'source': 'a4.json', 'processed': 'http://future.openaddresses.io/runs/4/a4.zip'})
+        run_state4 = RunState(_run_state4)
         
-        run_state5 = {k: v for (k, v) in run_states.items()}
-        run_state5.update({'source': 'a5.json', 'processed': 'http://s3.amazonaws.com/past.openaddresses.io/runs/5/a5.zip'})
+        _run_state5 = {k: v for (k, v) in run_states.items()}
+        _run_state5.update({'source': 'a5.json', 'processed': 'http://s3.amazonaws.com/past.openaddresses.io/runs/5/a5.zip'})
+        run_state5 = RunState(_run_state5)
 
         with db_connect(self.database_url) as conn:
             with db_cursor(conn) as db:
@@ -1867,10 +1898,10 @@ class TestRuns (unittest.TestCase):
             }'''
         
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
-        nonce = itertools.count(1)
+        fprint = itertools.count(1)
         
         def returns_plausible_result(s3, run_id, source_name, content, output_dir):
-            return dict(message='Something went wrong', output={"source": "user_input.txt", "nonce": next(nonce)}, result_code=0, result_stdout='...')
+            return dict(message='Something went wrong', output={"source": "user_input.txt", "fingerprint": next(fprint)}, result_code=0, result_stdout='...')
         
         def raises_an_error(s3, run_id, source_name, content, output_dir):
             raise Exception('Worker did not know to re-use previous run')
@@ -1895,8 +1926,8 @@ class TestRuns (unittest.TestCase):
             
             # Find a record of this run.
             with done_Q as db:
-                db.execute("SELECT id, copy_of, state->>'nonce', is_merged, source_path, source_id, source_data FROM runs")
-                ((first_run_id, first_copyof, first_nonce, first_is_merged, db_source_path, db_source_id, db_source_data), ) = db.fetchall()
+                db.execute("SELECT id, copy_of, state->>'fingerprint', is_merged, source_path, source_id, source_data FROM runs")
+                ((first_run_id, first_copyof, first_fprint, first_is_merged, db_source_path, db_source_id, db_source_data), ) = db.fetchall()
                 self.assertEqual(db_source_path, source_path)
                 self.assertEqual(db_source_id, source_id)
                 self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
@@ -1920,12 +1951,12 @@ class TestRuns (unittest.TestCase):
                 (count, ) = db.fetchone()
                 self.assertEqual(count, 2, 'There should have been two runs')
 
-                db.execute('''SELECT id, copy_of, state->>'nonce', is_merged FROM runs
+                db.execute('''SELECT id, copy_of, state->>'fingerprint', is_merged FROM runs
                               ORDER BY id DESC LIMIT 1''')
 
-                ((second_run_id, second_copyof, second_nonce, second_is_merged), ) = db.fetchall()
+                ((second_run_id, second_copyof, second_fprint, second_is_merged), ) = db.fetchall()
                 self.assertNotEqual(second_run_id, first_run_id, 'The two runs should be distinct')
-                self.assertEqual(second_nonce, first_nonce, 'The two runs should share the same nonce')
+                self.assertEqual(second_fprint, first_fprint, 'The two runs should share the same fingerprint')
                 self.assertEqual(second_copyof, first_run_id, 'The second run should be a copy of the first')
                 self.assertEqual(second_is_merged, first_is_merged, 'The second run should also be merged')
 
@@ -1945,12 +1976,12 @@ class TestRuns (unittest.TestCase):
                 (count, ) = db.fetchone()
                 self.assertEqual(count, 3, 'There should have been three runs')
 
-                db.execute('''SELECT id, copy_of, state->>'nonce', is_merged FROM runs
+                db.execute('''SELECT id, copy_of, state->>'fingerprint', is_merged FROM runs
                               ORDER BY id DESC LIMIT 1''')
 
-                ((third_run_id, third_copyof, third_nonce, third_is_merged), ) = db.fetchall()
+                ((third_run_id, third_copyof, third_fprint, third_is_merged), ) = db.fetchall()
                 self.assertNotEqual(third_run_id, first_run_id, 'The two runs should be distinct')
-                self.assertEqual(third_nonce, second_nonce, 'The two runs should share the same nonce')
+                self.assertEqual(third_fprint, second_fprint, 'The two runs should share the same fingerprint')
                 self.assertEqual(third_copyof, first_run_id, 'The third run should be a copy of the first')
                 self.assertEqual(third_is_merged, first_is_merged, 'The third run should also be merged')
 
@@ -1974,10 +2005,10 @@ class TestRuns (unittest.TestCase):
             }'''
         
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
-        nonce = itertools.count(1)
+        fprint = itertools.count(1)
         
         def returns_plausible_result(s3, run_id, source_name, content, output_dir):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "nonce": next(nonce)}, result_code=0, result_stdout='...')
+            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "fingerprint": next(fprint)}, result_code=0, result_stdout='...')
         
         do_work.side_effect = returns_plausible_result
 
@@ -2019,9 +2050,9 @@ class TestRuns (unittest.TestCase):
             
             # Verify that two runs now exist.
             with done_Q as db:
-                db.execute("SELECT state->>'nonce' FROM runs")
-                (nonce1, ), (nonce2, ) = db.fetchall()
-                self.assertNotEqual(nonce1, nonce2, 'There should have been two different runs')
+                db.execute("SELECT state->>'fingerprint' FROM runs")
+                (fprint1, ), (fprint2, ) = db.fetchall()
+                self.assertNotEqual(fprint1, fprint2, 'There should have been two different runs')
 
             flush_heartbeat_queue(beat_Q)
             
@@ -2324,9 +2355,9 @@ class TestBatch (unittest.TestCase):
         
         with patch('openaddr.ci.objects.read_latest_set') as read_latest_set, patch('openaddr.ci.objects.read_completed_runs_to_date') as read_completed_runs_to_date:
             read_completed_runs_to_date.return_value = [
-                Run(_, 'sources/foo.json', _, _, _, {'process time': '01:01'}, _, _, _, _, _, _, _, _),
-                Run(_, 'sources/bar.json', _, _, _, {'process time': '00:01'}, _, _, _, _, _, _, _, _),
-                Run(_, 'sources/baz.json', _, _, _, {'process time': '00:01'}, _, _, _, _, _, _, _, _),
+                Run(_, 'sources/foo.json', _, _, _, RunState({'process time': '01:01'}), _, _, _, _, _, _, _, _),
+                Run(_, 'sources/bar.json', _, _, _, RunState({'process time': '00:01'}), _, _, _, _, _, _, _, _),
+                Run(_, 'sources/baz.json', _, _, _, RunState({'process time': '00:01'}), _, _, _, _, _, _, _, _),
                 ]
 
             run_times = get_batch_run_times(_, 'openaddresses', 'openaddresses')
@@ -2384,7 +2415,7 @@ class TestBatch (unittest.TestCase):
                     file_names.add(task.data['name'])
                     with task_Q as db:
                         set_run(db, add_run(db), task.data['name'], None, None,
-                                None, True, None, None, None, False, task.data['set_id'])
+                                RunState(None), True, None, None, None, False, task.data['set_id'])
         
             # Find a record of the one set.
             with task_Q as db:
