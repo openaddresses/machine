@@ -29,21 +29,21 @@ class TestSummarizeFunctions (unittest.TestCase):
     def test_state_conform_type(self):
         '''
         '''
-        self.assertIsNone(state_conform_type({}))
-        self.assertIsNone(state_conform_type({'cache': None}))
+        self.assertIsNone(state_conform_type(RunState({})))
+        self.assertIsNone(state_conform_type(RunState({'cache': None})))
 
-        self.assertEqual(state_conform_type({'cache': 'foo.zip', 'geometry type': 'Polygon'}),
+        self.assertEqual(state_conform_type(RunState({'cache': 'foo.zip', 'geometry type': 'Polygon'})),
                          'shapefile-polygon')
 
-        self.assertEqual(state_conform_type({'cache': 'foo.zip', 'geometry type': 'MultiPolygon'}),
+        self.assertEqual(state_conform_type(RunState({'cache': 'foo.zip', 'geometry type': 'MultiPolygon'})),
                          'shapefile-polygon')
 
-        self.assertEqual(state_conform_type({'cache': 'foo.zip', 'geometry type': 'Point'}),
+        self.assertEqual(state_conform_type(RunState({'cache': 'foo.zip', 'geometry type': 'Point'})),
                          'shapefile')
 
-        self.assertEqual(state_conform_type({'cache': 'foo.json'}), 'geojson')
-        self.assertEqual(state_conform_type({'cache': 'foo.csv'}), 'csv')
-        self.assertIsNone(state_conform_type({'cache': 'foo.bar'}))
+        self.assertEqual(state_conform_type(RunState({'cache': 'foo.json'})), 'geojson')
+        self.assertEqual(state_conform_type(RunState({'cache': 'foo.csv'})), 'csv')
+        self.assertIsNone(state_conform_type(RunState({'cache': 'foo.bar'})))
     
     def test_is_coverage_complete(self):
         '''
@@ -107,7 +107,7 @@ class TestSummarizeFunctions (unittest.TestCase):
         self.assertEqual(conv['cache time'], state['cache time'])
         self.assertEqual(conv['cache_date'], run.datetime_tz.strftime('%Y-%m-%d'))
         self.assertEqual(conv['conform'], bool(source['conform']))
-        self.assertEqual(conv['conform type'], state_conform_type(state))
+        self.assertEqual(conv['conform type'], state_conform_type(RunState(state)))
         self.assertEqual(conv['coverage complete'], is_coverage_complete(source))
         self.assertEqual(conv['fingerprint'], state['fingerprint'])
         self.assertEqual(conv['geometry type'], state['geometry type'])
@@ -153,7 +153,7 @@ class TestSummarizeFunctions (unittest.TestCase):
         self.assertEqual(conv['cache time'], state['cache time'])
         self.assertEqual(conv['cache_date'], '2015-08-16', 'Should use a timestamp from the cached version')
         self.assertEqual(conv['conform'], bool(source['conform']))
-        self.assertEqual(conv['conform type'], state_conform_type(state))
+        self.assertEqual(conv['conform type'], state_conform_type(RunState(state)))
         self.assertEqual(conv['coverage complete'], is_coverage_complete(source))
         self.assertEqual(conv['fingerprint'], state['fingerprint'])
         self.assertEqual(conv['geometry type'], state['geometry type'])

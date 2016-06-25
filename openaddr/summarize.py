@@ -62,20 +62,20 @@ def is_coverage_complete(source):
 def state_conform_type(state):
     '''
     '''
-    if 'cache' not in state:
+    if 'cache' not in state.keys:
         return None
     
-    if state['cache'] is None:
+    if state.cache is None:
         return None
     
-    if state['cache'].endswith('.zip'):
-        if state.get('geometry type', 'Point') in ('Polygon', 'MultiPolygon'):
+    if state.cache.endswith('.zip'):
+        if state.geometry_type in ('Polygon', 'MultiPolygon'):
             return 'shapefile-polygon'
         else:
             return 'shapefile'
-    elif state['cache'].endswith('.json'):
+    elif state.cache.endswith('.json'):
         return 'geojson'
-    elif state['cache'].endswith('.csv'):
+    elif state.cache.endswith('.csv'):
         return 'csv'
     else:
         return None
@@ -96,26 +96,26 @@ def convert_run(memcache, run, url_template):
     run_state = run.state or {}
 
     converted_run = {
-        'address count': run_state.json_blob.get('address count'),
-        'cache': run_state.json_blob.get('cache'),
-        'cache time': run_state.json_blob.get('cache time'),
+        'address count': run_state.address_count,
+        'cache': run_state.cache,
+        'cache time': run_state.cache_time,
         'cache_date': run.datetime_tz.strftime('%Y-%m-%d'),
         'conform': bool(source.get('conform', False)),
-        'conform type': state_conform_type(run_state.json_blob),
+        'conform type': state_conform_type(run_state),
         'coverage complete': is_coverage_complete(source),
-        'fingerprint': run_state.json_blob.get('fingerprint'),
-        'geometry type': run_state.json_blob.get('geometry type'),
+        'fingerprint': run_state.fingerprint,
+        'geometry type': run_state.geometry_type,
         'href': expand_uri(url_template, run.__dict__),
-        'output': run_state.json_blob.get('output'),
-        'process time': run_state.json_blob.get('process time'),
-        'processed': run_state.json_blob.get('processed'),
-        'sample': run_state.json_blob.get('sample'),
+        'output': run_state.output,
+        'process time': run_state.process_time,
+        'processed': run_state.processed,
+        'sample': run_state.sample,
         'sample_link': expand_uri('/runs/{id}/sample.html', dict(id=run.id)),
         'shortname': splitext(relpath(run.source_path, 'sources'))[0],
         'skip': bool(source.get('skip', False)),
         'source': relpath(run.source_path, 'sources'),
         'type': source.get('type', '').lower(),
-        'version': run_state.json_blob.get('version')
+        'version': run_state.version
         }
 
     _set_cached(memcache, cache_key, converted_run)
@@ -128,9 +128,9 @@ def run_counts(runs):
     
     return {
         'sources': len(runs),
-        'cached': sum([int(bool(state.json_blob.get('cache'))) for state in states]),
-        'processed': sum([int(bool(state.json_blob.get('processed'))) for state in states]),
-        'addresses': sum([int(state.json_blob.get('address count') or 0) for state in states])
+        'cached': sum([int(bool(state.cache)) for state in states]),
+        'processed': sum([int(bool(state.processed)) for state in states]),
+        'addresses': sum([int(state.address_count or 0) for state in states])
         }
 
 def sort_run_dicts(dicts, sort_order):

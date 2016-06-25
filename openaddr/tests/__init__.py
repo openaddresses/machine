@@ -1091,10 +1091,11 @@ class TestPackage (unittest.TestCase):
             
             self.assertEqual(local_processed_result1.source_base, '123')
             self.assertEqual(local_processed_result1.filename, 'nonexistent file')
-            self.assertEqual(local_processed_result1.run_state.json_blob, state1)
+            self.assertEqual(local_processed_result1.run_state.processed, state1['processed'])
             self.assertEqual(local_processed_result2.source_base, '7/9')
             self.assertEqual(local_processed_result2.filename, 'nonexistent file')
-            self.assertEqual(local_processed_result2.run_state.json_blob, state3)
+            self.assertEqual(local_processed_result2.run_state.processed, state3['processed'])
+            self.assertEqual(local_processed_result2.run_state.license, state3['license'])
 
     def response_content(self, url, request):
         '''

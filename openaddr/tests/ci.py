@@ -1403,9 +1403,9 @@ class TestHook (unittest.TestCase):
         for runs in (latest_set_runs, set_2_runs):
             self.assertEqual(len(runs), 3)
         
-            got_state1 = dict(runs[0].state.json_blob)
-            got_state2 = dict(runs[1].state.json_blob)
-            got_state3 = dict(runs[2].state.json_blob)
+            got_state1 = json.loads(runs[0].state.to_json())
+            got_state2 = json.loads(runs[1].state.to_json())
+            got_state3 = json.loads(runs[2].state.to_json())
             
             self.assertEqual(runs[0].code_version, __version__)
             self.assertEqual(runs[1].code_version, __version__)

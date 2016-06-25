@@ -360,7 +360,7 @@ def get_batch_run_times(db, owner, repository):
     '''
     last_set = objects.read_latest_set(db, owner, repository)
 
-    return {run.source_path: run.state.json_blob['process time']
+    return {run.source_path: run.state.process_time
             for run in objects.read_completed_runs_to_date(db, last_set.id)
             if run.state}
 

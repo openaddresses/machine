@@ -68,19 +68,48 @@ class Run:
 class RunState:
     '''
     '''
+    valid_keys = set(('source', 'cache', 'sample', 'geometry type',
+        'address count', 'version', 'fingerprint', 'cache time', 'processed',
+        'output', 'process time', 'website', 'skipped', 'license',
+        'share-alike', 'attribution required', 'attribution name'))
+
     def __init__(self, json_blob):
-        okay_keys = set(('source', 'cache', 'sample', 'geometry type',
-            'address count', 'version', 'fingerprint', 'cache time', 'processed',
-            'output', 'process time', 'website', 'skipped', 'license',
-            'share-alike', 'attribution required', 'attribution name'))
-        blob_keys = dict(json_blob or {}).keys()
-        unexpected = set(blob_keys) - okay_keys
+        blob_dict = dict(json_blob or {})
+        self.keys = blob_dict.keys()
         
-        assert len(unexpected) == 0, 'RunState should not have keys {}'.format(', '.join(unexpected))
-        self.json_blob = json_blob
+        self.source = blob_dict.get('source')
+        self.cache = blob_dict.get('cache')
+        self.sample = blob_dict.get('sample')
+        self.geometry_type = blob_dict.get('geometry type')
+        self.address_count = blob_dict.get('address count')
+        self.version = blob_dict.get('version')
+        self.fingerprint = blob_dict.get('fingerprint')
+        self.cache_time = blob_dict.get('cache time')
+        self.processed = blob_dict.get('processed')
+        self.output = blob_dict.get('output')
+        self.process_time = blob_dict.get('process time')
+        self.website = blob_dict.get('website')
+        self.skipped = blob_dict.get('skipped')
+        self.license = blob_dict.get('license')
+        self.share_alike = blob_dict.get('share-alike')
+        self.attribution_required = blob_dict.get('attribution required')
+        self.attribution_name = blob_dict.get('attribution name')
+
+        unexpected = ', '.join(set(self.keys) - RunState.valid_keys)
+        assert len(unexpected) == 0, 'RunState should not have keys {}'.format(unexpected)
+        self._json_blob = json_blob
+    
+    def get(self, json_key):
+        if json_key == 'code version':
+            json_key = 'version'
+    
+        if json_key not in RunState.valid_keys:
+            raise ValueError('Unknown RunState key {}'.format(json_key))
+        
+        return getattr(self, json_key.replace(' ', '_').replace('-', '_'))
         
     def to_json(self):
-        return json.dumps(self.json_blob)
+        return json.dumps(self._json_blob)
 
 class Zip:
     '''
