@@ -14,6 +14,7 @@ from zipfile import ZipFile
 from io import BytesIO, StringIO
 from mock import patch
 from time import sleep
+from uuid import uuid4
 import hmac, hashlib, mock
 
 import unittest, json, os, sys, itertools
@@ -78,6 +79,27 @@ class TestObjects (unittest.TestCase):
 
     def setUp(self):
         self.db = mock.Mock()
+    
+    def test_runstate(self):
+        ''' Check initialization of RunState
+        '''
+        keys = ('source', 'cache', 'sample', 'geometry type', 'processed',
+            'address count', 'version', 'fingerprint', 'cache time',
+            'output', 'process time', 'website', 'skipped', 'license',
+            'share-alike', 'attribution required', 'attribution name')
+        
+        for key in keys:
+            value = str(uuid4())
+            state = RunState({key: value})
+            self.assertEqual(state.get(key), value)
+            
+            attr = key.replace(' ', '_').replace('-', '_')
+            self.assertEqual(getattr(state, attr), value)
+
+        value = str(uuid4())
+        state = RunState({'version': value})
+        self.assertEqual(state.get('version'), value)
+        self.assertEqual(state.version, value)
 
     def test_add_job(self):
         ''' Check behavior of objects.add_job()

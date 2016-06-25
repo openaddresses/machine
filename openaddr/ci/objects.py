@@ -68,10 +68,11 @@ class Run:
 class RunState:
     '''
     '''
-    valid_keys = set(('source', 'cache', 'sample', 'geometry type',
+    key_attrs = {key: key.replace(' ', '_').replace('-', '_')
+        for key in ('source', 'cache', 'sample', 'geometry type',
         'address count', 'version', 'fingerprint', 'cache time', 'processed',
         'output', 'process time', 'website', 'skipped', 'license',
-        'share-alike', 'attribution required', 'attribution name'))
+        'share-alike', 'attribution required', 'attribution name')}
 
     def __init__(self, json_blob):
         blob_dict = dict(json_blob or {})
@@ -95,21 +96,18 @@ class RunState:
         self.attribution_required = blob_dict.get('attribution required')
         self.attribution_name = blob_dict.get('attribution name')
 
-        unexpected = ', '.join(set(self.keys) - RunState.valid_keys)
+        unexpected = ', '.join(set(self.keys) - set(RunState.key_attrs.keys()))
         assert len(unexpected) == 0, 'RunState should not have keys {}'.format(unexpected)
-        self._json_blob = json_blob
     
     def get(self, json_key):
         if json_key == 'code version':
+            # account for ci.webapi.CSV_HEADER mismatch
             json_key = 'version'
     
-        if json_key not in RunState.valid_keys:
-            raise ValueError('Unknown RunState key {}'.format(json_key))
-        
-        return getattr(self, json_key.replace(' ', '_').replace('-', '_'))
+        return getattr(self, RunState.key_attrs[json_key])
         
     def to_json(self):
-        return json.dumps(self._json_blob)
+        return json.dumps({k: self.get(k) for k in self.keys})
 
 class Zip:
     '''
