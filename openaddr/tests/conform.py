@@ -165,20 +165,23 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual(e, d)
         
     def test_transform_and_convert(self):
-        d = { "conform": { "street": ["s1", "s2"], "number": "n", "lon": "y", "lat": "x" } }
+        d = { "conform": { "street": ["s1", "s2"], "number": "n", "lon": "y", "lat": "x" }, "fingerprint": "0000" }
         r = row_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
         self.assertEqual({"STREET": "MAPLE ST", "UNIT": "", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3",
-                          "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None, "ID": None}, r)
+                          "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None, "ID": None,
+                          'HASH': '8abc2233b1232bd7'}, r)
 
-        d = { "conform": { "street": ["s1", "s2"], "number": "n", "lon": "y", "lat": "x" } }
+        d = { "conform": { "street": ["s1", "s2"], "number": "n", "lon": "y", "lat": "x" }, "fingerprint": "0000" }
         r = row_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
         self.assertEqual({"STREET": "MAPLE ST", "UNIT": "", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3",
-                          "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None, "ID": None}, r)
+                          "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None, "ID": None,
+                          'HASH': '8abc2233b1232bd7'}, r)
 
-        d = { "conform": { "street": "auto_street", "number": "auto_number", "split": "s", "lon": "y", "lat": "x" } }
+        d = { "conform": { "street": "auto_street", "number": "auto_number", "split": "s", "lon": "y", "lat": "x" }, "fingerprint": "0000" }
         r = row_transform_and_convert(d, { "s": "123 MAPLE ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
         self.assertEqual({"STREET": "MAPLE ST", "UNIT": "", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3",
-                          "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None, "ID": None}, r)
+                          "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None, "ID": None,
+                          'HASH': '8abc2233b1232bd7'}, r)
 
     def test_row_canonicalize_unit_and_number(self):
         r = row_canonicalize_unit_and_number({}, {"NUMBER": "324 ", "STREET": " OAK DR.", "UNIT": "1"})

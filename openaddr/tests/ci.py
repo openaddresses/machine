@@ -2774,7 +2774,7 @@ class TestCollect (unittest.TestCase):
         output.writestr.side_effect = remember_writestr_contents
         
         # Addresses that should trigger expansion.
-        input1 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID\n-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77\n-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11\n-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,74-1033-146\n-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,74-1033-122\n-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26\n-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222\n'
+        input1 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH\n-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77,h4sh\n-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11,h4sh\n-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,74-1033-146,h4sh\n-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,74-1033-122,h4sh\n-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26,h4sh\n-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222,h4sh\n'
         expand_and_add_csv_to_zipfile(output, u'us/ca/älameda.csv', BytesIO(input1.encode('utf8')), True)
         expand_and_add_csv_to_zipfile(output, u'us/ca/älameda.csv', BytesIO(input1.encode('utf8')), False)
 
@@ -2802,12 +2802,12 @@ class TestCollect (unittest.TestCase):
         self.assertEqual(output_write_contents[0],
             [
             'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH',
-            '-122.2359742,37.7362507,85,Maitland Drive,A,ALAMEDA,,,94502,74-1035-77,',
-            '-122.2353881,37.7223605,1360,South Loop Road,,ALAMEDA,,,94502,74-1339-11,',
-            '-122.2385597,37.7284071,3508,Catalina Avenue,,ALAMEDA,,,94502,74-1033-146,',
-            '-122.2368942,37.7305041,3512,Mcsherry Way,,ALAMEDA,,,94502,74-1033-122,',
-            '-122.2349371,37.7357455,514,Flower Lane,,ALAMEDA,,,94502,74-1036-26,',
-            '-122.2367819,37.7342157,1014,Holly Street,,ALAMEDA,,,94502,74-1075-222,',
+            '-122.2359742,37.7362507,85,Maitland Drive,A,ALAMEDA,,,94502,74-1035-77,h4sh',
+            '-122.2353881,37.7223605,1360,South Loop Road,,ALAMEDA,,,94502,74-1339-11,h4sh',
+            '-122.2385597,37.7284071,3508,Catalina Avenue,,ALAMEDA,,,94502,74-1033-146,h4sh',
+            '-122.2368942,37.7305041,3512,Mcsherry Way,,ALAMEDA,,,94502,74-1033-122,h4sh',
+            '-122.2349371,37.7357455,514,Flower Lane,,ALAMEDA,,,94502,74-1036-26,h4sh',
+            '-122.2367819,37.7342157,1014,Holly Street,,ALAMEDA,,,94502,74-1075-222,h4sh',
             ])
         self.assertEqual(output_write_contents[1],
             [
@@ -2817,12 +2817,12 @@ class TestCollect (unittest.TestCase):
         self.assertEqual(output_write_contents[2],
             [
             'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH',
-            '-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77,',
-            '-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11,',
-            '-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,74-1033-146,',
-            '-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,74-1033-122,',
-            '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26,',
-            '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222,',
+            '-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77,h4sh',
+            '-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11,h4sh',
+            '-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,74-1033-146,h4sh',
+            '-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,74-1033-122,h4sh',
+            '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26,h4sh',
+            '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222,h4sh',
             ])
         self.assertEqual(output_write_contents[3], output_write_contents[1])
         self.assertEqual(output_write_contents[4],
