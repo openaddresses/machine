@@ -1,3 +1,8 @@
+2016-06-26: 2.21.0
+- Added HASH column in output address files.
+- Fixed empty argument bug in esri2geojson.
+- Wrapped bare run state JSON in new RunState class.
+
 2016-06-16: 2.20.0
 - Added CGI params and HTTP headers to openaddr-esri2geojson.
 
