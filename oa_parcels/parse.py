@@ -6,11 +6,11 @@ import shutil
 import sys
 import traceback
 
-import config
+from . import config
 
 from openaddr.jobs import setup_logger
 from shapely.wkt import dumps
-from utils import fetch, unzip, rlistdir, import_with_fiona, import_csv
+from .utils import fetch, unzip, rlistdir, import_with_fiona, import_csv
 
 _L = logging.getLogger('openaddr.parcels')
 

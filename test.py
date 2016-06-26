@@ -1,6 +1,6 @@
 import unittest
 
-from tests import TestUtils, TestParse
+from oa_parcels.tests import TestUtils, TestParse
 
 if __name__ == '__main__':
     unittest.main()

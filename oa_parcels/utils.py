@@ -8,7 +8,7 @@ import sys
 import traceback
 import zipfile
 
-import config
+from . import config
 
 from shapely.geometry import shape
 from shapely.wkt import loads, dumps
