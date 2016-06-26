@@ -1,0 +1,4 @@
+source	cache	sample	geometry type	address count	version	fingerprint	cache time	processed	process time	output	attribution required	attribution name	share-alike	code version
+us/ca/berkeley.json	http://data.openaddresses.io/runs/89894/cache.zip	http://data.openaddresses.io/runs/89894/sample.json	Polygon	28805		657a5b1add615a9f286321eb537de710	0:00:02.766633	http://data.openaddresses.io/runs/89894/us/ca/berkeley.zip	0:00:29.974332	http://data.openaddresses.io/runs/89894/output.txt	true	City of Berkeley		2.19.7
+us/ca/alameda.json	http://data.openaddresses.io/runs/65018/cache.zip	http://data.openaddresses.io/runs/65018/sample.json	Point	530524		177cd91707ab2c022304130849849255	0:00:17.432042	http://data.openaddresses.io/runs/65018/us/ca/alameda.zip	0:46:52.644191	http://data.openaddresses.io/runs/65018/output.txt	true	Alameda County		2.16.1
+us/id/clearwater.json										http://data.openaddresses.io/runs/90760/output.txt				2.19.7

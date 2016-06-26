@@ -1,8 +1,10 @@
 import config
 import utils
+import parse
 
 import unittest, csv
 from collections import OrderedDict
+from os.path import dirname, join
 
 import fiona
 import mock
@@ -10,7 +12,7 @@ import mock
 class TestUtils (unittest.TestCase):
 
     def setUp(self):
-        config.openaddr_dir, self._prev_openaddr_dir = '.', config.openaddr_dir
+        config.openaddr_dir, self._prev_openaddr_dir = dirname(__file__), config.openaddr_dir
     
     def tearDown(self):
         config.openaddr_dir, self._prev_openaddr_dir = self._prev_openaddr_dir, None
@@ -72,3 +74,25 @@ class TestUtils (unittest.TestCase):
         self.assertEqual(len(geoms), 3)
 
         self.assertEqual(len(imported), 3)
+
+class TestParse (unittest.TestCase):
+
+    def setUp(self):
+        config.statefile_path, self._prev_statefile_path = join(dirname(__file__), 'data', 'state.txt'), config.statefile_path
+    
+    def tearDown(self):
+        config.statefile_path, self._prev_statefile_path = self._prev_statefile_path, None
+    
+    def test_load_state(self):
+        state, header = parse.load_state()
+        self.assertEqual(state[0], ['us/ca/berkeley.json', 'http://data.openaddresses.io/runs/89894/cache.zip', 'http://data.openaddresses.io/runs/89894/sample.json', 'Polygon', '28805', '', '657a5b1add615a9f286321eb537de710', '0:00:02.766633', 'http://data.openaddresses.io/runs/89894/us/ca/berkeley.zip', '0:00:29.974332', 'http://data.openaddresses.io/runs/89894/output.txt', 'true', 'City of Berkeley', '', '2.19.7'])
+        self.assertEqual(state[1], ['us/ca/alameda.json', 'http://data.openaddresses.io/runs/65018/cache.zip', 'http://data.openaddresses.io/runs/65018/sample.json', 'Point', '530524', '', '177cd91707ab2c022304130849849255', '0:00:17.432042', 'http://data.openaddresses.io/runs/65018/us/ca/alameda.zip', '0:46:52.644191', 'http://data.openaddresses.io/runs/65018/output.txt', 'true', 'Alameda County', '', '2.16.1'])
+        self.assertEqual(state[2], ['us/id/clearwater.json', '', '', '', '', '', '', '', '', '', 'http://data.openaddresses.io/runs/90760/output.txt', '', '', '', '2.19.7'])
+        self.assertEqual(header, ['source', 'cache', 'sample', 'geometry type', 'address count', 'version', 'fingerprint', 'cache time', 'processed', 'process time', 'output', 'attribution required', 'attribution name', 'share-alike', 'code version'])
+        self.assertEqual(len(state), 3)
+    
+    def test_filter_polygons(self):
+        state, header = [['us/ca/berkeley.json', 'http://data.openaddresses.io/runs/89894/cache.zip', 'http://data.openaddresses.io/runs/89894/sample.json', 'Polygon', '28805', '', '657a5b1add615a9f286321eb537de710', '0:00:02.766633', 'http://data.openaddresses.io/runs/89894/us/ca/berkeley.zip', '0:00:29.974332', 'http://data.openaddresses.io/runs/89894/output.txt', 'true', 'City of Berkeley', '', '2.19.7'], ['us/ca/alameda.json', 'http://data.openaddresses.io/runs/65018/cache.zip', 'http://data.openaddresses.io/runs/65018/sample.json', 'Point', '530524', '', '177cd91707ab2c022304130849849255', '0:00:17.432042', 'http://data.openaddresses.io/runs/65018/us/ca/alameda.zip', '0:46:52.644191', 'http://data.openaddresses.io/runs/65018/output.txt', 'true', 'Alameda County', '', '2.16.1'], ['us/id/clearwater.json', '', '', '', '', '', '', '', '', '', 'http://data.openaddresses.io/runs/90760/output.txt', '', '', '', '2.19.7']], ['source', 'cache', 'sample', 'geometry type', 'address count', 'version', 'fingerprint', 'cache time', 'processed', 'process time', 'output', 'attribution required', 'attribution name', 'share-alike', 'code version']
+        filtered = parse.filter_polygons(state, header)
+        self.assertEqual(filtered[0], ['us/ca/berkeley.json', 'http://data.openaddresses.io/runs/89894/cache.zip', 'http://data.openaddresses.io/runs/89894/sample.json', 'Polygon', '28805', '', '657a5b1add615a9f286321eb537de710', '0:00:02.766633', 'http://data.openaddresses.io/runs/89894/us/ca/berkeley.zip', '0:00:29.974332', 'http://data.openaddresses.io/runs/89894/output.txt', 'true', 'City of Berkeley', '', '2.19.7'])
+        self.assertEqual(len(filtered), 1)
