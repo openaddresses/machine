@@ -1,4 +1,4 @@
 Shapely==1.5.15
 Fiona==1.6.4
 requests==2.2.1
-OpenAddresses-Machine==2.19.5
+https://github.com/openaddresses/machine/archive/2.19.5.zip
