@@ -12,10 +12,6 @@ apt-get install libgdal-dev python3-pip libffi-dev python3-cairo python3-gdal
 pip3 install virtualenv
 python3 -m virtualenv --system-site-packages ./env && source ./env/bin/activate
 
-# Install OpenAddresses machine code.
-git clone -b 2.19.5 https://github.com/openaddresses/machine ~/machine
-cd ~/machine && pip3 install .
-
 # Download all parcel data sources.
 git clone https://github.com/openaddresses/openaddresses.git ~/openaddresses
 
@@ -27,7 +23,7 @@ cd ~/parcels && pip3 install -r requirements.txt
 Update `config.py` with the directory of the openaddresses repo.
 
 ```
-# python3 -u parse.py
+# python3 -u -m oa_parcels.parse
 ```
 
 *Note* - gdal was a pain to install on osx and ubuntu, here are some steps I needed to take.
