@@ -18,6 +18,8 @@ from zipfile import ZipFile
 from argparse import ArgumentParser
 from locale import getpreferredencoding
 from os.path import splitext
+from hashlib import sha1
+from uuid import uuid4
 
 from .compat import csvopen, csvreader, csvDictReader, csvDictWriter
 from .sample import sample_geojson
@@ -26,7 +28,8 @@ from osgeo import ogr, osr
 ogr.UseExceptions()
 
 # The canonical output schema for conform
-OPENADDR_CSV_SCHEMA = ["LON", "LAT", "NUMBER", "STREET", "UNIT", "CITY", "DISTRICT", "REGION", "POSTCODE", "ID"]
+OPENADDR_CSV_SCHEMA = ['LON', 'LAT', 'NUMBER', 'STREET', 'UNIT', 'CITY',
+                       'DISTRICT', 'REGION', 'POSTCODE', 'ID', 'HASH']
 
 # Field names for use in cached CSV files.
 # We add columns to the extracted CSV with our own data with these names.
@@ -785,10 +788,14 @@ def row_transform_and_convert(sd, row):
         row = row_fxn_regexp(sd, row, False)
     ##################
     
+    # Make up a random fingerprint if none exists
+    cache_fingerprint = sd.get('fingerprint', str(uuid4()))
+    
     row2 = row_convert_to_out(sd, row)
     row3 = row_canonicalize_unit_and_number(sd, row2)
     row4 = row_round_lat_lon(sd, row3)
-    return row4
+    row5 = row_calculate_hash(cache_fingerprint, row4)
+    return row5
 
 def conform_smash_case(source_definition):
     "Convert all named fields in source_definition object to lowercase. Returns new object."
@@ -877,6 +884,17 @@ def row_round_lat_lon(sd, row):
     "Round WGS84 coordinates to 1cm precision"
     row["LON"] = _round_wgs84_to_7(row["LON"])
     row["LAT"] = _round_wgs84_to_7(row["LAT"])
+    return row
+
+def row_calculate_hash(cache_fingerprint, row):
+    ''' Calculate row hash based on content and existing fingerprint.
+    
+        16 chars of SHA-1 gives a 64-bit value, plenty for all addresses.
+    '''
+    hash = sha1(cache_fingerprint)
+    hash.update(json.dumps(sorted(row.items()), separators=(',', ':')))
+    row.update(HASH=hash.hexdigest()[:16])
+    
     return row
 
 def row_convert_to_out(sd, row):
