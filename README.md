@@ -35,6 +35,5 @@ Update `config.py` with the directory of the openaddresses repo.
 ```
 # apt-add-repository ppa:ubuntugis/ubuntugis-unstable
 # apt-get update
-# pip3 install --global-option=build_ext --global-option="-I/usr/include/gdal" GDAL==`gdal-config --version
-
+# pip install --global-option=build_ext --global-option=`gdal-config --cflags` GDAL==`gdal-config --version`
 ```
