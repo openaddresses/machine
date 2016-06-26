@@ -267,7 +267,7 @@ def _add_spatial_summary_to_zipfile(zip_out, arc_filename, size, squares):
 def add_source_to_zipfile(zip_out, result):
     ''' Add a LocalProcessedResult to zipfile via expand_and_add_csv_to_zipfile().
     
-        Use result code_version to determine whether to expand; 3+ will do it.
+        Use result code_version to determine whether to expand; 2.13+ will do it.
     '''
     _, ext = splitext(result.filename)
     
