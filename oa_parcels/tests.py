@@ -13,6 +13,10 @@ import mock
 def filename(path):
     return join(dirname(__file__), path)
 
+def target(path):
+    name_parts = __name__.split('.')[:-1] + [path]
+    return '.'.join(name_parts)
+
 class TestUtils (unittest.TestCase):
 
     def setUp(self):
@@ -44,7 +48,7 @@ class TestUtils (unittest.TestCase):
         self.assertEqual(str(shaped), 'POLYGON ((565011.5815000003 4190878.635749999, 565007.0689000003 4190904.882000001, 565044.6956500001 4190911.299000001, 565049.5083999997 4190885.2125, 565011.5815000003 4190878.635749999))')
     
     def test_import_csv(self):
-        with mock.patch('oa_parcels.utils.scrape_csv_metadata') as scrape_csv_metadata:
+        with mock.patch(target('utils.scrape_csv_metadata')) as scrape_csv_metadata:
             imported = utils.import_csv(filename('data/us/ca/berkeley/Parcels.csv'), 'us/ca/berkeley.json')
         
         args = [call[1] for call in scrape_csv_metadata.mock_calls if call[0] == '']
@@ -62,7 +66,7 @@ class TestUtils (unittest.TestCase):
         self.assertEqual(len(imported), 3)
     
     def test_import_with_fiona(self):
-        with mock.patch('oa_parcels.utils.scrape_fiona_metadata') as scrape_fiona_metadata:
+        with mock.patch(target('utils.scrape_fiona_metadata')) as scrape_fiona_metadata:
             imported = utils.import_with_fiona(filename('data/us/ca/berkeley/Parcels.shp'), 'us/ca/berkeley.json')
         
         args = [call[1] for call in scrape_fiona_metadata.mock_calls if call[0] == '']
@@ -130,7 +134,7 @@ class TestParse (unittest.TestCase):
         state, header = [['us/ca/berkeley.json', 'http://data.openaddresses.io/runs/89894/cache.zip', 'http://data.openaddresses.io/runs/89894/sample.json', 'Polygon', '28805', '', '657a5b1add615a9f286321eb537de710', '0:00:02.766633', 'http://data.openaddresses.io/runs/89894/us/ca/berkeley.zip', '0:00:29.974332', 'http://data.openaddresses.io/runs/89894/output.txt', 'true', 'City of Berkeley', '', '2.19.7']], ['source', 'cache', 'sample', 'geometry type', 'address count', 'version', 'fingerprint', 'cache time', 'processed', 'process time', 'output', 'attribution required', 'attribution name', 'share-alike', 'code version']
         parsed_sources = [{'geom': 'POLYGON ((565011.5815000003203750 4190878.6357499994337559, 565007.0689000003039837 4190904.8820000011473894, 565044.6956500001251698 4190911.2990000005811453, 565049.5083999997004867 4190885.2125000003725290, 565011.5815000003203750 4190878.6357499994337559))', 'LAT': None, 'STREET': 'DANA ST', 'POSTCODE': '94704', 'REGION': None, 'DISTRICT': None, 'LON': None, 'CITY': 'BERKELEY', 'ID': '055 183213100', 'UNIT': '', 'NUMBER': '2550'}, {'geom': 'POLYGON ((562519.8118000002577901 4190028.8390999995172024, 562504.6751500004902482 4190024.9286000002175570, 562496.8604500005021691 4190054.9737500008195639, 562511.5466499999165535 4190058.6435000002384186, 562518.1233999999240041 4190034.9662999995052814, 562519.8118000002577901 4190028.8390999995172024))', 'LAT': None, 'STREET': 'GRAYSON ST', 'POSTCODE': '94710', 'REGION': None, 'DISTRICT': None, 'LON': None, 'CITY': 'BERKELEY', 'ID': '053 166004000', 'UNIT': 'A', 'NUMBER': '1012'}, {'geom': 'POLYGON ((562519.8118000002577901 4190028.8390999995172024, 562504.6751500004902482 4190024.9286000002175570, 562496.8604500005021691 4190054.9737500008195639, 562511.5466499999165535 4190058.6435000002384186, 562518.1233999999240041 4190034.9662999995052814, 562519.8118000002577901 4190028.8390999995172024))', 'LAT': None, 'STREET': 'GRAYSON ST', 'POSTCODE': '94710', 'REGION': None, 'DISTRICT': None, 'LON': None, 'CITY': 'BERKELEY', 'ID': '053 166004200', 'UNIT': 'C', 'NUMBER': '1012'}]
         
-        with mock.patch('oa_parcels.parse.parse_source') as parse_source, mock.patch('oa_parcels.parse.writeout') as writeout:
+        with mock.patch(target('parse.parse_source')) as parse_source, mock.patch(target('parse.writeout')) as writeout:
             parse_source.return_value = parsed_sources
             parse.parse_statefile(state, header)
         
