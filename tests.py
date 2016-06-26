@@ -5,7 +5,10 @@ import parse
 import unittest, csv
 from collections import OrderedDict
 from os.path import dirname, join
+from tempfile import mkdtemp
+from shutil import rmtree
 
+import httmock
 import fiona
 import mock
 
@@ -78,11 +81,27 @@ class TestUtils (unittest.TestCase):
 class TestParse (unittest.TestCase):
 
     def setUp(self):
+        config.openaddr_dir, self._prev_openaddr_dir = dirname(__file__), config.openaddr_dir
         config.statefile_path, self._prev_statefile_path = join(dirname(__file__), 'data', 'state.txt'), config.statefile_path
+        config.workspace_dir, self._prev_workspace_dir = mkdtemp(prefix='workspace-'), config.workspace_dir
+        config.output_dir, self._prev_output_dir = mkdtemp(prefix='output-'), config.output_dir
     
     def tearDown(self):
-        config.statefile_path, self._prev_statefile_path = self._prev_statefile_path, None
+        rmtree(config.workspace_dir)
+        rmtree(config.output_dir)
     
+        config.openaddr_dir, self._prev_openaddr_dir = self._prev_openaddr_dir, None
+        config.statefile_path, self._prev_statefile_path = self._prev_statefile_path, None
+        config.workspace_dir, self._prev_workspace_dir = self._prev_workspace_dir, None
+        config.output_dir, self._prev_output_dir = self._prev_output_dir, None
+    
+    def response_content(self, url, request):
+        if (url.netloc, url.path) == ('data.openaddresses.io', '/runs/89894/cache.zip'):
+            with open(join(dirname(__file__), 'data/us/ca/berkeley.zip'), 'rb') as file:
+                return httmock.response(200, file.read(), headers={'Content-Type': 'application/zip'})
+        print(url.path)
+        raise Exception(url)
+        
     def test_load_state(self):
         state, header = parse.load_state()
         self.assertEqual(state[0], ['us/ca/berkeley.json', 'http://data.openaddresses.io/runs/89894/cache.zip', 'http://data.openaddresses.io/runs/89894/sample.json', 'Polygon', '28805', '', '657a5b1add615a9f286321eb537de710', '0:00:02.766633', 'http://data.openaddresses.io/runs/89894/us/ca/berkeley.zip', '0:00:29.974332', 'http://data.openaddresses.io/runs/89894/output.txt', 'true', 'City of Berkeley', '', '2.19.7'])
@@ -96,3 +115,27 @@ class TestParse (unittest.TestCase):
         filtered = parse.filter_polygons(state, header)
         self.assertEqual(filtered[0], ['us/ca/berkeley.json', 'http://data.openaddresses.io/runs/89894/cache.zip', 'http://data.openaddresses.io/runs/89894/sample.json', 'Polygon', '28805', '', '657a5b1add615a9f286321eb537de710', '0:00:02.766633', 'http://data.openaddresses.io/runs/89894/us/ca/berkeley.zip', '0:00:29.974332', 'http://data.openaddresses.io/runs/89894/output.txt', 'true', 'City of Berkeley', '', '2.19.7'])
         self.assertEqual(len(filtered), 1)
+    
+    def test_parse_source(self):
+        with httmock.HTTMock(self.response_content):
+            shapes = parse.parse_source(['us/ca/berkeley.json', 'http://data.openaddresses.io/runs/89894/cache.zip', 'http://data.openaddresses.io/runs/89894/sample.json', 'Polygon', '28805', '', '657a5b1add615a9f286321eb537de710', '0:00:02.766633', 'http://data.openaddresses.io/runs/89894/us/ca/berkeley.zip', '0:00:29.974332', 'http://data.openaddresses.io/runs/89894/output.txt', 'true', 'City of Berkeley', '', '2.19.7'], 0, ['source', 'cache', 'sample', 'geometry type', 'address count', 'version', 'fingerprint', 'cache time', 'processed', 'process time', 'output', 'attribution required', 'attribution name', 'share-alike', 'code version'])
+        
+        self.assertEqual(shapes[0], {'geom': 'POLYGON ((565011.5815000003203750 4190878.6357499994337559, 565007.0689000003039837 4190904.8820000011473894, 565044.6956500001251698 4190911.2990000005811453, 565049.5083999997004867 4190885.2125000003725290, 565011.5815000003203750 4190878.6357499994337559))', 'LAT': None, 'STREET': 'DANA ST', 'POSTCODE': '94704', 'REGION': None, 'DISTRICT': None, 'LON': None, 'CITY': 'BERKELEY', 'ID': '055 183213100', 'UNIT': '', 'NUMBER': '2550'})
+        self.assertEqual(shapes[1], {'geom': 'POLYGON ((562519.8118000002577901 4190028.8390999995172024, 562504.6751500004902482 4190024.9286000002175570, 562496.8604500005021691 4190054.9737500008195639, 562511.5466499999165535 4190058.6435000002384186, 562518.1233999999240041 4190034.9662999995052814, 562519.8118000002577901 4190028.8390999995172024))', 'LAT': None, 'STREET': 'GRAYSON ST', 'POSTCODE': '94710', 'REGION': None, 'DISTRICT': None, 'LON': None, 'CITY': 'BERKELEY', 'ID': '053 166004000', 'UNIT': 'A', 'NUMBER': '1012'})
+        self.assertEqual(shapes[2], {'geom': 'POLYGON ((562519.8118000002577901 4190028.8390999995172024, 562504.6751500004902482 4190024.9286000002175570, 562496.8604500005021691 4190054.9737500008195639, 562511.5466499999165535 4190058.6435000002384186, 562518.1233999999240041 4190034.9662999995052814, 562519.8118000002577901 4190028.8390999995172024))', 'LAT': None, 'STREET': 'GRAYSON ST', 'POSTCODE': '94710', 'REGION': None, 'DISTRICT': None, 'LON': None, 'CITY': 'BERKELEY', 'ID': '053 166004200', 'UNIT': 'C', 'NUMBER': '1012'})
+        self.assertEqual(len(shapes), 3)
+    
+    def test_parse_statefile(self):
+        state, header = [['us/ca/berkeley.json', 'http://data.openaddresses.io/runs/89894/cache.zip', 'http://data.openaddresses.io/runs/89894/sample.json', 'Polygon', '28805', '', '657a5b1add615a9f286321eb537de710', '0:00:02.766633', 'http://data.openaddresses.io/runs/89894/us/ca/berkeley.zip', '0:00:29.974332', 'http://data.openaddresses.io/runs/89894/output.txt', 'true', 'City of Berkeley', '', '2.19.7']], ['source', 'cache', 'sample', 'geometry type', 'address count', 'version', 'fingerprint', 'cache time', 'processed', 'process time', 'output', 'attribution required', 'attribution name', 'share-alike', 'code version']
+        parsed_sources = [{'geom': 'POLYGON ((565011.5815000003203750 4190878.6357499994337559, 565007.0689000003039837 4190904.8820000011473894, 565044.6956500001251698 4190911.2990000005811453, 565049.5083999997004867 4190885.2125000003725290, 565011.5815000003203750 4190878.6357499994337559))', 'LAT': None, 'STREET': 'DANA ST', 'POSTCODE': '94704', 'REGION': None, 'DISTRICT': None, 'LON': None, 'CITY': 'BERKELEY', 'ID': '055 183213100', 'UNIT': '', 'NUMBER': '2550'}, {'geom': 'POLYGON ((562519.8118000002577901 4190028.8390999995172024, 562504.6751500004902482 4190024.9286000002175570, 562496.8604500005021691 4190054.9737500008195639, 562511.5466499999165535 4190058.6435000002384186, 562518.1233999999240041 4190034.9662999995052814, 562519.8118000002577901 4190028.8390999995172024))', 'LAT': None, 'STREET': 'GRAYSON ST', 'POSTCODE': '94710', 'REGION': None, 'DISTRICT': None, 'LON': None, 'CITY': 'BERKELEY', 'ID': '053 166004000', 'UNIT': 'A', 'NUMBER': '1012'}, {'geom': 'POLYGON ((562519.8118000002577901 4190028.8390999995172024, 562504.6751500004902482 4190024.9286000002175570, 562496.8604500005021691 4190054.9737500008195639, 562511.5466499999165535 4190058.6435000002384186, 562518.1233999999240041 4190034.9662999995052814, 562519.8118000002577901 4190028.8390999995172024))', 'LAT': None, 'STREET': 'GRAYSON ST', 'POSTCODE': '94710', 'REGION': None, 'DISTRICT': None, 'LON': None, 'CITY': 'BERKELEY', 'ID': '053 166004200', 'UNIT': 'C', 'NUMBER': '1012'}]
+        
+        with mock.patch('parse.parse_source') as parse_source, mock.patch('parse.writeout') as writeout:
+            parse_source.return_value = parsed_sources
+            parse.parse_statefile(state, header)
+        
+        calls = [call[1] for call in parse_source.mock_calls if call[0] == '']
+        self.assertEqual(calls[0], (['us/ca/berkeley.json', 'http://data.openaddresses.io/runs/89894/cache.zip', 'http://data.openaddresses.io/runs/89894/sample.json', 'Polygon', '28805', '', '657a5b1add615a9f286321eb537de710', '0:00:02.766633', 'http://data.openaddresses.io/runs/89894/us/ca/berkeley.zip', '0:00:29.974332', 'http://data.openaddresses.io/runs/89894/output.txt', 'true', 'City of Berkeley', '', '2.19.7'], 0, ['source', 'cache', 'sample', 'geometry type', 'address count', 'version', 'fingerprint', 'cache time', 'processed', 'process time', 'output', 'attribution required', 'attribution name', 'share-alike', 'code version']))
+        self.assertEqual(len(calls), 1)
+        
+        self.assertEqual(writeout.mock_calls[0][1][1], parsed_sources)
+        self.assertEqual(len(writeout.mock_calls), 1)
