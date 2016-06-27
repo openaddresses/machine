@@ -1,3 +1,4 @@
+from __future__ import print_function
 from . import config, utils, parse
 
 import unittest, csv
@@ -31,21 +32,25 @@ class TestUtils (unittest.TestCase):
             header, row = next(rows), next(rows)
             scraped = utils.scrape_csv_metadata(row, header, 'us/ca/berkeley.json')
         
-        self.assertEqual(scraped, {'CITY': 'BERKELEY', 'ID': '055 183213100', 'REGION': None, 'STREET': 'DANA ST', 'NUMBER': '2550', 'DISTRICT': None, 'LON': None, 'LAT': None, 'UNIT': '', 'POSTCODE': '94704'})
+        self.assertEqual(scraped, {'CITY': 'BERKELEY', 'ID': '055 183213100', 'REGION': None, 'STREET': 'DANA ST', 'NUMBER': '2550', 'DISTRICT': None, 'LON': None, 'LAT': None, 'UNIT': '', 'POSTCODE': '94704', 'HASH': 'a9bab15763bb9f03'})
     
     def test_scrape_fiona_metadata(self):
         with fiona.open(filename('data/us/ca/berkeley/Parcels.shp')) as data:
             obj = next(data)
             scraped = utils.scrape_fiona_metadata(obj, 'us/ca/berkeley.json')
         
-        self.assertEqual(scraped, {'CITY': 'BERKELEY', 'ID': '055 183213100', 'REGION': None, 'STREET': 'DANA ST', 'NUMBER': '2550', 'DISTRICT': None, 'LON': None, 'LAT': None, 'UNIT': '', 'POSTCODE': '94704'})
+        self.assertEqual(scraped, {'CITY': 'BERKELEY', 'ID': '055 183213100', 'REGION': None, 'STREET': 'DANA ST', 'NUMBER': '2550', 'DISTRICT': None, 'LON': None, 'LAT': None, 'UNIT': '', 'POSTCODE': '94704', 'HASH': 'a9bab15763bb9f03'})
     
     def test_to_shapely_obj(self):
         with fiona.open(filename('data/us/ca/berkeley/Parcels.shp')) as data:
             obj = next(data)
             shaped = utils.to_shapely_obj(obj)
         
-        self.assertEqual(str(shaped), 'POLYGON ((565011.5815000003 4190878.635749999, 565007.0689000003 4190904.882000001, 565044.6956500001 4190911.299000001, 565049.5083999997 4190885.2125, 565011.5815000003 4190878.635749999))')
+        self.assertAlmostEqual( 565007.068900000, shaped.bounds[0])
+        self.assertAlmostEqual(4190878.635749999, shaped.bounds[1])
+        self.assertAlmostEqual( 565049.508400000, shaped.bounds[2])
+        self.assertAlmostEqual(4190911.299000001, shaped.bounds[3])
+        self.assertAlmostEqual(    129.821017014, shaped.boundary.length)
     
     def test_import_csv(self):
         with mock.patch(target('utils.scrape_csv_metadata')) as scrape_csv_metadata:
@@ -125,9 +130,9 @@ class TestParse (unittest.TestCase):
         with httmock.HTTMock(self.response_content):
             shapes = parse.parse_source(['us/ca/berkeley.json', 'http://data.openaddresses.io/runs/89894/cache.zip', 'http://data.openaddresses.io/runs/89894/sample.json', 'Polygon', '28805', '', '657a5b1add615a9f286321eb537de710', '0:00:02.766633', 'http://data.openaddresses.io/runs/89894/us/ca/berkeley.zip', '0:00:29.974332', 'http://data.openaddresses.io/runs/89894/output.txt', 'true', 'City of Berkeley', '', '2.19.7'], 0, ['source', 'cache', 'sample', 'geometry type', 'address count', 'version', 'fingerprint', 'cache time', 'processed', 'process time', 'output', 'attribution required', 'attribution name', 'share-alike', 'code version'])
         
-        self.assertEqual(shapes[0], {'geom': 'POLYGON ((565011.5815000003203750 4190878.6357499994337559, 565007.0689000003039837 4190904.8820000011473894, 565044.6956500001251698 4190911.2990000005811453, 565049.5083999997004867 4190885.2125000003725290, 565011.5815000003203750 4190878.6357499994337559))', 'LAT': None, 'STREET': 'DANA ST', 'POSTCODE': '94704', 'REGION': None, 'DISTRICT': None, 'LON': None, 'CITY': 'BERKELEY', 'ID': '055 183213100', 'UNIT': '', 'NUMBER': '2550'})
-        self.assertEqual(shapes[1], {'geom': 'POLYGON ((562519.8118000002577901 4190028.8390999995172024, 562504.6751500004902482 4190024.9286000002175570, 562496.8604500005021691 4190054.9737500008195639, 562511.5466499999165535 4190058.6435000002384186, 562518.1233999999240041 4190034.9662999995052814, 562519.8118000002577901 4190028.8390999995172024))', 'LAT': None, 'STREET': 'GRAYSON ST', 'POSTCODE': '94710', 'REGION': None, 'DISTRICT': None, 'LON': None, 'CITY': 'BERKELEY', 'ID': '053 166004000', 'UNIT': 'A', 'NUMBER': '1012'})
-        self.assertEqual(shapes[2], {'geom': 'POLYGON ((562519.8118000002577901 4190028.8390999995172024, 562504.6751500004902482 4190024.9286000002175570, 562496.8604500005021691 4190054.9737500008195639, 562511.5466499999165535 4190058.6435000002384186, 562518.1233999999240041 4190034.9662999995052814, 562519.8118000002577901 4190028.8390999995172024))', 'LAT': None, 'STREET': 'GRAYSON ST', 'POSTCODE': '94710', 'REGION': None, 'DISTRICT': None, 'LON': None, 'CITY': 'BERKELEY', 'ID': '053 166004200', 'UNIT': 'C', 'NUMBER': '1012'})
+        self.assertEqual(shapes[0], {'geom': 'POLYGON ((565011.5815000003203750 4190878.6357499994337559, 565007.0689000003039837 4190904.8820000011473894, 565044.6956500001251698 4190911.2990000005811453, 565049.5083999997004867 4190885.2125000003725290, 565011.5815000003203750 4190878.6357499994337559))', 'LAT': None, 'STREET': 'DANA ST', 'POSTCODE': '94704', 'REGION': None, 'DISTRICT': None, 'LON': None, 'CITY': 'BERKELEY', 'ID': '055 183213100', 'UNIT': '', 'NUMBER': '2550', 'HASH': 'a9bab15763bb9f03'})
+        self.assertEqual(shapes[1], {'geom': 'POLYGON ((562519.8118000002577901 4190028.8390999995172024, 562504.6751500004902482 4190024.9286000002175570, 562496.8604500005021691 4190054.9737500008195639, 562511.5466499999165535 4190058.6435000002384186, 562518.1233999999240041 4190034.9662999995052814, 562519.8118000002577901 4190028.8390999995172024))', 'LAT': None, 'STREET': 'GRAYSON ST', 'POSTCODE': '94710', 'REGION': None, 'DISTRICT': None, 'LON': None, 'CITY': 'BERKELEY', 'ID': '053 166004000', 'UNIT': 'A', 'NUMBER': '1012', 'HASH': 'd5099c28ab0e2626'})
+        self.assertEqual(shapes[2], {'geom': 'POLYGON ((562519.8118000002577901 4190028.8390999995172024, 562504.6751500004902482 4190024.9286000002175570, 562496.8604500005021691 4190054.9737500008195639, 562511.5466499999165535 4190058.6435000002384186, 562518.1233999999240041 4190034.9662999995052814, 562519.8118000002577901 4190028.8390999995172024))', 'LAT': None, 'STREET': 'GRAYSON ST', 'POSTCODE': '94710', 'REGION': None, 'DISTRICT': None, 'LON': None, 'CITY': 'BERKELEY', 'ID': '053 166004200', 'UNIT': 'C', 'NUMBER': '1012', 'HASH': '36d415c8e8e95711'})
         self.assertEqual(len(shapes), 3)
     
     def test_parse_statefile(self):
