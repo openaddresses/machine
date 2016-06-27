@@ -1,6 +1,6 @@
 Shapely==1.5.15
 Fiona==1.6.4
 requests==2.2.1
-https://github.com/openaddresses/machine/archive/2.19.5.zip
+https://github.com/openaddresses/machine/archive/2.21.0.zip
 mock==1.0.1
 httmock==1.2.5
