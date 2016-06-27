@@ -39,7 +39,7 @@ setup(
     author = 'Michal Migurski',
     author_email = 'mike-pypi@teczno.com',
     description = 'In-progress scripts for running OpenAddresses on a complete data set and publishing the results.',
-    packages = ['openaddr', 'openaddr.util', 'openaddr.ci', 'openaddr.tests'],
+    packages = ['openaddr', 'openaddr.util', 'openaddr.ci', 'openaddr.tests', 'openaddr.parcels'],
     entry_points = dict(
         console_scripts = [
             'openaddr-render-us = openaddr.render:main',
@@ -63,6 +63,10 @@ setup(
         ],
         'openaddr.tests': [
             'data/*.*', 'sources/*.*', 'sources/fr/*.*', 'conforms/*.*'
+        ],
+        'openaddr.parcels': [
+            'data/*.*', 'data/us/ca/*.*', 'data/us/ca/berkeley/*.*',
+            'sources/us/ca/*.*', 'sources/us/id/*.*', 'README.md'
         ]
     },
     test_suite = 'openaddr.tests',
@@ -104,6 +108,10 @@ setup(
         
         # https://boto3.readthedocs.org
         'boto3 == 1.1.4',
+        
+        # Used in openaddr.parcels
+        'Shapely == 1.5.15',
+        'Fiona == 1.6.4',
 
         ] + conditional_requirements
 )
