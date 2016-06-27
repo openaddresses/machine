@@ -220,7 +220,7 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
             if do_expand:
                 row['STREET'] = expand.expand_street_name(row['STREET'])
             
-            out_csv.writerow(row)
+            out_csv.writerow({col: row.get(col) for col in OPENADDR_CSV_SCHEMA})
             key = floor(lat / size) * size, floor(lon / size) * size
             squares[key] += 1
 
