@@ -2783,8 +2783,12 @@ class TestCollect (unittest.TestCase):
         expand_and_add_csv_to_zipfile(output, u'us/ca/älameda.csv', BytesIO(input2.encode('utf8')), False)
         input3 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID\n8.6885893,50.1042197,12,Abtsgäßchen,,Frankfurt am Main,,,60594,\n8.6885485,50.1041506,14,Abtsgäßchen,,Frankfurt am Main,,,60594,\n'
         expand_and_add_csv_to_zipfile(output, 'de/he/frankfurt.csv', BytesIO(input3.encode('utf8')), False)
+
+        # Collection with extra columns.
+        input4 = u'LON,LAT,NUMBER,STREET,CITY,DISTRICT,REGION,POSTCODE,GOODTIMES\n-122.2359742,37.7362507,85,MAITLAND DR,ALAMEDA,,,94502,goodtimes\n-122.2353881,37.7223605,1360,S LOOP RD,ALAMEDA,,,94502,goodtimes\n-122.2385597,37.7284071,3508,CATALINA AV,ALAMEDA,,,94502,goodtimes\n-122.2368942,37.7305041,3512,MCSHERRY WY,ALAMEDA,,,94502,goodtimes\n-122.2349371,37.7357455,514,FLOWER LA,ALAMEDA,,,94502,goodtimes\n-122.2367819,37.7342157,1014,HOLLY ST,ALAMEDA,,,94502,goodtimes\n'
+        expand_and_add_csv_to_zipfile(output, u'us/ca/älameda.csv', BytesIO(input4.encode('utf8')), False)
         
-        self.assertEqual(len(output.write.mock_calls), 8)
+        self.assertEqual(len(output.write.mock_calls), 10)
 
         self.assertEqual(output.write.mock_calls[0][1][1], u'us/ca/älameda.csv')
         self.assertEqual(output.write.mock_calls[1][1][1], u'summary/us/ca/älameda-summary.csv')
@@ -2794,6 +2798,8 @@ class TestCollect (unittest.TestCase):
         self.assertEqual(output.write.mock_calls[5][1][1], output.write.mock_calls[1][1][1])
         self.assertEqual(output.write.mock_calls[6][1][1], 'de/he/frankfurt.csv')
         self.assertEqual(output.write.mock_calls[7][1][1], 'summary/de/he/frankfurt-summary.csv')
+        self.assertEqual(output.write.mock_calls[8][1][1], output.write.mock_calls[0][1][1])
+        self.assertEqual(output.write.mock_calls[9][1][1], output.write.mock_calls[1][1][1])
         
         self.assertIn(u'älameda'.encode('utf8'), output_writestr_contents[0])
         self.assertIn(u'älameda'.encode('utf8'), output_writestr_contents[1])
