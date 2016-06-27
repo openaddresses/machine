@@ -62,11 +62,13 @@ setup(
             'schema.pgsql', 'templates/*.*', 'static/*.*'
         ],
         'openaddr.tests': [
-            'data/*.*', 'sources/*.*', 'sources/fr/*.*', 'conforms/*.*'
+            'data/*.*', 'sources/*.*', 'sources/fr/*.*', 'conforms/*.*',
+            'parcels/sources/us/ca/*.*', 'parcels/sources/us/id/*.*',
+            'parcels/data/*.*', 'parcels/data/us/ca/*.*',
+            'parcels/data/us/ca/berkeley/*.*'
         ],
         'openaddr.parcels': [
-            'data/*.*', 'data/us/ca/*.*', 'data/us/ca/berkeley/*.*',
-            'sources/us/ca/*.*', 'sources/us/id/*.*', 'README.md'
+            'README.md'
         ]
     },
     test_suite = 'openaddr.tests',

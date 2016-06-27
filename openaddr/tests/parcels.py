@@ -1,5 +1,5 @@
 from __future__ import print_function
-from . import config, utils, parse
+from ..parcels import config, utils, parse
 
 import unittest, csv
 from collections import OrderedDict
@@ -15,19 +15,19 @@ def filename(path):
     return join(dirname(__file__), path)
 
 def target(path):
-    name_parts = __name__.split('.')[:-1] + [path]
+    name_parts = __name__.split('.')[:-2] + ['parcels', path]
     return '.'.join(name_parts)
 
-class TestUtils (unittest.TestCase):
+class TestParcelsUtils (unittest.TestCase):
 
     def setUp(self):
-        config.openaddr_dir, self._prev_openaddr_dir = dirname(__file__), config.openaddr_dir
+        config.openaddr_dir, self._prev_openaddr_dir = filename('parcels'), config.openaddr_dir
     
     def tearDown(self):
         config.openaddr_dir, self._prev_openaddr_dir = self._prev_openaddr_dir, None
     
     def test_scrape_csv_metadata(self):
-        with open(filename('data/us/ca/berkeley/Parcels.csv')) as file:
+        with open(filename('parcels/data/us/ca/berkeley/Parcels.csv')) as file:
             rows = csv.reader(file)
             header, row = next(rows), next(rows)
             scraped = utils.scrape_csv_metadata(row, header, 'us/ca/berkeley.json')
@@ -35,14 +35,14 @@ class TestUtils (unittest.TestCase):
         self.assertEqual(scraped, {'CITY': 'BERKELEY', 'ID': '055 183213100', 'REGION': None, 'STREET': 'DANA ST', 'NUMBER': '2550', 'DISTRICT': None, 'LON': None, 'LAT': None, 'UNIT': '', 'POSTCODE': '94704', 'HASH': 'a9bab15763bb9f03'})
     
     def test_scrape_fiona_metadata(self):
-        with fiona.open(filename('data/us/ca/berkeley/Parcels.shp')) as data:
+        with fiona.open(filename('parcels/data/us/ca/berkeley/Parcels.shp')) as data:
             obj = next(data)
             scraped = utils.scrape_fiona_metadata(obj, 'us/ca/berkeley.json')
         
         self.assertEqual(scraped, {'CITY': 'BERKELEY', 'ID': '055 183213100', 'REGION': None, 'STREET': 'DANA ST', 'NUMBER': '2550', 'DISTRICT': None, 'LON': None, 'LAT': None, 'UNIT': '', 'POSTCODE': '94704', 'HASH': 'a9bab15763bb9f03'})
     
     def test_to_shapely_obj(self):
-        with fiona.open(filename('data/us/ca/berkeley/Parcels.shp')) as data:
+        with fiona.open(filename('parcels/data/us/ca/berkeley/Parcels.shp')) as data:
             obj = next(data)
             shaped = utils.to_shapely_obj(obj)
         
@@ -54,7 +54,7 @@ class TestUtils (unittest.TestCase):
     
     def test_import_csv(self):
         with mock.patch(target('utils.scrape_csv_metadata')) as scrape_csv_metadata:
-            imported = utils.import_csv(filename('data/us/ca/berkeley/Parcels.csv'), 'us/ca/berkeley.json')
+            imported = utils.import_csv(filename('parcels/data/us/ca/berkeley/Parcels.csv'), 'us/ca/berkeley.json')
         
         args = [call[1] for call in scrape_csv_metadata.mock_calls if call[0] == '']
         self.assertEqual(args[0], (['POLYGON ((565011.581500000320375 4190878.6357499994338,565007.068900000303984 4190904.882000001147389,565044.69565000012517 4190911.299,565049.508399999700487 4190885.2125,565011.581500000320375 4190878.6357499994338))', '055 183213100', 'YES', '565028.20427000', '4190894.98674000', '71843', '2550', '', '', 'DANA', 'ST', '', 'BERKELEY', 'CA', '94704', '7390', 'CONDOMINIUM-COMMON AREA', '0', '0', '37.86320476', '-122.26071359', '565007.06890000', '565049.50840000', '4190878.63575000', '4190911.29900000', '1018.77538590000', '129.82101701300'], ['OA:geom', 'APN', 'CONDO', 'POINT_X', 'POINT_Y', 'LocationID', 'StreetNum', 'Prequalifi', 'Direction', 'StreetName', 'StreetSufx', 'Unit', 'City', 'State', 'Zip', 'UseCode', 'UseCodeDes', 'BldgSqft', 'LotSqft', 'latitude', 'longitude', 'X_min', 'X_max', 'Y_min', 'Y_max', 'Shape_area', 'Shape_len'], 'us/ca/berkeley.json'))
@@ -72,7 +72,7 @@ class TestUtils (unittest.TestCase):
     
     def test_import_with_fiona(self):
         with mock.patch(target('utils.scrape_fiona_metadata')) as scrape_fiona_metadata:
-            imported = utils.import_with_fiona(filename('data/us/ca/berkeley/Parcels.shp'), 'us/ca/berkeley.json')
+            imported = utils.import_with_fiona(filename('parcels/data/us/ca/berkeley/Parcels.shp'), 'us/ca/berkeley.json')
         
         args = [call[1] for call in scrape_fiona_metadata.mock_calls if call[0] == '']
         self.assertEqual(args[0], ({'geometry': {'type': 'Polygon', 'coordinates': [[(565011.5815000003, 4190878.6357499994), (565007.0689000003, 4190904.882000001), (565044.6956500001, 4190911.2990000006), (565049.5083999997, 4190885.2125000004), (565011.5815000003, 4190878.6357499994)]]}, 'type': 'Feature', 'id': '0', 'properties': OrderedDict([('APN', '055 183213100'), ('CONDO', 'YES'), ('POINT_X', 565028.20427), ('POINT_Y', 4190894.98674), ('LocationID', 71843.0), ('StreetNum', 2550.0), ('Prequalifi', None), ('Direction', None), ('StreetName', 'DANA'), ('StreetSufx', 'ST'), ('Unit', None), ('City', 'BERKELEY'), ('State', 'CA'), ('Zip', '94704'), ('UseCode', '7390'), ('UseCodeDes', 'CONDOMINIUM-COMMON AREA'), ('BldgSqft', 0.0), ('LotSqft', 0.0), ('latitude', 37.86320476), ('longitude', -122.26071359), ('X_min', 565007.0689), ('X_max', 565049.5084), ('Y_min', 4190878.63575), ('Y_max', 4190911.299), ('Shape_area', 1018.7753859), ('Shape_len', 129.821017013)])}, 'us/ca/berkeley.json'))
@@ -88,11 +88,11 @@ class TestUtils (unittest.TestCase):
 
         self.assertEqual(len(imported), 3)
 
-class TestParse (unittest.TestCase):
+class TestParcelsParse (unittest.TestCase):
 
     def setUp(self):
-        config.openaddr_dir, self._prev_openaddr_dir = dirname(__file__), config.openaddr_dir
-        config.statefile_path, self._prev_statefile_path = filename('data/state.txt'), config.statefile_path
+        config.openaddr_dir, self._prev_openaddr_dir = filename('parcels'), config.openaddr_dir
+        config.statefile_path, self._prev_statefile_path = filename('parcels/data/state.txt'), config.statefile_path
         config.workspace_dir, self._prev_workspace_dir = mkdtemp(prefix='workspace-'), config.workspace_dir
         config.output_dir, self._prev_output_dir = mkdtemp(prefix='output-'), config.output_dir
     
@@ -107,7 +107,7 @@ class TestParse (unittest.TestCase):
     
     def response_content(self, url, request):
         if (url.netloc, url.path) == ('data.openaddresses.io', '/runs/89894/cache.zip'):
-            with open(filename('data/us/ca/berkeley.zip'), 'rb') as file:
+            with open(filename('parcels/data/us/ca/berkeley.zip'), 'rb') as file:
                 return httmock.response(200, file.read(), headers={'Content-Type': 'application/zip'})
         print(url.path)
         raise Exception(url)
