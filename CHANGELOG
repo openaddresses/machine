@@ -1,3 +1,6 @@
+2016-06-27: 2.21.1
+- Merged parcels code, but it is not yet publicly exposed.
+
 2016-06-26: 2.21.0
 - Added HASH column in output address files.
 - Fixed empty argument bug in esri2geojson.

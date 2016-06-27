@@ -1,3 +1,8 @@
+Parcels
+=======
+
+⚠️ This README currently represents an [older, pre-merge state](https://github.com/openaddresses/parcels/tree/pre-move#readme) of Parcels code. ⚠️
+
 ### Overview
 
 This script will fetch the latest [state.txt](http://results.openaddresses.io/state.txt) file, and parse as much parcel data as it can.
