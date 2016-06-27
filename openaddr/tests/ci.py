@@ -2805,6 +2805,7 @@ class TestCollect (unittest.TestCase):
         self.assertIn(u'älameda'.encode('utf8'), output_writestr_contents[1])
         self.assertIn(u'älameda'.encode('utf8'), output_writestr_contents[2])
 
+        # input1
         self.assertEqual(output_write_contents[0],
             [
             'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH',
@@ -2831,6 +2832,8 @@ class TestCollect (unittest.TestCase):
             '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222,h4sh',
             ])
         self.assertEqual(output_write_contents[3], output_write_contents[1])
+        
+        # input2
         self.assertEqual(output_write_contents[4],
             [
             'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH',
@@ -2842,6 +2845,8 @@ class TestCollect (unittest.TestCase):
             '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,,',
             ])
         self.assertEqual(output_write_contents[5], output_write_contents[1])
+        
+        # input3
         self.assertEqual(output_write_contents[6],
             [
             'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH',
@@ -2852,6 +2857,18 @@ class TestCollect (unittest.TestCase):
             [
             'count,lon,lat,area',
             '2,8.6,50.1,"POLYGON((8.6 50.1,8.6 50.2,8.7 50.2,8.7 50.1,8.6 50.1))"',
+            ])
+        
+        # input4
+        self.assertEqual(output_write_contents[8],
+            [
+            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH',
+            '-122.2359742,37.7362507,85,MAITLAND DR,,ALAMEDA,,,94502,,',
+            '-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,,',
+            '-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,,',
+            '-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,,',
+            '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,,',
+            '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,,',
             ])
 
 if __name__ == '__main__':
