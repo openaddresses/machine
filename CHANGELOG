@@ -1,3 +1,6 @@
+2016-06-29: 2.21.4
+- Fixed additional RunState problem in ci.collect.
+
 2016-06-27: 2.21.3
 - Fixed missing libgdal-dev package install.
 
