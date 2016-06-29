@@ -79,8 +79,8 @@ def main():
         'us_west': is_us_west, 'europe': is_europe, 'asia': is_asia
         }
     sa_tests = {
-        '': (lambda result: result.run_state.get('share-alike', '') != 'true'),
-        'sa': (lambda result: result.run_state.get('share-alike', '') == 'true')
+        '': (lambda result: result.run_state.share_alike != 'true'),
+        'sa': (lambda result: result.run_state.share_alike == 'true')
         }
     
     collections = prepare_collections(s3, set, dir, area_tests, sa_tests)
@@ -155,12 +155,12 @@ class CollectorPublisher:
         add_source_to_zipfile(self.zip, result)
 
         attribution = 'No'
-        if result.run_state.get('attribution flag') != 'false':
-            attribution = result.run_state.get('attribution name') or 'Yes'
+        if result.run_state.attribution_flag != 'false':
+            attribution = result.run_state.attribution_name or 'Yes'
     
         self.sources[result.source_base] = {
-            'website': result.run_state.get('website') or 'Unknown',
-            'license': result.run_state.get('license') or 'Unknown',
+            'website': result.run_state.website or 'Unknown',
+            'license': result.run_state.license or 'Unknown',
             'attribution': attribution
             }
         

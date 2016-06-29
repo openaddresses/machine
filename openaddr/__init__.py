@@ -66,6 +66,9 @@ class S3:
 
 class LocalProcessedResult:
     def __init__(self, source_base, filename, run_state, code_version):
+        for attr in ('attribution_name', 'attribution_flag', 'website', 'license'):
+            assert hasattr(run_state, attr), 'Run state should have {} property'.format(attr)
+        
         self.source_base = source_base
         self.filename = filename
         self.run_state = run_state

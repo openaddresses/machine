@@ -72,7 +72,8 @@ class RunState:
         for key in ('source', 'cache', 'sample', 'geometry type',
         'address count', 'version', 'fingerprint', 'cache time', 'processed',
         'output', 'process time', 'website', 'skipped', 'license',
-        'share-alike', 'attribution required', 'attribution name')}
+        'share-alike', 'attribution required', 'attribution name',
+        'attribution flag')}
 
     def __init__(self, json_blob):
         blob_dict = dict(json_blob or {})
@@ -95,6 +96,7 @@ class RunState:
         self.share_alike = blob_dict.get('share-alike')
         self.attribution_required = blob_dict.get('attribution required')
         self.attribution_name = blob_dict.get('attribution name')
+        self.attribution_flag = blob_dict.get('attribution flag')
 
         unexpected = ', '.join(set(self.keys) - set(RunState.key_attrs.keys()))
         assert len(unexpected) == 0, 'RunState should not have keys {}'.format(unexpected)
