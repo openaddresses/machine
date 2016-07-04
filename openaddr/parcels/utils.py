@@ -13,13 +13,10 @@ from . import config
 from shapely.geometry import shape
 from shapely.wkt import loads, dumps
 from openaddr.conform import conform_smash_case, row_transform_and_convert
-from openaddr.jobs import setup_logger
 
 _L = logging.getLogger('openaddr.parcels')
 
 csv.field_size_limit(sys.maxsize)
-setup_logger()
-
 
 def fetch(url, filepath):
     r = requests.get(url, stream=True)
