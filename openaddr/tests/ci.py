@@ -1805,13 +1805,13 @@ class TestRuns (unittest.TestCase):
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
     @patch('openaddr.compat.check_output')
-    def test_failure_logging_run(self, check_output):
-        ''' Test a run that fails without producing JSON output.
+    def test_timeout_logging_run(self, check_output):
+        ''' Test a run that times out after producing logging output.
         '''
         def takes_a_long_time(cmd, timeout):
             with open(cmd[2], 'w') as file:
                 file.write('Took too long.\n')
-            raise compat.CalledProcessError(1, cmd, 'Took too long')
+            raise compat.TimeoutExpired(cmd, timeout, 'Took too long')
 
         check_output.side_effect = takes_a_long_time
 
@@ -1842,17 +1842,17 @@ class TestRuns (unittest.TestCase):
                 ((state, ), ) = db.fetchall()
             
             # Look for log file message in output.
-            self.assertIn('Took too long.', self.s3._read_fake_key(urlparse(state['output']).path))
+            self.assertIn(b'Took too long.', self.s3._read_fake_key(urlparse(state['output']).path))
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
     @patch('openaddr.compat.check_output')
-    def test_failure_nonlogging_run(self, check_output):
-        ''' Test a run that fails without producing JSON output.
+    def test_timeout_nonlogging_run(self, check_output):
+        ''' Test a run that times out without producing logging output.
         '''
         def takes_a_long_time(cmd, timeout):
-            raise compat.CalledProcessError(1, cmd, 'Took too long')
+            raise compat.TimeoutExpired(cmd, timeout, 'Took too long')
 
         check_output.side_effect = takes_a_long_time
 
@@ -1884,6 +1884,11 @@ class TestRuns (unittest.TestCase):
             
             # Look for log file message in output.
             self.assertNotIn('output', state)
+        
+        # Briefly sleep to account for an intermittent Postgres deadlock
+        # between this test and test_working_run(), that is reproducible
+        # only on Circle CI.
+        sleep(1)
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))

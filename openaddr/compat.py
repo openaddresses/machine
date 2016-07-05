@@ -9,6 +9,7 @@ if PY2:
     
     check_output = subprocess32.check_output
     CalledProcessError = subprocess32.CalledProcessError
+    TimeoutExpired = subprocess32.TimeoutExpired
     
     csvIO = io.BytesIO
     
@@ -78,6 +79,7 @@ else:
     
     check_output = subprocess.check_output
     CalledProcessError = subprocess.CalledProcessError
+    TimeoutExpired = subprocess.TimeoutExpired
     
     csvIO = io.StringIO
     

@@ -15,7 +15,6 @@ from .utils import fetch, unzip, rlistdir, import_with_fiona, import_csv
 _L = logging.getLogger('openaddr.parcels')
 
 csv.field_size_limit(sys.maxsize)
-setup_logger()
 
 def parse_source(source, idx, header):
     """
@@ -124,6 +123,8 @@ def filter_polygons(state, header):
 
 
 if __name__ == '__main__':
+    setup_logger()
+
     if not os.path.isfile(config.statefile_path):
         fetch(config.state_url, config.statefile_path)
 
