@@ -1884,6 +1884,11 @@ class TestRuns (unittest.TestCase):
             
             # Look for log file message in output.
             self.assertNotIn('output', state)
+        
+        # Briefly sleep to account for an intermittent Postgres deadlock
+        # between this test and test_working_run(), that is reproducible
+        # only on Circle CI.
+        sleep(1)
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
