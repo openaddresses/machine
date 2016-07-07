@@ -18,6 +18,7 @@ bash 'install_latest_gdal' do
     wget 'http://download.osgeo.org/gdal/1.11.3/gdal-1.11.3.tar.gz'
     tar xvfz gdal-1.11.3.tar.gz
     cd gdal-1.11.3
+    ./configure --with-python
     make
     sudo make install
     cd ..
