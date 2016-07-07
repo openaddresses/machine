@@ -417,11 +417,12 @@ def find_source_path(source_definition, source_paths):
     elif conform["type"] == "gdb":
         candidates = []
         for fn in source_paths:
+            fn = re.sub('\.gdb.*', '.gdb', fn)
             basename, ext = os.path.splitext(fn)
-            if ext.lower() == ".gdb":
+            if ext.lower() == ".gdb" and fn not in candidates:
                 candidates.append(fn)
         if len(candidates) == 0:
-            _L.warning("No shapefiles found in %s", source_paths)
+            _L.warning("No GDB found in %s", source_paths)
             return None
         elif len(candidates) == 1:
             _L.debug("Selected %s for source", candidates[0])
