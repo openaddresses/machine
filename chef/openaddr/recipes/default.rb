@@ -10,10 +10,10 @@ package 'python-all-dev'
 bash 'install_latest_gdal' do
   code <<-EOH
     curl -L 'https://github.com/mapbox/mason/archive/8ad789e39d5cf4f0e9fc351f06d7689a69758462.zip' > ~/mason.zip
-    unzip ~/mason.zip -d /.mason
+    unzip -o ~/mason.zip -d ~/
+    mv ~/mason-8ad789e39d5cf4f0e9fc351f06d7689a69758462/ ~/.mason
     cd ~/.mason
-    ln -s ~/.mason/mason /usr/local/bin/mason
-    mason instal gdal 1.11.2
+    ~/.mason/mason install gdal 1.11.2
     EOH
 end
 
