@@ -536,6 +536,20 @@ class TestConformMisc(unittest.TestCase):
         broken_conform = {"conform": { "type": "broken" }}
         self.assertEqual(None, find_source_path(broken_conform, ["foo.shp"]))
 
+    def test_find_gdb_source_path(self):
+        shp_conform = {"conform": { "type": "gdb" } }
+        self.assertEqual("foo.shp", find_source_path(shp_conform, ["foo.gdb"]))
+        self.assertEqual("FOO.SHP", find_source_path(shp_conform, ["FOO.GDB"]))
+        self.assertEqual("xyzzy/FOO.SHP", find_source_path(shp_conform, ["xyzzy/FOO.GDB"]))
+        self.assertEqual("foo.shp", find_source_path(shp_conform, ["foo.gdb", "foo.prj", "foo.shx"]))
+        self.assertEqual(None, find_source_path(shp_conform, ["nope.txt"]))
+        self.assertEqual(None, find_source_path(shp_conform, ["foo.gdb", "bar.gdb"]))
+
+        shp_file_conform = {"conform": { "type": "gdb", "file": "foo.gdb" } }
+        self.assertEqual("foo.shp", find_source_path(shp_file_conform, ["foo.gdb"]))
+        self.assertEqual("foo.shp", find_source_path(shp_file_conform, ["foo.gdb", "bar.gdb"]))
+        self.assertEqual("xyzzy/foo.shp", find_source_path(shp_file_conform, ["xyzzy/foo.gdb", "xyzzy/bar.gdb"]))
+
     def test_find_geojson_source_path(self):
         geojson_conform = {"type": "notESRI", "conform": {"type": "geojson"}}
         self.assertEqual("foo.json", find_source_path(geojson_conform, ["foo.json"]))
