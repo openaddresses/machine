@@ -414,6 +414,10 @@ def find_source_path(source_definition, source_paths):
             return None
         else:
             return source_paths[0]
+    elif conform["type"] == "gdb":
+        if "file " in conform:
+
+        else:
 
     elif conform["type"] == "xml":
         # Return file if it's specified, else return the first .gml file we find
