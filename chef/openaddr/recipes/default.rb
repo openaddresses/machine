@@ -7,10 +7,6 @@ package 'libffi-dev'
 package 'build-essential'
 package 'python-all-dev'
 
-execute "pip install -U ." do
-  cwd File.join(File.dirname(__FILE__), '..', '..', '..')
-end
-
 bash 'install_latest_gdal' do
   code <<-EOH
     wget 'http://download.osgeo.org/gdal/1.11.3/gdal-1.11.3.tar.gz'
@@ -22,3 +18,8 @@ bash 'install_latest_gdal' do
     cd ..
     EOH
 end
+
+execute "pip install -U ." do
+  cwd File.join(File.dirname(__FILE__), '..', '..', '..')
+end
+
