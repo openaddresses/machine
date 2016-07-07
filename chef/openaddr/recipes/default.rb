@@ -9,9 +9,9 @@ package 'python-all-dev'
 
 bash 'install_latest_gdal' do
   code <<-EOH
-    wget 'http://download.osgeo.org/gdal/1.11.3/gdal-1.11.3.tar.gz'
-    tar xvfz gdal-1.11.3.tar.gz
-    cd gdal-1.11.3
+    wget 'http://download.osgeo.org/gdal/2.1.0/gdal-2.1.0.tar.gz'
+    tar xvfz gdal-2.1.0.tar.gz
+    cd gdal-2.1.0
     ./configure --with-python
     make
     sudo make install
