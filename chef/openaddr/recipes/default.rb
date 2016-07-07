@@ -4,7 +4,6 @@ package 'python-dev'
 package 'libpq-dev'
 package 'memcached'
 package 'libffi-dev'
-package 'libgdal-dev'
 package 'build-essential'
 package 'python-all-dev'
 
