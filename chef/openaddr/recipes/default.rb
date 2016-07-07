@@ -9,13 +9,11 @@ package 'python-all-dev'
 
 bash 'install_latest_gdal' do
   code <<-EOH
-    wget 'http://download.osgeo.org/gdal/1.11.3/gdal-1.11.3.tar.gz'
-    tar xvfz gdal-1.11.3.tar.gz
-    cd gdal-1.11.3
-    ./configure --with-python
-    make
-    sudo make install
-    cd ..
+    git clone -b master --single-branch https://github.com/mapbox/mason.git ~/.mason
+    cd ~/.mason
+    git checkout 8ad789e39d5cf4f0e9fc351f06d7689a69758462
+    sudo ln -s ~/.mason/mason /usr/local/bin/mason
+    mason instal gdal 1.11.2
     EOH
 end
 
