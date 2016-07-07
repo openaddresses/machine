@@ -415,19 +415,27 @@ def find_source_path(source_definition, source_paths):
         else:
             return source_paths[0]
     elif conform["type"] == "gdb":
-        if "file " in conform:
-            for fn in source_paths:
-                # Consider it a match if the basename matches; directory names are a mess
-                if os.path.basename(conform["file"]) == os.path.basename(fn):
-                    return fn
-            _L.warning("Conform named %s as file but we could not find it." % conform["file"])
+        candidates = []
+        for fn in source_paths:
+            basename, ext = os.path.splitext(fn)
+            if ext.lower() == ".gdb":
+                candidates.append(fn)
+        if len(candidates) == 0:
+            _L.warning("No shapefiles found in %s", source_paths)
             return None
-        else:
-            for fn in source_paths:
-                _, ext = os.path.splitext(fn)
-                if ext == ".gdb":
-                    return fn
-            _L.warning("Could not find a .gdb file")
+        elif len(candidates) == 1:
+            _L.debug("Selected %s for source", candidates[0])
+            return candidates[0]
+        else: 
+            # Multiple candidates; look for the one named by the file attribute
+            if "file" not in conform:
+                _L.warning("Multiple GDBs found, but source has no file attribute.")
+                return None
+            source_file_name = conform["file"]
+            for c in candidates:
+                if source_file_name == os.path.basename(c):
+                    return c
+            _L.warning("Source names file %s but could not find it", source_file_name)
             return None
     elif conform["type"] == "xml":
         # Return file if it's specified, else return the first .gml file we find
