@@ -9,6 +9,9 @@ conditional_requirements = list()
 
 if sys.version_info[0] == 2:
     conditional_requirements += [
+        # https://pypi.python.org/pypi/GDAL/
+        'gdal >= 2.1.0',
+
         # http://python-future.org
         'future >= 0.14.3',
         
