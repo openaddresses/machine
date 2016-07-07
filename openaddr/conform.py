@@ -450,7 +450,7 @@ def find_source_path(source_definition, source_paths):
         return None
 
 class ConvertToCsvTask(object):
-    known_types = ('.shp', '.json', '.csv', '.kml', 'gdb')
+    known_types = ('.shp', '.json', '.csv', '.kml', '.gdb')
 
     def convert(self, source_definition, source_paths, workdir):
         "Convert a list of source_paths and write results in workdir"
