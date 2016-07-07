@@ -313,6 +313,34 @@ class TestConformCli (unittest.TestCase):
             self.assertEqual(rows[5]['NUMBER'], '5115')
             self.assertEqual(rows[5]['STREET'], 'OLD MILL RD')
 
+    def test_lake_man_gdb(self):
+        rc, dest_path = self._run_conform_on_source('lake-man-gdb', 'gdb')
+        self.assertEqual(0, rc)
+
+        with csvopen(dest_path) as fp:
+            reader = csvDictReader(fp)
+            self.assertEqual(OPENADDR_CSV_SCHEMA, reader.fieldnames)
+
+            rows = list(reader)
+
+            self.assertAlmostEqual(float(rows[0]['LAT']), 37.802612637607439)
+            self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824)
+
+            self.assertEqual(6, len(rows))
+            self.assertEqual(rows[0]['NUMBER'], '5115')
+            self.assertEqual(rows[0]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[1]['NUMBER'], '5121')
+            self.assertEqual(rows[1]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[2]['NUMBER'], '5133')
+            self.assertEqual(rows[2]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[3]['NUMBER'], '5126')
+            self.assertEqual(rows[3]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[4]['NUMBER'], '5120')
+            self.assertEqual(rows[4]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[5]['NUMBER'], '5115')
+            self.assertEqual(rows[5]['STREET'], 'OLD MILL RD')
+
+
     def test_lake_man(self):
         rc, dest_path = self._run_conform_on_source('lake-man-gdb', 'gdb')
         self.assertEqual(0, rc)
