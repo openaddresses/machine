@@ -953,7 +953,6 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     """
     if source_definition["conform"]["type"] in ("shapefile", "shapefile-polygon", "xml", "gdb"):
         ogr_source_path = normalize_ogr_filename_case(source_path)
-        print(ogr_source_path)
         ogr_source_to_csv(source_definition, ogr_source_path, extract_path)
     elif source_definition["conform"]["type"] == "csv":
         csv_source_to_csv(source_definition, source_path, extract_path)
