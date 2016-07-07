@@ -14,8 +14,9 @@ bash 'install_latest_gdal' do
     cd gdal-2.1.0
     ./configure --with-python
     make
-    sudo make install
+    make install
     cd ..
+    ldconfig
     EOH
 end
 
