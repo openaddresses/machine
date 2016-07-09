@@ -15,7 +15,8 @@ from itertools import product
 from io import TextIOWrapper
 from datetime import date
 from shutil import rmtree
-from math import floor
+from math import ceil, floor, sqrt
+from multiprocessing import Pool
 
 from .objects import read_latest_set, read_completed_runs_to_date
 from . import db_connect, db_cursor, setup_logger, render_index_maps, log_function_errors
@@ -157,13 +158,71 @@ class CollectorPublisher:
         attribution = 'No'
         if result.run_state.attribution_flag != 'false':
             attribution = result.run_state.attribution_name or 'Yes'
-    
+
         self.sources[result.source_base] = {
             'website': result.run_state.website or 'Unknown',
             'license': result.run_state.license or 'Unknown',
             'attribution': attribution
             }
-        
+
+    def _upload_part(self, multipart_id, part_num, source_path, offset, bytes, retries=10):
+        """
+        Uploads a part with retries.
+        """
+        def _upload(retries_left=retries):
+            try:
+                _L.info('Start uploading part #%d ...', part_num)
+                for mp in self.s3.get_all_multipart_uploads():
+                    if mp.id == multipart_id:
+                        with open(source_path, 'r') as fp:
+                            fp.seek(offset)
+                            mp.upload_part_from_file(fp=fp, part_num=part_num, size=bytes)
+                        break
+            except Exception, exc:
+                if retries_left:
+                    _upload(retries_left=retries_left - 1)
+                else:
+                    _L.info('... Failed uploading part #%d', part_num)
+                    raise exc
+            else:
+                _L.info('... Uploaded part #%d', part_num)
+
+        _upload()
+
+    def write_to_s3(self, filename, key,
+        policy='public-read', content_type='application/zip', parallelism=4):
+        ''' Writes the file at `filename` to the S3 key `key` using
+            S3's multipart upload functionality.
+
+            Returns the S3 Key object for the file that was uploaded.
+        '''
+        mp = self.s3.initiate_multipart_upload(key, headers={'Content-Type': content_type})
+
+        # With help from https://gist.github.com/fabiant7t/924094
+        source_size = stat(filename).st_size
+        five_megabytes = 5 * 1024 * 1024
+        bytes_per_chunk = max(int(sqrt(five_megabytes) * sqrt(source_size)), five_megabytes)
+        chunk_amount = int(ceil(source_size / float(bytes_per_chunk)))
+
+        pool = Pool(processes=parallelism)
+        for i in range(chunk_amount):
+            offset = i * bytes_per_chunk
+            remaining_bytes = source_size - offset
+            bytes = min([bytes_per_chunk, remaining_bytes])
+            part_num = i + 1
+            pool.apply_async(self._upload_part, [mp.id, part_num, filename, offset, bytes])
+        pool.close()
+        pool.join()
+
+        if len(mp.get_all_parts()) == chunk_amount:
+            mp.complete_upload()
+            key = self.s3.get_key(key)
+            key.set_acl(policy)
+            return key
+        else:
+            mp.cancel_upload()
+            raise Exception("Error uploading multipart data")
+
     def publish(self, db):
         ''' Create new S3 object with zipfile name and upload the collection.
         '''
@@ -179,9 +238,7 @@ class CollectorPublisher:
         self.zip.close()
         _L.info(u'Finished {}'.format(self.zip.filename))
 
-        zip_key = self.s3.new_key(basename(self.zip.filename))
-        zip_args = dict(policy='public-read', headers={'Content-Type': 'application/zip'})
-        zip_key.set_contents_from_filename(self.zip.filename, **zip_args)
+        zip_key = self.write_to_s3(self.zip.filename, basename(self.zip.filename))
         _L.info(u'Uploaded {} to {}'.format(self.zip.filename, zip_key.name))
 
         zip_url = zip_key.generate_url(expires_in=0, query_auth=False, force_http=True)
