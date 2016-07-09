@@ -62,40 +62,40 @@ def main():
     setup_logger(args.sns_arn, log_level=args.loglevel)
     s3 = S3(args.access_key, args.secret_key, args.bucket)
     db_args = util.prepare_db_kwargs(args.database_url)
-    
+
     with db_connect(**db_args) as conn:
         with db_cursor(conn) as db:
             set = read_latest_set(db, args.owner, args.repository)
             runs = read_completed_runs_to_date(db, set.id)
 
     render_index_maps(s3, runs)
-    
+
     dir = mkdtemp(prefix='collected-')
-    
+
     # Maps of file suffixes to test functions
     area_tests = {
         'global': (lambda result: True), 'us_northeast': is_us_northeast,
-        'us_midwest': is_us_midwest, 'us_south': is_us_south, 
+        'us_midwest': is_us_midwest, 'us_south': is_us_south,
         'us_west': is_us_west, 'europe': is_europe, 'asia': is_asia
         }
     sa_tests = {
         '': (lambda result: result.run_state.share_alike != 'true'),
         'sa': (lambda result: result.run_state.share_alike == 'true')
         }
-    
+
     collections = prepare_collections(s3, set, dir, area_tests, sa_tests)
 
     for result in iterate_local_processed_files(runs):
         for (collection, test) in collections:
             if test(result):
                 collection.collect(result)
-    
+
     with db_connect(**db_args) as conn:
         with db_cursor(conn) as db:
             db.execute('UPDATE zips SET is_current = false')
             for (collection, test) in collections:
                 collection.publish(db)
-    
+
     rmtree(dir)
 
 def prepare_collections(s3, set, dir, area_tests, sa_tests):
@@ -103,7 +103,7 @@ def prepare_collections(s3, set, dir, area_tests, sa_tests):
     '''
     collections = []
     pairs = product(area_tests.items(), sa_tests.items())
-    
+
     def _and(test1, test2):
         return lambda result: (test1(result) and test2(result))
 
@@ -114,14 +114,14 @@ def prepare_collections(s3, set, dir, area_tests, sa_tests):
         new_zip = _prepare_zip(set, join(dir, new_name))
         new_collection = CollectorPublisher(s3, new_zip, area_id, attr_id)
         collections.append((new_collection, _and(area_test, sa_test)))
-        
+
     return collections
 
 def _prepare_zip(set, filename):
     '''
     '''
     zipfile = ZipFile(filename, 'w', ZIP_DEFLATED, allowZip64=True)
-    
+
     sources_tpl = 'https://github.com/{owner}/{repository}/tree/{commit_sha}/sources'
     sources_url = sources_tpl.format(**set.__dict__)
     zipfile.writestr('README.txt', '''Data collected around {date} by OpenAddresses (http://openaddresses.io).
@@ -135,11 +135,11 @@ Data licenses can be found in LICENSE.txt.
 Data source information can be found at
 {url}
 '''.format(url=sources_url, date=date.today()))
-    
+
     return zipfile
 
 class CollectorPublisher:
-    ''' 
+    '''
     '''
     def __init__(self, s3, collection_zip, collection_id, license_attr):
         self.s3 = s3
@@ -147,7 +147,7 @@ class CollectorPublisher:
         self.sources = dict()
         self.collection_id = collection_id
         self.license_attr = license_attr
-    
+
     def collect(self, result):
         ''' Add LocalProcessedResult instance to collection zip.
         '''
@@ -183,10 +183,10 @@ class CollectorPublisher:
         zip_args = dict(policy='public-read', headers={'Content-Type': 'application/zip'})
         zip_key.set_contents_from_filename(self.zip.filename, **zip_args)
         _L.info(u'Uploaded {} to {}'.format(self.zip.filename, zip_key.name))
-        
+
         zip_url = zip_key.generate_url(expires_in=0, query_auth=False, force_http=True)
         length = stat(self.zip.filename).st_size if exists(self.zip.filename) else None
-        
+
         db.execute('''DELETE FROM zips WHERE url = %s''', (zip_url, ))
 
         db.execute('''INSERT INTO zips
@@ -196,21 +196,21 @@ class CollectorPublisher:
 
 def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
     ''' Write csv to zipfile, with optional expand.expand_street_name().
-    
+
         File is assumed to be open in binary mode.
     '''
     handle, tmp_filename = mkstemp(suffix='.csv'); close(handle)
-    
+
     if not PY2:
         file = TextIOWrapper(file, 'utf8')
-    
+
     size, squares = .1, defaultdict(lambda: 0)
-    
+
     with open(tmp_filename, 'w') as output:
         in_csv = DictReader(file)
         out_csv = DictWriter(output, OPENADDR_CSV_SCHEMA, dialect='excel')
         out_csv.writerow({col: col for col in OPENADDR_CSV_SCHEMA})
-    
+
         for row in in_csv:
             try:
                 lat, lon = float(row['LAT']), float(row['LON'])
@@ -219,7 +219,7 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
 
             if do_expand:
                 row['STREET'] = expand.expand_street_name(row['STREET'])
-            
+
             out_csv.writerow({col: row.get(col) for col in OPENADDR_CSV_SCHEMA})
             key = floor(lat / size) * size, floor(lon / size) * size
             squares[key] += 1
@@ -246,11 +246,11 @@ def _add_spatial_summary_to_zipfile(zip_out, arc_filename, size, squares):
             args = [F.format(n) for n in (lon, lat, lon + size, lat + size)]
             area = 'POLYGON(({0} {1},{0} {3},{2} {3},{2} {1},{0} {1}))'.format(*args)
             out_csv.writerow(dict(count=count, lon=F.format(lon), lat=F.format(lat), area=area))
-    
+
     prefix, _ = splitext(arc_filename)
     support_csvname = join('summary', prefix+'-summary.csv')
     support_vrtname = join('summary', prefix+'-summary.vrt')
-    
+
     # Write the contents of the summary file.
     zip_out.write(tmp_filename, support_csvname)
 
@@ -266,11 +266,11 @@ def _add_spatial_summary_to_zipfile(zip_out, arc_filename, size, squares):
 
 def add_source_to_zipfile(zip_out, result):
     ''' Add a LocalProcessedResult to zipfile via expand_and_add_csv_to_zipfile().
-    
+
         Use result code_version to determine whether to expand; 2.13+ will do it.
     '''
     _, ext = splitext(result.filename)
-    
+
     try:
         number = [int(n) for n in result.code_version.split('.')]
     except Exception as e:
@@ -290,11 +290,11 @@ def add_source_to_zipfile(zip_out, result):
         if not is_us:
             _L.info(u'Skipping street name expansion for {} (not U.S.)'.format(result.source_base))
             do_expand = False
-    
+
     if ext == '.csv':
         with open(result.filename) as file:
             expand_and_add_csv_to_zipfile(zip_out, result.source_base + ext, file, do_expand)
-    
+
     elif ext == '.zip':
         zip_in = ZipFile(result.filename, 'r')
         for zipinfo in zip_in.infolist():
@@ -327,14 +327,14 @@ def is_us_northeast(result):
             return True
 
     return False
-    
+
 def is_us_midwest(result):
     for abbr in ('il', 'in', 'mi', 'oh', 'wi', 'ia', 'ks', 'mn', 'mo', 'ne', 'nd', 'sd'):
         if _is_us_state(abbr, result):
             return True
 
     return False
-    
+
 def is_us_south(result):
     for abbr in ('de', 'fl', 'ga', 'md', 'nc', 'sc', 'va', 'dc', 'wv', 'al',
                  'ky', 'ms', 'ar', 'la', 'ok', 'tx', 'tn'):
@@ -342,14 +342,14 @@ def is_us_south(result):
             return True
 
     return False
-    
+
 def is_us_west(result):
     for abbr in ('az', 'co', 'id', 'mt', 'nv', 'nm', 'ut', 'wy', 'ak', 'ca', 'hi', 'or', 'wa'):
         if _is_us_state(abbr, result):
             return True
 
     return False
-    
+
 def _is_country(iso, result):
     for sep in ('/', '-'):
         if result.source_base == iso:
@@ -371,7 +371,7 @@ def is_europe(result):
             return True
 
     return False
-    
+
 def is_asia(result):
     for iso in ('af', 'am', 'az', 'bh', 'bd', 'bt', 'bn', 'kh', 'cn', 'cx',
                 'cc', 'io', 'ge', 'hk', 'in', 'id', 'ir', 'iq', 'il', 'jp',
@@ -379,7 +379,7 @@ def is_asia(result):
                 'mv', 'mn', 'mm', 'np', 'om', 'pk', 'ph', 'qa', 'sa', 'sg',
                 'lk', 'sy', 'tw', 'tj', 'th', 'tr', 'tm', 'ae', 'uz', 'vn',
                 'ye', 'ps',
-                
+
                 'as', 'au', 'nz', 'ck', 'fj', 'pf', 'gu', 'ki', 'mp', 'mh',
                 'fm', 'um', 'nr', 'nc', 'nz', 'nu', 'nf', 'pw', 'pg', 'mp',
                 'sb', 'tk', 'to', 'tv', 'vu', 'um', 'wf', 'ws', 'is'):
