@@ -11,8 +11,9 @@ if [ ! `which chef-solo` ]; then
         gem1.9.3 install chef -v 11.16.4 --no-rdoc --no-ri
     else
         # Otherwise, assume Ubuntu ~14+
-        apt-get install -y build-essential ruby ruby-dev
-        gem install chef -v 11.16.4 --no-rdoc --no-ri
+        # Suppress chef_server_url prompt with hint from
+        # http://unix.stackexchange.com/questions/106552/apt-get-install-without-debconf-prompt
+        DEBIAN_FRONTEND=noninteractive apt-get install -y chef
     fi
 fi
 
