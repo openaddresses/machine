@@ -14,6 +14,9 @@ dependencies:
     # CircleCI does not include ppa:ubuntugis by default, Travis does.
     - sudo add-apt-repository -y ppa:ubuntugis
     - sudo apt-get update -y
+    # Install Machine globally via Chef recipe, to pick up complete dependencies.
+    - sudo chef/run.sh testing
+    # Reinstall Machine for virtualenv, to test with this Python version.
     - sudo apt-get install -y -qq libgdal-dev
     # Determine GDAL library version and install a compatible python binding.
     #   http://gis.stackexchange.com/questions/28966/python-gdal-package-missing-header-file-when-installing-via-pip
@@ -22,7 +25,6 @@ dependencies:
     #   http://stackoverflow.com/questions/11491268/install-pycairo-in-virtualenv
     #   https://pythonhosted.org/cairocffi/
     - pip install cairocffi
-    - sudo chef/run.sh testing
     - pip install -U .
 
 test:
