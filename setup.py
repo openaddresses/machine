@@ -62,7 +62,11 @@ setup(
             'schema.pgsql', 'templates/*.*', 'static/*.*'
         ],
         'openaddr.tests': [
-            'data/*.*', 'sources/*.*', 'sources/fr/*.*', 'conforms/*.*',
+            'data/*.*', 'sources/*.*', 'sources/fr/*.*',
+            'conforms/lake-man-gdb.gdb/*',
+            'conforms/*.csv', 'conforms/*.dbf', 'conforms/*.zip', 'conforms/*.gfs',
+            'conforms/*.gml', 'conforms/*.json', 'conforms/*.prj', 'conforms/*.shp',
+            'conforms/*.shx', 'conforms/*.vrt',
             'parcels/sources/us/ca/*.*', 'parcels/sources/us/id/*.*',
             'parcels/data/*.*', 'parcels/data/us/ca/*.*',
             'parcels/data/us/ca/berkeley/*.*'

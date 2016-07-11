@@ -414,7 +414,30 @@ def find_source_path(source_definition, source_paths):
             return None
         else:
             return source_paths[0]
-
+    elif conform["type"] == "gdb":
+        candidates = []
+        for fn in source_paths:
+            fn = re.sub('\.gdb.*', '.gdb', fn)
+            basename, ext = os.path.splitext(fn)
+            if ext.lower() == ".gdb" and fn not in candidates:
+                candidates.append(fn)
+        if len(candidates) == 0:
+            _L.warning("No GDB found in %s", source_paths)
+            return None
+        elif len(candidates) == 1:
+            _L.debug("Selected %s for source", candidates[0])
+            return candidates[0]
+        else: 
+            # Multiple candidates; look for the one named by the file attribute
+            if "file" not in conform:
+                _L.warning("Multiple GDBs found, but source has no file attribute.")
+                return None
+            source_file_name = conform["file"]
+            for c in candidates:
+                if source_file_name == os.path.basename(c):
+                    return c
+            _L.warning("Source names file %s but could not find it", source_file_name)
+            return None
     elif conform["type"] == "xml":
         # Return file if it's specified, else return the first .gml file we find
         if "file" in conform:
@@ -431,14 +454,12 @@ def find_source_path(source_definition, source_paths):
                     return fn
             _L.warning("Could not find a .gml file")
             return None
-
-
     else:
         _L.warning("Unknown source type %s", conform["type"])
         return None
 
 class ConvertToCsvTask(object):
-    known_types = ('.shp', '.json', '.csv', '.kml')
+    known_types = ('.shp', '.json', '.csv', '.kml', '.gdb')
 
     def convert(self, source_definition, source_paths, workdir):
         "Convert a list of source_paths and write results in workdir"
@@ -931,7 +952,7 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     The extracted file will be in UTF-8 and will have X and Y columns corresponding
     to longitude and latitude in EPSG:4326.
     """
-    if source_definition["conform"]["type"] in ("shapefile", "shapefile-polygon", "xml"):
+    if source_definition["conform"]["type"] in ("shapefile", "shapefile-polygon", "xml", "gdb"):
         ogr_source_path = normalize_ogr_filename_case(source_path)
         ogr_source_to_csv(source_definition, ogr_source_path, extract_path)
     elif source_definition["conform"]["type"] == "csv":
@@ -976,7 +997,7 @@ def conform_cli(source_definition, source_path, dest_path):
 
     if "conform" not in source_definition:
         return 1
-    if not source_definition["conform"].get("type", None) in ["shapefile", "shapefile-polygon", "geojson", "csv", "xml"]:
+    if not source_definition["conform"].get("type", None) in ["shapefile", "shapefile-polygon", "geojson", "csv", "xml", "gdb"]:
         _L.warning("Skipping file with unknown conform: %s", source_path)
         return 1
 

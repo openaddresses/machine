@@ -17,10 +17,9 @@ dependencies:
     # Install Machine globally via Chef recipe, to pick up complete dependencies.
     - sudo chef/run.sh testing
     # Reinstall Machine for virtualenv, to test with this Python version.
-    - sudo apt-get install -y -qq libgdal-dev
     # Determine GDAL library version and install a compatible python binding.
     #   http://gis.stackexchange.com/questions/28966/python-gdal-package-missing-header-file-when-installing-via-pip
-    - V=`dpkg -s libgdal-dev | grep Version | cut -d' ' -f2 | cut -d'-' -f1 | cut -d'+' -f1`; env CPLUS_INCLUDE_PATH=/usr/include/gdal C_INCLUDE_PATH=/usr/include/gdal pip install "GDAL==$V"
+    - CPLUS_INCLUDE_PATH=/usr/include/gdal C_INCLUDE_PATH=/usr/include/gdal pip install "GDAL==`gdal-config --version`"
     # cairocffi is a drop-in replacement for Pycairo, which is absent from pip.
     #   http://stackoverflow.com/questions/11491268/install-pycairo-in-virtualenv
     #   https://pythonhosted.org/cairocffi/
