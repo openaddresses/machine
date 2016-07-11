@@ -5,6 +5,7 @@
     "db_host": "localhost",
     "db_name": "openaddr",
     "github_token": "fake-token",
+    "circleci-environment": true,
     "run_list":
     [
         "openaddr",
