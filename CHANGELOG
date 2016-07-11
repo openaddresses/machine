@@ -1,3 +1,7 @@
+2016-07-11: 2.22.0
+- Added support for GeoDB sources.
+- Modified tests to work on CircleCI Ubuntu 14.04 (Trusty).
+
 2016-07-05: 2.21.5
 - Fixed logging problem in workers.
 
