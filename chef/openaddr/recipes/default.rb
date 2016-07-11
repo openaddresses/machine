@@ -8,7 +8,11 @@ package 'libffi-dev'
 package 'gdal-bin'
 package 'libgdal-dev'
 
-execute "pip install -U ." do
-  cwd File.join(File.dirname(__FILE__), '..', '..', '..')
+# Skip pip install under Circle CI, since it will be ignored
+# in favor of virtualenv-specific install later on.
+if node['circleci-environment'] != true then
+  execute "pip install -U ." do
+    cwd File.join(File.dirname(__FILE__), '..', '..', '..')
+  end
 end
 
