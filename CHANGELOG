@@ -1,3 +1,7 @@
+2016-07-12: 2.22.1
+- Tweaking enqueue logging to show remaining source count.
+- Shortened autoscale launch interval from 24hrs to 12hrs.
+
 2016-07-11: 2.22.0
 - Added support for GeoDB sources.
 - Modified tests to work on CircleCI Ubuntu 14.04 (Trusty).
