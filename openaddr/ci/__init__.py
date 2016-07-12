@@ -330,6 +330,14 @@ def update_success_status(status_url, job_url, filenames, github_auth):
 
 def find_batch_sources(owner, repository, github_auth, run_times={}):
     ''' Starting with a Github repo API URL, generate a stream of master sources.
+    
+        Each source is a dict with:
+        - content: base 64 content of source JSON.
+        - url: URL of source JSON in OA Github repo.
+        - path: path of source JSON in OA git repo.
+        - commit_sha: commit hash in OA git repo.
+        - blob_sha: blob hash in OA git repo.
+        - remain: count of sources to come
     '''
     source_urls = list(_find_batch_source_urls(owner, repository, github_auth))
     
@@ -337,7 +345,7 @@ def find_batch_sources(owner, repository, github_auth, run_times={}):
     source_urls.sort(key=lambda su: su['path'])
     source_urls.sort(key=lambda su: (run_times.get(su['path']) or '9999'), reverse=True)
     
-    for source_url in source_urls:
+    for (index, source_url) in enumerate(source_urls):
         _L.debug('Getting source {url}'.format(**source_url))
         try:
             more_source = get(source_url['url'], auth=github_auth).json()
@@ -351,6 +359,7 @@ def find_batch_sources(owner, repository, github_auth, run_times={}):
                 raise
 
         source = dict(content=more_source['content'])
+        source.update(remain=len(source_urls) - index - 1)
         source.update(source_url)
         
         yield source
