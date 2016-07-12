@@ -62,7 +62,7 @@ def main():
     cloudwatch = connect_cloudwatch(args.access_key, args.secret_key)
     github_auth = args.github_token, 'x-oauth-basic'
 
-    next_queue_interval, next_autoscale_interval = 60, 86400
+    next_queue_interval, next_autoscale_interval = 60, 43200
 
     try:
         with db_connect(args.database_url) as conn:
