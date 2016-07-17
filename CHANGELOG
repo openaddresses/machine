@@ -1,3 +1,6 @@
+2016-07-17: 2.22.2
+- Fixed data sampling support to include GDB sources.
+
 2016-07-12: 2.22.1
 - Tweaking enqueue logging to show remaining source count.
 - Shortened autoscale launch interval from 24hrs to 12hrs.
