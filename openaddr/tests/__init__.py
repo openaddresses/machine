@@ -195,6 +195,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('fbarc.stadt-berlin.de', '/FIS_Broker_Atom/Hauskoordinaten/HKO_EPSG3068.zip'):
             local_path = join(data_dirname, 'de-berlin-excerpt.zip')
         
+        if (host, path) == ('fake-web', '/lake-man.gdb.zip'):
+            local_path = join(data_dirname, 'lake-man.gdb.zip')
+        
         if scheme == 'file':
             local_path = path
 
@@ -918,6 +921,45 @@ class TestOA (unittest.TestCase):
             self.assertFalse(bool(rows[-2]['LON']))
             self.assertTrue(bool(rows[-1]['LAT']))
             self.assertTrue(bool(rows[-1]['LON']))
+
+    def test_single_lake_man_gdb(self):
+        ''' Test complete process_one.process on data.
+        '''
+        source = join(self.src_dir, 'lake-man-gdb.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+
+        self.assertIsNotNone(state['sample'])
+        
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('ADDRESSID' in sample_data[0])
+        self.assertTrue(964 in sample_data[1])
+        self.assertTrue('FRUITED PLAINS LN' in sample_data[1])
+        
+        output_path = join(dirname(state_path), state['processed'])
+        
+        with csvopen(output_path, encoding='utf8') as input:
+            rows = list(csvDictReader(input, encoding='utf8'))
+            self.assertEqual(len(rows), 6)
+            self.assertEqual(rows[0]['NUMBER'], '5115')
+            self.assertEqual(rows[0]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[1]['NUMBER'], '5121')
+            self.assertEqual(rows[1]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[2]['NUMBER'], '5133')
+            self.assertEqual(rows[2]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[3]['NUMBER'], '5126')
+            self.assertEqual(rows[3]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[4]['NUMBER'], '5120')
+            self.assertEqual(rows[4]['STREET'], 'FRUITED PLAINS LN')
+            self.assertEqual(rows[5]['NUMBER'], '5115')
+            self.assertEqual(rows[5]['STREET'], 'OLD MILL RD')
 
 class TestState (unittest.TestCase):
     
