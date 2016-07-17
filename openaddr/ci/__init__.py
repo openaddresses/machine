@@ -433,7 +433,7 @@ def enqueue_sources(queue, the_set, sources):
             yield len(expected_paths)
         
         with queue as db:
-            _L.info(u'Sending {path} to task queue'.format(**source))
+            _L.info(u'Sending {path} to task queue, {remain} more to go'.format(**source))
             task_data = dict(job_id=None, url=None, set_id=the_set.id,
                              name=source['path'],
                              content_b64=source['content'],
