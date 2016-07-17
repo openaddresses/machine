@@ -935,9 +935,13 @@ class TestOA (unittest.TestCase):
 
         self.assertIsNotNone(state['sample'])
         
-        print(state)
-        with open(join(dirname(state_path), state['output'])) as log:
-            print(log.read())
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('ADDRESSID' in sample_data[0])
+        self.assertTrue(964 in sample_data[1])
+        self.assertTrue('FRUITED PLAINS LN' in sample_data[1])
         
         output_path = join(dirname(state_path), state['processed'])
         
