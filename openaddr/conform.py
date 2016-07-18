@@ -133,6 +133,20 @@ class NoopDecompressTask(DecompressionTask):
     def decompress(self, source_paths, workdir, filenames):
         return source_paths
 
+def is_in(path, names):
+    '''
+    '''
+    if path.lower() in names:
+        # Found it!
+        return True
+    
+    for name in names:
+        # Maybe one of the names is an enclosing directory?
+        if not os.path.relpath(path.lower(), name).startswith('..'):
+            # Yes, that's it.
+            return True
+
+    return False
 
 class ZipDecompressTask(DecompressionTask):
     def decompress(self, source_paths, workdir, filenames):

@@ -19,7 +19,7 @@ from ..conform import (
     row_canonicalize_unit_and_number, conform_smash_case, conform_cli,
     csvopen, csvDictReader, convert_regexp_replace, conform_license,
     conform_attribution, conform_sharealike, normalize_ogr_filename_case,
-    OPENADDR_CSV_SCHEMA
+    OPENADDR_CSV_SCHEMA, is_in
     )
 
 class TestConformTransforms (unittest.TestCase):
@@ -672,6 +672,24 @@ class TestConformMisc(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(self.testdir, 'file.shx')))
         self.assertTrue(os.path.exists(os.path.join(self.testdir, 'file.dbf')))
         self.assertTrue(os.path.exists(os.path.join(self.testdir, 'file.prj')))
+    
+    def test_is_not_in(self):
+        self.assertFalse(is_in('foo', []), 'Should not match an empty list')
+        self.assertFalse(is_in('foo', ['bar']), 'Should not match')
+        self.assertTrue(is_in('foo', ['foo']), 'Should be a simple match')
+        self.assertTrue(is_in('Foo', ['foo']), 'Should be a case-insensitive match')
+
+        self.assertFalse(is_in('foo/bar', ['bar']), 'Should not match in a directory')
+        self.assertTrue(is_in('foo/bar', ['foo']), 'Should match a directory name')
+        self.assertTrue(is_in('Foo/bar', ['foo']), 'Should match a directory case-insensitively')
+
+        self.assertFalse(is_in('foo/bar/baz', ['baz']), 'Should not match in a nested directory')
+        self.assertTrue(is_in('foo/bar', ['foo/bar']), 'Should match a directory path')
+        self.assertTrue(is_in('foo/bar/baz', ['foo/bar']), 'Should match a directory path')
+        self.assertTrue(is_in('foo/bar/baz', ['foo']), 'Should match a directory path')
+        self.assertTrue(is_in('Foo/bar/baz', ['foo']), 'Should match a directory path case-insensitively')
+        self.assertTrue(is_in('foo/Bar', ['foo/bar']), 'Should match a directory path case-insensitively')
+        self.assertTrue(is_in('foo/Bar/baz', ['foo/bar']), 'Should match a directory path case-insensitively')
 
 class TestConformCsv(unittest.TestCase):
     "Fixture to create real files to test csv_source_to_csv()"
