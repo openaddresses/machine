@@ -8,6 +8,7 @@
         "lat": "Y",
         "number": "NUMBER",
         "street": "STRNAME",
-        "type": "gdb"
+        "type": "gdb",
+        "file": "lake-man-gdb.gdb"
     }
 }
