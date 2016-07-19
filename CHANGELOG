@@ -1,3 +1,7 @@
+2016-07-18: 2.22.3
+- Fixed data sampling support to include more GDB sources.
+- Logged remaining count of enqueued sources.
+
 2016-07-17: 2.22.2
 - Fixed data sampling support to include GDB sources.
 
