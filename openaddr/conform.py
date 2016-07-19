@@ -154,6 +154,7 @@ class ZipDecompressTask(DecompressionTask):
         expand_path = os.path.join(workdir, UNZIPPED_DIRNAME)
         mkdirsp(expand_path)
 
+        # Extract contents of zip file into expand_path directory.
         for source_path in source_paths:
             with ZipFile(source_path, 'r') as z:
                 for name in z.namelist():
@@ -162,9 +163,17 @@ class ZipDecompressTask(DecompressionTask):
                         _L.debug("Skipped file {}".format(name))
                         continue
                 
-                    expanded_file_path = z.extract(name, expand_path)
-                    _L.debug("Expanded file %s", expanded_file_path)
-                    output_files.append(expanded_file_path)
+                    z.extract(name, expand_path)
+        
+        # Collect names of directories and files in expand_path directory.
+        for (dirpath, dirnames, filenames) in os.walk(expand_path):
+            for dirname in dirnames:
+                output_files.append(os.path.join(dirpath, dirname))
+                _L.debug("Expanded directory {}".format(output_files[-1]))
+            for filename in filenames:
+                output_files.append(os.path.join(dirpath, filename))
+                _L.debug("Expanded file {}".format(output_files[-1]))
+        
         return output_files
 
 class ExcerptDataTask(object):
