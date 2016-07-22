@@ -16,7 +16,6 @@ from io import TextIOWrapper
 from datetime import date
 from shutil import rmtree
 from math import ceil, floor, sqrt
-from multiprocessing import Pool
 
 from .objects import read_latest_set, read_completed_runs_to_date
 from . import db_connect, db_cursor, setup_logger, render_index_maps, log_function_errors
@@ -204,15 +203,12 @@ class CollectorPublisher:
         bytes_per_chunk = max(int(sqrt(five_megabytes) * sqrt(source_size)), five_megabytes)
         chunk_amount = int(ceil(source_size / float(bytes_per_chunk)))
 
-        pool = Pool(processes=parallelism)
         for i in range(chunk_amount):
             offset = i * bytes_per_chunk
             remaining_bytes = source_size - offset
             bytes = min([bytes_per_chunk, remaining_bytes])
             part_num = i + 1
-            pool.apply_async(self._upload_part, [mp.id, part_num, filename, offset, bytes])
-        pool.close()
-        pool.join()
+            self._upload_part(mp.id, part_num, filename, offset, bytes)
 
         if len(mp.get_all_parts()) == chunk_amount:
             mp.complete_upload()
