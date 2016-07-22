@@ -2640,7 +2640,29 @@ class TestCollect (unittest.TestCase):
                       (url, datetime, is_current, content_length, collection, license_attr)
                       VALUES (%s, NOW(), true, %s, %s, %s)''',
                       ('http://internet/collected-local.zip', None, 'everywhere', 'yo'))])
-    
+
+    def test_collector_publisher_multipart_s3(self):
+        '''
+        '''
+        handle, filename1 = mkstemp(suffix='.csv')
+        with open(filename1, 'wb') as f:
+            f.seek(10 * 1024 * 1024)
+            f.write('\0')
+        close(handle)
+
+        S3, collected_zip = mock.Mock(), mock.Mock()
+        collected_zip.filename = filename1
+        mock_mp = mock.Mock()
+        mock_mp.id = 242
+        S3.initiate_multipart_upload.return_value = mock_mp
+        S3.get_all_multipart_uploads.return_value = [mock_mp]
+
+        collector_publisher = CollectorPublisher(S3, collected_zip, 'everywhere', 'yo')
+
+        with patch('openaddr.ci.collect.stat') as stat_mock:
+            stat_mock.st_size.return_value = 5000000
+            collector_publisher.write_to_s3(collected_zip.filename, 'keyname')
+
     def test_collection_checks(self):
         '''
         '''

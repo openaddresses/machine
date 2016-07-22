@@ -164,7 +164,7 @@ class CollectorPublisher:
             'attribution': attribution
             }
 
-    def _upload_part(self, multipart_id, part_num, source_path, offset, bytes, retries=10):
+    def _upload_part(self, multipart_id, part_num, source_path, offset, bytes, retries=3):
         """
         Uploads a part with retries.
         """
@@ -182,7 +182,7 @@ class CollectorPublisher:
                     _upload(retries_left=retries_left - 1)
                 else:
                     _L.info('... Failed uploading part #%d', part_num)
-                    raise exc
+                    raise
             else:
                 _L.info('... Uploaded part #%d', part_num)
 
