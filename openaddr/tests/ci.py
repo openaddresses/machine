@@ -2615,7 +2615,7 @@ class TestCollect (unittest.TestCase):
                 collector_publisher.publish(db)
 
             write_to_s3.assert_has_calls([
-                mock.call(S3, collected_zip.filename, collected_zip.filename)
+                mock.call(S3.bucket, collected_zip.filename, collected_zip.filename)
                 ])
 
             add_source_to_zipfile.assert_has_calls([
@@ -2647,9 +2647,9 @@ class TestCollect (unittest.TestCase):
         handle, filename1 = mkstemp(suffix='.csv')
         close(handle)
 
-        S3, collected_zip, mp_upload = mock.Mock(), mock.Mock(), mock.Mock()
-        S3.initiate_multipart_upload.return_value = mp_upload
-        S3.get_all_multipart_uploads.return_value = [mp_upload]
+        bucket, collected_zip, mp_upload = mock.Mock(), mock.Mock(), mock.Mock()
+        bucket.initiate_multipart_upload.return_value = mp_upload
+        bucket.get_all_multipart_uploads.return_value = [mp_upload]
         collected_zip.filename = filename1
 
         # Write a sample file just at the chunk size cutoff
@@ -2658,13 +2658,13 @@ class TestCollect (unittest.TestCase):
             f.write('\0')
 
         mp_upload.get_all_parts.return_value = [None]
-        write_to_s3(S3, collected_zip.filename, 'keyname.csv', content_type='text/csv')
+        write_to_s3(bucket, collected_zip.filename, 'keyname.csv', content_type='text/csv')
         remove(filename1)
         
         self.assertEqual(len(mp_upload.upload_part_from_file.mock_calls), 1, 'Should have uploaded one part')
-        S3.initiate_multipart_upload.assert_has_calls([mock.call('keyname.csv', headers={'Content-Type': 'text/csv'})])
-        self.assertEqual(S3.get_key.mock_calls[0][1], ('keyname.csv', ), 'Should upload a correctly-named key')
-        self.assertEqual(S3.get_key.mock_calls[1][1], ('public-read', ), 'Should upload a publicly-readable key')
+        bucket.initiate_multipart_upload.assert_has_calls([mock.call('keyname.csv', headers={'Content-Type': 'text/csv'})])
+        self.assertEqual(bucket.get_key.mock_calls[0][1], ('keyname.csv', ), 'Should upload a correctly-named key')
+        self.assertEqual(bucket.get_key.mock_calls[1][1], ('public-read', ), 'Should upload a publicly-readable key')
 
     def test_collector_publisher_multipart_s3_two_parts(self):
         '''
@@ -2672,9 +2672,9 @@ class TestCollect (unittest.TestCase):
         handle, filename1 = mkstemp(suffix='.csv')
         close(handle)
 
-        S3, collected_zip, mp_upload = mock.Mock(), mock.Mock(), mock.Mock()
-        S3.initiate_multipart_upload.return_value = mp_upload
-        S3.get_all_multipart_uploads.return_value = [mp_upload]
+        bucket, collected_zip, mp_upload = mock.Mock(), mock.Mock(), mock.Mock()
+        bucket.initiate_multipart_upload.return_value = mp_upload
+        bucket.get_all_multipart_uploads.return_value = [mp_upload]
         collected_zip.filename = filename1
 
         # Write a sample file just above the chunk size cutoff
@@ -2683,13 +2683,13 @@ class TestCollect (unittest.TestCase):
             f.write('\0')
 
         mp_upload.get_all_parts.return_value = [None, None]
-        write_to_s3(S3, collected_zip.filename, 'keyname.csv', content_type='text/csv')
+        write_to_s3(bucket, collected_zip.filename, 'keyname.csv', content_type='text/csv')
         remove(filename1)
         
         self.assertEqual(len(mp_upload.upload_part_from_file.mock_calls), 2, 'Should have uploaded two parts')
-        S3.initiate_multipart_upload.assert_has_calls([mock.call('keyname.csv', headers={'Content-Type': 'text/csv'})])
-        self.assertEqual(S3.get_key.mock_calls[0][1], ('keyname.csv', ), 'Should upload a correctly-named key')
-        self.assertEqual(S3.get_key.mock_calls[1][1], ('public-read', ), 'Should upload a publicly-readable key')
+        bucket.initiate_multipart_upload.assert_has_calls([mock.call('keyname.csv', headers={'Content-Type': 'text/csv'})])
+        self.assertEqual(bucket.get_key.mock_calls[0][1], ('keyname.csv', ), 'Should upload a correctly-named key')
+        self.assertEqual(bucket.get_key.mock_calls[1][1], ('public-read', ), 'Should upload a publicly-readable key')
 
     def test_collection_checks(self):
         '''
