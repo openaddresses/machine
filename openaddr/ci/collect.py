@@ -166,57 +166,6 @@ class CollectorPublisher:
             'attribution': attribution
             }
 
-    def _upload_part(self, multipart_id, part_num, source_path, offset, bytes, retries=3):
-        """
-        Uploads a part with retries.
-        """
-        while True:
-            retries -= 1
-            try:
-                _L.info('Start uploading part #%d ...', part_num)
-                for mp in self.s3.get_all_multipart_uploads():
-                    if mp.id == multipart_id:
-                        with open(source_path, 'r') as fp:
-                            fp.seek(offset)
-                            mp.upload_part_from_file(fp=fp, part_num=part_num, size=bytes)
-                        break
-            except Exception, exc:
-                if retries == 0:
-                    _L.info('... Failed uploading part #%d', part_num)
-                    raise
-            else:
-                _L.info('... Uploaded part #%d', part_num)
-                return
-
-    def write_to_s3(self, filename, key, policy='public-read', content_type='application/zip'):
-        ''' Writes the file at `filename` to the S3 key `key` using
-            S3's multipart upload functionality.
-
-            Returns the S3 Key object for the file that was uploaded.
-        '''
-        mp = self.s3.initiate_multipart_upload(key, headers={'Content-Type': content_type})
-
-        # With help from https://gist.github.com/fabiant7t/924094
-        source_size = stat(filename).st_size
-        bytes_per_chunk = max(int(sqrt(MULTIPART_CHUNK_SIZE) * sqrt(source_size)), MULTIPART_CHUNK_SIZE)
-        chunk_amount = int(ceil(source_size / float(bytes_per_chunk)))
-
-        for i in range(chunk_amount):
-            offset = i * bytes_per_chunk
-            remaining_bytes = source_size - offset
-            bytes = min([bytes_per_chunk, remaining_bytes])
-            part_num = i + 1
-            self._upload_part(mp.id, part_num, filename, offset, bytes)
-
-        if len(mp.get_all_parts()) == chunk_amount:
-            mp.complete_upload()
-            key = self.s3.get_key(key)
-            key.set_acl(policy)
-            return key
-        else:
-            mp.cancel_upload()
-            raise Exception("Error uploading multipart data, expected {} chunks and got {}".format(chunk_amount, len(mp.get_all_parts())))
-
     def publish(self, db):
         ''' Create new S3 object with zipfile name and upload the collection.
         '''
@@ -232,7 +181,7 @@ class CollectorPublisher:
         self.zip.close()
         _L.info(u'Finished {}'.format(self.zip.filename))
 
-        zip_key = self.write_to_s3(self.zip.filename, basename(self.zip.filename))
+        zip_key = write_to_s3(self.s3, self.zip.filename, basename(self.zip.filename))
         _L.info(u'Uploaded {} to {}'.format(self.zip.filename, zip_key.name))
 
         zip_url = zip_key.generate_url(expires_in=0, query_auth=False, force_http=True)
@@ -244,6 +193,56 @@ class CollectorPublisher:
                       (url, datetime, is_current, content_length, collection, license_attr)
                       VALUES (%s, NOW(), true, %s, %s, %s)''',
                    (zip_url, length, self.collection_id, self.license_attr))
+
+def _upload_s3_part(s3, multipart_id, part_num, source_path, offset, bytes, retries=3):
+    """ Uploads a part to S3 with retries.
+    """
+    while True:
+        retries -= 1
+        try:
+            _L.info('Start uploading part #%d ...', part_num)
+            for mp in s3.get_all_multipart_uploads():
+                if mp.id == multipart_id:
+                    with open(source_path, 'r') as fp:
+                        fp.seek(offset)
+                        mp.upload_part_from_file(fp=fp, part_num=part_num, size=bytes)
+                    break
+        except Exception, exc:
+            if retries == 0:
+                _L.info('... Failed uploading part #%d', part_num)
+                raise
+        else:
+            _L.info('... Uploaded part #%d', part_num)
+            return
+
+def write_to_s3(s3, filename, key, policy='public-read', content_type='application/zip'):
+    ''' Writes the file at `filename` to the S3 key `key` using
+        S3's multipart upload functionality.
+
+        Returns the S3 Key object for the file that was uploaded.
+    '''
+    mp = s3.initiate_multipart_upload(key, headers={'Content-Type': content_type})
+
+    # With help from https://gist.github.com/fabiant7t/924094
+    source_size = stat(filename).st_size
+    bytes_per_chunk = max(int(sqrt(MULTIPART_CHUNK_SIZE) * sqrt(source_size)), MULTIPART_CHUNK_SIZE)
+    chunk_count = int(ceil(source_size / float(bytes_per_chunk)))
+
+    for i in range(chunk_count):
+        offset = i * bytes_per_chunk
+        remaining_bytes = source_size - offset
+        bytes = min([bytes_per_chunk, remaining_bytes])
+        part_num = i + 1
+        _upload_s3_part(s3, mp.id, part_num, filename, offset, bytes)
+
+    if len(mp.get_all_parts()) != chunk_count:
+        mp.cancel_upload()
+        raise Exception("Error uploading multipart data, expected {} chunks and got {}".format(chunk_count, len(mp.get_all_parts())))
+
+    mp.complete_upload()
+    key = s3.get_key(key)
+    key.set_acl(policy)
+    return key
 
 def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
     ''' Write csv to zipfile, with optional expand.expand_street_name().
