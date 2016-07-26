@@ -1,3 +1,6 @@
+2016-07-26: 2.22.5
+- Fixed bug in S3 multipart uploads.
+
 2016-07-26: 2.22.4
 - Fixed collection upload with switch to S3 multipart uploads.
 
