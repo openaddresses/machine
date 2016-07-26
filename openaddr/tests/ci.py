@@ -46,7 +46,7 @@ from ..ci.objects import (
 from ..ci.collect import (
     is_us_northeast, is_us_midwest, is_us_south, is_us_west, is_europe, is_asia,
     add_source_to_zipfile, CollectorPublisher, prepare_collections,
-    expand_and_add_csv_to_zipfile
+    expand_and_add_csv_to_zipfile, write_to_s3, MULTIPART_CHUNK_SIZE
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -2591,7 +2591,6 @@ class TestCollect (unittest.TestCase):
         '''
         '''
         S3, db, collected_zip = mock.Mock(), mock.Mock(), mock.Mock()
-        S3.new_key.return_value.generate_url.return_value = 'http://internet/collected-local.zip'
         collected_zip.filename = 'collected-local.zip'
         
         with patch('openaddr.ci.collect.add_source_to_zipfile') as add_source_to_zipfile:
@@ -2607,8 +2606,17 @@ class TestCollect (unittest.TestCase):
             collector_publisher.collect(r1)
             collector_publisher.collect(r2)
             collector_publisher.collect(r3)
-            
-            collector_publisher.publish(db)
+
+            with patch('openaddr.ci.collect.write_to_s3') as write_to_s3:
+                s3_key_mock = mock.Mock()
+                s3_key_mock.generate_url.return_value = 'http://internet/collected-local.zip'
+                write_to_s3.return_value = s3_key_mock
+
+                collector_publisher.publish(db)
+
+            write_to_s3.assert_has_calls([
+                mock.call(S3, collected_zip.filename, collected_zip.filename)
+                ])
 
             add_source_to_zipfile.assert_has_calls([
                 mock.call(collected_zip, r1),
@@ -2622,16 +2630,9 @@ class TestCollect (unittest.TestCase):
         self.assertTrue('abc\nWebsite: Unknown\nLicense: ODbL\nRequired attribution: ABC Co.\n' in content.decode('utf8'))
         self.assertTrue('def\nWebsite: http://example.com\nLicense: Unknown\nRequired attribution: No\n' in content.decode('utf8'))
         self.assertTrue('ghi\nWebsite: Unknown\nLicense: Unknown\nRequired attribution: Yes\n' in content.decode('utf8'))
-        
+
         collected_zip.close.assert_called_once_with()
 
-        S3.new_key.assert_called_once_with('collected-local.zip')
-        S3.new_key.return_value.generate_url.assert_called_once_with(expires_in=0, query_auth=False, force_http=True)
-
-        S3.new_key.return_value.set_contents_from_filename.assert_called_once_with(
-            'collected-local.zip', policy='public-read',
-            headers={'Content-Type': 'application/zip'})
-        
         self.assertEqual(db.execute.mock_calls, [
             mock.call('DELETE FROM zips WHERE url = %s',
                       ('http://internet/collected-local.zip',)),
@@ -2639,7 +2640,57 @@ class TestCollect (unittest.TestCase):
                       (url, datetime, is_current, content_length, collection, license_attr)
                       VALUES (%s, NOW(), true, %s, %s, %s)''',
                       ('http://internet/collected-local.zip', None, 'everywhere', 'yo'))])
-    
+
+    def test_collector_publisher_multipart_s3_one_part(self):
+        '''
+        '''
+        handle, filename1 = mkstemp(suffix='.csv')
+        close(handle)
+
+        S3, collected_zip, mp_upload = mock.Mock(), mock.Mock(), mock.Mock()
+        S3.initiate_multipart_upload.return_value = mp_upload
+        S3.get_all_multipart_uploads.return_value = [mp_upload]
+        collected_zip.filename = filename1
+
+        # Write a sample file just at the chunk size cutoff
+        with open(filename1, 'wb') as f:
+            f.seek(MULTIPART_CHUNK_SIZE - 1)
+            f.write('\0')
+
+        mp_upload.get_all_parts.return_value = [None]
+        write_to_s3(S3, collected_zip.filename, 'keyname.csv', content_type='text/csv')
+        remove(filename1)
+        
+        self.assertEqual(len(mp_upload.upload_part_from_file.mock_calls), 1, 'Should have uploaded one part')
+        S3.initiate_multipart_upload.assert_has_calls([mock.call('keyname.csv', headers={'Content-Type': 'text/csv'})])
+        self.assertEqual(S3.get_key.mock_calls[0][1], ('keyname.csv', ), 'Should upload a correctly-named key')
+        self.assertEqual(S3.get_key.mock_calls[1][1], ('public-read', ), 'Should upload a publicly-readable key')
+
+    def test_collector_publisher_multipart_s3_two_parts(self):
+        '''
+        '''
+        handle, filename1 = mkstemp(suffix='.csv')
+        close(handle)
+
+        S3, collected_zip, mp_upload = mock.Mock(), mock.Mock(), mock.Mock()
+        S3.initiate_multipart_upload.return_value = mp_upload
+        S3.get_all_multipart_uploads.return_value = [mp_upload]
+        collected_zip.filename = filename1
+
+        # Write a sample file just above the chunk size cutoff
+        with open(filename1, 'wb') as f:
+            f.seek(MULTIPART_CHUNK_SIZE + 1)
+            f.write('\0')
+
+        mp_upload.get_all_parts.return_value = [None, None]
+        write_to_s3(S3, collected_zip.filename, 'keyname.csv', content_type='text/csv')
+        remove(filename1)
+        
+        self.assertEqual(len(mp_upload.upload_part_from_file.mock_calls), 2, 'Should have uploaded two parts')
+        S3.initiate_multipart_upload.assert_has_calls([mock.call('keyname.csv', headers={'Content-Type': 'text/csv'})])
+        self.assertEqual(S3.get_key.mock_calls[0][1], ('keyname.csv', ), 'Should upload a correctly-named key')
+        self.assertEqual(S3.get_key.mock_calls[1][1], ('public-read', ), 'Should upload a publicly-readable key')
+
     def test_collection_checks(self):
         '''
         '''
