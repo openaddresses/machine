@@ -56,13 +56,16 @@ class S3:
             connection = S3Connection(self._key, self._secret, **kwargs)
             self._bucket = connection.get_bucket(self.bucketname)
     
-    def get_key(self, name):
+    @property
+    def bucket(self):
         self._make_bucket()
-        return self._bucket.get_key(name)
+        return self._bucket
+    
+    def get_key(self, name):
+        return self.bucket.get_key(name)
     
     def new_key(self, name):
-        self._make_bucket()
-        return self._bucket.new_key(name)
+        return self.bucket.new_key(name)
 
 class LocalProcessedResult:
     def __init__(self, source_base, filename, run_state, code_version):
