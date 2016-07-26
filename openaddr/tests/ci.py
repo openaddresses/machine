@@ -2641,28 +2641,57 @@ class TestCollect (unittest.TestCase):
                       VALUES (%s, NOW(), true, %s, %s, %s)''',
                       ('http://internet/collected-local.zip', None, 'everywhere', 'yo'))])
 
-    def test_collector_publisher_multipart_s3(self):
+    def test_collector_publisher_multipart_s3_one_part(self):
         '''
         '''
         handle, filename1 = mkstemp(suffix='.csv')
-        with open(filename1, 'wb') as f:
-            f.seek(10 * 1024 * 1024)
-            f.write('\0')
         close(handle)
 
-        S3, collected_zip = mock.Mock(), mock.Mock()
+        S3, collected_zip, mp_upload = mock.Mock(), mock.Mock(), mock.Mock()
         collected_zip.filename = filename1
-        mock_mp = mock.Mock()
-        S3.initiate_multipart_upload.return_value = mock_mp
-        S3.get_all_multipart_uploads.return_value = [mock_mp]
-        mock_mp.get_all_parts.return_value = [None, None]
-
+        S3.initiate_multipart_upload.return_value = mp_upload
+        S3.get_all_multipart_uploads.return_value = [mp_upload]
         collector_publisher = CollectorPublisher(S3, collected_zip, 'everywhere', 'yo')
+
+        # Write a sample file just below the chunk size cutoff
+        with open(filename1, 'wb') as f:
+            f.seek(5 * 1024 * 1024 - 1)
+            f.write('\0')
+
+        mp_upload.get_all_parts.return_value = [None]
         collector_publisher.write_to_s3(collected_zip.filename, 'keyname.csv', content_type='text/csv')
+        remove(filename1)
         
-        self.assertEqual(len(mock_mp.upload_part_from_file.mock_calls), 2, 'Should have uploaded two parts')
-        self.assertEqual(S3.initiate_multipart_upload.mock_calls[0][2]['headers']['Content-Type'], 'text/csv', 'Should upload a text/csv')
-        self.assertEqual(S3.get_key.mock_calls[-1][1], ('public-read', ), 'Should upload a publicly-readable key')
+        self.assertEqual(len(mp_upload.upload_part_from_file.mock_calls), 1, 'Should have uploaded one part')
+        self.assertEqual(S3.initiate_multipart_upload.mock_calls[0][1], ('keyname.csv', ), 'Should upload a text/csv')
+        self.assertEqual(S3.initiate_multipart_upload.mock_calls[0][2], {'headers': {'Content-Type': 'text/csv'}}, 'Should upload a text/csv')
+        self.assertEqual(S3.get_key.mock_calls[0][1], ('keyname.csv', ), 'Should upload a correctly-named key')
+        self.assertEqual(S3.get_key.mock_calls[1][1], ('public-read', ), 'Should upload a publicly-readable key')
+
+    def test_collector_publisher_multipart_s3_two_parts(self):
+        '''
+        '''
+        handle, filename1 = mkstemp(suffix='.csv')
+        close(handle)
+
+        S3, collected_zip, mp_upload = mock.Mock(), mock.Mock(), mock.Mock()
+        collected_zip.filename = filename1
+        S3.initiate_multipart_upload.return_value = mp_upload
+        S3.get_all_multipart_uploads.return_value = [mp_upload]
+        collector_publisher = CollectorPublisher(S3, collected_zip, 'everywhere', 'yo')
+
+        # Write a sample file just above the chunk size cutoff
+        with open(filename1, 'wb') as f:
+            f.seek(5 * 1024 * 1024 + 1)
+            f.write('\0')
+
+        mp_upload.get_all_parts.return_value = [None, None]
+        collector_publisher.write_to_s3(collected_zip.filename, 'keyname.csv', content_type='text/csv')
+        remove(filename1)
+        
+        self.assertEqual(len(mp_upload.upload_part_from_file.mock_calls), 2, 'Should have uploaded two parts')
+        self.assertEqual(S3.initiate_multipart_upload.mock_calls[0][1], ('keyname.csv', ), 'Should upload a text/csv')
+        self.assertEqual(S3.initiate_multipart_upload.mock_calls[0][2], {'headers': {'Content-Type': 'text/csv'}}, 'Should upload a text/csv')
         self.assertEqual(S3.get_key.mock_calls[0][1], ('keyname.csv', ), 'Should upload a correctly-named key')
         self.assertEqual(S3.get_key.mock_calls[1][1], ('public-read', ), 'Should upload a publicly-readable key')
 
