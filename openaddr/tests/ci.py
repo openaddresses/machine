@@ -2658,7 +2658,13 @@ class TestCollect (unittest.TestCase):
         mock_mp.get_all_parts.return_value = [None, None]
 
         collector_publisher = CollectorPublisher(S3, collected_zip, 'everywhere', 'yo')
-        collector_publisher.write_to_s3(collected_zip.filename, 'keyname')
+        collector_publisher.write_to_s3(collected_zip.filename, 'keyname.csv', content_type='text/csv')
+        
+        self.assertEqual(len(mock_mp.upload_part_from_file.mock_calls), 2, 'Should have uploaded two parts')
+        self.assertEqual(S3.initiate_multipart_upload.mock_calls[0][2]['headers']['Content-Type'], 'text/csv', 'Should upload a text/csv')
+        self.assertEqual(S3.get_key.mock_calls[-1][1], ('public-read', ), 'Should upload a publicly-readable key')
+        self.assertEqual(S3.get_key.mock_calls[0][1], ('keyname.csv', ), 'Should upload a correctly-named key')
+        self.assertEqual(S3.get_key.mock_calls[1][1], ('public-read', ), 'Should upload a publicly-readable key')
 
     def test_collection_checks(self):
         '''
