@@ -23,6 +23,8 @@ from .. import S3, iterate_local_processed_files, util, expand
 from ..conform import OPENADDR_CSV_SCHEMA
 from ..compat import PY2
 
+MULTIPART_CHUNK_SIZE = 5 * 1024 * 1024
+
 parser = ArgumentParser(description='Run some source files.')
 
 parser.add_argument('-o', '--owner', default='openaddresses',
@@ -198,8 +200,7 @@ class CollectorPublisher:
 
         # With help from https://gist.github.com/fabiant7t/924094
         source_size = stat(filename).st_size
-        five_megabytes = 5 * 1024 * 1024
-        bytes_per_chunk = max(int(sqrt(five_megabytes) * sqrt(source_size)), five_megabytes)
+        bytes_per_chunk = max(int(sqrt(MULTIPART_CHUNK_SIZE) * sqrt(source_size)), MULTIPART_CHUNK_SIZE)
         chunk_amount = int(ceil(source_size / float(bytes_per_chunk)))
 
         for i in range(chunk_amount):

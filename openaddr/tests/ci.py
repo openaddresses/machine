@@ -46,7 +46,7 @@ from ..ci.objects import (
 from ..ci.collect import (
     is_us_northeast, is_us_midwest, is_us_south, is_us_west, is_europe, is_asia,
     add_source_to_zipfile, CollectorPublisher, prepare_collections,
-    expand_and_add_csv_to_zipfile
+    expand_and_add_csv_to_zipfile, MULTIPART_CHUNK_SIZE
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -2653,9 +2653,9 @@ class TestCollect (unittest.TestCase):
         S3.get_all_multipart_uploads.return_value = [mp_upload]
         collector_publisher = CollectorPublisher(S3, collected_zip, 'everywhere', 'yo')
 
-        # Write a sample file just below the chunk size cutoff
+        # Write a sample file just at the chunk size cutoff
         with open(filename1, 'wb') as f:
-            f.seek(5 * 1024 * 1024 - 1)
+            f.seek(MULTIPART_CHUNK_SIZE - 1)
             f.write('\0')
 
         mp_upload.get_all_parts.return_value = [None]
@@ -2682,7 +2682,7 @@ class TestCollect (unittest.TestCase):
 
         # Write a sample file just above the chunk size cutoff
         with open(filename1, 'wb') as f:
-            f.seek(5 * 1024 * 1024 + 1)
+            f.seek(MULTIPART_CHUNK_SIZE + 1)
             f.write('\0')
 
         mp_upload.get_all_parts.return_value = [None, None]
