@@ -170,7 +170,8 @@ class CollectorPublisher:
         """
         Uploads a part with retries.
         """
-        def _upload(retries_left=retries):
+        while True:
+            retries -= 1
             try:
                 _L.info('Start uploading part #%d ...', part_num)
                 for mp in self.s3.get_all_multipart_uploads():
@@ -180,15 +181,12 @@ class CollectorPublisher:
                             mp.upload_part_from_file(fp=fp, part_num=part_num, size=bytes)
                         break
             except Exception, exc:
-                if retries_left:
-                    _upload(retries_left=retries_left - 1)
-                else:
+                if retries == 0:
                     _L.info('... Failed uploading part #%d', part_num)
                     raise
             else:
                 _L.info('... Uploaded part #%d', part_num)
-
-        _upload()
+                return
 
     def write_to_s3(self, filename, key, policy='public-read', content_type='application/zip'):
         ''' Writes the file at `filename` to the S3 key `key` using
