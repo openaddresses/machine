@@ -215,13 +215,13 @@ def _upload_s3_part(s3, multipart_id, part_num, source_path, offset, bytes, retr
             _L.info('... Uploaded part #%d', part_num)
             return
 
-def write_to_s3(s3, filename, key, policy='public-read', content_type='application/zip'):
-    ''' Writes the file at `filename` to the S3 key `key` using
+def write_to_s3(s3, filename, keyname, policy='public-read', content_type='application/zip'):
+    ''' Writes the file at `filename` to the S3 key `keyname` using
         S3's multipart upload functionality.
 
         Returns the S3 Key object for the file that was uploaded.
     '''
-    mp = s3.initiate_multipart_upload(key, headers={'Content-Type': content_type})
+    mp = s3.initiate_multipart_upload(keyname, headers={'Content-Type': content_type})
 
     # With help from https://gist.github.com/fabiant7t/924094
     source_size = stat(filename).st_size
@@ -240,7 +240,7 @@ def write_to_s3(s3, filename, key, policy='public-read', content_type='applicati
         raise Exception("Error uploading multipart data, expected {} chunks and got {}".format(chunk_count, len(mp.get_all_parts())))
 
     mp.complete_upload()
-    key = s3.get_key(key)
+    key = s3.get_key(keyname)
     key.set_acl(policy)
     return key
 
