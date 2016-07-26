@@ -2656,6 +2656,7 @@ class TestCollect (unittest.TestCase):
         mock_mp.id = 242
         S3.initiate_multipart_upload.return_value = mock_mp
         S3.get_all_multipart_uploads.return_value = [mock_mp]
+        mock_mp.get_all_parts.return_value = [None]
 
         collector_publisher = CollectorPublisher(S3, collected_zip, 'everywhere', 'yo')
 
