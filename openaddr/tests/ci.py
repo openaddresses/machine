@@ -2653,16 +2653,12 @@ class TestCollect (unittest.TestCase):
         S3, collected_zip = mock.Mock(), mock.Mock()
         collected_zip.filename = filename1
         mock_mp = mock.Mock()
-        mock_mp.id = 242
         S3.initiate_multipart_upload.return_value = mock_mp
         S3.get_all_multipart_uploads.return_value = [mock_mp]
-        mock_mp.get_all_parts.return_value = [None]
+        mock_mp.get_all_parts.return_value = [None, None]
 
         collector_publisher = CollectorPublisher(S3, collected_zip, 'everywhere', 'yo')
-
-        with patch('openaddr.ci.collect.stat') as stat_mock:
-            stat_mock.st_size.return_value = 5000000
-            collector_publisher.write_to_s3(collected_zip.filename, 'keyname')
+        collector_publisher.write_to_s3(collected_zip.filename, 'keyname')
 
     def test_collection_checks(self):
         '''

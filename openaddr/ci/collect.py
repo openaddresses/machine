@@ -188,8 +188,7 @@ class CollectorPublisher:
 
         _upload()
 
-    def write_to_s3(self, filename, key,
-        policy='public-read', content_type='application/zip', parallelism=4):
+    def write_to_s3(self, filename, key, policy='public-read', content_type='application/zip'):
         ''' Writes the file at `filename` to the S3 key `key` using
             S3's multipart upload functionality.
 
@@ -217,7 +216,7 @@ class CollectorPublisher:
             return key
         else:
             mp.cancel_upload()
-            raise Exception("Error uploading multipart data")
+            raise Exception("Error uploading multipart data, expected {} chunks and got {}".format(chunk_amount, len(mp.get_all_parts())))
 
     def publish(self, db):
         ''' Create new S3 object with zipfile name and upload the collection.
