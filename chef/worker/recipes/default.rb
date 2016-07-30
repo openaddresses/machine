@@ -61,7 +61,7 @@ execute "/etc/init.d/openaddr-worker start"
 env_file = "/tmp/#{app_name}.conf"
 procfile = File.join(File.dirname(__FILE__), '..', '..', 'Procfile-worker')
 
-execute 'pip install honcho[export]'
+execute 'pip3 install honcho[export]'
 
 #
 # Ensure upstart job exists.
