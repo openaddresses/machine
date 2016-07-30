@@ -18,7 +18,7 @@ github_token = node['github_token']
 env_file = "/tmp/#{app_name}.conf"
 procfile = File.join(File.dirname(__FILE__), '..', '..', 'Procfile-webhook')
 
-execute 'pip install honcho[export]'
+execute 'pip3 install honcho[export]'
 
 #
 # Ensure upstart job exists.
