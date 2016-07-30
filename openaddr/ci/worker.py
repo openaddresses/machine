@@ -64,14 +64,14 @@ def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
     except compat.CalledProcessError as e:
         known_error, cmd_status, result_stdout = True, e.returncode, e.output
     except Exception:
-        known_error, cmd_status = False, None
+        known_error, cmd_status, result_stdout = False, None, None
         raise
-    else:
+    finally:
         if hasattr(result_stdout, 'decode'):
             # "The actual encoding of the output data may depend on the command
             # being invoked" - https://docs.python.org/3/library/subprocess.html
             result_stdout = result_stdout.decode('utf8', 'replace')
-    finally:
+
         if known_error:
             # Something went wrong; throw back an error result.
             key_name = '/runs/{run}/logfile.txt'.format(run=run_id)

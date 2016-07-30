@@ -152,4 +152,4 @@ class TestDotmap (unittest.TestCase):
             with HTTMock(self.response_content):
                 _mapbox_create_upload('http://example.com/whatever', 'oa.tiles', 'goofus', '0xDEADBEEF')
         
-        self.assertIn('Streams are crossed', error.exception.message)
+        self.assertIn('Streams are crossed', str(error.exception))

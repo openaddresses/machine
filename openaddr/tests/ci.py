@@ -674,7 +674,7 @@ class TestAPI (unittest.TestCase):
         got = self.client.get('index.json', headers=dict(Origin='http://example.com'))
         self.assertIn('Access-Control-Allow-Origin', got.headers)
 
-        index = json.loads(got.data)
+        index = json.loads(got.data.decode('utf8'))
         colls = index.get('collections', {})
         
         self.assertEqual(index['run_states_url'], 'http://localhost/state.txt')
@@ -699,7 +699,7 @@ class TestAPI (unittest.TestCase):
         got = self.client.get('latest/licenses.json', headers=dict(Origin='http://example.com'))
         self.assertIn('Access-Control-Allow-Origin', got.headers)
 
-        licenses = json.loads(got.data)['licenses']
+        licenses = json.loads(got.data.decode('utf8'))['licenses']
         licenses.sort(key=lambda l: l['sources'][0][0])
         
         self.assertEqual(len(licenses[0]['sources']), 1)
@@ -2360,9 +2360,9 @@ class TestBatch (unittest.TestCase):
         
         with patch('openaddr.ci.objects.read_latest_set') as read_latest_set, patch('openaddr.ci.objects.read_completed_runs_to_date') as read_completed_runs_to_date:
             read_completed_runs_to_date.return_value = [
-                Run(_, 'sources/foo.json', _, _, _, RunState({'process time': '01:01'}), _, _, _, _, _, _, _, _),
-                Run(_, 'sources/bar.json', _, _, _, RunState({'process time': '00:01'}), _, _, _, _, _, _, _, _),
-                Run(_, 'sources/baz.json', _, _, _, RunState({'process time': '00:01'}), _, _, _, _, _, _, _, _),
+                Run(_, 'sources/foo.json', _, b'', _, RunState({'process time': '01:01'}), _, _, _, _, _, _, _, _),
+                Run(_, 'sources/bar.json', _, b'', _, RunState({'process time': '00:01'}), _, _, _, _, _, _, _, _),
+                Run(_, 'sources/baz.json', _, b'', _, RunState({'process time': '00:01'}), _, _, _, _, _, _, _, _),
                 ]
 
             run_times = get_batch_run_times(_, 'openaddresses', 'openaddresses')
@@ -2655,7 +2655,7 @@ class TestCollect (unittest.TestCase):
         # Write a sample file just at the chunk size cutoff
         with open(filename1, 'wb') as f:
             f.seek(MULTIPART_CHUNK_SIZE - 1)
-            f.write('\0')
+            f.write(b'\0')
 
         mp_upload.get_all_parts.return_value = [None]
         write_to_s3(bucket, collected_zip.filename, 'keyname.csv', content_type='text/csv')
@@ -2680,7 +2680,7 @@ class TestCollect (unittest.TestCase):
         # Write a sample file just above the chunk size cutoff
         with open(filename1, 'wb') as f:
             f.seek(MULTIPART_CHUNK_SIZE + 1)
-            f.write('\0')
+            f.write(b'\0')
 
         mp_upload.get_all_parts.return_value = [None, None]
         write_to_s3(bucket, collected_zip.filename, 'keyname.csv', content_type='text/csv')

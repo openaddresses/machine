@@ -935,8 +935,8 @@ def row_calculate_hash(cache_fingerprint, row):
     
         16 chars of SHA-1 gives a 64-bit value, plenty for all addresses.
     '''
-    hash = sha1(cache_fingerprint)
-    hash.update(json.dumps(sorted(row.items()), separators=(',', ':')))
+    hash = sha1(cache_fingerprint.encode('utf8'))
+    hash.update(json.dumps(sorted(row.items()), separators=(',', ':')).encode('utf8'))
     row.update(HASH=hash.hexdigest()[:16])
     
     return row
