@@ -24,6 +24,8 @@ install:
   - pip install cairocffi
   # Install Machine for virtualenv, to test with this Python version.
   - pip install -U .
+  # Create necessary database tables.
+  - openaddr-ci-recreate-db
 env:  BOTO_CONFIG=/tmp/nowhere DATABASE_URL=postgres://openaddr:openaddr@localhost/openaddr
 script:  python setup.py test
 

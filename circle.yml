@@ -21,6 +21,8 @@ dependencies:
     - pip install cairocffi
     # Install Machine for virtualenv, to test with this Python version.
     - pip install -U .
+    # Create necessary database tables.
+    - openaddr-ci-recreate-db
 
 test:
   override:
