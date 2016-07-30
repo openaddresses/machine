@@ -15,6 +15,7 @@
     "slack_url": "https://hooks.slack.com/services/{etc.}",
     "run_list":
     [
+        "openaddr-prereqs",
         "openaddr",
         "account",
         "ec2-hostname",

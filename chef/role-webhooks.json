@@ -14,6 +14,7 @@
     "gag_github_status": "No",
     "run_list":
     [
+        "openaddr-prereqs",
         "openaddr",
         "account",
         "webhooks",

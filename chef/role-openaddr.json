@@ -1,6 +1,7 @@
 {
     "run_list":
     [
+        "openaddr-prereqs",
         "openaddr"
     ]
 }
