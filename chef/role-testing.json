@@ -7,9 +7,8 @@
     "github_token": "fake-token",
     "run_list":
     [
-        "openaddr",
+        "openaddr-prereqs",
         "database",
-        "account",
-        "webhooks"
+        "account"
     ]
 }

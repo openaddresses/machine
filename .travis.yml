@@ -1,0 +1,31 @@
+language: python
+sudo: required
+dist: trusty
+python:
+  - "2.7"
+  - "3.5"
+cache:
+  apt: true
+addons:
+  postgresql: "9.4"
+before_install:
+  # Add Ubuntu GIS PPA for various geospatial dependencies.
+  - sudo add-apt-repository -y ppa:ubuntugis
+  - sudo apt-get update -y
+install:
+  # Install Machine globally via Chef recipe, to pick up complete dependencies.
+  - sudo chef/run.sh testing
+  # Determine GDAL library version and install a compatible python binding.
+  #   http://gis.stackexchange.com/questions/28966/python-gdal-package-missing-header-file-when-installing-via-pip
+  - CPLUS_INCLUDE_PATH=/usr/include/gdal C_INCLUDE_PATH=/usr/include/gdal pip install "GDAL==`gdal-config --version`"
+  # cairocffi is a drop-in replacement for Pycairo, which is absent from pip.
+  #   http://stackoverflow.com/questions/11491268/install-pycairo-in-virtualenv
+  #   https://pythonhosted.org/cairocffi/
+  - pip install cairocffi
+  # Install Machine for virtualenv, to test with this Python version.
+  - pip install -U .
+  # Create necessary database tables.
+  - openaddr-ci-recreate-db
+env:  BOTO_CONFIG=/tmp/nowhere DATABASE_URL=postgres://openaddr:openaddr@localhost/openaddr
+script:  python setup.py test
+

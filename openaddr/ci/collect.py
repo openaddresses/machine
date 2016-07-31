@@ -207,7 +207,7 @@ def _upload_s3_part(s3_bucket, multipart_id, part_num, source_path, offset, byte
                         fp.seek(offset)
                         mp.upload_part_from_file(fp=fp, part_num=part_num, size=bytes)
                     break
-        except Exception, exc:
+        except Exception:
             if retries == 0:
                 _L.info('... Failed uploading part #%d', part_num)
                 raise

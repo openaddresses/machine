@@ -25,8 +25,6 @@ bash "create database" do
     psql #{args} -c "CREATE USER dashboard";
     psql #{args} -c "CREATE USER #{user} WITH SUPERUSER PASSWORD '#{pass}'";
     psql #{args} -c "CREATE DATABASE #{name} WITH OWNER #{user}";
-
-    openaddr-ci-recreate-db
   CODE
   
   # Stop as soon as an error is encountered.
