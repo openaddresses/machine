@@ -9,7 +9,6 @@
     [
         "openaddr-prereqs",
         "database",
-        "account",
-        "webhooks"
+        "account"
     ]
 }
