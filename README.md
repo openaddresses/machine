@@ -26,8 +26,14 @@ submissions.
 ### CI Mode
 
 Installation scripts for preparing a fresh install of Ubuntu 14.04 can be found
-in `chef`. You will need a pre-installed PostgreSQL database initialized with
-the schema `openaddr/ci/schema.pgsql` and Amazon S3 bucket with credentials.
+in `chef`. You will need a local installation of PostgreSQL, a PostgreSQL role 
+named `dashboard`, a database named `openaddr` that's been initialized with the 
+schema `openaddr/ci/schema.pgsql`, and an Amazon S3 bucket with credentials.
+
+    createuser dashboard
+    createdb openaddr
+    ﻿psql -f openaddr/ci/schema.pgsql openaddr
+
 After editing `chef/role-webhooks.json` and `chef/role-worker.json`, run them
 from a Git checkout like this:
 

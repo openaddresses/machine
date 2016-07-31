@@ -10,3 +10,6 @@ state-*.txt
 state-*.json
 env-*
 venv-hooked-on-sources
+
+# PyCharm/JetBrains IDE files
+.idea
