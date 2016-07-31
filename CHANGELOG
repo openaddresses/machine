@@ -1,3 +1,7 @@
+2016-07-30: 2.22.6
+- Fixed Python 3 compatibility bugs.
+- Re-configured Travis CI test builds.
+
 2016-07-26: 2.22.5
 - Fixed bug in S3 multipart uploads.
 
