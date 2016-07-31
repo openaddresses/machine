@@ -1,3 +1,6 @@
+2016-07-30: 2.22.7
+- Corrected branch location of README.
+
 2016-07-30: 2.22.6
 - Fixed Python 3 compatibility bugs.
 - Re-configured Travis CI test builds.
