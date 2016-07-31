@@ -3,16 +3,12 @@ sudo: required
 dist: trusty
 python:
   - "2.7"
-  - "3.3"
 cache:
   apt: true
 addons:
-  postgresql: "9.3"
+  postgresql: "9.4"
 before_install:
-  # Although we include chef, we need to pre-install a number of dependencies
-  # to adapt to Travis Ubuntu apt sources and virtualenv environment.
-  #   https://github.com/travis-ci/travis-ci/issues/2683#issuecomment-52720150
-  #   https://github.com/travis-ci/travis-ci/issues/2938
+  # Add Ubuntu GIS PPA for various geospatial dependencies.
   - sudo add-apt-repository -y ppa:ubuntugis
   - sudo apt-get update -y
 install:
@@ -21,13 +17,12 @@ install:
   # Determine GDAL library version and install a compatible python binding.
   #   http://gis.stackexchange.com/questions/28966/python-gdal-package-missing-header-file-when-installing-via-pip
   - CPLUS_INCLUDE_PATH=/usr/include/gdal C_INCLUDE_PATH=/usr/include/gdal pip install "GDAL==`gdal-config --version`"
-  #
   # cairocffi is a drop-in replacement for Pycairo, which is absent from pip.
   #   http://stackoverflow.com/questions/11491268/install-pycairo-in-virtualenv
   #   https://pythonhosted.org/cairocffi/
   - pip install cairocffi
+  # Install Machine for virtualenv, to test with this Python version.
   - pip install -U .
-  - openaddr-ci-recreate-db
 env:  BOTO_CONFIG=/tmp/nowhere DATABASE_URL=postgres://openaddr:openaddr@localhost/openaddr
 script:  python setup.py test
 
