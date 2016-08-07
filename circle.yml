@@ -24,7 +24,7 @@ dependencies:
     # Create necessary database tables.
     - openaddr-ci-recreate-db
     # Destroy the evidence.
-    - rm -rf openaddr
+    - find openaddr -type f -a ! -name VERSION -delete
 
 test:
   override:

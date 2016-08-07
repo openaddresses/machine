@@ -27,7 +27,7 @@ install:
   # Create necessary database tables.
   - openaddr-ci-recreate-db
   # Destroy the evidence.
-  - rm -rf openaddr
+  - find openaddr -type f -a ! -name VERSION -delete
 env:  BOTO_CONFIG=/tmp/nowhere DATABASE_URL=postgres://openaddr:openaddr@localhost/openaddr
 script:  python setup.py test
 
