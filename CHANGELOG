@@ -1,3 +1,6 @@
+2016-08-06: 2.24.1
+- Fixed missing template file from setup.py.
+
 2016-08-06: 2.24.0
 - Added openaddr-supervise-extract-collection script for EC2 collections.
 

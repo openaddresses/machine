@@ -74,6 +74,9 @@ setup(
         ],
         'openaddr.parcels': [
             'README.md'
+        ],
+        'openaddr.util': [
+            'templates/*.*'
         ]
     },
     test_suite = 'openaddr.tests',
