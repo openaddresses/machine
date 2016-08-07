@@ -1,5 +1,6 @@
 from urllib.parse import urlparse, parse_qsl
 from datetime import datetime, timedelta
+from os.path import join, dirname
 
 from .. import __version__
 
@@ -45,18 +46,14 @@ def request_task_instance(ec2, autoscale):
     (config, ) = autoscale.get_all_launch_configurations(names=[group.launch_config_name])
     (image, ) = ec2.get_all_images(image_ids=[config.image_id])
     keypair = ec2.get_all_key_pairs()[0]
-
-    run_kwargs = dict(instance_type='m3.medium', security_groups=['default'],
-                      instance_initiated_shutdown_behavior='terminate',
-                      key_name=keypair.name,
-                      user_data='''#!/bin/bash
-sleep 5
-echo 'Walla walla walla'
-shutdown -h now
-''')
+    
+    with open(join(dirname(__file__), 'templates', 'collector-userdata.sh')) as file:
+        run_kwargs = dict(instance_type='m3.medium', security_groups=['default'],
+                          instance_initiated_shutdown_behavior='terminate',
+                          key_name=keypair.name, user_data=file.read())
 
     reservation = image.run(**run_kwargs)
     (instance, ) = reservation.instances
-    instance.add_tag('Name', 'Hell Yeah')
+    instance.add_tag('Name', 'Scheduled {} Collector'.format(datetime.now().strftime('%Y-%m-%d')))
     
     return instance

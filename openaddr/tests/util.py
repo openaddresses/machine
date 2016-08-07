@@ -2,6 +2,7 @@
 
 from shutil import rmtree
 from os.path import dirname, join
+from datetime import datetime
 
 import unittest, tempfile, json
 from mimetypes import guess_type
@@ -78,7 +79,12 @@ class TestUtilities (unittest.TestCase):
         autoscale, ec2 = Mock(), Mock()
         group, config, image = Mock(), Mock(), Mock()
         keypair, reservation, instance = Mock(), Mock(), Mock()
-        group_name = 'CI Workers {0}.x'.format(*__version__.split('.'))
+        
+        expected_group_name = 'CI Workers {0}.x'.format(*__version__.split('.'))
+        expected_instance_name = 'Scheduled {} Collector'.format(datetime.now().strftime('%Y-%m-%d'))
+        
+        with open(join(dirname(__file__), '..', 'util', 'templates', 'collector-userdata.sh')) as file:
+            expected_user_data = file.read()
         
         autoscale.get_all_groups.return_value = [group]
         autoscale.get_all_launch_configurations.return_value = [config]
@@ -90,17 +96,17 @@ class TestUtilities (unittest.TestCase):
         
         util.request_task_instance(ec2, autoscale)
         
-        autoscale.get_all_groups.assert_called_once_with([group_name])
+        autoscale.get_all_groups.assert_called_once_with([expected_group_name])
         autoscale.get_all_launch_configurations.assert_called_once_with(names=[group.launch_config_name])
         ec2.get_all_images.assert_called_once_with(image_ids=[config.image_id])
         ec2.get_all_key_pairs.assert_called_once_with()
         
         image.run.assert_called_once_with(instance_type='m3.medium',
-            user_data='''#!/bin/bash\nsleep 5\necho 'Walla walla walla'\nshutdown -h now\n''',
+            user_data=expected_user_data,
             key_name=keypair.name, security_groups=['default'],
             instance_initiated_shutdown_behavior='terminate')
         
-        instance.add_tag.assert_called_once_with('Name', 'Hell Yeah')
+        instance.add_tag.assert_called_once_with('Name', expected_instance_name)
         
 
 class TestEsri2GeoJSON (unittest.TestCase):
