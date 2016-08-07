@@ -26,6 +26,8 @@ install:
   - pip install -U .
   # Create necessary database tables.
   - openaddr-ci-recreate-db
+  # Destroy the evidence.
+  - rm -rf openaddr
 env:  BOTO_CONFIG=/tmp/nowhere DATABASE_URL=postgres://openaddr:openaddr@localhost/openaddr
 script:  python setup.py test
 

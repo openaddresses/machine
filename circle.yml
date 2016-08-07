@@ -23,6 +23,8 @@ dependencies:
     - pip install -U .
     # Create necessary database tables.
     - openaddr-ci-recreate-db
+    # Destroy the evidence.
+    - rm -rf openaddr
 
 test:
   override:
