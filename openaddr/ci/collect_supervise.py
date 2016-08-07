@@ -12,6 +12,18 @@ from boto import connect_autoscale, connect_ec2
 
 parser = ArgumentParser(description='Run collection process on a remote EC2 instance.')
 
+parser.add_argument('-o', '--owner', default='openaddresses',
+                    help='Github repository owner. Defaults to "openaddresses".')
+
+parser.add_argument('-r', '--repository', default='openaddresses',
+                    help='Github repository name. Defaults to "openaddresses".')
+
+parser.add_argument('-b', '--bucket', default='data.openaddresses.io',
+                    help='S3 bucket name. Defaults to "data.openaddresses.io".')
+
+parser.add_argument('-d', '--database-url', default=environ.get('DATABASE_URL', None),
+                    help='Optional connection string for database. Defaults to value of DATABASE_URL environment variable.')
+
 parser.add_argument('-a', '--access-key', default=environ.get('AWS_ACCESS_KEY_ID', None),
                     help='Optional AWS access key name. Defaults to value of AWS_ACCESS_KEY_ID environment variable.')
 
@@ -42,7 +54,12 @@ def main():
 
     try:
         ec2, autoscale = connect_ec2(), connect_autoscale()
-        instance = request_task_instance(ec2, autoscale)
+        instance = request_task_instance(
+            ec2, autoscale, owner=args.owner, repository=args.repository,
+            bucket=args.bucket, database_url=args.database_url,
+            access_key=args.access_key, secret_key=args.secret_key,
+            sns_arn=args.sns_arn
+            )
 
         while True:
             instance.update()

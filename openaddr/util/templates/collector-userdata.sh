@@ -1,4 +1,4 @@
-#!/bin/sh -ex
+#!/bin/sh -x
 apt-get update -y
 apt-get install -y git htop curl
 
