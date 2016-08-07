@@ -8,9 +8,9 @@ import unittest, tempfile, json
 from mimetypes import guess_type
 from urllib.parse import urlparse, parse_qs
 from httmock import HTTMock, response
-from shlex import quote
 from mock import Mock
 
+from ..compat import quote
 from .. import util, __version__
 from ..util.esri2geojson import esri2geojson
 

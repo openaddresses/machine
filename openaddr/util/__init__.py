@@ -3,9 +3,9 @@ import logging; _L = logging.getLogger('openaddr.util')
 from urllib.parse import urlparse, parse_qsl
 from datetime import datetime, timedelta
 from os.path import join, dirname
-from shlex import quote
 
 from .. import __version__
+from ..compat import quote
 
 def prepare_db_kwargs(dsn):
     '''

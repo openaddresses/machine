@@ -4,6 +4,7 @@ import io
 PY2 = (sys.version_info[0] == 2)
 
 if PY2:
+    from pipes import quote
     import unicodecsv, subprocess32, uritemplate
     unicodecsv.field_size_limit(sys.maxsize)
     
@@ -73,6 +74,7 @@ if PY2:
     standard_library.install_aliases()
 
 else:
+    from shlex import quote
     import csv, subprocess
     from uritemplate import expand as expand_uri
     standard_library = None
