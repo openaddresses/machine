@@ -1,3 +1,5 @@
+import logging; _L = logging.getLogger('openaddr.util')
+
 from urllib.parse import urlparse, parse_qsl
 from datetime import datetime, timedelta
 from os.path import join, dirname
@@ -50,10 +52,13 @@ def request_task_instance(ec2, autoscale):
     with open(join(dirname(__file__), 'templates', 'collector-userdata.sh')) as file:
         run_kwargs = dict(instance_type='m3.medium', security_groups=['default'],
                           instance_initiated_shutdown_behavior='terminate',
-                          key_name=keypair.name, user_data=file.read())
+                          user_data=file.read().format(version=__version__),
+                          key_name=keypair.name)
 
     reservation = image.run(**run_kwargs)
     (instance, ) = reservation.instances
     instance.add_tag('Name', 'Scheduled {} Collector'.format(datetime.now().strftime('%Y-%m-%d')))
+    
+    _L.info('Started EC2 instance {} from AMI {}'.format(instance, image))
     
     return instance
