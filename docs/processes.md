@@ -71,19 +71,26 @@ Collection
 
 New Zip collections are generated nightly, scheduled with `cron`.
 
-1.  Run the [collection with the script `openaddr-collect-extracts`](components.md#collect).
+1.  Run the [script `openaddr-supervise-extract-collection`](components.md#collect).
+    This will require [S3 access credentials](persistence.md#s3), used to start
+    an Amazon EC2 instance:
+    
+        openaddr-supervise-extract-collection
+
+2.  The EC2 user-data will run the
+    [collection with the script `openaddr-collect-extracts`](components.md#collect).
     This will require a connection to [the machine database](persistence.md#db)
     and [S3 access credentials](persistence.md#s3) in environment variables:
     
         openaddr-collect-extracts -d <Database URL>
     
-2.  Current data is read from the [`sets` and `runs` tables](persistence.md#db),
+3.  Current data is read from the [`sets` and `runs` tables](persistence.md#db),
     using the most-recent successful run for each source listed in the most
     recent set. This will include older successful runs for sources that have
     since failed.
     
-3.  New Zip archives are created for geographic regions of the world.
+4.  New Zip archives are created for geographic regions of the world.
     
-4.  Zip archives are [uploaded to S3](persistence.md#s3) in predictable locations
+5.  Zip archives are [uploaded to S3](persistence.md#s3) in predictable locations
     overwriting previous archives, and immediately available from
     [results.openaddresses.io](http://results.openaddresses.io).

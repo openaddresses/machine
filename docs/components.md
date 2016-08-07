@@ -64,7 +64,8 @@ This Python script is meant to be run about once per week. It retrieves a curren
 
 This Python script is meant to be run about once per day. It downloads all current processed data, generates a series of collection Zip archives for different regions of the world, and uploads them to [S3](persistence.md#s3).
 
-* Run via the [script `openaddr-collect-extracts`](https://github.com/openaddresses/machine/blob/2.18.2/setup.py#L47).
+* Run under the [script `openaddr-supervise-extract-collection`](https://github.com/openaddresses/machine/blob/a32cbcc8d/setup.py#L53), which creates a short-lived EC2 instance.
+* On that EC2 instance, run with the [script `openaddr-collect-extracts`](https://github.com/openaddresses/machine/blob/2.18.2/setup.py#L47).
 * Code can be found [in `openaddr/ci/collect.py`](https://github.com/openaddresses/machine/blob/2.18.2/openaddr/ci/collect.py).
 * Resulting collections are linked from [results.openaddresses.io](http://results.openaddresses.io).
 * A nightly cron task for this script runs every evening from the same EC2 instance as _Webhook_.

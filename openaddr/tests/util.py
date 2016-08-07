@@ -84,7 +84,7 @@ class TestUtilities (unittest.TestCase):
         expected_instance_name = 'Scheduled {} Collector'.format(datetime.now().strftime('%Y-%m-%d'))
         
         with open(join(dirname(__file__), '..', 'util', 'templates', 'collector-userdata.sh')) as file:
-            expected_user_data = file.read()
+            expected_user_data = file.read().format(version=__version__)
         
         autoscale.get_all_groups.return_value = [group]
         autoscale.get_all_launch_configurations.return_value = [config]
