@@ -26,6 +26,8 @@ install:
   - pip install -U .
   # Create necessary database tables.
   - openaddr-ci-recreate-db
+  # Destroy the evidence, so that tests use a setup-installed version of openaddr.
+  - find openaddr -type f -a ! -name VERSION -delete
 env:  BOTO_CONFIG=/tmp/nowhere DATABASE_URL=postgres://openaddr:openaddr@localhost/openaddr
 script:  python setup.py test
 
