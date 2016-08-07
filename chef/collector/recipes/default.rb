@@ -15,7 +15,7 @@ slack_url = node['slack_url']
 execute 'pip install honcho[export]'
 
 #
-# Prepare configuration files.
+# Prepare configuration file.
 #
 file "/etc/openaddr-collector.conf" do
   content <<-CONF
@@ -24,21 +24,4 @@ AWS_ACCESS_KEY_ID=#{aws_access_id}
 AWS_SECRET_ACCESS_KEY=#{aws_secret_key}
 GITHUB_TOKEN=#{github_token}
 CONF
-end
-
-rotation = <<-ROTATION
-{
-	copytruncate
-	rotate 4
-	weekly
-	missingok
-	notifempty
-	compress
-	delaycompress
-	endscript
-}
-ROTATION
-
-file "/etc/logrotate.d/openaddr-collector" do
-    content "/var/log/openaddr-collector.log\n#{rotation}\n"
 end
