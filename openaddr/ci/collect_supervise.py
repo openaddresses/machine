@@ -33,7 +33,7 @@ parser.add_argument('-q', '--quiet', help='Turn off most logging',
 def main():
     ''' 
     '''
-    instance, deadline = False, time() + 60 * 5
+    instance, deadline = False, time() + 12 * 3600
 
     args = parser.parse_args()
     setup_logger(args.sns_arn, log_level=args.loglevel)
@@ -53,7 +53,7 @@ def main():
 
             if time() > deadline:
                 _L.warning('Stopping instance {} at deadline'.format(instance))
-                instance.terminate()
+                raise RuntimeError('Out of time')
 
             sleep(60)
 
