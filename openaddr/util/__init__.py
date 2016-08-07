@@ -3,6 +3,7 @@ import logging; _L = logging.getLogger('openaddr.util')
 from urllib.parse import urlparse, parse_qsl
 from datetime import datetime, timedelta
 from os.path import join, dirname
+from shlex import quote
 
 from .. import __version__
 
@@ -39,7 +40,7 @@ def set_autoscale_capacity(autoscale, cloudwatch, capacity):
     if measure['Maximum'] > .9:
         group.set_capacity(capacity)
 
-def request_task_instance(ec2, autoscale):
+def request_task_instance(ec2, autoscale, **template_kwargs):
     '''
     '''
     group_name = 'CI Workers {0}.x'.format(*__version__.split('.'))
@@ -50,9 +51,12 @@ def request_task_instance(ec2, autoscale):
     keypair = ec2.get_all_key_pairs()[0]
     
     with open(join(dirname(__file__), 'templates', 'collector-userdata.sh')) as file:
+        userdata_kwargs = {k: quote(v) for (k, v) in template_kwargs.items()}
+        userdata_kwargs.update(version=quote(__version__))
+    
         run_kwargs = dict(instance_type='m3.medium', security_groups=['default'],
                           instance_initiated_shutdown_behavior='terminate',
-                          user_data=file.read().format(version=__version__),
+                          user_data=file.read().format(**userdata_kwargs),
                           key_name=keypair.name)
 
     reservation = image.run(**run_kwargs)

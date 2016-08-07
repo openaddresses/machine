@@ -8,6 +8,7 @@ import unittest, tempfile, json
 from mimetypes import guess_type
 from urllib.parse import urlparse, parse_qs
 from httmock import HTTMock, response
+from shlex import quote
 from mock import Mock
 
 from .. import util, __version__
@@ -80,11 +81,13 @@ class TestUtilities (unittest.TestCase):
         group, config, image = Mock(), Mock(), Mock()
         keypair, reservation, instance = Mock(), Mock(), Mock()
         
+        userdata_kwargs = dict(
+            owner='o', repository='r', bucket='b', database_url='d\\d',
+            access_key='a"a', secret_key="s's", sns_arn='a:a'
+            )
+        
         expected_group_name = 'CI Workers {0}.x'.format(*__version__.split('.'))
         expected_instance_name = 'Scheduled {} Collector'.format(datetime.now().strftime('%Y-%m-%d'))
-        
-        with open(join(dirname(__file__), '..', 'util', 'templates', 'collector-userdata.sh')) as file:
-            expected_user_data = file.read().format(version=__version__)
         
         autoscale.get_all_groups.return_value = [group]
         autoscale.get_all_launch_configurations.return_value = [config]
@@ -94,17 +97,21 @@ class TestUtilities (unittest.TestCase):
         image.run.return_value = reservation
         reservation.instances = [instance]
         
-        util.request_task_instance(ec2, autoscale)
+        util.request_task_instance(ec2, autoscale, **userdata_kwargs)
         
         autoscale.get_all_groups.assert_called_once_with([expected_group_name])
         autoscale.get_all_launch_configurations.assert_called_once_with(names=[group.launch_config_name])
         ec2.get_all_images.assert_called_once_with(image_ids=[config.image_id])
         ec2.get_all_key_pairs.assert_called_once_with()
         
-        image.run.assert_called_once_with(instance_type='m3.medium',
-            user_data=expected_user_data,
-            key_name=keypair.name, security_groups=['default'],
-            instance_initiated_shutdown_behavior='terminate')
+        image_run_kwargs = image.run.mock_calls[0][2]
+        self.assertEqual(image_run_kwargs['instance_type'], 'm3.medium')
+        self.assertEqual(image_run_kwargs['instance_initiated_shutdown_behavior'], 'terminate')
+        self.assertEqual(image_run_kwargs['key_name'], keypair.name)
+        
+        for (key, value) in userdata_kwargs.items():
+            cli_arg = '--{} {}'.format(key.replace('_', '-'), quote(value))
+            self.assertIn(cli_arg, image_run_kwargs['user_data'])
         
         instance.add_tag.assert_called_once_with('Name', expected_instance_name)
         
