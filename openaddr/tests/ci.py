@@ -2360,9 +2360,12 @@ class TestBatch (unittest.TestCase):
         
         with patch('openaddr.ci.objects.read_latest_set') as read_latest_set, patch('openaddr.ci.objects.read_completed_runs_to_date') as read_completed_runs_to_date:
             read_completed_runs_to_date.return_value = [
-                Run(_, 'sources/foo.json', _, b'', _, RunState({'process time': '01:01'}), _, _, _, _, _, _, _, _),
-                Run(_, 'sources/bar.json', _, b'', _, RunState({'process time': '00:01'}), _, _, _, _, _, _, _, _),
-                Run(_, 'sources/baz.json', _, b'', _, RunState({'process time': '00:01'}), _, _, _, _, _, _, _, _),
+                Run(_, 'sources/foo.json', _, b'', _, RunState({'cache time': '00:01', 'process time': '01:00'}), _, _, _, _, _, _, _, _),
+                Run(_, 'sources/bar.json', _, b'', _, RunState({'cache time': '00:01', 'process time': '00:00'}), _, _, _, _, _, _, _, _),
+                Run(_, 'sources/baz.json', _, b'', _, RunState({'cache time': '00:00', 'process time': '00:01'}), _, _, _, _, _, _, _, _),
+                Run(_, 'sources/one.json', _, b'', _, RunState({'cache time':    None, 'process time': '00:01'}), _, _, _, _, _, _, _, _),
+                Run(_, 'sources/two.json', _, b'', _, RunState({'cache time': '00:01', 'process time':    None}), _, _, _, _, _, _, _, _),
+                Run(_, 'sources/meh.json', _, b'', _, RunState({'cache time':    None, 'process time':    None}), _, _, _, _, _, _, _, _),
                 ]
 
             run_times = get_batch_run_times(_, 'openaddresses', 'openaddresses')
@@ -2370,6 +2373,9 @@ class TestBatch (unittest.TestCase):
             self.assertEqual(run_times['sources/foo.json'], '01:01')
             self.assertEqual(run_times['sources/bar.json'], '00:01')
             self.assertEqual(run_times['sources/baz.json'], '00:01')
+            self.assertEqual(run_times['sources/one.json'], None)
+            self.assertEqual(run_times['sources/two.json'], None)
+            self.assertEqual(run_times['sources/meh.json'], None)
             self.assertEqual(len(run_times), 3)
     
     def test_is_merged_to_master(self):
