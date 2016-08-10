@@ -12,7 +12,7 @@ from .objects import (
 from . import objects
 
 from os.path import relpath, splitext, join, basename
-from datetime import timedelta
+from datetime import timedelta, datetime
 from uuid import uuid4, getnode
 from base64 import b64decode
 from tempfile import mkdtemp
@@ -368,10 +368,25 @@ def get_batch_run_times(db, owner, repository):
     ''' Return dictionary of source paths to run time strings like '00:01:23'.
     '''
     last_set = objects.read_latest_set(db, owner, repository)
-
-    return {run.source_path: run.state.process_time
-            for run in objects.read_completed_runs_to_date(db, last_set.id)
-            if run.state}
+    
+    # return this dictionary
+    run_times = dict()
+    
+    for run in objects.read_completed_runs_to_date(db, last_set.id):
+        if run.state:
+            if run.state.process_time and run.state.cache_time:
+                # parse both times, add them together, and use that.
+                p = datetime.strptime(run.state.process_time, '%H:%M:%S.%f')
+                c = datetime.strptime(run.state.cache_time, '%H:%M:%S.%f')
+                run_time = timedelta(hours=p.hour, minutes=p.minute, seconds=p.second) \
+                         + timedelta(hours=c.hour, minutes=c.minute, seconds=c.second)
+                
+                # should look like 'h:mm:ss'
+                run_times[run.source_path] = str(run_time)
+            else:
+                run_times[run.source_path] = None
+    
+    return run_times
 
 def _find_batch_source_urls(owner, repository, github_auth):
     ''' Starting with a Github repo API URL, return a list of sources.
