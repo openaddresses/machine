@@ -1,3 +1,7 @@
+2016-08-09: 2.25.0
+- Added complete arguments to openaddr-supervise-extract-collection.
+- Made collect cookbook a no-op.
+
 2016-08-06: 2.24.1
 - Fixed missing template file from setup.py.
 
