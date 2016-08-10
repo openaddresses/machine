@@ -1,4 +1,4 @@
-#!/bin/sh -ex
+#!/bin/sh -x
 apt-get update -y
 apt-get install -y git htop curl
 
@@ -6,7 +6,11 @@ apt-get install -y git htop curl
 cd /home/ubuntu/machine
 sudo -u ubuntu git fetch origin {version}
 sudo -u ubuntu git rebase FETCH_HEAD
-chef/run.sh collector
+chef/run.sh openaddr
 
-honcho -e /etc/openaddr-collector.conf run openaddr-collect-extracts 2>&1
+openaddr-collect-extracts \
+    --owner {owner} --repository {repository} --bucket {bucket} \
+    --database-url {database_url} --access-key {access_key} \
+    --secret-key {secret_key} --sns-arn {sns_arn} 2>&1
+
 shutdown -h now
