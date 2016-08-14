@@ -4,7 +4,7 @@ from os import environ
 from time import time, sleep
 from argparse import ArgumentParser
 
-from ..util import request_task_instance_old
+from ..util import request_task_instance
 from . import setup_logger, log_function_errors
 from .. import __version__
 
@@ -54,12 +54,13 @@ def main():
 
     try:
         ec2, autoscale = connect_ec2(), connect_autoscale()
-        instance = request_task_instance_old(
-            ec2, autoscale, owner=args.owner, repository=args.repository,
-            bucket=args.bucket, database_url=args.database_url,
-            access_key=args.access_key, secret_key=args.secret_key,
-            sns_arn=args.sns_arn
+        command = (
+            'openaddr-collect-extracts', '--owner', args.owner,
+            '--repository', args.repository, '--bucket', args.bucket,
+            '--database-url', args.database_url, '--access-key', args.access_key,
+            '--secret-key', args.secret_key, '--sns-arn', args.sns_arn
             )
+        instance = request_task_instance(ec2, autoscale, 'openaddr', command)
 
         while True:
             instance.update()

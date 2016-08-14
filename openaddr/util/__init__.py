@@ -66,30 +66,3 @@ def request_task_instance(ec2, autoscale, chef_role, command):
     _L.info('Started EC2 instance {} from AMI {}'.format(instance, image))
     
     return instance
-
-def request_task_instance_old(ec2, autoscale, **template_kwargs):
-    '''
-    '''
-    group_name = 'CI Workers {0}.x'.format(*__version__.split('.'))
-
-    (group, ) = autoscale.get_all_groups([group_name])
-    (config, ) = autoscale.get_all_launch_configurations(names=[group.launch_config_name])
-    (image, ) = ec2.get_all_images(image_ids=[config.image_id])
-    keypair = ec2.get_all_key_pairs()[0]
-    
-    with open(join(dirname(__file__), 'templates', 'collector-userdata.sh')) as file:
-        userdata_kwargs = {k: quote(v) for (k, v) in template_kwargs.items()}
-        userdata_kwargs.update(version=quote(__version__))
-    
-        run_kwargs = dict(instance_type='m3.medium', security_groups=['default'],
-                          instance_initiated_shutdown_behavior='terminate',
-                          user_data=file.read().format(**userdata_kwargs),
-                          key_name=keypair.name)
-
-    reservation = image.run(**run_kwargs)
-    (instance, ) = reservation.instances
-    instance.add_tag('Name', 'Scheduled {} Collector'.format(datetime.now().strftime('%Y-%m-%d')))
-    
-    _L.info('Started EC2 instance {} from AMI {}'.format(instance, image))
-    
-    return instance
