@@ -1,28 +1,16 @@
-import logging; _L = logging.getLogger('openaddr.ci.collect_supervise')
+import logging; _L = logging.getLogger('openaddr.ci.run_ec2_ami')
 
 from os import environ
 from time import time, sleep
 from argparse import ArgumentParser
 
-from ..util import request_task_instance
-from . import setup_logger, log_function_errors
-from .. import __version__
+from .util import request_task_instance
+from .ci import setup_logger, log_function_errors
+from . import __version__
 
 from boto import connect_autoscale, connect_ec2
 
-parser = ArgumentParser(description='Run collection process on a remote EC2 instance.')
-
-parser.add_argument('-o', '--owner', default='openaddresses',
-                    help='Github repository owner. Defaults to "openaddresses".')
-
-parser.add_argument('-r', '--repository', default='openaddresses',
-                    help='Github repository name. Defaults to "openaddresses".')
-
-parser.add_argument('-b', '--bucket', default='data.openaddresses.io',
-                    help='S3 bucket name. Defaults to "data.openaddresses.io".')
-
-parser.add_argument('-d', '--database-url', default=environ.get('DATABASE_URL', None),
-                    help='Optional connection string for database. Defaults to value of DATABASE_URL environment variable.')
+parser = ArgumentParser(description='Run a process on a remote EC2 instance.')
 
 parser.add_argument('-a', '--access-key', default=environ.get('AWS_ACCESS_KEY_ID', None),
                     help='Optional AWS access key name. Defaults to value of AWS_ACCESS_KEY_ID environment variable.')
@@ -33,6 +21,9 @@ parser.add_argument('-s', '--secret-key', default=environ.get('AWS_SECRET_ACCESS
 parser.add_argument('--sns-arn', default=environ.get('AWS_SNS_ARN', None),
                     help='Optional AWS Simple Notification Service (SNS) resource. Defaults to value of AWS_SNS_ARN environment variable.')
 
+parser.add_argument('--role', default='openaddr',
+                    help='Machine chef role to execute. Defaults to "openaddr".')
+
 parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
                     action='store_const', dest='loglevel',
                     const=logging.DEBUG, default=logging.INFO)
@@ -40,6 +31,8 @@ parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
 parser.add_argument('-q', '--quiet', help='Turn off most logging',
                     action='store_const', dest='loglevel',
                     const=logging.WARNING, default=logging.INFO)
+
+parser.add_argument('command', nargs='*', help='Command with arguments to run on remote instance')
 
 @log_function_errors
 def main():
@@ -51,16 +44,11 @@ def main():
     setup_logger(args.sns_arn, log_level=args.loglevel)
     ec2 = connect_ec2(args.access_key, args.secret_key)
     autoscale = connect_autoscale(args.access_key, args.secret_key)
+    command = args.command
 
     try:
         ec2, autoscale = connect_ec2(), connect_autoscale()
-        command = (
-            'openaddr-collect-extracts', '--owner', args.owner,
-            '--repository', args.repository, '--bucket', args.bucket,
-            '--database-url', args.database_url, '--access-key', args.access_key,
-            '--secret-key', args.secret_key, '--sns-arn', args.sns_arn
-            )
-        instance = request_task_instance(ec2, autoscale, 'openaddr', command)
+        instance = request_task_instance(ec2, autoscale, args.role, args.command)
 
         while True:
             instance.update()

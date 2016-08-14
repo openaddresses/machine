@@ -40,7 +40,7 @@ def set_autoscale_capacity(autoscale, cloudwatch, capacity):
     if measure['Maximum'] > .9:
         group.set_capacity(capacity)
 
-def request_task_instance(ec2, autoscale, **template_kwargs):
+def request_task_instance(ec2, autoscale, chef_role, command):
     '''
     '''
     group_name = 'CI Workers {0}.x'.format(*__version__.split('.'))
@@ -50,8 +50,8 @@ def request_task_instance(ec2, autoscale, **template_kwargs):
     (image, ) = ec2.get_all_images(image_ids=[config.image_id])
     keypair = ec2.get_all_key_pairs()[0]
     
-    with open(join(dirname(__file__), 'templates', 'collector-userdata.sh')) as file:
-        userdata_kwargs = {k: quote(v) for (k, v) in template_kwargs.items()}
+    with open(join(dirname(__file__), 'templates', 'task-instance-userdata.sh')) as file:
+        userdata_kwargs = dict(role=chef_role, command=' '.join(map(quote, command)))
         userdata_kwargs.update(version=quote(__version__))
     
         run_kwargs = dict(instance_type='m3.medium', security_groups=['default'],
@@ -61,7 +61,7 @@ def request_task_instance(ec2, autoscale, **template_kwargs):
 
     reservation = image.run(**run_kwargs)
     (instance, ) = reservation.instances
-    instance.add_tag('Name', 'Scheduled {} Collector'.format(datetime.now().strftime('%Y-%m-%d')))
+    instance.add_tag('Name', 'Scheduled {} {}'.format(datetime.now().strftime('%Y-%m-%d'), command[0]))
     
     _L.info('Started EC2 instance {} from AMI {}'.format(instance, image))
     
