@@ -50,7 +50,6 @@ setup(
             'openaddr-ci-worker = openaddr.ci.worker:main',
             'openaddr-enqueue-sources = openaddr.ci.enqueue:main',
             'openaddr-collect-extracts = openaddr.ci.collect:main',
-            'openaddr-supervise-extract-collection = openaddr.ci.collect_supervise:main',
             'openaddr-run-ec2-command = openaddr.run_ec2_ami:main',
             'openaddr-update-dotmap = openaddr.dotmap:main',
         ]
