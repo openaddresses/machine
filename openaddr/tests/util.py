@@ -108,8 +108,8 @@ class TestUtilities (unittest.TestCase):
         self.assertEqual(image_run_kwargs['key_name'], keypair.name)
         
         self.assertIn('chef/run.sh {}'.format(quote(chef_role)), image_run_kwargs['user_data'])
-        for arg in command:
-            self.assertIn(quote(arg), image_run_kwargs['user_data'])
+        for (arg1, arg2) in zip(command, command[1:]):
+            self.assertIn(quote(arg1)+' '+quote(arg2), image_run_kwargs['user_data'])
         
         instance.add_tag.assert_called_once_with('Name', expected_instance_name)
 
