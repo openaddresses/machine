@@ -81,6 +81,45 @@ class TestUtilities (unittest.TestCase):
         group, config, image = Mock(), Mock(), Mock()
         keypair, reservation, instance = Mock(), Mock(), Mock()
         
+        chef_role = 'good-times'
+        command = 'openaddr-good-times', '--yo', 'b', 'd\\d', 'a"a', "s's", 'a:a'
+        
+        expected_group_name = 'CI Workers {0}.x'.format(*__version__.split('.'))
+        expected_instance_name = 'Scheduled {} Collector'.format(datetime.now().strftime('%Y-%m-%d'))
+        
+        autoscale.get_all_groups.return_value = [group]
+        autoscale.get_all_launch_configurations.return_value = [config]
+        ec2.get_all_images.return_value = [image]
+        ec2.get_all_key_pairs.return_value = [keypair]
+        
+        image.run.return_value = reservation
+        reservation.instances = [instance]
+        
+        util.request_task_instance(ec2, autoscale, chef_role, command)
+        
+        autoscale.get_all_groups.assert_called_once_with([expected_group_name])
+        autoscale.get_all_launch_configurations.assert_called_once_with(names=[group.launch_config_name])
+        ec2.get_all_images.assert_called_once_with(image_ids=[config.image_id])
+        ec2.get_all_key_pairs.assert_called_once_with()
+        
+        image_run_kwargs = image.run.mock_calls[0][2]
+        self.assertEqual(image_run_kwargs['instance_type'], 'm3.medium')
+        self.assertEqual(image_run_kwargs['instance_initiated_shutdown_behavior'], 'terminate')
+        self.assertEqual(image_run_kwargs['key_name'], keypair.name)
+        
+        self.assertIn('chef/run.sh {}'.format(quote(chef_role)), image_run_kwargs['user_data'])
+        for arg in command:
+            self.assertIn(quote(arg), image_run_kwargs['user_data'])
+        
+        instance.add_tag.assert_called_once_with('Name', expected_instance_name)
+    
+    def test_task_instance_old(self):
+        '''
+        '''
+        autoscale, ec2 = Mock(), Mock()
+        group, config, image = Mock(), Mock(), Mock()
+        keypair, reservation, instance = Mock(), Mock(), Mock()
+        
         userdata_kwargs = dict(
             owner='o', repository='r', bucket='b', database_url='d\\d',
             access_key='a"a', secret_key="s's", sns_arn='a:a'
