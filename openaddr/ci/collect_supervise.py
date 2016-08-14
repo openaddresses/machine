@@ -4,7 +4,7 @@ from os import environ
 from time import time, sleep
 from argparse import ArgumentParser
 
-from ..util import request_task_instance
+from ..util import request_task_instance_old
 from . import setup_logger, log_function_errors
 from .. import __version__
 
@@ -54,7 +54,7 @@ def main():
 
     try:
         ec2, autoscale = connect_ec2(), connect_autoscale()
-        instance = request_task_instance(
+        instance = request_task_instance_old(
             ec2, autoscale, owner=args.owner, repository=args.repository,
             bucket=args.bucket, database_url=args.database_url,
             access_key=args.access_key, secret_key=args.secret_key,

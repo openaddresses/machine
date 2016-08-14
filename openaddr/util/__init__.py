@@ -40,7 +40,7 @@ def set_autoscale_capacity(autoscale, cloudwatch, capacity):
     if measure['Maximum'] > .9:
         group.set_capacity(capacity)
 
-def request_task_instance(ec2, autoscale, **template_kwargs):
+def request_task_instance_old(ec2, autoscale, **template_kwargs):
     '''
     '''
     group_name = 'CI Workers {0}.x'.format(*__version__.split('.'))

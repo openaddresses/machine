@@ -97,7 +97,7 @@ class TestUtilities (unittest.TestCase):
         image.run.return_value = reservation
         reservation.instances = [instance]
         
-        util.request_task_instance(ec2, autoscale, **userdata_kwargs)
+        util.request_task_instance_old(ec2, autoscale, **userdata_kwargs)
         
         autoscale.get_all_groups.assert_called_once_with([expected_group_name])
         autoscale.get_all_launch_configurations.assert_called_once_with(names=[group.launch_config_name])
