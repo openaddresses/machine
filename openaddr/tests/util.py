@@ -85,7 +85,7 @@ class TestUtilities (unittest.TestCase):
         command = 'openaddr-good-times', '--yo', 'b', 'd\\d', 'a"a', "s's", 'a:a'
         
         expected_group_name = 'CI Workers {0}.x'.format(*__version__.split('.'))
-        expected_instance_name = 'Scheduled {} Collector'.format(datetime.now().strftime('%Y-%m-%d'))
+        expected_instance_name = 'Scheduled {} {}'.format(datetime.now().strftime('%Y-%m-%d'), command[0])
         
         autoscale.get_all_groups.return_value = [group]
         autoscale.get_all_launch_configurations.return_value = [config]

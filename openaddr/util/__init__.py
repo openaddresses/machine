@@ -61,7 +61,7 @@ def request_task_instance(ec2, autoscale, chef_role, command):
 
     reservation = image.run(**run_kwargs)
     (instance, ) = reservation.instances
-    instance.add_tag('Name', 'Scheduled {} Collector'.format(datetime.now().strftime('%Y-%m-%d')))
+    instance.add_tag('Name', 'Scheduled {} {}'.format(datetime.now().strftime('%Y-%m-%d'), command[0]))
     
     _L.info('Started EC2 instance {} from AMI {}'.format(instance, image))
     
