@@ -1,3 +1,6 @@
+2016-08-18: 2.26.1
+- Fixed AWS key/secret usage in openaddr-run-ec2-command.
+
 2016-08-14: 2.26.0
 - Added openaddr-run-ec2-command script.
 
