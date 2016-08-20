@@ -46,7 +46,7 @@ def main():
     try:
         ec2 = connect_ec2(args.access_key, args.secret_key)
         autoscale = connect_autoscale(args.access_key, args.secret_key)
-        instance = request_task_instance(ec2, autoscale, args.role, args.command)
+        instance = request_task_instance(ec2, autoscale, 'm3.medium', args.role, args.command)
 
         while True:
             instance.update()

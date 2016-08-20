@@ -60,7 +60,7 @@ def main():
             '--database-url', args.database_url, '--access-key', args.access_key,
             '--secret-key', args.secret_key, '--sns-arn', args.sns_arn
             )
-        instance = request_task_instance(ec2, autoscale, 'openaddr', command)
+        instance = request_task_instance(ec2, autoscale, 'm3.medium', 'openaddr', command)
 
         while True:
             instance.update()
