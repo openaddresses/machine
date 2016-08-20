@@ -1,3 +1,6 @@
+2016-08-20: 2.27.0
+- Added configurable EC2 instance type to openaddr-run-ec2-command.
+
 2016-08-18: 2.26.1
 - Fixed AWS key/secret usage in openaddr-run-ec2-command.
 
