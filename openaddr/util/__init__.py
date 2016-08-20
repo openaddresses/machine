@@ -40,7 +40,7 @@ def set_autoscale_capacity(autoscale, cloudwatch, capacity):
     if measure['Maximum'] > .9:
         group.set_capacity(capacity)
 
-def request_task_instance(ec2, autoscale, chef_role, command):
+def request_task_instance(ec2, autoscale, instance_type, chef_role, command):
     '''
     '''
     group_name = 'CI Workers {0}.x'.format(*__version__.split('.'))
@@ -54,7 +54,7 @@ def request_task_instance(ec2, autoscale, chef_role, command):
         userdata_kwargs = dict(role=chef_role, command=' '.join(map(quote, command)))
         userdata_kwargs.update(version=quote(__version__))
     
-        run_kwargs = dict(instance_type='m3.medium', security_groups=['default'],
+        run_kwargs = dict(instance_type=instance_type, security_groups=['default'],
                           instance_initiated_shutdown_behavior='terminate',
                           user_data=file.read().format(**userdata_kwargs),
                           key_name=keypair.name)
