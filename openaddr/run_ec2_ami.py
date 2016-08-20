@@ -24,6 +24,9 @@ parser.add_argument('--sns-arn', default=environ.get('AWS_SNS_ARN', None),
 parser.add_argument('--role', default='openaddr',
                     help='Machine chef role to execute. Defaults to "openaddr".')
 
+parser.add_argument('--instance-type', default='m3.medium',
+                    help='EC2 instance type. Defaults to "m3.medium".')
+
 parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
                     action='store_const', dest='loglevel',
                     const=logging.DEBUG, default=logging.INFO)
@@ -46,7 +49,8 @@ def main():
     try:
         ec2 = connect_ec2(args.access_key, args.secret_key)
         autoscale = connect_autoscale(args.access_key, args.secret_key)
-        instance = request_task_instance(ec2, autoscale, 'm3.medium', args.role, args.command)
+        instance = request_task_instance(ec2, autoscale, args.instance_type,
+                                         args.role, args.command)
 
         while True:
             instance.update()
