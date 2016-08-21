@@ -68,12 +68,13 @@ class Run:
 class RunState:
     '''
     '''
+    # Dictionary of acceptable keys for the input json blob.
     key_attrs = {key: key.replace(' ', '_').replace('-', '_')
         for key in ('source', 'cache', 'sample', 'geometry type',
         'address count', 'version', 'fingerprint', 'cache time', 'processed',
         'output', 'process time', 'website', 'skipped', 'license',
         'share-alike', 'attribution required', 'attribution name',
-        'attribution flag')}
+        'attribution flag', 'process hash')}
 
     def __init__(self, json_blob):
         blob_dict = dict(json_blob or {})
@@ -90,6 +91,7 @@ class RunState:
         self.processed = blob_dict.get('processed')
         self.output = blob_dict.get('output')
         self.process_time = blob_dict.get('process time')
+        self.process_hash = blob_dict.get('process hash')
         self.website = blob_dict.get('website')
         self.skipped = blob_dict.get('skipped')
         self.license = blob_dict.get('license')

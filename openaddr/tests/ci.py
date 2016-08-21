@@ -772,7 +772,7 @@ class TestAPI (unittest.TestCase):
             for key in ('source', 'cache', 'sample', 'geometry type', 'address count',
                         'version', 'fingerprint', 'cache time', 'processed', 'output',
                         'process time', 'attribution required', 'attribution name',
-                        'share-alike'):
+                        'share-alike', 'process hash'):
                 self.assertIn(key, got_state1)
                 self.assertIn(key, got_state2)
         
