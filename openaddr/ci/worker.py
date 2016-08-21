@@ -121,8 +121,8 @@ def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
             package_args = index.get('website') or 'Unknown', index.get('license') or 'Unknown'
             archive_path = package_output(source_name, processed_path, *package_args)
             key_name = u'/runs/{run}/{name}.zip'.format(run=run_id, name=source_name)
-            url, _ = upload_file(s3, key_name, archive_path)
-            index['processed'] = url
+            url, hash = upload_file(s3, key_name, archive_path)
+            index['processed'], index['process hash'] = url, hash
             os.remove(archive_path)
         
         if index['output']:
