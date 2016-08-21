@@ -2560,6 +2560,76 @@ class TestBatch (unittest.TestCase):
             self.assertEqual(get('http://fake-s3.local/render-europe.png').status_code, 200)
             self.assertEqual(get('http://fake-s3.local/render-world.png').status_code, 200)
 
+class TestQueue (unittest.TestCase):
+    
+    def setUp(self):
+        '''
+        '''
+        os.environ['GITHUB_TOKEN'] = ''
+        os.environ['DATABASE_URL'] = DATABASE_URL
+        
+        config = load_config()
+
+        recreate_db.recreate(config['DATABASE_URL'])
+        self.s3 = FakeS3()
+
+        self.output_dir = mkdtemp(prefix='TestQueue-')
+        self.database_url = config['DATABASE_URL']
+    
+    def tearDown(self):
+        '''
+        '''
+        del os.environ['GITHUB_TOKEN']
+        del os.environ['DATABASE_URL']
+
+        rmtree(self.output_dir)
+        remove(self.s3._fake_keys)
+    
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.worker.do_work')
+    def test_task_queue(self, do_work):
+        do_work.return_value = {str(uuid4()): str(uuid4())}
+    
+        task_data = dict(job_id='j', url='u', name='sources/xx/f.json',
+                         content_b64='Li4u', file_id='iii', commit_sha='sss')
+
+        with db_connect(self.database_url) as conn:
+            task_Q = db_queue(conn, TASK_QUEUE)
+            done_Q, due_Q, heartbeat_Q = mock.Mock(), mock.Mock(), mock.Mock()
+            task_Q.put(task_data)
+
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, heartbeat_Q, self.output_dir, 'testworker')
+            done_data = done_Q.put.mock_calls[0][1][0]
+        
+        for (key, value) in task_data.items():
+            self.assertEqual(value, done_data.get(key))
+        
+        self.assertEqual(done_data['result'], do_work.return_value)
+
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.update_job_status')
+    @patch('openaddr.ci.objects.set_run')
+    @patch('openaddr.ci.is_merged_to_master')
+    def test_done_queue(self, is_merged_to_master, set_run, update_job_status):
+        output_data = dict(source='sources/xx/f.json')
+    
+        done_data = dict(job_id='j', url='u', name='sources/xx/f.json',
+                         content_b64='Li4u', file_id='iii', commit_sha='sss',
+                         run_id=1, result=dict(message='Yo', output=output_data))
+
+        with db_connect(self.database_url) as conn:
+            done_Q = db_queue(conn, TASK_QUEUE)
+            done_Q.put(done_data)
+
+            pop_task_from_donequeue(done_Q, mock.Mock())
+        
+        run_data = set_run.mock_calls[0][1]
+        self.assertEqual(run_data[1:5], (1, 'sources/xx/f.json', 'iii', 'Li4u'))
+        self.assertEqual(run_data[6:], (False, 'j', None, 'sss', is_merged_to_master.return_value, None))
+        
+        job_data = update_job_status.mock_calls[0][1]
+        self.assertEqual(job_data[1:6], ('j', 'u', 'sources/xx/f.json', False, {'message': 'Yo', 'output': output_data}))
+
 class TestCollect (unittest.TestCase):
 
     def setUp(self):
