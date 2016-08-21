@@ -50,7 +50,7 @@ from ..ci.collect import (
     )
 
 from ..jobs import JOB_TIMEOUT
-from ..ci.worker import make_source_filename
+from ..ci.worker import make_source_filename, assemble_output
 from ..ci.webhooks import apply_webhooks_blueprint
 from ..ci.webapi import apply_webapi_blueprint
 from .. import compat, LocalProcessedResult
@@ -2088,6 +2088,18 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(make_source_filename(u'yo-yo'), u'yo-yo.txt')
         self.assertEqual(make_source_filename(u'yo/yo'), u'yo--yo.txt')
         self.assertEqual(make_source_filename(u'yó/yó'), u'yó--yó.txt')
+    
+    def test_assemble_output(self):
+        '''
+        '''
+        s3 = mock.Mock()
+        input = {'cache': False, 'sample': False, 'processed': False, 'output': False}
+        state = RunState(assemble_output(s3, input, 'xx/f.json', 1, 'dir'))
+
+        self.assertEqual(state.cache, input['cache'])
+        self.assertEqual(state.sample, input['sample'])
+        self.assertEqual(state.processed, input['processed'])
+        self.assertEqual(state.output, input['output'])
     
     @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')

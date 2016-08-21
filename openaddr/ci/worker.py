@@ -37,6 +37,44 @@ def make_source_filename(source_name):
     '''
     return source_name.replace(u'/', u'--') + '.txt'
 
+def assemble_output(s3, input, source_name, run_id, index_dirname):
+    '''
+    '''
+    output = {k: v for (k, v) in input.items()}
+    
+    if input['cache']:
+        # e.g. /runs/0/cache.zip
+        cache_path = os.path.join(index_dirname, input['cache'])
+        key_name = '/runs/{run}/{cache}'.format(run=run_id, **input)
+        url, fingerprint = upload_file(s3, key_name, cache_path)
+        output['cache'], output['fingerprint'] = url, fingerprint
+    
+    if input['sample']:
+        # e.g. /runs/0/sample.json
+        sample_path = os.path.join(index_dirname, input['sample'])
+        key_name = '/runs/{run}/{sample}'.format(run=run_id, **input)
+        url, _ = upload_file(s3, key_name, sample_path)
+        output['sample'] = url
+    
+    if input['processed']:
+        # e.g. /runs/0/fr/paris.zip
+        processed_path = os.path.join(index_dirname, input['processed'])
+        package_args = input.get('website') or 'Unknown', input.get('license') or 'Unknown'
+        archive_path = package_output(source_name, processed_path, *package_args)
+        key_name = u'/runs/{run}/{name}.zip'.format(run=run_id, name=source_name)
+        url, hash = upload_file(s3, key_name, archive_path)
+        output['processed'], output['process hash'] = url, hash
+        os.remove(archive_path)
+    
+    if input['output']:
+        # e.g. /runs/0/output.txt
+        output_path = os.path.join(index_dirname, input['output'])
+        key_name = '/runs/{run}/{output}'.format(run=run_id, **input)
+        url, _ = upload_file(s3, key_name, output_path)
+        output['output'] = url
+    
+    return output
+
 def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
     "Do the actual work of running a source file in job_contents"
 
@@ -100,39 +138,7 @@ def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
                 result.update(result_code=-1, message='Failed to produce {} data'.format(key))
         
         index_dirname = os.path.dirname(state_fullpath)
-        
-        if index['cache']:
-            # e.g. /runs/0/cache.zip
-            cache_path = os.path.join(index_dirname, index['cache'])
-            key_name = '/runs/{run}/{cache}'.format(run=run_id, **index)
-            url, fingerprint = upload_file(s3, key_name, cache_path)
-            index['cache'], index['fingerprint'] = url, fingerprint
-        
-        if index['sample']:
-            # e.g. /runs/0/sample.json
-            sample_path = os.path.join(index_dirname, index['sample'])
-            key_name = '/runs/{run}/{sample}'.format(run=run_id, **index)
-            url, _ = upload_file(s3, key_name, sample_path)
-            index['sample'] = url
-        
-        if index['processed']:
-            # e.g. /runs/0/fr/paris.zip
-            processed_path = os.path.join(index_dirname, index['processed'])
-            package_args = index.get('website') or 'Unknown', index.get('license') or 'Unknown'
-            archive_path = package_output(source_name, processed_path, *package_args)
-            key_name = u'/runs/{run}/{name}.zip'.format(run=run_id, name=source_name)
-            url, hash = upload_file(s3, key_name, archive_path)
-            index['processed'], index['process hash'] = url, hash
-            os.remove(archive_path)
-        
-        if index['output']:
-            # e.g. /runs/0/output.txt
-            output_path = os.path.join(index_dirname, index['output'])
-            key_name = '/runs/{run}/{output}'.format(run=run_id, **index)
-            url, _ = upload_file(s3, key_name, output_path)
-            index['output'] = url
-        
-        result['output'] = index
+        result['output'] = assemble_output(s3, index, source_name, run_id, index_dirname)
     
     shutil.rmtree(workdir)
     return result
