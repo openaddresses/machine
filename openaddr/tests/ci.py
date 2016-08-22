@@ -2089,7 +2089,8 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(make_source_filename(u'yo/yo'), u'yo--yo.txt')
         self.assertEqual(make_source_filename(u'yó/yó'), u'yó--yó.txt')
     
-    def test_assemble_output(self):
+    @patch('openaddr.package_output')
+    def test_assemble_output(self, package_output):
         '''
         '''
         s3 = mock.Mock()
@@ -2126,7 +2127,16 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(state4.sample, input4['sample'])
         self.assertEqual(state4.processed, input4['processed'])
         self.assertEqual(state4.output, s3.new_key.return_value.generate_url.return_value)
-    
+
+        input5 = {'cache': False, 'sample': False, 'processed': 'data.zip', 'output': False}
+        state5 = RunState(assemble_output(s3, input5, 'xx/f.json', 5, 'dir'))
+
+        self.assertEqual(state5.cache, input5['cache'])
+        self.assertEqual(state5.sample, input5['sample'])
+        self.assertEqual(state5.processed, s3.new_key.return_value.generate_url.return_value)
+        self.assertEqual(state5.process_hash, s3.new_key.return_value.md5)
+        self.assertEqual(state5.output, input5['output'])
+
     @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')
     def test_happy_worker(self, check_output, mkdtemp):
