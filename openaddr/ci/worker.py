@@ -64,7 +64,9 @@ def assemble_output(s3, input, source_name, run_id, index_dirname):
         key_name = u'/runs/{run}/{name}.zip'.format(run=run_id, name=source_name)
         url, hash = upload_file(s3, key_name, archive_path)
         output['processed'], output['process hash'] = url, hash
-        os.remove(archive_path)
+
+        if os.path.exists(archive_path):
+            os.remove(archive_path)
     
     if input['output']:
         # e.g. /runs/0/output.txt
