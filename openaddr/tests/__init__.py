@@ -45,10 +45,11 @@ from httmock import response, HTTMock
 import mock
         
 from .. import (
-    cache, conform, S3, process_one, package_output,
+    cache, conform, S3, process_one,
     iterate_local_processed_files, download_processed_file
     )
 
+from ..util import package_output
 from ..ci.objects import Run, RunState
 from ..cache import CacheResult
 from ..conform import ConformResult

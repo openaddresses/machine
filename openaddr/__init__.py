@@ -6,11 +6,11 @@ from .compat import standard_library
 from tempfile import mkdtemp, mkstemp
 from os.path import realpath, join, basename, splitext, exists, dirname, abspath, relpath
 from shutil import copy, move, rmtree
-from os import mkdir, environ, close, utime, remove
+from os import close, utime, remove
 from urllib.parse import urlparse
 from datetime import datetime, date
 from calendar import timegm
-import json, io, zipfile
+import json
 
 from osgeo import ogr
 from requests import get
@@ -209,33 +209,6 @@ def conform(srcjson, destdir, extras):
                          sharealike_flag,
                          attr_flag,
                          attr_name)
-
-def package_output(source, processed_path, website, license):
-    ''' Write a zip archive to temp dir with processed data and optional .vrt.
-    '''
-    _, ext = splitext(processed_path)
-    handle, zip_path = mkstemp(suffix='.zip')
-    close(handle)
-    
-    zip_file = zipfile.ZipFile(zip_path, mode='w', compression=zipfile.ZIP_DEFLATED)
-    
-    template = join(dirname(__file__), 'templates', 'README.txt')
-    with io.open(template, encoding='utf8') as file:
-        content = file.read().format(website=website, license=license, date=date.today())
-        zip_file.writestr('README.txt', content.encode('utf8'))
-
-    if ext == '.csv':
-        # Add virtual format to make CSV readable by QGIS, OGR, etc.
-        # More information: http://www.gdal.org/drv_vrt.html
-        template = join(dirname(__file__), 'templates', 'conform-result.vrt')
-        with io.open(template, encoding='utf8') as file:
-            content = file.read().format(source=basename(source))
-            zip_file.writestr(source + '.vrt', content.encode('utf8'))
-    
-    zip_file.write(processed_path, source + ext)
-    zip_file.close()
-    
-    return zip_path
 
 def iterate_local_processed_files(runs):
     ''' Yield a stream of local processed result files for a list of runs.

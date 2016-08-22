@@ -8,7 +8,7 @@ enqueues a new message on a separate PQ queue when the work is done.
 '''
 import logging; _L = logging.getLogger('openaddr.ci.worker')
 
-from .. import compat, S3, package_output
+from .. import compat, S3, util
 from ..jobs import JOB_TIMEOUT
 
 from argparse import ArgumentParser
@@ -60,7 +60,7 @@ def assemble_output(s3, input, source_name, run_id, index_dirname):
         # e.g. /runs/0/fr/paris.zip
         processed_path = os.path.join(index_dirname, input['processed'])
         package_args = input.get('website') or 'Unknown', input.get('license') or 'Unknown'
-        archive_path = package_output(source_name, processed_path, *package_args)
+        archive_path = util.package_output(source_name, processed_path, *package_args)
         key_name = u'/runs/{run}/{name}.zip'.format(run=run_id, name=source_name)
         url, hash = upload_file(s3, key_name, archive_path)
         output['processed'], output['process hash'] = url, hash
