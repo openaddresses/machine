@@ -50,7 +50,7 @@ from ..ci.collect import (
     )
 
 from ..jobs import JOB_TIMEOUT
-from ..ci.worker import make_source_filename
+from ..ci.worker import make_source_filename, assemble_output
 from ..ci.webhooks import apply_webhooks_blueprint
 from ..ci.webapi import apply_webapi_blueprint
 from .. import compat, LocalProcessedResult
@@ -772,7 +772,7 @@ class TestAPI (unittest.TestCase):
             for key in ('source', 'cache', 'sample', 'geometry type', 'address count',
                         'version', 'fingerprint', 'cache time', 'processed', 'output',
                         'process time', 'attribution required', 'attribution name',
-                        'share-alike'):
+                        'share-alike', 'process hash'):
                 self.assertIn(key, got_state1)
                 self.assertIn(key, got_state2)
         
@@ -2089,6 +2089,59 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(make_source_filename(u'yo/yo'), u'yo--yo.txt')
         self.assertEqual(make_source_filename(u'yó/yó'), u'yó--yó.txt')
     
+    def test_assemble_output_runstate(self):
+        ''' Test that return value of assemble_output() works for RunState.
+        '''
+        s3 = mock.Mock()
+
+        input1 = {'cache': False, 'sample': False, 'processed': False, 'output': False}
+        state1 = RunState(assemble_output(s3, input1, 'xx/f', 1, 'dir'))
+
+        self.assertEqual(state1.cache, input1['cache'])
+        self.assertEqual(state1.sample, input1['sample'])
+        self.assertEqual(state1.processed, input1['processed'])
+        self.assertEqual(state1.output, input1['output'])
+
+        input2 = {'cache': 'cache.csv', 'sample': False, 'processed': False, 'output': False}
+        state2 = RunState(assemble_output(s3, input2, 'xx/f', 2, 'dir'))
+
+        self.assertEqual(state2.cache, s3.new_key.return_value.generate_url.return_value)
+        self.assertEqual(state2.fingerprint, s3.new_key.return_value.md5)
+        self.assertEqual(state2.sample, input2['sample'])
+        self.assertEqual(state2.processed, input2['processed'])
+        self.assertEqual(state2.output, input2['output'])
+        self.assertEqual(s3.new_key.mock_calls[-3], mock.call('/runs/2/cache.csv'))
+
+        input3 = {'cache': False, 'sample': 'sample.json', 'processed': False, 'output': False}
+        state3 = RunState(assemble_output(s3, input3, 'xx/f', 3, 'dir'))
+
+        self.assertEqual(state3.cache, input3['cache'])
+        self.assertEqual(state3.sample, s3.new_key.return_value.generate_url.return_value)
+        self.assertEqual(state3.processed, input3['processed'])
+        self.assertEqual(state3.output, input3['output'])
+        self.assertEqual(s3.new_key.mock_calls[-3], mock.call('/runs/3/sample.json'))
+
+        input4 = {'cache': False, 'sample': False, 'processed': False, 'output': 'out.txt'}
+        state4 = RunState(assemble_output(s3, input4, 'xx/f', 4, 'dir'))
+
+        self.assertEqual(state4.cache, input4['cache'])
+        self.assertEqual(state4.sample, input4['sample'])
+        self.assertEqual(state4.processed, input4['processed'])
+        self.assertEqual(state4.output, s3.new_key.return_value.generate_url.return_value)
+        self.assertEqual(s3.new_key.mock_calls[-3], mock.call('/runs/4/out.txt'))
+
+        with patch('openaddr.util.package_output') as package_output:
+            package_output.return_value = 'nothing.zip'
+            input5 = {'cache': False, 'sample': False, 'processed': 'data.zip', 'output': False}
+            state5 = RunState(assemble_output(s3, input5, 'xx/f', 5, 'dir'))
+
+        self.assertEqual(state5.cache, input5['cache'])
+        self.assertEqual(state5.sample, input5['sample'])
+        self.assertEqual(state5.processed, s3.new_key.return_value.generate_url.return_value)
+        self.assertEqual(state5.process_hash, s3.new_key.return_value.md5)
+        self.assertEqual(state5.output, input5['output'])
+        self.assertEqual(s3.new_key.mock_calls[-3], mock.call('/runs/5/xx/f.zip'))
+
     @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')
     def test_happy_worker(self, check_output, mkdtemp):
@@ -2101,7 +2154,7 @@ class TestWorker (unittest.TestCase):
             os.makedirs(index_dirname)
             
             with open(index_filename, 'w') as file:
-                file.write('''[ ["skipped", "source", "cache", "sample", "website", "license", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], [false, "user_input.txt", "cache.zip", "sample.json", "http://example.com", "GPL", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "output.txt"] ]''')
+                file.write('''[ ["skipped", "source", "cache", "sample", "website", "license", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "process hash", "output"], [false, "user_input.txt", "cache.zip", "sample.json", "http://example.com", "GPL", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "dd9af289289fb70f6c4852b8c7b0f1c7", "output.txt"] ]''')
             
             for name in ('cache.zip', 'sample.json', 'out.csv', 'output.txt'):
                 with open(os.path.join(index_dirname, name), 'w') as file:
@@ -2197,7 +2250,7 @@ class TestWorker (unittest.TestCase):
             os.makedirs(index_dirname)
             
             with open(index_filename, 'w') as file:
-                file.write('''[ ["skipped", "source", "cache", "sample", "website", "license", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "output"], [true, "user_input.txt", null, null, null, null, null, null, null, null, null, null, null, "output.txt"] ]''')
+                file.write('''[ ["skipped", "source", "cache", "sample", "website", "license", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "process hash", "output"], [true, "user_input.txt", null, null, null, null, null, null, null, null, null, null, null, null, "output.txt"] ]''')
             
             with open(os.path.join(index_dirname, 'output.txt'), 'w') as file:
                 file.write('Yo')
@@ -2559,6 +2612,76 @@ class TestBatch (unittest.TestCase):
             self.assertEqual(get('http://fake-s3.local/render-usa.png').status_code, 200)
             self.assertEqual(get('http://fake-s3.local/render-europe.png').status_code, 200)
             self.assertEqual(get('http://fake-s3.local/render-world.png').status_code, 200)
+
+class TestQueue (unittest.TestCase):
+    
+    def setUp(self):
+        '''
+        '''
+        os.environ['GITHUB_TOKEN'] = ''
+        os.environ['DATABASE_URL'] = DATABASE_URL
+        
+        config = load_config()
+
+        recreate_db.recreate(config['DATABASE_URL'])
+        self.s3 = FakeS3()
+
+        self.output_dir = mkdtemp(prefix='TestQueue-')
+        self.database_url = config['DATABASE_URL']
+    
+    def tearDown(self):
+        '''
+        '''
+        del os.environ['GITHUB_TOKEN']
+        del os.environ['DATABASE_URL']
+
+        rmtree(self.output_dir)
+        remove(self.s3._fake_keys)
+    
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.worker.do_work')
+    def test_task_queue(self, do_work):
+        do_work.return_value = {str(uuid4()): str(uuid4())}
+    
+        task_data = dict(job_id='j', url='u', name='sources/xx/f.json',
+                         content_b64='Li4u', file_id='iii', commit_sha='sss')
+
+        with db_connect(self.database_url) as conn:
+            task_Q = db_queue(conn, TASK_QUEUE)
+            done_Q, due_Q, heartbeat_Q = mock.Mock(), mock.Mock(), mock.Mock()
+            task_Q.put(task_data)
+
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, heartbeat_Q, self.output_dir, 'testworker')
+            done_data = done_Q.put.mock_calls[0][1][0]
+        
+        for (key, value) in task_data.items():
+            self.assertEqual(value, done_data.get(key))
+        
+        self.assertEqual(done_data['result'], do_work.return_value)
+
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.update_job_status')
+    @patch('openaddr.ci.objects.set_run')
+    @patch('openaddr.ci.is_merged_to_master')
+    def test_done_queue(self, is_merged_to_master, set_run, update_job_status):
+        output_data = {'source': 'sources/xx/f.json', 'process hash': 'f00'}
+    
+        done_data = dict(job_id='j', url='u', name='sources/xx/f.json',
+                         content_b64='Li4u', file_id='iii', commit_sha='sss',
+                         run_id=1, result=dict(message='Yo', output=output_data))
+
+        with db_connect(self.database_url) as conn:
+            done_Q = db_queue(conn, TASK_QUEUE)
+            done_Q.put(done_data)
+
+            pop_task_from_donequeue(done_Q, mock.Mock())
+        
+        run_data = set_run.mock_calls[0][1]
+        self.assertEqual(run_data[1:5], (1, 'sources/xx/f.json', 'iii', 'Li4u'))
+        self.assertEqual(run_data[6:], (False, 'j', None, 'sss', is_merged_to_master.return_value, None))
+        
+        job_data = update_job_status.mock_calls[0][1]
+        self.assertEqual(job_data[1:6], ('j', 'u', 'sources/xx/f.json', False, {'message': 'Yo', 'output': output_data}))
 
 class TestCollect (unittest.TestCase):
 

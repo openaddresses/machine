@@ -800,8 +800,8 @@ def pop_task_from_donequeue(queue, github_auth):
         run_status = bool(message == MAGIC_OK_MESSAGE)
         is_merged = is_merged_to_master(db, set_id, job_id, commit_sha, github_auth)
         
-        set_run(db, run_id, filename, file_id, content_b64, run_state,
-                run_status, job_id, worker_id, commit_sha, is_merged, set_id)
+        objects.set_run(db, run_id, filename, file_id, content_b64, run_state,
+                        run_status, job_id, worker_id, commit_sha, is_merged, set_id)
 
         if job_id:
             update_job_status(db, job_id, job_url, filename, run_status, results, github_auth)

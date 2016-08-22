@@ -19,8 +19,8 @@ from ..compat import expand_uri, csvIO, csvDictWriter
 
 CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
              'version', 'fingerprint', 'cache time', 'processed', 'process time', \
-             'output', 'attribution required', 'attribution name', 'share-alike', \
-             'code version'
+             'process hash', 'output', 'attribution required', 'attribution name', \
+             'share-alike', 'code version'
 
 webapi = Blueprint('webapi', __name__)
 CORS(webapi)

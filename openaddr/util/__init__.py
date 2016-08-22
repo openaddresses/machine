@@ -1,8 +1,11 @@
 import logging; _L = logging.getLogger('openaddr.util')
 
 from urllib.parse import urlparse, parse_qsl
-from datetime import datetime, timedelta
-from os.path import join, dirname
+from datetime import datetime, timedelta, date
+from os.path import join, basename, splitext, dirname
+from tempfile import mkstemp
+from os import close
+import io, zipfile
 
 from .. import __version__
 from ..compat import quote
@@ -66,3 +69,30 @@ def request_task_instance(ec2, autoscale, instance_type, chef_role, command):
     _L.info('Started EC2 instance {} from AMI {}'.format(instance, image))
     
     return instance
+
+def package_output(source, processed_path, website, license):
+    ''' Write a zip archive to temp dir with processed data and optional .vrt.
+    '''
+    _, ext = splitext(processed_path)
+    handle, zip_path = mkstemp(suffix='.zip')
+    close(handle)
+    
+    zip_file = zipfile.ZipFile(zip_path, mode='w', compression=zipfile.ZIP_DEFLATED)
+    
+    template = join(dirname(__file__), 'templates', 'README.txt')
+    with io.open(template, encoding='utf8') as file:
+        content = file.read().format(website=website, license=license, date=date.today())
+        zip_file.writestr('README.txt', content.encode('utf8'))
+
+    if ext == '.csv':
+        # Add virtual format to make CSV readable by QGIS, OGR, etc.
+        # More information: http://www.gdal.org/drv_vrt.html
+        template = join(dirname(__file__), 'templates', 'conform-result.vrt')
+        with io.open(template, encoding='utf8') as file:
+            content = file.read().format(source=basename(source))
+            zip_file.writestr(source + '.vrt', content.encode('utf8'))
+    
+    zip_file.write(processed_path, source + ext)
+    zip_file.close()
+    
+    return zip_path
