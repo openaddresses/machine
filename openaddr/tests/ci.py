@@ -2093,13 +2093,39 @@ class TestWorker (unittest.TestCase):
         '''
         '''
         s3 = mock.Mock()
-        input = {'cache': False, 'sample': False, 'processed': False, 'output': False}
-        state = RunState(assemble_output(s3, input, 'xx/f.json', 1, 'dir'))
 
-        self.assertEqual(state.cache, input['cache'])
-        self.assertEqual(state.sample, input['sample'])
-        self.assertEqual(state.processed, input['processed'])
-        self.assertEqual(state.output, input['output'])
+        input1 = {'cache': False, 'sample': False, 'processed': False, 'output': False}
+        state1 = RunState(assemble_output(s3, input1, 'xx/f.json', 1, 'dir'))
+
+        self.assertEqual(state1.cache, input1['cache'])
+        self.assertEqual(state1.sample, input1['sample'])
+        self.assertEqual(state1.processed, input1['processed'])
+        self.assertEqual(state1.output, input1['output'])
+
+        input2 = {'cache': 'cache.csv', 'sample': False, 'processed': False, 'output': False}
+        state2 = RunState(assemble_output(s3, input2, 'xx/f.json', 2, 'dir'))
+
+        self.assertEqual(state2.cache, s3.new_key.return_value.generate_url.return_value)
+        self.assertEqual(state2.fingerprint, s3.new_key.return_value.md5)
+        self.assertEqual(state2.sample, input2['sample'])
+        self.assertEqual(state2.processed, input2['processed'])
+        self.assertEqual(state2.output, input2['output'])
+
+        input3 = {'cache': False, 'sample': 'sample.json', 'processed': False, 'output': False}
+        state3 = RunState(assemble_output(s3, input3, 'xx/f.json', 3, 'dir'))
+
+        self.assertEqual(state3.cache, input3['cache'])
+        self.assertEqual(state3.sample, s3.new_key.return_value.generate_url.return_value)
+        self.assertEqual(state3.processed, input3['processed'])
+        self.assertEqual(state3.output, input3['output'])
+
+        input4 = {'cache': False, 'sample': False, 'processed': False, 'output': 'out.txt'}
+        state4 = RunState(assemble_output(s3, input4, 'xx/f.json', 4, 'dir'))
+
+        self.assertEqual(state4.cache, input4['cache'])
+        self.assertEqual(state4.sample, input4['sample'])
+        self.assertEqual(state4.processed, input4['processed'])
+        self.assertEqual(state4.output, s3.new_key.return_value.generate_url.return_value)
     
     @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')
