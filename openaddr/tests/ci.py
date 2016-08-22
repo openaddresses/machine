@@ -2089,8 +2089,8 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(make_source_filename(u'yo/yo'), u'yo--yo.txt')
         self.assertEqual(make_source_filename(u'yó/yó'), u'yó--yó.txt')
     
-    def test_assemble_output(self):
-        '''
+    def test_assemble_output_runstate(self):
+        ''' Test that return value of assemble_output() works for RunState.
         '''
         s3 = mock.Mock()
 
