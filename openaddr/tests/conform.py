@@ -33,12 +33,12 @@ class TestConformTransforms (unittest.TestCase):
         d = { "conform": { "street": [ "U", "l", "MiXeD" ], "number": "U", "split": "U", "lat": "Y", "lon": "x",
                            "city": { "function": "join", "fields": ["ThIs","FiELd"], "separator": "-" },
                            "district": { "function": "regexp", "field": "ThaT", "pattern": ""},
-                           "advanced_merge": { "auto_street": { "fields": ["MiXeD", "UPPER"] } } } }
+                           "postcode": { "function": "join", "fields": ["MiXeD", "UPPER"], "separator": "-" } } }
         r = conform_smash_case(d)
         self.assertEqual({ "conform": { "street": [ "u", "l", "mixed" ], "number": "u", "split": "u", "lat": "y", "lon": "x",
                            "city": {"fields": ["this", "field"], "function": "join", "separator": "-"},
                            "district": { "field": "that", "function": "regexp", "pattern": ""},
-                           "advanced_merge": { "auto_street": { "fields": ["mixed", "upper"] } } } },
+                           "postcode": { "function": "join", "fields": ["mixed", "upper"], "separator": "-" } } },
                          r)
 
     def test_row_convert_to_out(self):
@@ -57,17 +57,6 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual({"OA:city": "Village of Stanley", "x": "foo", "t": "Stanley", "n": "Village of"}, r)
 
     def test_row_fxn_join(self):
-        "Deprecated advanced_merge"
-        c = { "conform": { "advanced_merge": {
-                "new_a": { "fields": ["a1"] },
-                "new_b": { "fields": ["b1", "b2"] },
-                "new_c": { "separator": "-", "fields": ["c1", "c2"] } } } }
-        d = { "a1": "va1", "b1": "vb1", "b2": "vb2", "c1": "vc1", "c2": "vc2" }
-        e = copy.deepcopy(d)
-        e.update({ "new_a": "va1", "new_b": "vb1 vb2", "new_c": "vc1-vc2"})
-        r = row_fxn_join(c, d, False)
-        self.assertEqual(e, r)
-
         "New fxn join"
         c = { "conform": {
             "number": {
