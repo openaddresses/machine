@@ -26,9 +26,9 @@ from httmock import HTTMock, response
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
 
 from ..ci import (
-    db_connect, db_cursor, db_queue, recreate_db, worker,
+    db_connect, db_cursor, db_queue, recreate_db, work,
     pop_task_from_donequeue, pop_task_from_taskqueue, pop_task_from_duequeue,
-    create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, MAGIC_OK_MESSAGE,
+    create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE,
     enqueue_sources, find_batch_sources, render_set_maps, render_index_maps,
     is_merged_to_master, get_commit_info, HEARTBEAT_QUEUE, flush_heartbeat_queue,
     get_recent_workers, PERMANENT_KIND, TEMPORARY_KIND, load_config,
@@ -50,7 +50,7 @@ from ..ci.collect import (
     )
 
 from ..jobs import JOB_TIMEOUT
-from ..ci.worker import make_source_filename, assemble_output
+from ..ci.work import make_source_filename, assemble_output, MAGIC_OK_MESSAGE
 from ..ci.webhooks import apply_webhooks_blueprint
 from ..ci.webapi import apply_webapi_blueprint
 from .. import compat, LocalProcessedResult
@@ -1604,7 +1604,7 @@ class TestRuns (unittest.TestCase):
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
-    @patch('openaddr.ci.worker.do_work')
+    @patch('openaddr.ci.work.do_work')
     def test_working_run(self, do_work):
         ''' Test a boring successful run.
         '''
@@ -1736,7 +1736,7 @@ class TestRuns (unittest.TestCase):
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
-    @patch('openaddr.ci.worker.do_work')
+    @patch('openaddr.ci.work.do_work')
     def test_overdue_run(self, do_work):
         ''' Test a run that succeeds past its due date.
         '''
@@ -1893,7 +1893,7 @@ class TestRuns (unittest.TestCase):
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
-    @patch('openaddr.ci.worker.do_work')
+    @patch('openaddr.ci.work.do_work')
     def test_failing_double_run(self, do_work):
         ''' Test repeated failing run that's fast enough to take advantage of reuse.
         '''
@@ -2000,7 +2000,7 @@ class TestRuns (unittest.TestCase):
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.RUN_REUSE_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
-    @patch('openaddr.ci.worker.do_work')
+    @patch('openaddr.ci.work.do_work')
     def test_slow_double_run(self, do_work):
         ''' Test repeated run that's too slow to take advantage of reuse.
         '''
@@ -2171,7 +2171,7 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
         
         job_id, content = task_data['id'], task_data['content']
-        result = worker.do_work(self.s3, -1, u'so/exalté', content, self.output_dir)
+        result = work.do_work(self.s3, -1, u'so/exalté', content, self.output_dir)
         
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
@@ -2224,7 +2224,7 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
         
         job_id, content = task_data['id'], task_data['content']
-        result = worker.do_work(self.s3, -1, 'angry', content, self.output_dir)
+        result = work.do_work(self.s3, -1, 'angry', content, self.output_dir)
         
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
@@ -2266,7 +2266,7 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
         
         job_id, content = task_data['id'], task_data['content']
-        result = worker.do_work(self.s3, -1, u'so/exalté', content, self.output_dir)
+        result = work.do_work(self.s3, -1, u'so/exalté', content, self.output_dir)
         
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
@@ -2501,7 +2501,7 @@ class TestBatch (unittest.TestCase):
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=0))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
     @patch('openaddr.ci.GITHUB_RETRY_DELAY', new=timedelta(seconds=0))
-    @patch('openaddr.ci.worker.do_work')
+    @patch('openaddr.ci.work.do_work')
     def test_single_run(self, do_work):
         ''' Show that the tasks enqueued in a batch context can be run.
         '''
@@ -2562,7 +2562,7 @@ class TestBatch (unittest.TestCase):
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=0))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
     @patch('openaddr.ci.GITHUB_RETRY_DELAY', new=timedelta(seconds=0))
-    @patch('openaddr.ci.worker.do_work')
+    @patch('openaddr.ci.work.do_work')
     def test_run_with_renders(self, do_work):
         ''' Show that a batch context will result in rendered maps.
         '''
@@ -2639,7 +2639,7 @@ class TestQueue (unittest.TestCase):
         remove(self.s3._fake_keys)
     
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
-    @patch('openaddr.ci.worker.do_work')
+    @patch('openaddr.ci.work.do_work')
     def test_task_queue(self, do_work):
         do_work.return_value = {str(uuid4()): str(uuid4())}
     

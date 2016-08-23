@@ -9,7 +9,7 @@ from .objects import (
     get_completed_file_run, get_completed_run, new_read_completed_set_runs
     )
 
-from . import objects
+from . import objects, work
 
 from os.path import relpath, splitext, join, basename
 from datetime import timedelta, datetime
@@ -48,7 +48,6 @@ def load_config():
                 DATABASE_URL=os.environ['DATABASE_URL'],
                 WEBHOOK_SECRETS=webhook_secrets)
 
-MAGIC_OK_MESSAGE = 'Everything is fine'
 TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, HEARTBEAT_QUEUE = 'tasks', 'finished', 'due', 'heartbeat'
 
 # Additional delay after JOB_TIMEOUT for due tasks.
@@ -739,13 +738,11 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
     if previous_run:
         # Re-use result from the previous run.
         run_id, state, status = previous_run
-        message = MAGIC_OK_MESSAGE if status else 'Re-using failed previous run'
+        message = work.MAGIC_OK_MESSAGE if status else 'Re-using failed previous run'
         result = dict(message=message, reused_run=run_id, output=state)
 
     else:
         # Run the task.
-        from . import worker # <-- TODO: un-suck this.
-
         work_lock = threading.Lock()
         work_args = work_lock, heartbeat_queue, worker_kind
         work_wait = threading.Thread(target=_wait_for_work_lock, args=work_args)
@@ -755,8 +752,8 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
             work_wait.start()
 
             source_name, _ = splitext(relpath(passed_on_kwargs['name'], 'sources'))
-            result = worker.do_work(s3, passed_on_kwargs['run_id'], source_name,
-                                    passed_on_kwargs['content_b64'], output_dir)
+            result = work.do_work(s3, passed_on_kwargs['run_id'], source_name,
+                                  passed_on_kwargs['content_b64'], output_dir)
         
         work_wait.join()
 
@@ -797,7 +794,7 @@ def pop_task_from_donequeue(queue, github_auth):
             # We are too late, this got handled.
             return
         
-        run_status = bool(message == MAGIC_OK_MESSAGE)
+        run_status = bool(message == work.MAGIC_OK_MESSAGE)
         is_merged = is_merged_to_master(db, set_id, job_id, commit_sha, github_auth)
         
         objects.set_run(db, run_id, filename, file_id, content_b64, run_state,
