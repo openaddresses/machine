@@ -30,12 +30,12 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual({"upper": "foo", "lower": "bar", "mixed": "mixed"}, r)
 
     def test_conform_smash_case(self):
-        d = { "conform": { "street": [ "U", "l", "MiXeD" ], "number": "U", "split": "U", "lat": "Y", "lon": "x",
+        d = { "conform": { "street": [ "U", "l", "MiXeD" ], "number": "U", "lat": "Y", "lon": "x",
                            "city": { "function": "join", "fields": ["ThIs","FiELd"], "separator": "-" },
                            "district": { "function": "regexp", "field": "ThaT", "pattern": ""},
                            "postcode": { "function": "join", "fields": ["MiXeD", "UPPER"], "separator": "-" } } }
         r = conform_smash_case(d)
-        self.assertEqual({ "conform": { "street": [ "u", "l", "mixed" ], "number": "u", "split": "u", "lat": "y", "lon": "x",
+        self.assertEqual({ "conform": { "street": [ "u", "l", "mixed" ], "number": "u", "lat": "y", "lon": "x",
                            "city": {"fields": ["this", "field"], "function": "join", "separator": "-"},
                            "district": { "field": "that", "function": "regexp", "pattern": ""},
                            "postcode": { "function": "join", "fields": ["mixed", "upper"], "separator": "-" } } },
@@ -112,17 +112,6 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual(d.get("OA:street", ""), "foo 1B bar")
 
     def test_row_fxn_regexp(self):
-        "Deprecated split"
-        d = { "conform": { "split": "ADDRESS" } }
-        r = row_fxn_regexp(d, { "ADDRESS": "123 MAPLE ST" }, False)
-        self.assertEqual({"ADDRESS": "123 MAPLE ST", "auto_street": "MAPLE ST", "auto_number": "123"}, r)
-        r = row_fxn_regexp(d, { "ADDRESS": "265" }, False)
-        self.assertEqual(r["auto_number"], "265")
-        self.assertEqual(r["auto_street"], "")
-        r = row_fxn_regexp(d, { "ADDRESS": "" }, False)
-        self.assertEqual(r["auto_number"], "")
-        self.assertEqual(r["auto_street"], "")
-
         "Regex split - replace"
         c = { "conform": {
             "number": {
@@ -201,7 +190,7 @@ class TestConformTransforms (unittest.TestCase):
                           "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None, "ID": None,
                           'HASH': 'eee8eb535bb20a03'}, r)
 
-        d = { "conform": { "street": "auto_street", "number": "auto_number", "split": "s", "lon": "y", "lat": "x" }, "fingerprint": "0000" }
+        d = { "conform": { "number": {"function": "regexp", "field": "s", "pattern": "^(\\S+)" }, "street": { "function": "regexp", "field": "s", "pattern": "^(?:\\S+ )(.*)" }, "lon": "y", "lat": "x" }, "fingerprint": "0000" }
         r = row_transform_and_convert(d, { "s": "123 MAPLE ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
         self.assertEqual({"STREET": "MAPLE ST", "UNIT": "", "NUMBER": "123", "LON": "-119.2", "LAT": "39.3",
                           "CITY": None, "REGION": None, "DISTRICT": None, "POSTCODE": None, "ID": None,

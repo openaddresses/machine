@@ -829,10 +829,8 @@ def row_transform_and_convert(sd, row):
 
     if "advanced_merge" in c:
         raise ValueError('Found unsupported "advanced_merge" option in conform')
-    ### Deprecated ###
     if "split" in c:
-        row = row_fxn_regexp(sd, row, False)
-    ##################
+        raise ValueError('Found unsupported "split" option in conform')
     
     # Make up a random fingerprint if none exists
     cache_fingerprint = sd.get('fingerprint', str(uuid4()))
@@ -886,20 +884,15 @@ def row_fxn_join(sd, row, key):
 
 def row_fxn_regexp(sd, row, key):
     "Split addresses like '123 Maple St' into '123' and 'Maple St'"
-    if not key: ## Deprecated Behavior
-        cols = row[sd["conform"]["split"]].split(' ', 1)  # maxsplit
-        row['auto_number'] = cols[0]
-        row['auto_street'] = cols[1] if len(cols) > 1 else ''
-    else: ## New Behavior
-        fxn = sd["conform"][key]
-        pattern = re.compile(fxn.get("pattern", False))
-        replace = fxn.get('replace', False)
-        if replace:
-            match = re.sub(pattern, convert_regexp_replace(replace), row[fxn["field"]])
-            row[attrib_types[key]] = match;
-        else:
-            match = pattern.search(row[fxn["field"]])
-            row[attrib_types[key]] = ''.join(match.groups()) if match else '';
+    fxn = sd["conform"][key]
+    pattern = re.compile(fxn.get("pattern", False))
+    replace = fxn.get('replace', False)
+    if replace:
+        match = re.sub(pattern, convert_regexp_replace(replace), row[fxn["field"]])
+        row[attrib_types[key]] = match;
+    else:
+        match = pattern.search(row[fxn["field"]])
+        row[attrib_types[key]] = ''.join(match.groups()) if match else '';
     return row
 
 def row_fxn_format(sd, row, key):
