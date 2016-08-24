@@ -891,11 +891,9 @@ def db_cursor(conn):
 class SnsHandler(logging.Handler):
     ''' Logs to the given Amazon SNS topic; meant for errors.
     '''
-    def __init__(self, arn, *args, **kwargs):
+    def __init__(self, key, secret, arn, *args, **kwargs):
         super(SnsHandler, self).__init__(*args, **kwargs)
-        
-        # Rely on boto AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY variables.
-        self.arn, self.sns = arn, connect_sns()
+        self.arn, self.sns = arn, connect_sns(key, secret)
 
     def emit(self, record):
         subject = u'OpenAddr: {}: {}'.format(record.levelname, record.name)
@@ -908,7 +906,7 @@ class SnsHandler(logging.Handler):
 # Remember whether logger has been set up before.
 _logger_status = {'set up': False}
 
-def setup_logger(sns_arn, log_level=logging.DEBUG):
+def setup_logger(aws_key, aws_secret, sns_arn, log_level=logging.DEBUG):
     ''' Set up logging for openaddr code.
     '''
     if _logger_status['set up']:
@@ -934,7 +932,7 @@ def setup_logger(sns_arn, log_level=logging.DEBUG):
     
     # Set up a second logger to SNS
     try:
-        handler2 = SnsHandler(sns_arn)
+        handler2 = SnsHandler(aws_key, aws_secret, sns_arn)
     except:
         openaddr_logger.warning('Failed to authenticate SNS handler')
     else:

@@ -306,4 +306,6 @@ def apply_webhooks_blueprint(app):
 
     @app.before_first_request
     def app_prepare():
-        setup_logger(os.environ.get('AWS_SNS_ARN'), logging.WARNING)
+        setup_logger(os.environ.get('AWS_ACCESS_KEY_ID'),
+                     os.environ.get('AWS_SECRET_ACCESS_KEY'),
+                     os.environ.get('AWS_SNS_ARN'), logging.WARNING)

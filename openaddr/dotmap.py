@@ -155,7 +155,9 @@ parser.add_argument('-t', '--tileset-id', default='open-addresses.lec54np1',
 
 def main():
     args = parser.parse_args()
-    setup_logger(environ.get('AWS_SNS_ARN'))
+    setup_logger(environ.get('AWS_ACCESS_KEY_ID'),
+                 environ.get('AWS_SECRET_ACCESS_KEY'),
+                 environ.get('AWS_SNS_ARN'))
     
     with connect_db(args.database_url) as conn:
         with db_cursor(conn) as db:
