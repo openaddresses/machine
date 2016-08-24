@@ -153,9 +153,18 @@ parser.add_argument('-m', '--mapbox-key', default=environ.get('MAPBOX_KEY', None
 parser.add_argument('-t', '--tileset-id', default='open-addresses.lec54np1',
                     help='Mapbox tileset ID. Defaults to "open-addresses.lec54np1".')
 
+parser.add_argument('-a', '--access-key', default=environ.get('AWS_ACCESS_KEY_ID', None),
+                    help='Optional AWS access key name. Defaults to value of AWS_ACCESS_KEY_ID environment variable.')
+
+parser.add_argument('-s', '--secret-key', default=environ.get('AWS_SECRET_ACCESS_KEY', None),
+                    help='Optional AWS secret key name. Defaults to value of AWS_SECRET_ACCESS_KEY environment variable.')
+
+parser.add_argument('--sns-arn', default=environ.get('AWS_SNS_ARN', None),
+                    help='Optional AWS Simple Notification Service (SNS) resource. Defaults to value of AWS_SNS_ARN environment variable.')
+
 def main():
     args = parser.parse_args()
-    setup_logger(environ.get('AWS_SNS_ARN'))
+    setup_logger(args.access_key, args.secret_key, args.sns_arn)
     
     with connect_db(args.database_url) as conn:
         with db_cursor(conn) as db:

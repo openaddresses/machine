@@ -48,7 +48,7 @@ def main():
     instance, deadline = False, time() + 12 * 3600
 
     args = parser.parse_args()
-    setup_logger(args.sns_arn, log_level=args.loglevel)
+    setup_logger(args.access_key, args.secret_key, args.sns_arn, log_level=args.loglevel)
     ec2 = connect_ec2(args.access_key, args.secret_key)
     autoscale = connect_autoscale(args.access_key, args.secret_key)
 

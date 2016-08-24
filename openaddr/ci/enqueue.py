@@ -56,7 +56,7 @@ def main():
     ''' Single threaded worker to serve the job queue.
     '''
     args = parser.parse_args()
-    setup_logger(args.sns_arn, log_level=args.loglevel)
+    setup_logger(args.access_key, args.secret_key, args.sns_arn, log_level=args.loglevel)
     s3 = S3(args.access_key, args.secret_key, args.bucket)
     autoscale = connect_autoscale(args.access_key, args.secret_key)
     cloudwatch = connect_cloudwatch(args.access_key, args.secret_key)
