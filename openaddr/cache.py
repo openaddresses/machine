@@ -20,6 +20,7 @@ from subprocess import check_output
 from tempfile import mkstemp
 from hashlib import sha1
 from shutil import move
+from esridump.dumper import EsriDumper
 
 import requests
 import requests_ftp
@@ -277,32 +278,6 @@ class URLDownloadTask(DownloadTask):
 
 
 class EsriRestDownloadTask(DownloadTask):
-    def handle_esri_errors(self, response, error_message):
-        if response.status_code != 200:
-            raise DownloadError('{}: HTTP {} {}'.format(
-                error_message,
-                response.status_code,
-                response.text,
-            ))
-
-        try:
-            data = response.json()
-        except:
-            _L.error("Could not parse response from {} as JSON:\n\n{}".format(
-                response.request.url,
-                response.text,
-            ))
-            raise
-
-        error = data.get('error')
-        if error:
-            raise DownloadError("{}: {} {}" .format(
-                error_message,
-                error['message'],
-                ', '.join(error['details']),
-            ))
-
-        return data
 
     def build_ogr_geometry(self, geom_type, esri_feature):
         if 'geometry' not in esri_feature:
@@ -349,91 +324,6 @@ class EsriRestDownloadTask(DownloadTask):
 
         return os.path.join(dir_path, name_base + path_ext)
 
-    def get_layer_metadata(self, url):
-        query_args = dict(**self.query_params)
-        query_args.update({'f': 'json'})
-        response = request('GET', url, params=query_args, headers=self.headers)
-        metadata = self.handle_esri_errors(response, "Could not retrieve field names from ESRI source")
-        return metadata
-
-    def get_layer_feature_count(self, url):
-        query_args = dict(**self.query_params)
-        query_args.update({
-            'where': '1=1',
-            'returnCountOnly': 'true',
-            'f': 'json',
-        })
-        response = request('GET', url, params=query_args, headers=self.headers)
-        count_json = self.handle_esri_errors(response, "Could not retrieve row count from ESRI source")
-        return count_json
-
-    def get_layer_min_max(self, url, oid_field_name):
-        """ Find the min and max values for the OID field. """
-        query_args = dict(**self.query_params)
-        query_args.update({
-            'f': 'json',
-            'outFields': '',
-            'outStatistics': json.dumps([
-                dict(statisticType='min', onStatisticField=oid_field_name, outStatisticFieldName='THE_MIN'),
-                dict(statisticType='max', onStatisticField=oid_field_name, outStatisticFieldName='THE_MAX'),
-            ], separators=(',', ':'))
-        })
-        response = request('GET', url, params=query_args, headers=self.headers)
-        metadata = self.handle_esri_errors(response, "Could not retrieve min/max oid values from ESRI source")
-
-        # Some servers (specifically version 10.11, it seems) will respond with SQL statements
-        # for the attribute names rather than the requested field names, so pick the min and max
-        # deliberately rather than relying on the names.
-        min_max_values = metadata['features'][0]['attributes'].values()
-        return (min(min_max_values), max(min_max_values))
-
-    def get_layer_oids(self, url):
-        query_args = dict(**self.query_params)
-        query_args.update({
-            'where': '1=1',  # So we get everything
-            'returnIdsOnly': 'true',
-            'f': 'json',
-        })
-        response = request('GET', url, params=query_args, headers=self.headers)
-        oid_data = self.handle_esri_errors(response, "Could not retrieve object IDs from ESRI source")
-        return oid_data
-
-    def can_handle_pagination(self, query_url, query_fields):
-        check_args = dict(**self.query_params)
-        check_args.update({
-            'resultOffset': 0,
-            'resultRecordCount': 1,
-            'where': '1=1',
-            'returnGeometry': 'false',
-            'outFields': ','.join(query_fields),
-            'f': 'json',
-        })
-        response = request('POST', query_url, headers=self.headers, data=check_args)
-
-        try:
-            data = response.json()
-        except:
-            _L.error("Could not parse response from pagination check {} as JSON:\n\n{}".format(
-                response.request.url,
-                response.text,
-            ))
-            return False
-
-        return data.get('error') and data['error']['message'] != "Failed to execute query."
-
-    def find_oid_field_name(self, metadata):
-        oid_field_name = metadata.get('objectIdField')
-        if not oid_field_name:
-            for f in metadata['fields']:
-                if f['type'] == 'esriFieldTypeOID':
-                    oid_field_name = f['name']
-                    break
-
-        if not oid_field_name:
-            raise DownloadError("Could not find object ID field name")
-
-        return oid_field_name
-
     def field_names_to_request(self, conform):
         ''' Return list of fieldnames to request based on conform, or None.
         '''
@@ -474,8 +364,10 @@ class EsriRestDownloadTask(DownloadTask):
                 _L.debug("File exists %s", file_path)
                 continue
 
-            metadata = self.get_layer_metadata(source_url)
-            
+            downloader = EsriDumper(source_url, parent_logger=_L)
+
+            metadata = downloader.get_metadata()
+
             if query_fields is None:
                 field_names = [f['name'] for f in metadata['fields']]
             else:
@@ -488,152 +380,36 @@ class EsriRestDownloadTask(DownloadTask):
             if GEOM_FIELDNAME not in field_names:
                 field_names.append(GEOM_FIELDNAME)
 
-            query_url = source_url + '/query'
-
             # Get the count of rows in the layer
-            count_json = self.get_layer_feature_count(query_url)
-
-            row_count = count_json.get('count')
-            page_size = metadata.get('maxRecordCount', 500)
-            if page_size > 1000:
-                page_size = 1000
+            row_count = downloader.get_feature_count()
 
             _L.info("Source has {} rows".format(row_count))
-
-            page_args = []
-
-            if metadata.get('supportsPagination') or \
-               (metadata.get('advancedQueryCapabilities') and metadata['advancedQueryCapabilities']['supportsPagination']):
-                # If the layer supports pagination, we can use resultOffset/resultRecordCount to paginate
-
-                # There's a bug where some servers won't handle these queries in combination with a list of
-                # fields specified. We'll make a single, 1 row query here to check if the server supports this
-                # and switch to querying for all fields if specifying the fields fails.
-                if query_fields and not self.can_handle_pagination(query_url, query_fields):
-                    _L.info("Source does not support pagination with fields specified, so querying for all fields.")
-                    query_fields = None
-
-                for offset in range(0, row_count, page_size):
-                    query_args = dict(**self.query_params)
-                    query_args.update({
-                        'resultOffset': offset,
-                        'resultRecordCount': page_size,
-                        'where': '1=1',
-                        'geometryPrecision': 7,
-                        'returnGeometry': 'true',
-                        'outSR': 4326,
-                        'outFields': ','.join(query_fields or ['*']),
-                        'f': 'json',
-                    })
-                    page_args.append(query_args)
-                _L.info("Built {} requests using resultOffset method".format(len(page_args)))
-            else:
-                # If not, we can still use the `where` argument to paginate
-
-                use_oids = True
-                if metadata.get('supportsStatistics'):
-                    # If the layer supports statistics, we can request maximum and minimum object ID
-                    # to help build the pages
-
-                    oid_field_name = self.find_oid_field_name(metadata)
-
-                    try:
-                        (oid_min, oid_max) = self.get_layer_min_max(query_url, oid_field_name)
-
-                        for page_min in range(oid_min - 1, oid_max, page_size):
-                            page_max = min(page_min + page_size, oid_max)
-                            query_args = dict(**self.query_params)
-                            query_args.update({
-                                'where': '{} > {} AND {} <= {}'.format(
-                                    oid_field_name,
-                                    page_min,
-                                    oid_field_name,
-                                    page_max,
-                                ),
-                                'geometryPrecision': 7,
-                                'returnGeometry': 'true',
-                                'outSR': 4326,
-                                'outFields': ','.join(query_fields or ['*']),
-                                'f': 'json',
-                            })
-                            page_args.append(query_args)
-                        _L.info("Built {} requests using OID where clause method".format(len(page_args)))
-
-                        # If we reach this point we don't need to fall through to enumerating all object IDs
-                        # because the statistics method worked
-                        use_oids = False
-                    except DownloadError:
-                        _L.exception("Finding max/min from statistics failed. Trying OID enumeration.")
-
-                if use_oids:
-                    # If the layer does not support statistics, we can request
-                    # all the individual IDs and page through them one chunk at
-                    # a time.
-
-                    oid_data = self.get_layer_oids(query_url)
-                    oids = oid_data['objectIds']
-
-                    for i in range(0, len(oids), 100):
-                        oid_chunk = map(long if PY2 else int, oids[i:i+100])
-                        query_args = dict(**self.query_params)
-                        query_args.update({
-                            'objectIds': ','.join(map(str, oid_chunk)),
-                            'geometryPrecision': 7,
-                            'returnGeometry': 'true',
-                            'outSR': 4326,
-                            'outFields': ','.join(query_fields or ['*']),
-                            'f': 'json',
-                        })
-                        page_args.append(query_args)
-                    _L.info("Built {} requests using OID enumeration method".format(len(page_args)))
 
             with csvopen(file_path, 'w', encoding='utf-8') as f:
                 writer = csvDictWriter(f, fieldnames=field_names, encoding='utf-8')
                 writer.writeheader()
 
-                for query_args in page_args:
+                for feature in downloader:
                     try:
-                        response = request('POST', query_url, headers=self.headers, data=query_args)
-
-                        data = self.handle_esri_errors(response, "Could not retrieve this chunk of objects from ESRI source")
-                    except socket.timeout as e:
-                        raise DownloadError("Timeout when connecting to URL", e)
-                    except ValueError as e:
-                        raise DownloadError("Could not parse JSON", e)
-                    except Exception as e:
-                        raise DownloadError("Could not connect to URL", e)
-                    finally:
-                        # Wipe out whatever we had written out so far
-                        f.truncate()
-
-                    error = data.get('error')
-                    if error:
-                        raise DownloadError("Problem querying ESRI dataset with args {}. Server said: {}".format(query_args, error['message']))
-
-                    geometry_type = data.get('geometryType')
-                    features = data.get('features')
-
-                    for feature in features:
+                        row = feature.get('properties', {})
+                        ogr_geom = ogr.CreateGeometryFromJson(json.dumps(feature))
+                        row[GEOM_FIELDNAME] = ogr_geom.ExportToWkt()
                         try:
-                            ogr_geom = self.build_ogr_geometry(geometry_type, feature)
-                            row = feature.get('attributes', {})
-                            row[GEOM_FIELDNAME] = ogr_geom.ExportToWkt()
-                            try:
-                                centroid = ogr_geom.Centroid()
-                            except RuntimeError as e:
-                                if 'Invalid number of points in LinearRing found' not in str(e):
-                                    raise
-                                xmin, xmax, ymin, ymax = ogr_geom.GetEnvelope()
-                                row[X_FIELDNAME] = round(xmin/2 + xmax/2, 7)
-                                row[Y_FIELDNAME] = round(ymin/2 + ymax/2, 7)
-                            else:
-                                row[X_FIELDNAME] = round(centroid.GetX(), 7)
-                                row[Y_FIELDNAME] = round(centroid.GetY(), 7)
+                            centroid = ogr_geom.Centroid()
+                        except RuntimeError as e:
+                            if 'Invalid number of points in LinearRing found' not in str(e):
+                                raise
+                            xmin, xmax, ymin, ymax = ogr_geom.GetEnvelope()
+                            row[X_FIELDNAME] = round(xmin/2 + xmax/2, 7)
+                            row[Y_FIELDNAME] = round(ymin/2 + ymax/2, 7)
+                        else:
+                            row[X_FIELDNAME] = round(centroid.GetX(), 7)
+                            row[Y_FIELDNAME] = round(centroid.GetY(), 7)
 
-                            writer.writerow({fn: row.get(fn) for fn in field_names})
-                            size += 1
-                        except TypeError:
-                            _L.debug("Skipping a geometry", exc_info=True)
+                        writer.writerow({fn: row.get(fn) for fn in field_names})
+                        size += 1
+                    except TypeError:
+                        _L.debug("Skipping a geometry", exc_info=True)
 
             _L.info("Downloaded %s ESRI features for file %s", size, file_path)
             output_files.append(file_path)
