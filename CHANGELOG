@@ -1,3 +1,7 @@
+2016-08-26: 2.29.0
+- Added AWS credentials to setup_logger and certain scripts.
+- Refactored an annoying circular import in ci.worker.
+
 2016-08-22: 2.28.0
 - Added process hash column to output state.txt.
 
