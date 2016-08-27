@@ -228,7 +228,7 @@ class TestOA (unittest.TestCase):
         
         self.assertTrue(state['cache'] is not None)
         self.assertTrue(state['processed'] is not None)
-        self.assertTrue(state['sample'] is not None)
+        self.assertIsNotNone(state['sample'])
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'], 'http://www.acgov.org/acdata/terms.htm')
@@ -275,7 +275,7 @@ class TestOA (unittest.TestCase):
         
         self.assertTrue(state['cache'] is not None)
         self.assertTrue(state['processed'] is not None)
-        self.assertTrue(state['sample'] is not None)
+        self.assertIsNotNone(state['sample'])
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'], 'http://www.acgov.org/acdata/terms.htm')
@@ -318,7 +318,7 @@ class TestOA (unittest.TestCase):
         
         self.assertTrue(state['cache'] is not None)
         self.assertTrue(state['processed'] is not None)
-        self.assertTrue(state['sample'] is not None)
+        self.assertIsNotNone(state['sample'])
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'], '')
@@ -363,10 +363,10 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
-        self.assertEqual(state['fingerprint'], '9494df65d13eb9b99f97bcdf0ba55a5f')
+        self.assertEqual(state['fingerprint'], 'ef20174833d33c4ea50451a0b8a2d7f3')
         self.assertTrue(state['processed'] is not None)
-        self.assertTrue(state['sample'] is not None)
-        self.assertEqual(state['geometry type'], 'Point 2.5D')
+        self.assertIsNotNone(state['sample'])
+        self.assertEqual(state['geometry type'], 'Point')
         self.assertEqual(state['website'], 'http://ci.carson.ca.us/')
         self.assertIsNone(state['license'])
         
@@ -400,11 +400,11 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
-        self.assertEqual(state['fingerprint'], '169d24669244b870acd30cea35fd0d03')
+        self.assertEqual(state['fingerprint'], 'aff4e5c82562533c6e44adb5cf87103c')
         self.assertTrue(state['processed'] is not None)
-        self.assertTrue(state['sample'] is not None)
-        self.assertEqual(state['geometry type'], 'Point 2.5D')
-        
+        self.assertIsNotNone(state['sample'])
+        self.assertEqual(state['geometry type'], 'Point')
+
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
         
@@ -426,11 +426,11 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
         
         self.assertTrue(state['cache'] is not None)
-        self.assertEqual(state['fingerprint'], '169d24669244b870acd30cea35fd0d03')
+        self.assertEqual(state['fingerprint'], 'aff4e5c82562533c6e44adb5cf87103c')
         self.assertTrue(state['processed'] is not None)
-        self.assertTrue(state['sample'] is not None)
-        self.assertEqual(state['geometry type'], 'Point 2.5D')
-        
+        self.assertIsNotNone(state['sample'])
+        self.assertEqual(state['geometry type'], 'Point')
+
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
         
@@ -561,7 +561,7 @@ class TestOA (unittest.TestCase):
         
         self.assertTrue(state['cache'] is not None)
         self.assertTrue(state['processed'] is not None)
-        self.assertTrue(state['sample'] is not None)
+        self.assertIsNotNone(state['sample'])
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'][:21], 'Polish Law on Geodesy')
@@ -589,7 +589,7 @@ class TestOA (unittest.TestCase):
         
         self.assertTrue(state['cache'] is not None)
         self.assertTrue(state['processed'] is not None)
-        self.assertTrue(state['sample'] is not None)
+        self.assertIsNotNone(state['sample'])
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'][:21], 'Polish Law on Geodesy')
@@ -628,8 +628,8 @@ class TestOA (unittest.TestCase):
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
-        
-        self.assertTrue(state['sample'] is not None)
+
+        self.assertIsNotNone(state['sample'])
         self.assertEqual(state['website'], 'http://nlftp.mlit.go.jp/isj/index.html')
         self.assertEqual(state['license'], u'http://nlftp.mlit.go.jp/ksj/other/yakkan§.html')
         self.assertEqual(state['attribution required'], 'true')
@@ -655,7 +655,7 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
-        self.assertTrue(state['sample'] is not None)
+        self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['website'])
         self.assertIsNone(state['license'])
 
@@ -675,7 +675,7 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
-        self.assertTrue(state['sample'] is not None)
+        self.assertIsNotNone(state['sample'])
         self.assertEqual(state['website'], 'http://adresse.data.gouv.fr/download/')
         self.assertIsNone(state['license'])
         self.assertEqual(state['attribution required'], 'true')
@@ -702,7 +702,7 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
-        self.assertTrue(state['sample'] is not None)
+        self.assertIsNotNone(state['sample'])
         self.assertEqual(state['website'], 'http://adresse.data.gouv.fr/download/')
         self.assertIsNone(state['license'])
         self.assertEqual(state['attribution required'], 'true')
@@ -729,7 +729,7 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
-        self.assertTrue(state['sample'] is not None)
+        self.assertIsNotNone(state['sample'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -751,7 +751,7 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
-        self.assertTrue(state['sample'] is not None)
+        self.assertIsNotNone(state['sample'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -773,7 +773,7 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
-        self.assertTrue(state['sample'] is not None)
+        self.assertIsNotNone(state['sample'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -792,7 +792,7 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
-        self.assertTrue(state['sample'] is not None)
+        self.assertIsNotNone(state['sample'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -833,7 +833,7 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
-        self.assertTrue(state['sample'] is not None)
+        self.assertIsNotNone(state['sample'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)

@@ -3,7 +3,6 @@ import logging; _L = logging.getLogger('openaddr.cache')
 
 from .compat import standard_library, PY2
 
-import ogr
 import os
 import errno
 import socket
@@ -20,7 +19,8 @@ from subprocess import check_output
 from tempfile import mkstemp
 from hashlib import sha1
 from shutil import move
-from esridump.dumper import EsriDumper
+from shapely.geometry import shape
+from esridump import EsriDumper
 
 import requests
 import requests_ftp
@@ -279,38 +279,6 @@ class URLDownloadTask(DownloadTask):
 
 class EsriRestDownloadTask(DownloadTask):
 
-    def build_ogr_geometry(self, geom_type, esri_feature):
-        if 'geometry' not in esri_feature:
-            raise TypeError("No geometry for feature")
-
-        if geom_type == 'esriGeometryPoint':
-            geom = ogr.Geometry(ogr.wkbPoint)
-            geom.AddPoint(esri_feature['geometry']['x'], esri_feature['geometry']['y'])
-        elif geom_type == 'esriGeometryMultipoint':
-            geom = ogr.Geometry(ogr.wkbMultiPoint)
-            for point in esri_feature['geometry']['points']:
-                pt = ogr.Geometry(ogr.wkbPoint)
-                pt.AddPoint(point[0], point[1])
-                geom.AddGeometry(pt)
-        elif geom_type == 'esriGeometryPolygon':
-            geom = ogr.Geometry(ogr.wkbPolygon)
-            for esri_ring in esri_feature['geometry']['rings']:
-                ring = ogr.Geometry(ogr.wkbLinearRing)
-                for esri_pt in esri_ring:
-                    ring.AddPoint(esri_pt[0], esri_pt[1])
-                geom.AddGeometry(ring)
-        elif geom_type == 'esriGeometryPolyline':
-            geom = ogr.Geometry(ogr.wkbMultiLineString)
-            for esri_path in esri_feature['geometry']['paths']:
-                line = ogr.Geometry(ogr.wkbLineString)
-                for esri_pt in esri_path:
-                    line.AddPoint(esri_pt[0], esri_pt[1])
-                geom.AddGeometry(line)
-        else:
-            raise KeyError("Don't know how to convert esri geometry type {}".format(geom_type))
-
-        return geom
-
     def get_file_path(self, url, dir_path):
         ''' Return a local file path in a directory for a URL.
         '''
@@ -392,19 +360,19 @@ class EsriRestDownloadTask(DownloadTask):
                 for feature in downloader:
                     try:
                         row = feature.get('properties', {})
-                        ogr_geom = ogr.CreateGeometryFromJson(json.dumps(feature))
-                        row[GEOM_FIELDNAME] = ogr_geom.ExportToWkt()
+                        shp = shape(feature['geometry'])
+                        row[GEOM_FIELDNAME] = shp.wkt
                         try:
-                            centroid = ogr_geom.Centroid()
+                            centroid = shp.centroid
                         except RuntimeError as e:
                             if 'Invalid number of points in LinearRing found' not in str(e):
                                 raise
-                            xmin, xmax, ymin, ymax = ogr_geom.GetEnvelope()
+                            xmin, xmax, ymin, ymax = shp.bounds
                             row[X_FIELDNAME] = round(xmin/2 + xmax/2, 7)
                             row[Y_FIELDNAME] = round(ymin/2 + ymax/2, 7)
                         else:
-                            row[X_FIELDNAME] = round(centroid.GetX(), 7)
-                            row[Y_FIELDNAME] = round(centroid.GetY(), 7)
+                            row[X_FIELDNAME] = round(centroid.x, 7)
+                            row[Y_FIELDNAME] = round(centroid.y, 7)
 
                         writer.writerow({fn: row.get(fn) for fn in field_names})
                         size += 1
