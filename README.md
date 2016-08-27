@@ -76,6 +76,6 @@ Run the webhook server, queue listener, and worker processes:
 Extras
 ------
 
-Convert remote ESRI feature services to GeoJSON with `openaddr-esri2geojson`:
+Convert remote ESRI feature services to GeoJSON with `esri2geojson`:
 
-    openaddr-esri2geojson <ESRI URL> <GeoJSON path>
+    esri2geojson <ESRI URL> <GeoJSON path>
