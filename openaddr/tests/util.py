@@ -12,7 +12,6 @@ from mock import Mock
 
 from ..compat import quote
 from .. import util, __version__
-from ..util.esri2geojson import esri2geojson
 
 class TestUtilities (unittest.TestCase):
 
