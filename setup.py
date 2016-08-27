@@ -121,6 +121,7 @@ setup(
         # https://boto3.readthedocs.org
         'boto3 == 1.1.4',
 
+        # https://github.com/openaddresses/pyesridump
         'esridump == 1.1.1',
 
         # Used in openaddr.parcels

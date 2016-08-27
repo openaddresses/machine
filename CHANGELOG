@@ -1,3 +1,6 @@
+2016-08-27: 2.29.1
+- Refactored ESRI support to use external esridump package.
+
 2016-08-26: 2.29.0
 - Added AWS credentials to setup_logger and certain scripts.
 - Refactored an annoying circular import in ci.worker.
