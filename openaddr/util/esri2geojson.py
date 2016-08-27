@@ -29,12 +29,12 @@ def guess_geom_type(csv_path, geom_name):
         for row in DictReader(file):
             geom = ogr.CreateGeometryFromWkt(row.get(geom_name))
             return geometry_types.get(geom.GetGeometryType(), False)
-    
+
     return False
 
 def write_vrt_file(csv_path):
     ''' Generate a VRT file to help OGR read CSV file.
-    
+
         http://www.gdal.org/drv_vrt.html
     '''
     vrt_template = '''<OGRVRTDataSource>
@@ -46,7 +46,7 @@ def write_vrt_file(csv_path):
                 <GeometryField encoding="WKT" name="vrt_geom" field="{geom_name}" reportSrcColumn="FALSE"></GeometryField>
             </OGRVRTLayer>
         </OGRVRTDataSource>'''
-    
+
     geom_name = GEOM_FIELDNAME
     geom_type = guess_geom_type(csv_path, geom_name)
     csv_dir = dirname(csv_path)
@@ -57,23 +57,23 @@ def write_vrt_file(csv_path):
         file.write(vrt_template.format(**locals()))
 
     _L.debug('Wrote {vrt_path}'.format(**locals()))
-    
+
     return vrt_path
 
 def _collect_headers(strings):
     headers, parser = {}, email.parser.Parser()
-    
+
     for string in strings:
         headers.update(dict(parser.parsestr(string)))
-    
+
     return headers
 
 def _collect_params(strings):
     params = {}
-    
+
     for string in strings:
         params.update(dict(urllib.parse.parse_qsl(string)))
-    
+
     return params
 
 def esri2ogrfile(esri_url, output_path, headers={}, params={}):
@@ -87,21 +87,21 @@ def esri2ogrfile(esri_url, output_path, headers={}, params={}):
         (csv_path, ) = task.download([esri_url], workdir)
 
         _L.info('Saved {esri_url} to {csv_path}'.format(**locals()))
-    
+
         vrt_path = write_vrt_file(csv_path)
-        
+
         format_name = {
             '.shp': 'ESRI Shapefile',
             '.geojson': 'GeoJSON'
             }.get(splitext(output_path)[1])
-        
+
         if exists(output_path):
             remove(output_path)
-        
+
         print(check_output(('ogr2ogr', '-f', format_name, output_path, vrt_path)))
 
         _L.info('Converted {csv_path} to {output_path}'.format(**locals()))
-    
+
     finally:
         rmtree(workdir)
 
@@ -136,7 +136,7 @@ def main():
 
     args = parser.parse_args()
     setup_logger(logfile=args.logfile, log_level=args.loglevel)
-    
+
     headers, params = _collect_headers(args.header), _collect_params(args.param)
 
     return esri2geojson(args.esri_url, args.geojson_path, headers, params)

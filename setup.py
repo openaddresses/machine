@@ -120,7 +120,9 @@ setup(
         
         # https://boto3.readthedocs.org
         'boto3 == 1.1.4',
-        
+
+        'esridump == 1.1.1',
+
         # Used in openaddr.parcels
         'Shapely == 1.5.15',
         'Fiona == 1.6.4',
