@@ -359,7 +359,10 @@ class EsriRestDownloadTask(DownloadTask):
 
                 for feature in downloader:
                     try:
-                        row = feature.get('properties', {})
+                        geom = feature.get('geometry') or {}
+                        if not geom:
+                            raise TypeError("No geometry parsed")
+                        row = feature.get('properties') or {}
                         shp = shape(feature['geometry'])
                         row[GEOM_FIELDNAME] = shp.wkt
                         try:
