@@ -11,6 +11,7 @@ import tempfile
 import itertools
 import json
 import copy
+import six
 import sys
 import re
 
@@ -824,6 +825,8 @@ def row_transform_and_convert(sd, row):
                 row = row_fxn_join(sd, row, k) 
             elif c[k]["function"] == "regexp":
                 row = row_fxn_regexp(sd, row, k)
+            elif c[k]["function"] == "format":
+                row = row_fxn_format(sd, row, k)
 
     ### Deprecated ###
     if "advanced_merge" in c:
@@ -907,6 +910,44 @@ def row_fxn_regexp(sd, row, key):
         else:
             match = pattern.search(row[fxn["field"]])
             row[attrib_types[key]] = ''.join(match.groups()) if match else '';
+    return row
+
+def row_fxn_format(sd, row, key):
+    "Format multiple fields using a user-specified format string"
+    fxn = sd["conform"][key]
+
+    format_var_pattern = re.compile('\$([0-9]+)')
+
+    fields = [(row[n] or six.u('')).strip() for n in fxn["fields"]]
+
+    parts = []
+
+    idx = 0
+    num_fields_added = 0
+
+    format_str = fxn["format"]
+    for i, m in enumerate(format_var_pattern.finditer(format_str)):
+        field_idx = int(m.group(1))
+        start, end = m.span()
+
+        if field_idx - 1 < len(fields):
+            field = fields[field_idx - 1]
+
+            if idx == 0 or (num_fields_added > 0 and field):
+                parts.append(format_str[idx:start])
+
+            if field:
+                parts.append(field)
+                num_fields_added += 1
+
+        idx = end
+
+    if num_fields_added > 0:
+        parts.append(format_str[idx:])
+        row[attrib_types[key]] = six.u('').join(parts)
+    else:
+        row[attrib_types[key]] = six.u('')
+
     return row
 
 def row_canonicalize_unit_and_number(sd, row):
