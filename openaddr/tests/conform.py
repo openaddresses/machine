@@ -15,7 +15,7 @@ from ..conform import (
     GEOM_FIELDNAME, X_FIELDNAME, Y_FIELDNAME,
     csv_source_to_csv, find_source_path, row_transform_and_convert,
     row_fxn_regexp, row_smash_case, row_round_lat_lon, row_merge,
-    row_extract_and_reproject, row_convert_to_out, row_fxn_join,
+    row_extract_and_reproject, row_convert_to_out, row_fxn_join, row_fxn_format,
     row_canonicalize_unit_and_number, conform_smash_case, conform_cli,
     csvopen, csvDictReader, convert_regexp_replace, conform_license,
     conform_attribution, conform_sharealike, normalize_ogr_filename_case,
@@ -55,7 +55,7 @@ class TestConformTransforms (unittest.TestCase):
         d = { "conform": { "city": [ "n", "t" ] } }
         r = row_merge(d, {"n": "Village of", "t": "Stanley", "x": "foo"}, 'city')
         self.assertEqual({"OA:city": "Village of Stanley", "x": "foo", "t": "Stanley", "n": "Village of"}, r)
-    
+
     def test_row_fxn_join(self):
         "Deprecated advanced_merge"
         c = { "conform": { "advanced_merge": {
@@ -86,6 +86,35 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_join(c, d, "number")
         d = row_fxn_join(c, d, "street")
         self.assertEqual(e, d)
+
+    def test_row_fxn_format(self):
+        c = { "conform": {
+            "number": {
+                "function": "format",
+                "fields": ["a1", "a2", "a3"],
+                "format": "$1-$2-$3"
+            },
+            "street": {
+                "function": "format",
+                "fields": ["b1", "b2", "b3"],
+                "separator": "foo $1$2-$3 bar"
+            }
+        } }
+
+        d = {"a1": "12", "a2": "34", "a3": "56", "b1": "1", "b2": "B", "b3": "3"}
+        e = copy.deepcopy(d)
+        d = row_fxn_format(c, d, "number")
+        d = row_fxn_format(c, d, "street")
+        self.assertEqual(d.get("OA:number", ""), "12-34-56")
+        self.assertEqual(d.get("OA:street", ""), "foo 1B-3 bar")
+
+        d = copy.deepcopy(e)
+        d["a2"] = None
+        d["b3"] = None
+        d = row_fxn_format(c, d, "number")
+        d = row_fxn_format(c, d, "street")
+        self.assertEqual(d.get("OA:number", ""), "12-56")
+        self.assertEqual(d.get("OA:street", ""), "foo 1B bar")
 
     def test_row_fxn_regexp(self):
         "Deprecated split"
