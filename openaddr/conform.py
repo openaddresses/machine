@@ -11,7 +11,6 @@ import tempfile
 import itertools
 import json
 import copy
-import six
 import sys
 import re
 
@@ -918,7 +917,7 @@ def row_fxn_format(sd, row, key):
 
     format_var_pattern = re.compile('\$([0-9]+)')
 
-    fields = [(row[n] or six.u('')).strip() for n in fxn["fields"]]
+    fields = [(row[n] or u'').strip() for n in fxn["fields"]]
 
     parts = []
 
@@ -944,9 +943,9 @@ def row_fxn_format(sd, row, key):
 
     if num_fields_added > 0:
         parts.append(format_str[idx:])
-        row[attrib_types[key]] = six.u('').join(parts)
+        row[attrib_types[key]] = u''.join(parts)
     else:
-        row[attrib_types[key]] = six.u('')
+        row[attrib_types[key]] = u''
 
     return row
 
