@@ -97,7 +97,7 @@ class TestConformTransforms (unittest.TestCase):
             "street": {
                 "function": "format",
                 "fields": ["b1", "b2", "b3"],
-                "separator": "foo $1$2-$3 bar"
+                "format": "foo $1$2-$3 bar"
             }
         } }
 
