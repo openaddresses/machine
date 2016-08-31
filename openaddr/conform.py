@@ -930,7 +930,7 @@ def row_fxn_format(sd, row, key):
         field_idx = int(m.group(1))
         start, end = m.span()
 
-        if field_idx - 1 < len(fields):
+        if field_index > 0 and field_idx - 1 < len(fields):
             field = fields[field_idx - 1]
 
             if idx == 0 or (num_fields_added > 0 and field):
