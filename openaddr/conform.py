@@ -881,14 +881,16 @@ def row_fxn_join(sd, row, key):
         for new_field_name, merge_spec in advanced_merge.items():
             separator = merge_spec.get("separator", " ")
             try:
-                row[new_field_name] = separator.join([row[n] for n in merge_spec["fields"]])
+                fields = [(row[n] or u'').strip() for n in merge_spec["fields"]]
+                row[new_field_name] = separator.join([f for f in fields if f])
             except Exception as e:
                 _L.debug("Failure to merge row %r %s", e, row)
     else: ## New behavior
         fxn = sd["conform"][key]
         separator = fxn.get("separator", " ")
         try:
-            row[attrib_types[key]] = separator.join([row[n] for n in fxn["fields"]])
+            fields = [(row[n] or u'').strip() for n in fxn["fields"]]
+            row[attrib_types[key]] = separator.join([f for f in fields if f])
         except Exception as e:
             _L.debug("Failure to merge row %r %s", e, row)
     return row
