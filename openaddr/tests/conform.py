@@ -86,6 +86,12 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_join(c, d, "number")
         d = row_fxn_join(c, d, "street")
         self.assertEqual(e, d)
+        d = { "a1": "va1", "b1": "vb1", "b2": None}
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "va1", "OA:street": "vb1" })
+        d = row_fxn_join(c, d, "number")
+        d = row_fxn_join(c, d, "street")
+        self.assertEqual(e, d)
 
     def test_row_fxn_format(self):
         c = { "conform": {
