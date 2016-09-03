@@ -1,3 +1,6 @@
+2016-09-02: 2.30.0
+- Added support for new "format" function in conforms.
+
 2016-08-27: 2.29.1
 - Refactored ESRI support to use external esridump package.
 
