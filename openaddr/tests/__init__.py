@@ -196,6 +196,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('fbarc.stadt-berlin.de', '/FIS_Broker_Atom/Hauskoordinaten/HKO_EPSG3068.zip'):
             local_path = join(data_dirname, 'de-berlin-excerpt.zip')
         
+        if (host, path) == ('www.dropbox.com', '/s/8uaqry2w657p44n/bagadres.zip'):
+            local_path = join(data_dirname, 'nl.zip')
+        
         if (host, path) == ('fake-web', '/lake-man.gdb.zip'):
             local_path = join(data_dirname, 'lake-man.gdb.zip')
         
@@ -928,6 +931,31 @@ class TestOA (unittest.TestCase):
             self.assertFalse(bool(rows[-2]['LON']))
             self.assertTrue(bool(rows[-1]['LAT']))
             self.assertTrue(bool(rows[-1]['LON']))
+
+    def test_single_nl_countrywide(self):
+        ''' Test complete process_one.process on data.
+        '''
+        source = join(self.src_dir, 'nl/countrywide.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir)
+
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+
+        output_path = join(dirname(state_path), state['processed'])
+        
+        with csvopen(output_path, encoding='utf8') as input:
+            rows = list(csvDictReader(input, encoding='utf8'))
+            self.assertEqual(len(rows), 8)
+            self.assertEqual(rows[0]['NUMBER'], u'34x')
+            self.assertEqual(rows[1]['NUMBER'], u'65-x')
+            self.assertEqual(rows[2]['NUMBER'], u'147x-x')
+            self.assertEqual(rows[3]['NUMBER'], u'6')
+            self.assertEqual(rows[4]['NUMBER'], u'279b')
+            self.assertEqual(rows[5]['NUMBER'], u'10')
+            self.assertEqual(rows[6]['NUMBER'], u'601')
+            self.assertEqual(rows[7]['NUMBER'], u'2')
 
     def test_single_lake_man_gdb(self):
         ''' Test complete process_one.process on data.
