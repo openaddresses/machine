@@ -41,6 +41,15 @@ def mkdirsp(path):
         else:
             raise
 
+def traverse(item):
+    "Iterates over nested iterables"
+    try:
+        for i in iter(item):
+            for j in traverse(i):
+                yield j
+    except TypeError:
+        yield item
+
 def request(method, url, **kwargs):
     try:
         _L.debug("Requesting %s with args %s", url, kwargs.get('params') or kwargs.get('data'))
@@ -360,9 +369,13 @@ class EsriRestDownloadTask(DownloadTask):
                 for feature in downloader:
                     try:
                         geom = feature.get('geometry') or {}
+                        row = feature.get('properties') or {}
+
                         if not geom:
                             raise TypeError("No geometry parsed")
-                        row = feature.get('properties') or {}
+                        if any(math.isnan(g) for g in traverse(geom)):
+                            raise TypeError("Geometry has NaN coordinates")
+
                         shp = shape(feature['geometry'])
                         row[GEOM_FIELDNAME] = shp.wkt
                         try:
