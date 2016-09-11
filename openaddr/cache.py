@@ -5,6 +5,7 @@ from .compat import standard_library, PY2
 
 import os
 import errno
+import math
 import socket
 import mimetypes
 import shutil
@@ -43,11 +44,11 @@ def mkdirsp(path):
 
 def traverse(item):
     "Iterates over nested iterables"
-    try:
-        for i in iter(item):
+    if isinstance(item, list):
+        for i in item:
             for j in traverse(i):
                 yield j
-    except TypeError:
+    else:
         yield item
 
 def request(method, url, **kwargs):
@@ -373,7 +374,7 @@ class EsriRestDownloadTask(DownloadTask):
 
                         if not geom:
                             raise TypeError("No geometry parsed")
-                        if any(math.isnan(g) for g in traverse(geom)):
+                        if any((isinstance(g, float) and math.isnan(g)) for g in traverse(geom)):
                             raise TypeError("Geometry has NaN coordinates")
 
                         shp = shape(feature['geometry'])
