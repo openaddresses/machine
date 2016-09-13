@@ -1,3 +1,6 @@
+2016-09-13: 2.30.1
+- Bumped pyesridump to 1.4.0.
+
 2016-09-02: 2.30.0
 - Added support for new "format" function in conforms.
 
