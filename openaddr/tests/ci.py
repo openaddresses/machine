@@ -827,6 +827,46 @@ class TestAuth (unittest.TestCase):
         with HTTMock(response_content_okay):
             token = webauth.exchange_tokens(code, client_id, secret)
             self.assertEqual('nnnnggh', token['access_token'])
+    
+    def test_user_information(self):
+        def response_content_unauth(url, request):
+            if (request.method, url.hostname, url.path) == ('GET', 'api.github.com', '/user'):
+                return response(401, b'{}', headers={'Content-Type': 'application/json'})
+            raise Exception()
+        
+        with HTTMock(response_content_unauth):
+            login, avatar, orged = webauth.user_information('nnnnggh')
+            self.assertIsNone(login)
+            self.assertIsNone(avatar)
+            self.assertIsNone(orged)
+
+        def response_content_unorged(url, request):
+            if (request.method, url.hostname, url.path) == ('GET', 'api.github.com', '/user'):
+                return response(200, b'{"login": "migurski", "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3", "organizations_url": "https://api.github.com/users/migurski/orgs"}', headers={'Content-Type': 'application/json'})
+
+            if (request.method, url.hostname, url.path) == ('GET', 'api.github.com', '/users/migurski/orgs'):
+                return response(200, b'[{"id": -9999}]', headers={'Content-Type': 'application/json'})
+            raise Exception()
+        
+        with HTTMock(response_content_unorged):
+            login, avatar, orged = webauth.user_information('nnnnggh')
+            self.assertEqual(login, 'migurski')
+            self.assertEqual(avatar, 'https://avatars.githubusercontent.com/u/58730?v=3')
+            self.assertFalse(orged)
+
+        def response_content_orged(url, request):
+            if (request.method, url.hostname, url.path) == ('GET', 'api.github.com', '/user'):
+                return response(200, b'{"login": "migurski", "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3", "organizations_url": "https://api.github.com/users/migurski/orgs"}', headers={'Content-Type': 'application/json'})
+
+            if (request.method, url.hostname, url.path) == ('GET', 'api.github.com', '/users/migurski/orgs'):
+                return response(200, b'[{"id": 6895392}]', headers={'Content-Type': 'application/json'})
+            raise Exception()
+        
+        with HTTMock(response_content_orged):
+            login, avatar, orged = webauth.user_information('nnnnggh')
+            self.assertEqual(login, 'migurski')
+            self.assertEqual(avatar, 'https://avatars.githubusercontent.com/u/58730?v=3')
+            self.assertTrue(orged)
 
 class TestHook (unittest.TestCase):
 

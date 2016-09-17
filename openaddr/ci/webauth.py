@@ -15,6 +15,7 @@ from .webcommon import log_application_errors
 
 github_authorize_url = 'https://github.com/login/oauth/authorize'
 github_exchange_url = 'https://github.com/login/oauth/access_token'
+github_user_url = 'https://api.github.com/user'
 
 webauth = Blueprint('webauth', __name__)
 
@@ -41,6 +42,27 @@ def exchange_tokens(code, client_id, secret):
         raise RuntimeError("missing `access_token`.")
     
     return auth
+
+def user_information(token, org_id=6895392):
+    '''
+    '''
+    header = {'Authorization': 'token {}'.format(token)}
+    resp1 = requests.get(github_user_url, headers=header)
+    
+    if resp1.status_code != 200:
+        return None, None, None
+
+    login, avatar_url = resp1.json().get('login'), resp1.json().get('avatar_url')
+    
+    print('user:', resp1, (login, avatar_url))
+    
+    orgs_url = resp1.json().get('organizations_url')
+    resp2 = requests.get(orgs_url, headers=header)
+    org_ids = [org['id'] for org in resp2.json()]
+    
+    print('orgs:', resp2, org_ids)
+    
+    return login, avatar_url, bool(org_id in org_ids)
 
 @webauth.route('/auth')
 @log_application_errors
@@ -69,6 +91,9 @@ def app_callback():
                             current_app.config['GITHUB_OAUTH_SECRET'])
     
     session['github token'] = token['access_token']
+    
+    
+    user_information(session['github token'])
     
     return render_template('oauth-success.html', url=state.get('url'),
                            href=url_for('webauth.app_logout'))
