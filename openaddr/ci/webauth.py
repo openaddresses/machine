@@ -3,7 +3,10 @@ import logging; _L = logging.getLogger('openaddr.ci.webapi')
 import os
 from urllib.parse import urljoin, urlencode
 
-from flask import request, url_for, current_app, render_template, Blueprint
+from flask import (
+    request, url_for, current_app, render_template, session, redirect, Blueprint
+    )
+
 from itsdangerous import URLSafeSerializer
 import requests
 
@@ -61,17 +64,31 @@ def app_callback():
     state = unserialize(current_app.config['GITHUB_OAUTH_SECRET'],
                         request.args['state'])
 
-    exchange_tokens(request.args['code'],
-                    current_app.config['GITHUB_OAUTH_CLIENT_ID'],
-                    current_app.config['GITHUB_OAUTH_SECRET'])
+    token = exchange_tokens(request.args['code'],
+                            current_app.config['GITHUB_OAUTH_CLIENT_ID'],
+                            current_app.config['GITHUB_OAUTH_SECRET'])
+    
+    session['github token'] = token['access_token']
+    
+    return render_template('oauth-success.html', url=state.get('url'),
+                           href=url_for('webauth.app_logout'))
     
     return request.args['state'] + '\n' + str(state)
     return 'Yo.'
+
+@webauth.route('/auth/logout', methods=['POST'])
+@log_application_errors
+def app_logout():
+    if 'github token' in session:
+        session.pop('github token')
+    
+    return redirect(url_for('webauth.app_auth'), 302)
 
 def apply_webauth_blueprint(app):
     '''
     '''
     app.register_blueprint(webauth)
+    app.secret_key = 'poop'
 
     @app.before_first_request
     def app_prepare():
