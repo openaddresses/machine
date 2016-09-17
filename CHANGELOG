@@ -1,3 +1,6 @@
+2016-09-17: 2.32.0
+- Added explicit Github OAuth callback URL.
+
 2016-09-16: 2.31.7
 - Fixed another Python 2 encoding bug.
 
