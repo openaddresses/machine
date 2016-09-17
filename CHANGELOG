@@ -1,3 +1,6 @@
+2016-09-16: 2.31.1
+- Added Github OAuth login/logout loop.
+
 2016-09-16: 2.31.0
 - Added Github OAuth configuration to webhook app.
 
