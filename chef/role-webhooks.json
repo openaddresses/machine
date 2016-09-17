@@ -11,6 +11,7 @@
     "aws_sns_arn": "{Amazon SNS Subscription ID}",
     "webhook_secrets": "{Comma-delimited list of secrets}",
     "github_token": "{Github Token}",
+    "github_callback": "{Github Callback URL}",
     "github_client_id": "{Github Client ID}",
     "github_secret": "{Github Secret}",
     "gag_github_status": "No",

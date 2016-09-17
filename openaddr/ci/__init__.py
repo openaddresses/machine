@@ -46,6 +46,7 @@ def load_config():
                 GITHUB_AUTH=(os.environ['GITHUB_TOKEN'], 'x-oauth-basic'),
                 GITHUB_OAUTH_CLIENT_ID=os.environ.get('GITHUB_CLIENT_ID'),
                 GITHUB_OAUTH_SECRET=os.environ.get('GITHUB_SECRET'),
+                GITHUB_OAUTH_CALLBACK=os.environ.get('GITHUB_CALLBACK'),
                 MEMCACHE_SERVER=os.environ.get('MEMCACHE_SERVER'),
                 DATABASE_URL=os.environ['DATABASE_URL'],
                 WEBHOOK_SECRETS=webhook_secrets)

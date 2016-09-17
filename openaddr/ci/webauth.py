@@ -27,17 +27,22 @@ def serialize(secret, data):
 def unserialize(secret, data):
     return URLSafeSerializer(secret).loads(data)
 
-def correct_url(request):
-    path = request.path.encode('utf8') if compat.PY2 else request.path
+def callback_url(request, callback_url):
+    '''
+    '''
+    if 'X-Forwarded-Proto' in request.headers:
+        _scheme = request.headers.get('X-Forwarded-Proto')
+        scheme = _scheme.encode('utf8') if compat.PY2 else _scheme
+        path = request.path.encode('utf8') if compat.PY2 else request.path
 
-    if 'X-Forwarded-Proto' not in request.headers:
-        return request.url
-
-    _scheme = request.headers.get('X-Forwarded-Proto')
-    scheme = _scheme.encode('utf8') if compat.PY2 else _scheme
-    actual_url = urlunparse((scheme, request.host, path, None, None, None))
+        base_url = urlunparse((scheme, request.host, path, None, None, None))
+    else:
+        base_url = request.url
     
-    return actual_url.decode('utf8') if compat.PY2 else actual_url
+    if compat.PY2 and hasattr(callback_url, 'encode'):
+        callback_url = callback_url.encode('utf8')
+
+    return urljoin(base_url, callback_url)
 
 def exchange_tokens(code, client_id, secret):
     ''' Exchange the temporary code for an access token
@@ -118,12 +123,9 @@ def app_login():
     state = serialize(current_app.secret_key,
                       dict(url=request.headers.get('Referer')))
 
-    _url = url_for('webauth.app_callback')
-    redirect_url = _url.decode('utf8') if compat.PY2 else _url
-
-    args = dict(redirect_uri=urljoin(correct_url(request), redirect_url))
+    url = current_app.config.get('GITHUB_OAUTH_CALLBACK') or url_for('webauth.app_callback')
+    args = dict(redirect_uri=callback_url(request, url), response_type='code', state=state)
     args.update(client_id=current_app.config['GITHUB_OAUTH_CLIENT_ID'])
-    args.update(response_type='code', state=state)
     
     return redirect(uritemplate.expand(github_authorize_url, args), 303)
 
