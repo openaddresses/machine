@@ -89,8 +89,7 @@ def app_auth():
 @webauth.route('/auth/callback')
 @log_application_errors
 def app_callback():
-    state = unserialize(current_app.config['GITHUB_OAUTH_SECRET'],
-                        request.args['state'])
+    state = unserialize(current_app.secret_key, request.args['state'])
 
     token = exchange_tokens(request.args['code'],
                             current_app.config['GITHUB_OAUTH_CLIENT_ID'],
@@ -103,7 +102,7 @@ def app_callback():
 @webauth.route('/auth/login', methods=['POST'])
 @log_application_errors
 def app_login():
-    state = serialize(current_app.config['GITHUB_OAUTH_SECRET'],
+    state = serialize(current_app.secret_key,
                       dict(url=request.headers.get('Referer')))
 
     args = dict(redirect_uri=urljoin(request.url, url_for('webauth.app_callback')))
@@ -127,7 +126,9 @@ def apply_webauth_blueprint(app):
     '''
     '''
     app.register_blueprint(webauth)
-    app.secret_key = 'poop'
+    
+    # Use Github OAuth secret to sign Github login cookies too.
+    app.secret_key = app.config['GITHUB_OAUTH_SECRET']
 
     @app.before_first_request
     def app_prepare():
