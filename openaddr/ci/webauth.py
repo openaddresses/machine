@@ -33,7 +33,8 @@ def correct_url(request):
     if 'X-Forwarded-Proto' not in request.headers:
         return request.url
 
-    scheme = request.headers.get('X-Forwarded-Proto')
+    _scheme = request.headers.get('X-Forwarded-Proto')
+    scheme = _scheme.encode('utf8') if compat.PY2 else _scheme
     actual_url = urlunparse((scheme, request.host, path, None, None, None))
 
 def exchange_tokens(code, client_id, secret):
