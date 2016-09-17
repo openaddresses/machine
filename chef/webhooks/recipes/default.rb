@@ -14,6 +14,7 @@ webhook_secrets = node[:webhook_secrets]
 gag_github_status = node['gag_github_status']
 database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=require"
 github_token = node['github_token']
+github_callback = node['github_callback']
 github_client_id = node['github_client_id']
 github_secret = node['github_secret']
 
@@ -30,6 +31,7 @@ file env_file do
 DATABASE_URL=#{database_url}
 MEMCACHE_SERVER=#{memcache_server}
 GITHUB_TOKEN=#{github_token}
+GITHUB_CALLBACK=#{github_callback}
 GITHUB_CLIENT_ID=#{github_client_id}
 GITHUB_SECRET=#{github_secret}
 GAG_GITHUB_STATUS=#{gag_github_status}
