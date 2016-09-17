@@ -1,0 +1,9 @@
+{% if user %}
+<form action="{{url_for('webauth.app_logout')}}" method="post">
+    <button>LOG OUT {{user.login}}</button>
+</form>
+{% else %}
+<form action="{{url_for('webauth.app_login')}}" method="post">
+    <button>LOG IN</button>
+</form>
+{% endif %}

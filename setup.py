@@ -128,5 +128,8 @@ setup(
         'Shapely == 1.5.15',
         'Fiona == 1.6.4',
 
+        # http://pythonhosted.org/itsdangerous/
+        'itsdangerous == 0.24',
+
         ] + conditional_requirements
 )
