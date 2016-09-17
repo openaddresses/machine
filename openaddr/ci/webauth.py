@@ -39,6 +39,23 @@ def correct_url(request):
     
     return actual_url.decode('utf8') if compat.PY2 else actual_url
 
+def callback_url(request, callback_url):
+    '''
+    '''
+    if 'X-Forwarded-Proto' in request.headers:
+        _scheme = request.headers.get('X-Forwarded-Proto')
+        scheme = _scheme.encode('utf8') if compat.PY2 else _scheme
+        path = request.path.encode('utf8') if compat.PY2 else request.path
+
+        base_url = urlunparse((scheme, request.host, path, None, None, None))
+    else:
+        base_url = request.url
+    
+    if compat.PY2 and hasattr(callback_url, 'encode'):
+        callback_url = callback_url.encode('utf8')
+
+    return urljoin(base_url, callback_url)
+
 def exchange_tokens(code, client_id, secret):
     ''' Exchange the temporary code for an access token
 
