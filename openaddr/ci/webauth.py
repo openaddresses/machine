@@ -1,7 +1,7 @@
 import logging; _L = logging.getLogger('openaddr.ci.webapi')
 
 import os
-from urllib.parse import urljoin, urlencode
+from urllib.parse import urljoin, urlencode, urlunparse
 from functools import wraps
 
 from flask import (
@@ -26,6 +26,15 @@ def serialize(secret, data):
 
 def unserialize(secret, data):
     return URLSafeSerializer(secret).loads(data)
+
+def correct_url(request):
+    path = request.path.encode('utf8') if compat.PY2 else request.path
+
+    if 'X-Forwarded-Proto' not in request.headers:
+        return request.url
+
+    scheme = request.headers.get('X-Forwarded-Proto')
+    actual_url = urlunparse((scheme, request.host, path, None, None, None))
 
 def exchange_tokens(code, client_id, secret):
     ''' Exchange the temporary code for an access token
@@ -109,7 +118,7 @@ def app_login():
     _url = url_for('webauth.app_callback')
     redirect_url = _url.decode('utf8') if compat.PY2 else _url
 
-    args = dict(redirect_uri=urljoin(request.url, redirect_url))
+    args = dict(redirect_uri=urljoin(correct_url(request), redirect_url))
     args.update(client_id=current_app.config['GITHUB_OAUTH_CLIENT_ID'])
     args.update(response_type='code', state=state)
     
