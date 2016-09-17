@@ -32,7 +32,7 @@ from ..ci import (
     enqueue_sources, find_batch_sources, render_set_maps, render_index_maps,
     is_merged_to_master, get_commit_info, HEARTBEAT_QUEUE, flush_heartbeat_queue,
     get_recent_workers, PERMANENT_KIND, TEMPORARY_KIND, load_config,
-    get_batch_run_times
+    get_batch_run_times, webauth
     )
 
 from ..ci.objects import (
@@ -787,6 +787,46 @@ class TestAPI (unittest.TestCase):
             for (key, value) in got_state3.items():
                 if key in run_state3:
                     self.assertEqual(value, run_state3[key])
+
+class TestAuth (unittest.TestCase):
+    
+    def test_serializer(self):
+        secret = str(uuid4())
+        message = str(uuid4())
+        
+        self.assertEqual(message, webauth.unserialize(secret, webauth.serialize(secret, message)))
+    
+    def test_exchange_tokens(self):
+        code, client_id, secret = str(uuid4()), str(uuid4()), str(uuid4())
+        
+        def response_content_error(url, request):
+            if (request.method, url.hostname, url.path) == ('POST', 'github.com', '/login/oauth/access_token'):
+                return response(400, b'{"error": "no good"}', headers={'Content-Type': 'application/json'})
+            raise Exception()
+        
+        with HTTMock(response_content_error):
+            with self.assertRaises(RuntimeError) as err:
+                token = webauth.exchange_tokens(code, client_id, secret)
+            self.assertIn("no good", str(err.exception))
+        
+        def response_content_missing(url, request):
+            if (request.method, url.hostname, url.path) == ('POST', 'github.com', '/login/oauth/access_token'):
+                return response(200, b'{"what": "no no no"}', headers={'Content-Type': 'application/json'})
+            raise Exception()
+        
+        with HTTMock(response_content_missing):
+            with self.assertRaises(RuntimeError) as err:
+                token = webauth.exchange_tokens(code, client_id, secret)
+            self.assertIn('missing `access_token`', str(err.exception))
+        
+        def response_content_okay(url, request):
+            if (request.method, url.hostname, url.path) == ('POST', 'github.com', '/login/oauth/access_token'):
+                return response(200, b'{"scope": "", "token_type": "bearer", "access_token": "nnnnggh"}', headers={'Content-Type': 'application/json'})
+            raise Exception()
+        
+        with HTTMock(response_content_okay):
+            token = webauth.exchange_tokens(code, client_id, secret)
+            self.assertEqual('nnnnggh', token['access_token'])
 
 class TestHook (unittest.TestCase):
 
