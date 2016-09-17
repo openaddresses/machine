@@ -54,13 +54,9 @@ def user_information(token, org_id=6895392):
 
     login, avatar_url = resp1.json().get('login'), resp1.json().get('avatar_url')
     
-    print('user:', resp1, (login, avatar_url))
-    
     orgs_url = resp1.json().get('organizations_url')
     resp2 = requests.get(orgs_url, headers=header)
     org_ids = [org['id'] for org in resp2.json()]
-    
-    print('orgs:', resp2, org_ids)
     
     return login, avatar_url, bool(org_id in org_ids)
 
@@ -74,11 +70,14 @@ def app_auth():
     args.update(client_id=current_app.config['GITHUB_OAUTH_CLIENT_ID'], state=state)
     args.update(response_type='code')
     
-    return render_template('oauth-hello.html', href=github_authorize_url, **args)
+    login, avatar_url, orged = user_information(session.get('github token'))
     
-    return str(dict(args))
-
-    return 'Yo.'
+    return render_template('oauth-hello.html',
+                           auth_href=github_authorize_url,
+                           logout_href=url_for('webauth.app_logout'),
+                           user_name=login, user_avatar_url=avatar_url,
+                           user_orged=orged,
+                           **args)
 
 @webauth.route('/auth/callback')
 @log_application_errors
@@ -92,14 +91,7 @@ def app_callback():
     
     session['github token'] = token['access_token']
     
-    
-    user_information(session['github token'])
-    
-    return render_template('oauth-success.html', url=state.get('url'),
-                           href=url_for('webauth.app_logout'))
-    
-    return request.args['state'] + '\n' + str(state)
-    return 'Yo.'
+    return redirect(state.get('url', url_for('webauth.app_auth')), 302)
 
 @webauth.route('/auth/logout', methods=['POST'])
 @log_application_errors
