@@ -95,11 +95,14 @@ def app_index():
 @enforce_signature
 def app_hook():
     github_auth = current_app.config['GITHUB_AUTH']
+    gag_status = current_app.config['GAG_GITHUB_STATUS']
     webhook_payload = json.loads(request.data.decode('utf8'))
-    
+
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         queue = db_queue(conn, TASK_QUEUE)
-        success, response = process_github_payload(queue, github_auth, webhook_payload)
+        success, response = process_github_payload(queue, current_app.logger,
+                                                   github_auth, webhook_payload,
+                                                   gag_status)
     
     if not success:
         return Response(json.dumps(response), 500, content_type='application/json')

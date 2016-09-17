@@ -79,14 +79,14 @@ def td2str(td):
     '''
     return '{}s'.format(td.seconds + td.days * 86400)
 
-def process_github_payload(queue, github_auth, webhook_payload):
+def process_github_payload(queue, logger, github_auth, webhook_payload, gag_status):
     '''
     '''
     if skip_payload(webhook_payload):
         return True, {'url': None, 'files': [], 'skip': True}
     
-    owner, repo, commit_sha, status_url = get_commit_info(current_app, webhook_payload)
-    if current_app.config['GAG_GITHUB_STATUS']:
+    owner, repo, commit_sha, status_url = get_commit_info(logger, webhook_payload)
+    if gag_status:
         status_url = None
     
     try:
@@ -284,7 +284,7 @@ def process_pushevent_payload_files(payload, github_auth):
     
     return files
 
-def get_commit_info(app, payload):
+def get_commit_info(logger, payload):
     ''' Get owner, repository, commit SHA and Github status API URL from webhook payload.
     '''
     if 'pull_request' in payload:
@@ -306,7 +306,7 @@ def get_commit_info(app, payload):
     owner = repo['owner'].get('name') or repo['owner'].get('login')
     repository = repo['name']
     
-    app.logger.debug('Status URL {}'.format(status_url))
+    logger.debug('Status URL {}'.format(status_url))
     
     return owner, repository, commit_sha, status_url
 
