@@ -11,6 +11,7 @@ from flask import (
 from itsdangerous import URLSafeSerializer
 import requests, uritemplate
 
+from .. import compat
 from . import setup_logger
 from .webcommon import log_application_errors
 
@@ -105,7 +106,10 @@ def app_login():
     state = serialize(current_app.secret_key,
                       dict(url=request.headers.get('Referer')))
 
-    args = dict(redirect_uri=urljoin(request.url, url_for('webauth.app_callback')))
+    _url = url_for('webauth.app_callback')
+    redirect_url = _url.decode('utf8') if compat.PY2 else _url
+
+    args = dict(redirect_uri=urljoin(request.url, redirect_url))
     args.update(client_id=current_app.config['GITHUB_OAUTH_CLIENT_ID'])
     args.update(response_type='code', state=state)
     

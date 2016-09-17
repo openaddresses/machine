@@ -1,3 +1,6 @@
+2016-09-16: 2.31.3
+- Fixed Python 2 encoding bug.
+
 2016-09-16: 2.31.2
 - Fixed missing Github OAuth config.
 
