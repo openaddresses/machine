@@ -2,7 +2,6 @@ import logging; _L = logging.getLogger('openaddr.ci.webhooks')
 
 from functools import wraps
 from operator import itemgetter, attrgetter
-from urllib.parse import urljoin
 from collections import OrderedDict
 from csv import DictWriter
 import hashlib, hmac
@@ -16,10 +15,7 @@ from flask import (
     )
 
 from . import (
-    load_config, setup_logger, skip_payload, get_commit_info,
-    update_pending_status, update_error_status, update_failing_status,
-    update_empty_status, update_success_status, process_payload_files,
-    db_connect, db_queue, db_cursor, TASK_QUEUE, create_queued_job
+    load_config, setup_logger, db_connect, db_queue, db_cursor, TASK_QUEUE, process_github_payload
     )
 
 from .objects import (
@@ -28,7 +24,6 @@ from .objects import (
     load_collection_zips_dict, read_latest_run
     )
 
-from ..compat import expand_uri
 from ..summarize import summarize_runs, GLASS_HALF_FULL, GLASS_HALF_EMPTY, nice_integer, break_state
 from .webcommon import log_application_errors, nice_domain
 
@@ -102,47 +97,14 @@ def app_hook():
     github_auth = current_app.config['GITHUB_AUTH']
     webhook_payload = json.loads(request.data.decode('utf8'))
     
-    if skip_payload(webhook_payload):
-        return jsonify({'url': None, 'files': [], 'skip': True})
-    
-    owner, repo, commit_sha, status_url = get_commit_info(current_app, webhook_payload)
-    if current_app.config['GAG_GITHUB_STATUS']:
-        status_url = None
-    
-    try:
-        files = process_payload_files(webhook_payload, github_auth)
-    except Exception as e:
-        message = 'Could not read source files: {}'.format(e)
-        update_error_status(status_url, message, [], github_auth)
-        _L.error(message, exc_info=True)
-        return jsonify({'url': None, 'files': [], 'status_url': status_url})
-    
-    if not files:
-        update_empty_status(status_url, github_auth)
-        _L.warning('No files')
-        return jsonify({'url': None, 'files': [], 'status_url': status_url})
-
-    filenames = list(files.keys())
-    job_url_template = urljoin(request.url, u'/jobs/{id}')
-
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         queue = db_queue(conn, TASK_QUEUE)
-        try:
-            job_id = create_queued_job(queue, files, job_url_template,
-                                       commit_sha, owner, repo, status_url)
-            job_url = expand_uri(job_url_template, dict(id=job_id))
-        except Exception as e:
-            # Oops, tell Github something went wrong.
-            update_error_status(status_url, str(e), filenames, github_auth)
-            _L.error('Oops', exc_info=True)
-            return Response(json.dumps({'error': str(e), 'files': files,
-                                        'status_url': status_url}),
-                            500, content_type='application/json')
-        else:
-            # That worked, tell Github we're working on it.
-            update_pending_status(status_url, job_url, filenames, github_auth)
-            return jsonify({'id': job_id, 'url': job_url, 'files': files,
-                            'status_url': status_url})
+        success, response = process_github_payload(queue, github_auth, webhook_payload)
+    
+    if not success:
+        return Response(json.dumps(response), 500, content_type='application/json')
+
+    return jsonify(response)
 
 @webhooks.route('/jobs/', methods=['GET'])
 @log_application_errors

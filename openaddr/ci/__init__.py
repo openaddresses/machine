@@ -14,6 +14,7 @@ from . import objects, work
 from os.path import relpath, splitext, join, basename
 from datetime import timedelta, datetime
 from uuid import uuid4, getnode
+from urllib.parse import urljoin
 from base64 import b64decode
 from tempfile import mkdtemp
 from functools import wraps
@@ -77,6 +78,46 @@ def td2str(td):
         Will not be necessary when https://github.com/malthe/pq/pull/5 is released.
     '''
     return '{}s'.format(td.seconds + td.days * 86400)
+
+def process_github_payload(queue, github_auth, webhook_payload):
+    '''
+    '''
+    if skip_payload(webhook_payload):
+        return True, {'url': None, 'files': [], 'skip': True}
+    
+    owner, repo, commit_sha, status_url = get_commit_info(current_app, webhook_payload)
+    if current_app.config['GAG_GITHUB_STATUS']:
+        status_url = None
+    
+    try:
+        files = process_payload_files(webhook_payload, github_auth)
+    except Exception as e:
+        message = 'Could not read source files: {}'.format(e)
+        update_error_status(status_url, message, [], github_auth)
+        _L.error(message, exc_info=True)
+        return True, {'url': None, 'files': [], 'status_url': status_url}
+    
+    if not files:
+        update_empty_status(status_url, github_auth)
+        _L.warning('No files')
+        return True, {'url': None, 'files': [], 'status_url': status_url}
+
+    filenames = list(files.keys())
+    job_url_template = urljoin(request.url, u'/jobs/{id}')
+
+    try:
+        job_id = create_queued_job(queue, files, job_url_template,
+                                   commit_sha, owner, repo, status_url)
+        job_url = expand_uri(job_url_template, dict(id=job_id))
+    except Exception as e:
+        # Oops, tell Github something went wrong.
+        update_error_status(status_url, str(e), filenames, github_auth)
+        _L.error('Oops', exc_info=True)
+        return False, dict(error=str(e), files=files, status_url=status_url)
+    else:
+        # That worked, tell Github we're working on it.
+        update_pending_status(status_url, job_url, filenames, github_auth)
+        return True, dict(id=job_id, url=job_url, files=files, status_url=status_url)
 
 def get_touched_payload_files(payload):
     ''' Return a set of files modified in payload commits.
