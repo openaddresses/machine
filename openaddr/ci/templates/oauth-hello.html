@@ -1,13 +1,9 @@
 {% if user %}
-<form action="{{logout_href}}" method="post">
+<form action="{{url_for('webauth.app_logout')}}" method="post">
     <button>LOG OUT {{user.login}}</button>
 </form>
 {% else %}
-<form action="{{auth_href}}" method="get">
-    <input type="hidden" name="state" value="{{state}}">
-    <input type="hidden" name="client_id" value="{{client_id}}">
-    <input type="hidden" name="redirect_uri" value="{{redirect_uri}}">
-    <input type="hidden" name="response_type" value="{{response_type}}">
-    <button>CONTINUE</button>
+<form action="{{url_for('webauth.app_login')}}" method="post">
+    <button>LOG IN</button>
 </form>
 {% endif %}

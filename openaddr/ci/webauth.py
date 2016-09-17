@@ -9,12 +9,12 @@ from flask import (
     )
 
 from itsdangerous import URLSafeSerializer
-import requests
+import requests, uritemplate
 
 from . import setup_logger
 from .webcommon import log_application_errors
 
-github_authorize_url = 'https://github.com/login/oauth/authorize'
+github_authorize_url = 'https://github.com/login/oauth/authorize{?state,client_id,redirect_uri,response_type}'
 github_exchange_url = 'https://github.com/login/oauth/access_token'
 github_user_url = 'https://api.github.com/user'
 
@@ -71,9 +71,9 @@ def update_authentication(untouched_route):
             session.pop('github user')
     
         if 'github token' in session:
-            login, avatar_url, orged = user_information(session['github token'])
+            login, avatar_url, in_org = user_information(session['github token'])
             
-            if login and orged:
+            if login and in_org:
                 session['github user'] = dict(login=login, avatar_url=avatar_url)
 
         return untouched_route(*args, **kwargs)
@@ -84,17 +84,7 @@ def update_authentication(untouched_route):
 @update_authentication
 @log_application_errors
 def app_auth():
-    state = serialize(current_app.config['GITHUB_OAUTH_SECRET'],
-                      dict(url=request.url))
-    
-    args = dict(redirect_uri=urljoin(request.url, url_for('webauth.app_callback')))
-    args.update(client_id=current_app.config['GITHUB_OAUTH_CLIENT_ID'], state=state)
-    args.update(response_type='code')
-    
-    return render_template('oauth-hello.html',
-                           auth_href=github_authorize_url,
-                           logout_href=url_for('webauth.app_logout'),
-                           user=session.get('github user', {}), **args)
+    return render_template('oauth-hello.html', user=session.get('github user', {}))
 
 @webauth.route('/auth/callback')
 @log_application_errors
@@ -109,6 +99,18 @@ def app_callback():
     session['github token'] = token['access_token']
     
     return redirect(state.get('url', url_for('webauth.app_auth')), 302)
+
+@webauth.route('/auth/login', methods=['POST'])
+@log_application_errors
+def app_login():
+    state = serialize(current_app.config['GITHUB_OAUTH_SECRET'],
+                      dict(url=request.headers.get('Referer')))
+
+    args = dict(redirect_uri=urljoin(request.url, url_for('webauth.app_callback')))
+    args.update(client_id=current_app.config['GITHUB_OAUTH_CLIENT_ID'])
+    args.update(response_type='code', state=state)
+    
+    return redirect(uritemplate.expand(github_authorize_url, args), 303)
 
 @webauth.route('/auth/logout', methods=['POST'])
 @log_application_errors
