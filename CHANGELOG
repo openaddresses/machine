@@ -1,3 +1,6 @@
+2016-09-16: 2.31.7
+- Fixed another Python 2 encoding bug.
+
 2016-09-16: 2.31.6
 - Fixed a return value bug.
 
