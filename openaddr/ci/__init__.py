@@ -14,7 +14,6 @@ from . import objects, work
 from os.path import relpath, splitext, join, basename
 from datetime import timedelta, datetime
 from uuid import uuid4, getnode
-from urllib.parse import urljoin
 from base64 import b64decode
 from tempfile import mkdtemp
 from functools import wraps
@@ -23,7 +22,7 @@ from time import time, sleep
 import threading, sys
 import json, os
 
-from flask import Flask, request, Response, current_app, jsonify, render_template
+from flask import Flask, request, Response, jsonify, render_template
 from requests import get, post, ConnectionError
 from dateutil.tz import tzutc
 from psycopg2 import connect
@@ -79,18 +78,18 @@ def td2str(td):
     '''
     return '{}s'.format(td.seconds + td.days * 86400)
 
-def process_github_payload(queue, logger, github_auth, webhook_payload, gag_status):
+def process_github_payload(queue, app_logger, github_auth, webhook_payload, gag_status):
     '''
     '''
     if skip_payload(webhook_payload):
         return True, {'url': None, 'files': [], 'skip': True}
     
-    owner, repo, commit_sha, status_url = get_commit_info(logger, webhook_payload)
+    owner, repo, commit_sha, status_url = get_commit_info(app_logger, webhook_payload)
     if gag_status:
         status_url = None
     
     try:
-        files = process_payload_files(webhook_payload, github_auth)
+        files = process_payload_files(webhook_payload, github_auth, app_logger)
     except Exception as e:
         message = 'Could not read source files: {}'.format(e)
         update_error_status(status_url, message, [], github_auth)
@@ -103,7 +102,7 @@ def process_github_payload(queue, logger, github_auth, webhook_payload, gag_stat
         return True, {'url': None, 'files': [], 'status_url': status_url}
 
     filenames = list(files.keys())
-    job_url_template = urljoin(request.url, u'/jobs/{id}')
+    job_url_template = u'/jobs/{id}'
 
     try:
         job_id = create_queued_job(queue, files, job_url_template,
@@ -119,7 +118,7 @@ def process_github_payload(queue, logger, github_auth, webhook_payload, gag_stat
         update_pending_status(status_url, job_url, filenames, github_auth)
         return True, dict(id=job_id, url=job_url, files=files, status_url=status_url)
 
-def get_touched_payload_files(payload):
+def get_touched_payload_files(payload, app_logger):
     ''' Return a set of files modified in payload commits.
     '''
     touched = set()
@@ -135,18 +134,18 @@ def get_touched_payload_files(payload):
             if filename in touched:
                 touched.remove(filename)
         
-    current_app.logger.debug(u'Touched files {}'.format(', '.join(touched)))
+    app_logger.debug(u'Touched files {}'.format(', '.join(touched)))
     
     return touched
 
-def get_touched_branch_files(payload, github_auth):
+def get_touched_branch_files(payload, github_auth, app_logger):
     ''' Return a set of files modified between master and payload head.
     '''
     branch_sha = payload['head_commit']['id']
 
     compare1_url = payload['repository']['compare_url']
     compare1_url = expand_uri(compare1_url, dict(base='master', head=branch_sha))
-    current_app.logger.debug('Compare URL 1 {}'.format(compare1_url))
+    app_logger.debug('Compare URL 1 {}'.format(compare1_url))
     
     compare1 = get(compare1_url, auth=github_auth).json()
     merge_base_sha = compare1['merge_base_commit']['sha']
@@ -157,15 +156,15 @@ def get_touched_branch_files(payload, github_auth):
 
     compare2_url = payload['repository']['compare_url']
     compare2_url = expand_uri(compare2_url, dict(base=merge_base_sha, head=branch_sha))
-    current_app.logger.debug('Compare URL 2 {}'.format(compare2_url))
+    app_logger.debug('Compare URL 2 {}'.format(compare2_url))
     
     compare2 = get(compare2_url, auth=github_auth).json()
     touched = set([file['filename'] for file in compare2['files']])
-    current_app.logger.debug(u'Touched files {}'.format(', '.join(touched)))
+    app_logger.debug(u'Touched files {}'.format(', '.join(touched)))
     
     return touched
 
-def get_touched_pullrequest_files(payload, github_auth):
+def get_touched_pullrequest_files(payload, github_auth, app_logger):
     ''' Return a set of files modified between master and payload head.
     '''
     if payload['action'] == 'closed':
@@ -176,11 +175,11 @@ def get_touched_pullrequest_files(payload, github_auth):
 
     compare_url = payload['pull_request']['head']['repo']['compare_url']
     compare_url = expand_uri(compare_url, dict(head=head_sha, base=base_sha))
-    current_app.logger.debug('Compare URL {}'.format(compare_url))
+    app_logger.debug('Compare URL {}'.format(compare_url))
     
     compare = get(compare_url, auth=github_auth).json()
     touched = set([file['filename'] for file in compare['files']])
-    current_app.logger.debug(u'Touched files {}'.format(', '.join(touched)))
+    app_logger.debug(u'Touched files {}'.format(', '.join(touched)))
     
     return touched
 
@@ -196,24 +195,24 @@ def skip_payload(payload):
     
     return True
 
-def process_payload_files(payload, github_auth):
+def process_payload_files(payload, github_auth, app_logger):
     ''' Return a dictionary of file paths to raw JSON contents and file IDs.
     '''
     if 'action' in payload and 'pull_request' in payload:
-        return process_pullrequest_payload_files(payload, github_auth)
+        return process_pullrequest_payload_files(payload, github_auth, app_logger)
     
     if 'commits' in payload and 'head_commit' in payload:
-        return process_pushevent_payload_files(payload, github_auth)
+        return process_pushevent_payload_files(payload, github_auth, app_logger)
     
     raise ValueError('Unintelligible webhook payload')
 
-def process_pullrequest_payload_files(payload, github_auth):
+def process_pullrequest_payload_files(payload, github_auth, app_logger):
     ''' Return a dictionary of files paths from a pull request event payload.
     
         https://developer.github.com/v3/activity/events/types/#pullrequestevent
     '''
     files = dict()
-    touched = get_touched_pullrequest_files(payload, github_auth)
+    touched = get_touched_pullrequest_files(payload, github_auth, app_logger)
     
     commit_sha = payload['pull_request']['head']['sha']
     
@@ -228,31 +227,31 @@ def process_pullrequest_payload_files(payload, github_auth):
 
         contents_url = payload['pull_request']['head']['repo']['contents_url'] + '{?ref}'
         contents_url = expand_uri(contents_url, dict(path=filename, ref=commit_sha))
-        current_app.logger.debug('Contents URL {}'.format(contents_url))
+        app_logger.debug('Contents URL {}'.format(contents_url))
         
         got = get(contents_url, auth=github_auth)
         contents = got.json()
         
         if got.status_code not in range(200, 299):
-            current_app.logger.warning('Skipping {} - {}'.format(filename, got.status_code))
+            app_logger.warning('Skipping {} - {}'.format(filename, got.status_code))
             continue
         
         if contents['encoding'] != 'base64':
             raise ValueError('Unrecognized encoding "{encoding}"'.format(**contents))
         
-        current_app.logger.debug('Contents SHA {sha}'.format(**contents))
+        app_logger.debug('Contents SHA {sha}'.format(**contents))
         files[filename] = contents['content'], contents['sha']
     
     return files
 
-def process_pushevent_payload_files(payload, github_auth):
+def process_pushevent_payload_files(payload, github_auth, app_logger):
     ''' Return a dictionary of files paths from a push event payload.
     
         https://developer.github.com/v3/activity/events/types/#pushevent
     '''
     files = dict()
-    touched = get_touched_payload_files(payload)
-    touched |= get_touched_branch_files(payload, github_auth)
+    touched = get_touched_payload_files(payload, app_logger)
+    touched |= get_touched_branch_files(payload, github_auth, app_logger)
     
     commit_sha = payload['head_commit']['id']
     
@@ -267,24 +266,24 @@ def process_pushevent_payload_files(payload, github_auth):
         
         contents_url = payload['repository']['contents_url'] + '{?ref}'
         contents_url = expand_uri(contents_url, dict(path=filename, ref=commit_sha))
-        current_app.logger.debug('Contents URL {}'.format(contents_url))
+        app_logger.debug('Contents URL {}'.format(contents_url))
         
         got = get(contents_url, auth=github_auth)
         contents = got.json()
         
         if got.status_code not in range(200, 299):
-            current_app.logger.warning('Skipping {} - {}'.format(filename, got.status_code))
+            app_logger.warning('Skipping {} - {}'.format(filename, got.status_code))
             continue
         
         if contents['encoding'] != 'base64':
             raise ValueError('Unrecognized encoding "{encoding}"'.format(**contents))
         
-        current_app.logger.debug('Contents SHA {sha}'.format(**contents))
+        app_logger.debug('Contents SHA {sha}'.format(**contents))
         files[filename] = contents['content'], contents['sha']
     
     return files
 
-def get_commit_info(logger, payload):
+def get_commit_info(app_logger, payload):
     ''' Get owner, repository, commit SHA and Github status API URL from webhook payload.
     '''
     if 'pull_request' in payload:
@@ -306,7 +305,7 @@ def get_commit_info(logger, payload):
     owner = repo['owner'].get('name') or repo['owner'].get('login')
     repository = repo['name']
     
-    logger.debug('Status URL {}'.format(status_url))
+    app_logger.debug('Status URL {}'.format(status_url))
     
     return owner, repository, commit_sha, status_url
 
