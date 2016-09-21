@@ -32,7 +32,7 @@ from ..ci import (
     enqueue_sources, find_batch_sources, render_set_maps, render_index_maps,
     is_merged_to_master, get_commit_info, HEARTBEAT_QUEUE, flush_heartbeat_queue,
     get_recent_workers, PERMANENT_KIND, TEMPORARY_KIND, load_config,
-    get_batch_run_times, webauth, process_github_payload
+    get_batch_run_times, webauth, process_github_payload, skip_payload
     )
 
 from ..ci.objects import (
@@ -943,6 +943,25 @@ class TestHook (unittest.TestCase):
 
         rmtree(self.output_dir)
         remove(self.s3._fake_keys)
+    
+    def test_skip_payload(self):
+        '''
+        '''
+        self.assertFalse(skip_payload(dict(action='opened', pull_request=True)), 'Should not skip a PR')
+        self.assertTrue(skip_payload(dict(action='closed', pull_request=True)), 'Should skip closed PR')
+
+        self.assertFalse(skip_payload(dict(commits=True, head_commit=True)), 'Should not skip a commit')
+        self.assertFalse(skip_payload(dict(commits=True, head_commit=True, deleted=False)), 'Should not skip a commit')
+        self.assertTrue(skip_payload(dict(commits=True, head_commit=True, deleted=True)), 'Should skip a deleted commit')
+
+        self.assertFalse(skip_payload(dict(action='created', comment=dict(body='Re-run this please.'), issue=dict(pull_request=True))), 'Should not skip a request to re-run a PR')
+        self.assertFalse(skip_payload(dict(action='created', comment=dict(body='rerun this please.'), issue=dict(pull_request=True))), 'Should not skip a request to re-run a PR')
+        self.assertFalse(skip_payload(dict(action='created', comment=dict(body='Rerun this, please...\nor else.'), issue=dict(pull_request=True))), 'Should not skip a request to re-run a PR')
+        self.assertTrue(skip_payload(dict(action='created', comment=dict(body='I have so many feelings about this.'), issue=dict(pull_request=True))), 'Should skip a random PR comment')
+        self.assertTrue(skip_payload(dict(action='created', comment=dict(body='Re-run this please.'), issue=dict())), 'Should skip a non-PR comment')
+        self.assertTrue(skip_payload(dict(action='deleted', comment=dict(body='Re-run this please.'), issue=dict(pull_request=True))), 'Should skip a deleted comment')
+
+        self.assertTrue(skip_payload(dict()))
     
     def test_get_commit_info(self):
         '''

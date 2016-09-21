@@ -20,7 +20,7 @@ from functools import wraps
 from shutil import rmtree
 from time import time, sleep
 import threading, sys
-import json, os
+import json, os, re
 
 from flask import Flask, request, Response, jsonify, render_template
 from requests import get, post, ConnectionError
@@ -70,6 +70,9 @@ HEARTBEAT_INTERVAL = timedelta(minutes=5)
 
 # Valid worker kinds for heartbeats table.
 PERMANENT_KIND, TEMPORARY_KIND = 'permanent', 'temporary'
+
+# Regexp for a PR comment that requests a re-run.
+RETEST_COMMENT_PAT = re.compile(r'^re-?run this,? please\b', re.IGNORECASE)
 
 def td2str(td):
     ''' Convert a timedelta to a string formatted like '3h'.
@@ -192,6 +195,19 @@ def skip_payload(payload):
     if 'commits' in payload and 'head_commit' in payload:
         # Deleted refs will not have a status URL.
         return bool(payload.get('deleted') == True)
+    
+    if 'action' in payload and 'comment' in payload and 'issue' in payload:
+        # Might be a meaningful PR comment.
+        if payload['action'] == 'deleted':
+            return True
+        try:
+            has_pr = bool('pull_request' in payload['issue'])
+            is_match = bool(RETEST_COMMENT_PAT.match(payload['comment']['body']))
+        except:
+            return True
+        else:
+            # Do not skip if matching PR comment.
+            return not (has_pr and is_match)
     
     return True
 
