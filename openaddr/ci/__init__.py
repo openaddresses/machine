@@ -220,6 +220,9 @@ def process_payload_files(payload, github_auth, app_logger):
     if 'commits' in payload and 'head_commit' in payload:
         return process_pushevent_payload_files(payload, github_auth, app_logger)
     
+    if 'action' in payload and 'issue' in payload and 'pull_request' in payload['issue']:
+        raise RuntimeError("Don't know how to do these yet")
+    
     raise ValueError('Unintelligible webhook payload')
 
 def process_pullrequest_payload_files(payload, github_auth, app_logger):
