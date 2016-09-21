@@ -87,7 +87,7 @@ def process_github_payload(queue, app_logger, github_auth, webhook_payload, gag_
     if skip_payload(webhook_payload):
         return True, {'url': None, 'files': [], 'skip': True}
     
-    owner, repo, commit_sha, status_url = get_commit_info(app_logger, webhook_payload)
+    owner, repo, commit_sha, status_url = get_commit_info(app_logger, webhook_payload, github_auth)
     if gag_status:
         status_url = None
     
@@ -299,8 +299,10 @@ def process_pushevent_payload_files(payload, github_auth, app_logger):
     
     return files
 
-def get_commit_info(app_logger, payload):
+def get_commit_info(app_logger, payload, github_auth):
     ''' Get owner, repository, commit SHA and Github status API URL from webhook payload.
+    
+        If payload links to a pull request instead of including it, get that.
     '''
     if 'pull_request' in payload:
         commit_sha = payload['pull_request']['head']['sha']
@@ -310,6 +312,12 @@ def get_commit_info(app_logger, payload):
         commit_sha = payload['head_commit']['id']
         status_url = payload['repository']['statuses_url']
         status_url = expand_uri(status_url, dict(sha=commit_sha))
+    
+    elif 'issue' in payload and 'pull_request' in payload['issue']:
+        # nested PR is probably linked, so retrieve it.
+        resp = get(payload['issue']['pull_request']['url'], auth=github_auth)
+        commit_sha = resp.json()['head']['sha']
+        status_url = resp.json()['statuses_url']
     
     else:
         raise ValueError('Unintelligible payload')
