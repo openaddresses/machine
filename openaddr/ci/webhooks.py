@@ -3,7 +3,6 @@ import logging; _L = logging.getLogger('openaddr.ci.webhooks')
 from functools import wraps
 from operator import itemgetter, attrgetter
 from collections import OrderedDict
-from urllib.parse import urljoin
 from csv import DictWriter
 import hashlib, hmac
 import json, os
@@ -101,12 +100,8 @@ def app_hook():
 
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         queue = db_queue(conn, TASK_QUEUE)
-        success, response = process_github_payload(queue, current_app.logger,
-                                                   github_auth, webhook_payload,
-                                                   gag_status)
-    
-    if 'url' in response:
-        response['url'] = urljoin(request.url, response['url'])
+        success, response = process_github_payload(queue, request.url, current_app.logger,
+                                                   github_auth, webhook_payload, gag_status)
     
     if not success:
         return Response(json.dumps(response), 500, content_type='application/json')

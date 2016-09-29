@@ -14,6 +14,7 @@ from . import objects, work
 from os.path import relpath, splitext, join, basename
 from datetime import timedelta, datetime
 from uuid import uuid4, getnode
+from urllib.parse import urljoin
 from base64 import b64decode
 from tempfile import mkdtemp
 from functools import wraps
@@ -81,7 +82,7 @@ def td2str(td):
     '''
     return '{}s'.format(td.seconds + td.days * 86400)
 
-def process_github_payload(queue, app_logger, github_auth, webhook_payload, gag_status):
+def process_github_payload(queue, request_url, app_logger, github_auth, webhook_payload, gag_status):
     '''
     '''
     if skip_payload(webhook_payload):
@@ -105,7 +106,7 @@ def process_github_payload(queue, app_logger, github_auth, webhook_payload, gag_
         return True, {'url': None, 'files': [], 'status_url': status_url}
 
     filenames = list(files.keys())
-    job_url_template = u'https://results.openaddresses.io/jobs/{id}'
+    job_url_template = urljoin(request_url, u'/jobs/{id}')
 
     try:
         job_id = create_queued_job(queue, files, job_url_template,
@@ -386,9 +387,6 @@ def post_github_status(status_url, status_json, github_auth):
     '''
     if status_url is None:
         return
-    
-    from urllib.parse import urljoin
-    status_json['target_url'] = urljoin(u'https://results.openaddresses.io/', status_json['target_url'])
     
     # Github only wants 140 chars of description.
     status_json['description'] = status_json['description'][:140]
