@@ -2290,42 +2290,9 @@ class TestRuns (unittest.TestCase):
 
                 ((second_run_id, second_copyof, second_fprint, second_is_merged), ) = db.fetchall()
                 self.assertNotEqual(second_run_id, first_run_id, 'The two runs should be distinct')
-                self.assertEqual(second_fprint, first_fprint, 'The two runs should share the same fingerprint')
+                self.assertNotEqual(second_fprint, first_fprint, 'The two runs should not share the same fingerprint')
                 self.assertIsNone(second_copyof, 'The second run should not be a copy of the first')
                 self.assertEqual(second_is_merged, first_is_merged, 'The second run should also be merged')
-
-            return
-            
-            self.last_status_state = None
-
-            create_queued_job(task_Q, files, *fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
-            self.assertEqual(self.last_status_state, None, 'Should be nothing still')
-            
-            # Work done a third time!
-            pop_task_from_donequeue(done_Q, self.github_auth)
-            self.assertEqual(self.last_status_state, 'failure', 'Should be "failure" again')
-            
-            # Ensure that no new run was created
-            with done_Q as db:
-                db.execute('SELECT count(id) FROM runs')
-                (count, ) = db.fetchone()
-                self.assertEqual(count, 3, 'There should have been three runs')
-
-                db.execute('''SELECT id, copy_of, state->>'fingerprint', is_merged FROM runs
-                              ORDER BY id DESC LIMIT 1''')
-
-                ((third_run_id, third_copyof, third_fprint, third_is_merged), ) = db.fetchall()
-                self.assertNotEqual(third_run_id, first_run_id, 'The two runs should be distinct')
-                self.assertEqual(third_fprint, second_fprint, 'The two runs should share the same fingerprint')
-                self.assertEqual(third_copyof, first_run_id, 'The third run should be a copy of the first')
-                self.assertEqual(third_is_merged, first_is_merged, 'The third run should also be merged')
-
-            flush_heartbeat_queue(beat_Q)
-            
-            with beat_Q as db:
-                recent_workers = get_recent_workers(db)
-                self.assertEqual(len(recent_workers[PERMANENT_KIND]), 1)
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))

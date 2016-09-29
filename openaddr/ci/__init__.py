@@ -849,12 +849,16 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
             return
 
         _L.info(u'Got file {name} from task queue'.format(**task.data))
-        passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'commit_sha', 'set_id'
+        passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'commit_sha', 'set_id', 'rerun'
         passed_on_kwargs = {k: task.data.get(k) for k in passed_on_keys}
         passed_on_kwargs['worker_id'] = _worker_id()
 
-        interval = '{} seconds'.format(RUN_REUSE_TIMEOUT.seconds + RUN_REUSE_TIMEOUT.days * 86400)
-        previous_run = get_completed_file_run(db, task.data.get('file_id'), interval)
+        if task.data.get('rerun') is True:
+            # Do not look for a previous run, because this is an explicit re-run request.
+            previous_run = None
+        else:
+            interval = '{} seconds'.format(RUN_REUSE_TIMEOUT.seconds + RUN_REUSE_TIMEOUT.days * 86400)
+            previous_run = get_completed_file_run(db, task.data.get('file_id'), interval)
     
         if previous_run:
             # Make a copy of the previous run.
