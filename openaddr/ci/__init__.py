@@ -72,7 +72,7 @@ HEARTBEAT_INTERVAL = timedelta(minutes=5)
 PERMANENT_KIND, TEMPORARY_KIND = 'permanent', 'temporary'
 
 # Regexp for a PR comment that requests a re-run.
-RETEST_COMMENT_PAT = re.compile(r'^re-?run this,? please\b', re.IGNORECASE)
+RETEST_COMMENT_PAT = re.compile(r'^re-?run this,? please\b', re.IGNORECASE|re.MULTILINE)
 
 def td2str(td):
     ''' Convert a timedelta to a string formatted like '3h'.
@@ -203,7 +203,7 @@ def skip_payload(payload):
             return True
         try:
             has_pr = bool('pull_request' in payload['issue'])
-            is_match = bool(RETEST_COMMENT_PAT.match(payload['comment']['body']))
+            is_match = bool(RETEST_COMMENT_PAT.search(payload['comment']['body']))
         except:
             return True
         else:

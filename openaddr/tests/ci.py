@@ -957,6 +957,7 @@ class TestHook (unittest.TestCase):
         self.assertFalse(skip_payload(dict(action='created', comment=dict(body='Re-run this please.'), issue=dict(pull_request=True))), 'Should not skip a request to re-run a PR')
         self.assertFalse(skip_payload(dict(action='created', comment=dict(body='rerun this please.'), issue=dict(pull_request=True))), 'Should not skip a request to re-run a PR')
         self.assertFalse(skip_payload(dict(action='created', comment=dict(body='Rerun this, please...\nor else.'), issue=dict(pull_request=True))), 'Should not skip a request to re-run a PR')
+        self.assertFalse(skip_payload(dict(action='created', comment=dict(body='Many feelings.\nRerun this, please...\nor else.'), issue=dict(pull_request=True))), 'Should not skip a request to re-run a PR')
         self.assertTrue(skip_payload(dict(action='created', comment=dict(body='I have so many feelings about this.'), issue=dict(pull_request=True))), 'Should skip a random PR comment')
         self.assertTrue(skip_payload(dict(action='created', comment=dict(body='Re-run this please.'), issue=dict())), 'Should skip a non-PR comment')
         self.assertTrue(skip_payload(dict(action='deleted', comment=dict(body='Re-run this please.'), issue=dict(pull_request=True))), 'Should skip a deleted comment')
