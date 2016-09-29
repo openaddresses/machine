@@ -388,7 +388,7 @@ def post_github_status(status_url, status_json, github_auth):
         return
     
     from urllib.parse import urljoin
-    status_url = urljoin(u'https://results.openaddresses.io/', status_url)
+    status_json['target_url'] = urljoin(u'https://results.openaddresses.io/', status_json['target_url'])
     
     # Github only wants 140 chars of description.
     status_json['description'] = status_json['description'][:140]
