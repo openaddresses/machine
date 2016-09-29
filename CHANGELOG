@@ -1,3 +1,6 @@
+2016-09-29: 2.33.1
+- Debug logging issue within post_github_status().
+
 2016-09-29: 2.33.0
 - Added support for "re-run" issue comment events.
 

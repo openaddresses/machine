@@ -394,6 +394,8 @@ def post_github_status(status_url, status_json, github_auth):
                   headers={'Content-Type': 'application/json'})
     
     if posted.status_code not in range(200, 299):
+        _L.warning('post_github_status() request: {}'.format(json.dumps(status_json)))
+        _L.warning('post_github_status() response: {}, {}'.format(posted.status_code, posted.text))
         raise ValueError('Failed status post to {}'.format(status_url))
     
     if posted.json()['state'] != status_json['state']:
