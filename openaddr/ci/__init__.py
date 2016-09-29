@@ -110,7 +110,7 @@ def process_github_payload(queue, request_url, app_logger, github_auth, webhook_
 
     try:
         job_id = create_queued_job(queue, files, job_url_template,
-                                   commit_sha, owner, repo, status_url)
+                                   commit_sha, False, owner, repo, status_url)
         job_url = expand_uri(job_url_template, dict(id=job_id))
     except Exception as e:
         # Oops, tell Github something went wrong.
@@ -674,7 +674,7 @@ def calculate_job_id(files):
     
     return job_id
 
-def create_queued_job(queue, files, job_url_template, commit_sha, owner, repo, status_url):
+def create_queued_job(queue, files, job_url_template, commit_sha, rerun, owner, repo, status_url):
     ''' Create a new job, and add its files to the queue.
     '''
     filenames = list(files.keys())
@@ -686,12 +686,12 @@ def create_queued_job(queue, files, job_url_template, commit_sha, owner, repo, s
     job_status = None
 
     with queue as db:
-        task_files = add_files_to_queue(queue, job_id, job_url, files, commit_sha)
+        task_files = add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun)
         add_job(db, job_id, None, task_files, file_states, file_results, owner, repo, status_url)
     
     return job_id
 
-def add_files_to_queue(queue, job_id, job_url, files, commit_sha):
+def add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun):
     ''' Make a new task for each file, return dict of file IDs to file names.
     '''
     tasks = {}
@@ -699,7 +699,7 @@ def add_files_to_queue(queue, job_id, job_url, files, commit_sha):
     for (file_name, (content_b64, file_id)) in files.items():
         task_data = dict(job_id=job_id, url=job_url, name=file_name,
                          content_b64=content_b64, file_id=file_id,
-                         commit_sha=commit_sha)
+                         commit_sha=commit_sha, rerun=rerun)
     
         # Spread tasks out over time.
         delay = timedelta(seconds=len(tasks))

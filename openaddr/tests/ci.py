@@ -1745,6 +1745,7 @@ class TestRuns (unittest.TestCase):
         self.fake_queued_job_args = (
             'http://example.com/{id}',
             'ff9900ff9900ff9900ff9900ff9900ff9900',
+            False,
             'openaddresses', 'fake-sources',
             'http://api.github.com/repos/openaddresses/fake-sources/statuses/ff9900'
             )
@@ -1752,6 +1753,7 @@ class TestRuns (unittest.TestCase):
         self.fake_queued_job_args_unmerged = (
             'http://example.com/{id}',
             '0099ff0099ff0099ff0099ff0099ff0099ff',
+            False,
             'openaddresses', 'fake-sources',
             'http://api.github.com/repos/openaddresses/fake-sources/statuses/0099ff'
             )
@@ -2211,6 +2213,9 @@ class TestRuns (unittest.TestCase):
         def returns_plausible_result(s3, run_id, source_name, content, output_dir):
             return dict(message='Something went wrong', output={"source": "user_input.txt", "fingerprint": next(fprint)}, result_code=0, result_stdout='...')
         
+        fake_queued_job_args = list(self.fake_queued_job_args[:])
+        fake_queued_job_args[2] = True # rerun is true
+        
         # Do the work.
         with db_connect(self.database_url) as conn, HTTMock(self.response_content):
             task_Q = db_queue(conn, TASK_QUEUE)
@@ -2221,7 +2226,7 @@ class TestRuns (unittest.TestCase):
             do_work.side_effect = returns_plausible_result
 
             files = {source_path: (en64(source), source_id)}
-            create_queued_job(task_Q, files, *self.fake_queued_job_args)
+            create_queued_job(task_Q, files, *fake_queued_job_args)
             pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
             self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
             
@@ -2241,7 +2246,7 @@ class TestRuns (unittest.TestCase):
      
             self.last_status_state = None
 
-            create_queued_job(task_Q, files, *self.fake_queued_job_args)
+            create_queued_job(task_Q, files, *fake_queued_job_args)
             pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
             self.assertEqual(self.last_status_state, None, 'Should be nothing still')
             
@@ -2268,7 +2273,7 @@ class TestRuns (unittest.TestCase):
             
             self.last_status_state = None
 
-            create_queued_job(task_Q, files, *self.fake_queued_job_args)
+            create_queued_job(task_Q, files, *fake_queued_job_args)
             pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
             self.assertEqual(self.last_status_state, None, 'Should be nothing still')
             
