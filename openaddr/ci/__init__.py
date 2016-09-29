@@ -105,7 +105,7 @@ def process_github_payload(queue, app_logger, github_auth, webhook_payload, gag_
         return True, {'url': None, 'files': [], 'status_url': status_url}
 
     filenames = list(files.keys())
-    job_url_template = u'/jobs/{id}'
+    job_url_template = u'https://results.openaddresses.io/jobs/{id}'
 
     try:
         job_id = create_queued_job(queue, files, job_url_template,

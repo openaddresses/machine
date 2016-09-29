@@ -1,3 +1,6 @@
+2016-09-29: 2.33.2
+- Fixing job URL template issue with absolute URL.
+
 2016-09-29: 2.33.1
 - Debug logging issue within post_github_status().
 
