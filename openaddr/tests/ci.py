@@ -2195,6 +2195,110 @@ class TestRuns (unittest.TestCase):
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.work.do_work')
+    def test_failing_double_rerun(self, do_work):
+        ''' Test repeated failing run that's configured to not take advantage of reuse.
+        '''
+        source = b'''{
+            "coverage": { "US Census": {"geoid": "0653000", "place": "Oakland city", "state": "California"} },
+            "data": "http://data.openoakland.org/sites/default/files/OakParcelsGeo2013_0.zip"
+            }'''
+        
+        source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
+        fprint = itertools.count(1)
+        
+        def returns_plausible_result(s3, run_id, source_name, content, output_dir):
+            return dict(message='Something went wrong', output={"source": "user_input.txt", "fingerprint": next(fprint)}, result_code=0, result_stdout='...')
+        
+        # Do the work.
+        with db_connect(self.database_url) as conn, HTTMock(self.response_content):
+            task_Q = db_queue(conn, TASK_QUEUE)
+            done_Q = db_queue(conn, DONE_QUEUE)
+            due_Q = db_queue(conn, DUE_QUEUE)
+            beat_Q = db_queue(conn, HEARTBEAT_QUEUE)
+
+            do_work.side_effect = returns_plausible_result
+
+            files = {source_path: (en64(source), source_id)}
+            create_queued_job(task_Q, files, *self.fake_queued_job_args)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
+            self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
+            
+            # Work done!
+            pop_task_from_donequeue(done_Q, self.github_auth)
+            self.assertEqual(self.last_status_state, 'failure', 'Should be "failure" now')
+            
+            # Find a record of this run.
+            with done_Q as db:
+                db.execute("SELECT id, copy_of, state->>'fingerprint', is_merged, source_path, source_id, source_data FROM runs")
+                ((first_run_id, first_copyof, first_fprint, first_is_merged, db_source_path, db_source_id, db_source_data), ) = db.fetchall()
+                self.assertEqual(db_source_path, source_path)
+                self.assertEqual(db_source_id, source_id)
+                self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
+                self.assertTrue(first_copyof is None)
+                self.assertTrue(first_is_merged)
+     
+            self.last_status_state = None
+
+            create_queued_job(task_Q, files, *self.fake_queued_job_args)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
+            self.assertEqual(self.last_status_state, None, 'Should be nothing still')
+            
+            # Work done again!
+            pop_task_from_donequeue(done_Q, self.github_auth)
+            self.assertEqual(self.last_status_state, 'failure', 'Should be "failure" again')
+            
+            # Ensure that a new run was created
+            with done_Q as db:
+                db.execute('SELECT count(id) FROM runs')
+                (count, ) = db.fetchone()
+                self.assertEqual(count, 2, 'There should have been two runs')
+
+                db.execute('''SELECT id, copy_of, state->>'fingerprint', is_merged FROM runs
+                              ORDER BY id DESC LIMIT 1''')
+
+                ((second_run_id, second_copyof, second_fprint, second_is_merged), ) = db.fetchall()
+                self.assertNotEqual(second_run_id, first_run_id, 'The two runs should be distinct')
+                self.assertEqual(second_fprint, first_fprint, 'The two runs should share the same fingerprint')
+                self.assertIsNone(second_copyof, 'The second run should not be a copy of the first')
+                self.assertEqual(second_is_merged, first_is_merged, 'The second run should also be merged')
+
+            return
+            
+            self.last_status_state = None
+
+            create_queued_job(task_Q, files, *self.fake_queued_job_args)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
+            self.assertEqual(self.last_status_state, None, 'Should be nothing still')
+            
+            # Work done a third time!
+            pop_task_from_donequeue(done_Q, self.github_auth)
+            self.assertEqual(self.last_status_state, 'failure', 'Should be "failure" again')
+            
+            # Ensure that no new run was created
+            with done_Q as db:
+                db.execute('SELECT count(id) FROM runs')
+                (count, ) = db.fetchone()
+                self.assertEqual(count, 3, 'There should have been three runs')
+
+                db.execute('''SELECT id, copy_of, state->>'fingerprint', is_merged FROM runs
+                              ORDER BY id DESC LIMIT 1''')
+
+                ((third_run_id, third_copyof, third_fprint, third_is_merged), ) = db.fetchall()
+                self.assertNotEqual(third_run_id, first_run_id, 'The two runs should be distinct')
+                self.assertEqual(third_fprint, second_fprint, 'The two runs should share the same fingerprint')
+                self.assertEqual(third_copyof, first_run_id, 'The third run should be a copy of the first')
+                self.assertEqual(third_is_merged, first_is_merged, 'The third run should also be merged')
+
+            flush_heartbeat_queue(beat_Q)
+            
+            with beat_Q as db:
+                recent_workers = get_recent_workers(db)
+                self.assertEqual(len(recent_workers[PERMANENT_KIND]), 1)
+
+    @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
+    @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.RUN_REUSE_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
     @patch('openaddr.ci.work.do_work')
