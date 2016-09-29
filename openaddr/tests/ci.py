@@ -32,7 +32,8 @@ from ..ci import (
     enqueue_sources, find_batch_sources, render_set_maps, render_index_maps,
     is_merged_to_master, get_commit_info, HEARTBEAT_QUEUE, flush_heartbeat_queue,
     get_recent_workers, PERMANENT_KIND, TEMPORARY_KIND, load_config,
-    get_batch_run_times, webauth, process_github_payload, skip_payload
+    get_batch_run_times, webauth, process_github_payload, skip_payload,
+    is_rerun_payload
     )
 
 from ..ci.objects import (
@@ -964,6 +965,26 @@ class TestHook (unittest.TestCase):
 
         self.assertTrue(skip_payload(dict()))
     
+    def test_is_rerun_payload(self):
+        '''
+        '''
+        self.assertFalse(is_rerun_payload(dict(action='opened', pull_request=True)), 'A PR is not a re-run')
+        self.assertFalse(is_rerun_payload(dict(action='closed', pull_request=True)), 'A PR is not a re-run')
+
+        self.assertFalse(is_rerun_payload(dict(commits=True, head_commit=True)), 'A commit is not a re-run')
+        self.assertFalse(is_rerun_payload(dict(commits=True, head_commit=True, deleted=False)), 'A commit is not a re-run')
+        self.assertFalse(is_rerun_payload(dict(commits=True, head_commit=True, deleted=True)), 'A commit is not a re-run')
+
+        self.assertTrue(is_rerun_payload(dict(action='created', comment=dict(body='Re-run this please.'), issue=dict(pull_request=True))), 'Should not skip a request to re-run a PR')
+        self.assertTrue(is_rerun_payload(dict(action='created', comment=dict(body='rerun this please.'), issue=dict(pull_request=True))), 'Should not skip a request to re-run a PR')
+        self.assertTrue(is_rerun_payload(dict(action='created', comment=dict(body='Rerun this, please...\nor else.'), issue=dict(pull_request=True))), 'Should not skip a request to re-run a PR')
+        self.assertTrue(is_rerun_payload(dict(action='created', comment=dict(body='Many feelings.\nRerun this, please...\nor else.'), issue=dict(pull_request=True))), 'Should not skip a request to re-run a PR')
+        self.assertFalse(is_rerun_payload(dict(action='created', comment=dict(body='I have so many feelings about this.'), issue=dict(pull_request=True))), 'A random comment is not a re-run')
+        self.assertFalse(is_rerun_payload(dict(action='created', comment=dict(body='Re-run this please.'), issue=dict())), 'A non-PR comment is not a re-run')
+        self.assertFalse(is_rerun_payload(dict(action='deleted', comment=dict(body='Re-run this please.'), issue=dict(pull_request=True))), 'A deleted comment is not a re-run')
+
+        self.assertFalse(is_rerun_payload(dict()))
+    
     def test_get_commit_info(self):
         '''
         '''
@@ -1518,12 +1539,16 @@ class TestHook (unittest.TestCase):
         self.assertEqual(task_count, 4, 'There should be exactly three tasks in the queue')
         self.assertEqual(task1.data['name'], u'sources/fr/la-réunion.json', u'La Réunion should be there')
         self.assertEqual(task1.data['file_id'], 'fb6936692415f70d49cc922a9cf3c53c3e9a9756')
+        self.assertFalse(task1.data['rerun'])
         self.assertEqual(task2.data['name'], u'sources/fr/la-réunion.json', u'La Réunion should be there')
         self.assertEqual(task2.data['file_id'], 'a8ccd9b403c39e9e9150470cb6b0d4c6515f82a9')
+        self.assertFalse(task2.data['rerun'])
         self.assertEqual(task3.data['name'], u'sources/fr/la-réunion.json', u'La Réunion should be there')
         self.assertEqual(task3.data['file_id'], 'a8ccd9b403c39e9e9150470cb6b0d4c6515f82a9')
+        self.assertFalse(task3.data['rerun'])
         self.assertEqual(task4.data['name'], u'sources/us-ca-nevada_county.json', u'Nevada County should be there')
         self.assertEqual(task4.data['file_id'], '83ba405aa5eb22e058c125ce97ea53845daa8254')
+        self.assertTrue(task4.data['rerun'])
     
     def test_webhook_remove_existing_file(self):
         ''' Update with removal of an existing file.

@@ -107,10 +107,11 @@ def process_github_payload(queue, request_url, app_logger, github_auth, webhook_
 
     filenames = list(files.keys())
     job_url_template = urljoin(request_url, u'/jobs/{id}')
+    is_rerun = is_rerun_payload(webhook_payload)
 
     try:
         job_id = create_queued_job(queue, files, job_url_template,
-                                   commit_sha, False, owner, repo, status_url)
+                                   commit_sha, is_rerun, owner, repo, status_url)
         job_url = expand_uri(job_url_template, dict(id=job_id))
     except Exception as e:
         # Oops, tell Github something went wrong.
@@ -212,6 +213,24 @@ def skip_payload(payload):
             return not (has_pr and is_match)
     
     return True
+
+def is_rerun_payload(payload):
+    ''' Return True if this payload is a re-run request.
+    '''
+    if 'action' in payload and 'comment' in payload and 'issue' in payload:
+        # Might be a meaningful PR comment.
+        if payload['action'] == 'deleted':
+            return False
+        try:
+            has_pr = bool('pull_request' in payload['issue'])
+            is_match = bool(RETEST_COMMENT_PAT.search(payload['comment']['body']))
+        except:
+            return False
+        else:
+            # return boolean for matching PR comment.
+            return (has_pr and is_match)
+    
+    return False
 
 def process_payload_files(payload, github_auth, app_logger):
     ''' Return a dictionary of file paths to raw JSON contents and file IDs.
