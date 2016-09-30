@@ -1,3 +1,6 @@
+2016-09-30: 2.34.0
+- Added support for "Rerun" comments to trigger rebuilds.
+
 2016-09-29: 2.33.5
 - Fixed target URL value more properly.
 
