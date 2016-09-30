@@ -2224,8 +2224,8 @@ class TestRuns (unittest.TestCase):
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
     @patch('openaddr.ci.work.do_work')
-    def test_failing_double_rerun(self, do_work):
-        ''' Test repeated failing run that's configured to not take advantage of reuse.
+    def test_working_double_rerun(self, do_work):
+        ''' Test repeated working run that's configured to not take advantage of reuse.
         '''
         source = b'''{
             "coverage": { "US Census": {"geoid": "0653000", "place": "Oakland city", "state": "California"} },
@@ -2236,7 +2236,7 @@ class TestRuns (unittest.TestCase):
         fprint = itertools.count(1)
         
         def returns_plausible_result(s3, run_id, source_name, content, output_dir):
-            return dict(message='Something went wrong', output={"source": "user_input.txt", "fingerprint": next(fprint)}, result_code=0, result_stdout='...')
+            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "fingerprint": next(fprint)})
         
         fake_queued_job_args = list(self.fake_queued_job_args[:])
         fake_queued_job_args[2] = True # rerun is true
@@ -2257,7 +2257,7 @@ class TestRuns (unittest.TestCase):
             
             # Work done!
             pop_task_from_donequeue(done_Q, self.github_auth)
-            self.assertEqual(self.last_status_state, 'failure', 'Should be "failure" now')
+            self.assertEqual(self.last_status_state, 'success', 'Should be "success" now')
             
             # Find a record of this run.
             with done_Q as db:
@@ -2277,7 +2277,7 @@ class TestRuns (unittest.TestCase):
             
             # Work done again!
             pop_task_from_donequeue(done_Q, self.github_auth)
-            self.assertEqual(self.last_status_state, 'failure', 'Should be "failure" again')
+            self.assertEqual(self.last_status_state, 'success', 'Should be "success" again')
             
             # Ensure that a new run was created
             with done_Q as db:
