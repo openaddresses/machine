@@ -107,10 +107,11 @@ def process_github_payload(queue, request_url, app_logger, github_auth, webhook_
 
     filenames = list(files.keys())
     job_url_template = urljoin(request_url, u'/jobs/{id}')
+    is_rerun = is_rerun_payload(webhook_payload)
 
     try:
         job_id = create_queued_job(queue, files, job_url_template,
-                                   commit_sha, owner, repo, status_url)
+                                   commit_sha, is_rerun, owner, repo, status_url)
         job_url = expand_uri(job_url_template, dict(id=job_id))
     except Exception as e:
         # Oops, tell Github something went wrong.
@@ -212,6 +213,24 @@ def skip_payload(payload):
             return not (has_pr and is_match)
     
     return True
+
+def is_rerun_payload(payload):
+    ''' Return True if this payload is a re-run request.
+    '''
+    if 'action' in payload and 'comment' in payload and 'issue' in payload:
+        # Might be a meaningful PR comment.
+        if payload['action'] == 'deleted':
+            return False
+        try:
+            has_pr = bool('pull_request' in payload['issue'])
+            is_match = bool(RETEST_COMMENT_PAT.search(payload['comment']['body']))
+        except:
+            return False
+        else:
+            # return boolean for matching PR comment.
+            return (has_pr and is_match)
+    
+    return False
 
 def process_payload_files(payload, github_auth, app_logger):
     ''' Return a dictionary of file paths to raw JSON contents and file IDs.
@@ -674,7 +693,7 @@ def calculate_job_id(files):
     
     return job_id
 
-def create_queued_job(queue, files, job_url_template, commit_sha, owner, repo, status_url):
+def create_queued_job(queue, files, job_url_template, commit_sha, rerun, owner, repo, status_url):
     ''' Create a new job, and add its files to the queue.
     '''
     filenames = list(files.keys())
@@ -686,12 +705,12 @@ def create_queued_job(queue, files, job_url_template, commit_sha, owner, repo, s
     job_status = None
 
     with queue as db:
-        task_files = add_files_to_queue(queue, job_id, job_url, files, commit_sha)
+        task_files = add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun)
         add_job(db, job_id, None, task_files, file_states, file_results, owner, repo, status_url)
     
     return job_id
 
-def add_files_to_queue(queue, job_id, job_url, files, commit_sha):
+def add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun):
     ''' Make a new task for each file, return dict of file IDs to file names.
     '''
     tasks = {}
@@ -699,7 +718,7 @@ def add_files_to_queue(queue, job_id, job_url, files, commit_sha):
     for (file_name, (content_b64, file_id)) in files.items():
         task_data = dict(job_id=job_id, url=job_url, name=file_name,
                          content_b64=content_b64, file_id=file_id,
-                         commit_sha=commit_sha)
+                         commit_sha=commit_sha, rerun=rerun)
     
         # Spread tasks out over time.
         delay = timedelta(seconds=len(tasks))
@@ -830,12 +849,16 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
             return
 
         _L.info(u'Got file {name} from task queue'.format(**task.data))
-        passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'commit_sha', 'set_id'
+        passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'commit_sha', 'set_id', 'rerun'
         passed_on_kwargs = {k: task.data.get(k) for k in passed_on_keys}
         passed_on_kwargs['worker_id'] = _worker_id()
 
-        interval = '{} seconds'.format(RUN_REUSE_TIMEOUT.seconds + RUN_REUSE_TIMEOUT.days * 86400)
-        previous_run = get_completed_file_run(db, task.data.get('file_id'), interval)
+        if task.data.get('rerun') is True:
+            # Do not look for a previous run, because this is an explicit re-run request.
+            previous_run = None
+        else:
+            interval = '{} seconds'.format(RUN_REUSE_TIMEOUT.seconds + RUN_REUSE_TIMEOUT.days * 86400)
+            previous_run = get_completed_file_run(db, task.data.get('file_id'), interval)
     
         if previous_run:
             # Make a copy of the previous run.

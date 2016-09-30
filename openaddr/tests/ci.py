@@ -32,7 +32,8 @@ from ..ci import (
     enqueue_sources, find_batch_sources, render_set_maps, render_index_maps,
     is_merged_to_master, get_commit_info, HEARTBEAT_QUEUE, flush_heartbeat_queue,
     get_recent_workers, PERMANENT_KIND, TEMPORARY_KIND, load_config,
-    get_batch_run_times, webauth, process_github_payload, skip_payload
+    get_batch_run_times, webauth, process_github_payload, skip_payload,
+    is_rerun_payload
     )
 
 from ..ci.objects import (
@@ -964,6 +965,26 @@ class TestHook (unittest.TestCase):
 
         self.assertTrue(skip_payload(dict()))
     
+    def test_is_rerun_payload(self):
+        '''
+        '''
+        self.assertFalse(is_rerun_payload(dict(action='opened', pull_request=True)), 'A PR is not a re-run')
+        self.assertFalse(is_rerun_payload(dict(action='closed', pull_request=True)), 'A PR is not a re-run')
+
+        self.assertFalse(is_rerun_payload(dict(commits=True, head_commit=True)), 'A commit is not a re-run')
+        self.assertFalse(is_rerun_payload(dict(commits=True, head_commit=True, deleted=False)), 'A commit is not a re-run')
+        self.assertFalse(is_rerun_payload(dict(commits=True, head_commit=True, deleted=True)), 'A commit is not a re-run')
+
+        self.assertTrue(is_rerun_payload(dict(action='created', comment=dict(body='Re-run this please.'), issue=dict(pull_request=True))), 'Should not skip a request to re-run a PR')
+        self.assertTrue(is_rerun_payload(dict(action='created', comment=dict(body='rerun this please.'), issue=dict(pull_request=True))), 'Should not skip a request to re-run a PR')
+        self.assertTrue(is_rerun_payload(dict(action='created', comment=dict(body='Rerun this, please...\nor else.'), issue=dict(pull_request=True))), 'Should not skip a request to re-run a PR')
+        self.assertTrue(is_rerun_payload(dict(action='created', comment=dict(body='Many feelings.\nRerun this, please...\nor else.'), issue=dict(pull_request=True))), 'Should not skip a request to re-run a PR')
+        self.assertFalse(is_rerun_payload(dict(action='created', comment=dict(body='I have so many feelings about this.'), issue=dict(pull_request=True))), 'A random comment is not a re-run')
+        self.assertFalse(is_rerun_payload(dict(action='created', comment=dict(body='Re-run this please.'), issue=dict())), 'A non-PR comment is not a re-run')
+        self.assertFalse(is_rerun_payload(dict(action='deleted', comment=dict(body='Re-run this please.'), issue=dict(pull_request=True))), 'A deleted comment is not a re-run')
+
+        self.assertFalse(is_rerun_payload(dict()))
+    
     def test_get_commit_info(self):
         '''
         '''
@@ -1518,12 +1539,16 @@ class TestHook (unittest.TestCase):
         self.assertEqual(task_count, 4, 'There should be exactly three tasks in the queue')
         self.assertEqual(task1.data['name'], u'sources/fr/la-réunion.json', u'La Réunion should be there')
         self.assertEqual(task1.data['file_id'], 'fb6936692415f70d49cc922a9cf3c53c3e9a9756')
+        self.assertFalse(task1.data['rerun'])
         self.assertEqual(task2.data['name'], u'sources/fr/la-réunion.json', u'La Réunion should be there')
         self.assertEqual(task2.data['file_id'], 'a8ccd9b403c39e9e9150470cb6b0d4c6515f82a9')
+        self.assertFalse(task2.data['rerun'])
         self.assertEqual(task3.data['name'], u'sources/fr/la-réunion.json', u'La Réunion should be there')
         self.assertEqual(task3.data['file_id'], 'a8ccd9b403c39e9e9150470cb6b0d4c6515f82a9')
+        self.assertFalse(task3.data['rerun'])
         self.assertEqual(task4.data['name'], u'sources/us-ca-nevada_county.json', u'Nevada County should be there')
         self.assertEqual(task4.data['file_id'], '83ba405aa5eb22e058c125ce97ea53845daa8254')
+        self.assertTrue(task4.data['rerun'])
     
     def test_webhook_remove_existing_file(self):
         ''' Update with removal of an existing file.
@@ -1745,6 +1770,7 @@ class TestRuns (unittest.TestCase):
         self.fake_queued_job_args = (
             'http://example.com/{id}',
             'ff9900ff9900ff9900ff9900ff9900ff9900',
+            False,
             'openaddresses', 'fake-sources',
             'http://api.github.com/repos/openaddresses/fake-sources/statuses/ff9900'
             )
@@ -1752,6 +1778,7 @@ class TestRuns (unittest.TestCase):
         self.fake_queued_job_args_unmerged = (
             'http://example.com/{id}',
             '0099ff0099ff0099ff0099ff0099ff0099ff',
+            False,
             'openaddresses', 'fake-sources',
             'http://api.github.com/repos/openaddresses/fake-sources/statuses/0099ff'
             )
@@ -2192,6 +2219,80 @@ class TestRuns (unittest.TestCase):
             with beat_Q as db:
                 recent_workers = get_recent_workers(db)
                 self.assertEqual(len(recent_workers[PERMANENT_KIND]), 1)
+
+    @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
+    @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.work.do_work')
+    def test_working_double_rerun(self, do_work):
+        ''' Test repeated working run that's configured to not take advantage of reuse.
+        '''
+        source = b'''{
+            "coverage": { "US Census": {"geoid": "0653000", "place": "Oakland city", "state": "California"} },
+            "data": "http://data.openoakland.org/sites/default/files/OakParcelsGeo2013_0.zip"
+            }'''
+        
+        source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
+        fprint = itertools.count(1)
+        
+        def returns_plausible_result(s3, run_id, source_name, content, output_dir):
+            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "fingerprint": next(fprint)})
+        
+        fake_queued_job_args = list(self.fake_queued_job_args[:])
+        fake_queued_job_args[2] = True # rerun is true
+        
+        # Do the work.
+        with db_connect(self.database_url) as conn, HTTMock(self.response_content):
+            task_Q = db_queue(conn, TASK_QUEUE)
+            done_Q = db_queue(conn, DONE_QUEUE)
+            due_Q = db_queue(conn, DUE_QUEUE)
+            beat_Q = db_queue(conn, HEARTBEAT_QUEUE)
+
+            do_work.side_effect = returns_plausible_result
+
+            files = {source_path: (en64(source), source_id)}
+            create_queued_job(task_Q, files, *fake_queued_job_args)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
+            self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
+            
+            # Work done!
+            pop_task_from_donequeue(done_Q, self.github_auth)
+            self.assertEqual(self.last_status_state, 'success', 'Should be "success" now')
+            
+            # Find a record of this run.
+            with done_Q as db:
+                db.execute("SELECT id, copy_of, state->>'fingerprint', is_merged, source_path, source_id, source_data FROM runs")
+                ((first_run_id, first_copyof, first_fprint, first_is_merged, db_source_path, db_source_id, db_source_data), ) = db.fetchall()
+                self.assertEqual(db_source_path, source_path)
+                self.assertEqual(db_source_id, source_id)
+                self.assertTrue(de64(bytes(db_source_data)).startswith('{'))
+                self.assertTrue(first_copyof is None)
+                self.assertTrue(first_is_merged)
+     
+            self.last_status_state = None
+
+            create_queued_job(task_Q, files, *fake_queued_job_args)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
+            self.assertEqual(self.last_status_state, None, 'Should be nothing still')
+            
+            # Work done again!
+            pop_task_from_donequeue(done_Q, self.github_auth)
+            self.assertEqual(self.last_status_state, 'success', 'Should be "success" again')
+            
+            # Ensure that a new run was created
+            with done_Q as db:
+                db.execute('SELECT count(id) FROM runs')
+                (count, ) = db.fetchone()
+                self.assertEqual(count, 2, 'There should have been two runs')
+
+                db.execute('''SELECT id, copy_of, state->>'fingerprint', is_merged FROM runs
+                              ORDER BY id DESC LIMIT 1''')
+
+                ((second_run_id, second_copyof, second_fprint, second_is_merged), ) = db.fetchall()
+                self.assertNotEqual(second_run_id, first_run_id, 'The two runs should be distinct')
+                self.assertNotEqual(second_fprint, first_fprint, 'The two runs should not share the same fingerprint')
+                self.assertIsNone(second_copyof, 'The second run should not be a copy of the first')
+                self.assertEqual(second_is_merged, first_is_merged, 'The second run should also be merged')
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
