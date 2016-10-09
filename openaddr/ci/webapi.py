@@ -5,7 +5,7 @@ from operator import attrgetter
 from collections import defaultdict
 import json, os
 
-from flask import Response, Blueprint, request, current_app, jsonify
+from flask import Response, Blueprint, request, current_app, jsonify, url_for
 from flask.ext.cors import CORS
 
 from .objects import (
@@ -51,9 +51,9 @@ def app_index_json():
         collections[collection][license] = d
     
     return jsonify({
-        'run_states_url': urljoin(request.url, u'/state.txt'),
-        'latest_run_processed_url': urljoin(request.url, u'/latest/run/{source}.zip'),
-        'licenses_url': urljoin(request.url, u'/latest/licenses.json'),
+        'run_states_url': urljoin(request.url, url_for('webapi.app_get_state_txt').decode('utf8')),
+        'latest_run_processed_url': urljoin(request.url, url_for('webhooks.app_get_latest_run', source='____').decode('utf8').replace('____', '{source}')),
+        'licenses_url': urljoin(request.url, url_for('webapi.app_licenses_json').decode('utf8')),
         'collections': collections
         })
 

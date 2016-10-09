@@ -2,7 +2,7 @@
 {% block title %}Job {{ job.id }}{% endblock %}
 {% block main %}
 <p>
-    <a href="./">All jobs</a>
+    <a href="{{ url_for('webhooks.app_get_jobs') }}">All jobs</a>
 </p>
 
 <p>

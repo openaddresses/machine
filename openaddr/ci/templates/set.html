@@ -22,7 +22,7 @@
     The latest summary can always be found at
     <a href="http://results.openaddresses.io">results.openaddresses.io</a>.<br>
     A plain text version of data on this page can be found at
-    <a href="state.txt">state.txt</a>.
+    <a href="{{ url_for('webapi.app_get_set_state_txt', set_id=set.id) }}">state.txt</a>.
 </p>
 {% if set and (set.render_world or set.render_usa) %}
     {#

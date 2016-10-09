@@ -3,7 +3,7 @@
 {% block main %}
 {% if n != 1 %}
     <p>
-        <a href="./">Newest</a>
+        <a href="{{ url_for('webhooks.app_get_jobs') }}">Newest</a>
     </p>
 {% endif %}
 
@@ -19,9 +19,9 @@
         </span>
 
         {% if job.task_files|length != 1 %}
-            <a href="{{ job.id }}">{{ job.task_files|length }} files</a>
+            <a href="{{ url_for('webhooks.app_get_job', job_id=job.id) }}">{{ job.task_files|length }} files</a>
         {% else %}
-            <a href="{{ job.id }}">{{ job.task_files|length }} file</a>
+            <a href="{{ url_for('webhooks.app_get_job', job_id=job.id) }}">{{ job.task_files|length }} file</a>
         {% endif %}
     </li>
 {% endfor %}

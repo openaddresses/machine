@@ -3,7 +3,7 @@
 {% block main %}
 {% if n != 1 %}
     <p>
-        <a href="./">Newest</a>
+        <a href="{{ url_for('webhooks.app_get_sets') }}">Newest</a>
     </p>
 {% endif %}
 
@@ -18,7 +18,7 @@
         {% endif %}
         </span>
 
-        <a href="{{ set.id }}">{{ set.id }}</a>
+        <a href="{{ url_for('webhooks.app_get_set', set_id=set.id) }}">{{ set.id }}</a>
     </li>
 {% endfor %}
 </ol>

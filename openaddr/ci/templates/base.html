@@ -74,9 +74,9 @@
 <body>
     <nav>
         <a href="http://openaddresses.io">OA Home</a>
-        <a href="/">Download Data</a>
-        <a href="/sets">All Sets</a>
-        <a href="/jobs">All CI Jobs</a>
+        <a href="{{ url_for('webhooks.app_index') }}">Download Data</a>
+        <a href="{{ url_for('webhooks.app_get_sets') }}">All Sets</a>
+        <a href="{{ url_for('webhooks.app_get_jobs') }}">All CI Jobs</a>
     </nav>
     {% block info %}
     <p>

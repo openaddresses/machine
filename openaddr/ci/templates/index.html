@@ -139,7 +139,7 @@
     The latest summary can always be found at
     <a href="http://results.openaddresses.io">results.openaddresses.io</a>.<br>
     A plain text version of data on this page can be found at
-    <a href="state.txt">state.txt</a>.
+    <a href="{{ url_for('webapi.app_get_state_txt') }}">state.txt</a>.
 </p>
 
 {% include "runs-table.html" %}
