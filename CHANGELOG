@@ -1,3 +1,6 @@
+2016-10-09: 2.35.0
+- Added job start and end times to database table.
+
 2016-10-08: 2.34.2
 - Updated esridump to version 1.4.1.
 
