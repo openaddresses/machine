@@ -1,3 +1,6 @@
+2016-10-08: 2.34.2
+- Updated esridump to version 1.4.1.
+
 2016-10-08: 2.34.1
 - Switched a few debug strings to unicode to fix a bug.
 
