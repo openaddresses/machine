@@ -122,7 +122,7 @@ setup(
         'boto3 == 1.1.4',
 
         # https://github.com/openaddresses/pyesridump
-        'esridump == 1.4.0',
+        'esridump == 1.4.1',
 
         # Used in openaddr.parcels
         'Shapely == 1.5.15',
