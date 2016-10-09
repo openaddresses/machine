@@ -15,13 +15,13 @@
             font-size: 1em;
         }
 
-        body>*, main>*
+        body>*, main>*, footer>*
         {
             margin: 1em auto;
             width: 960px;
         }
     
-        body>p, main>p { line-height: 1.5em }
+        body>p, main>p, footer>p { line-height: 1.5em }
         
         img#icon
         {
@@ -52,7 +52,7 @@
     
         @media (max-width: 960px)
         {
-            body>*, main>* { width: 96% }
+            body>*, main>*, footer>* { width: 96% }
         }
     
         @media (min-width: 960px)
@@ -90,16 +90,18 @@
         <a href="{{ url_for('webhooks.app_get_sets') }}">All Batch Sets</a>
         <a href="{{ url_for('webhooks.app_get_jobs') }}">All CI Jobs</a>
     </nav>
-    {% block info %}
-    <p>
-        I am an experimental OpenAddresses test service, currently under development (July 2015).
-        <a href="https://github.com/openaddresses/machine">Find me on Github</a> or
-        <a href="http://mike.teczno.com/notes/openaddresses-ci.html">read this blog post</a>
-        to learn more.
-    </p>
-    {% endblock %}
     <main>
         {% block main %}{% endblock %}
     </main>
+    <footer>
+        {% block info %}
+        <p>
+            I am the OpenAddresses data service.
+            <a href="https://github.com/openaddresses/machine">Find me on Github</a> or
+            <a href="http://mike.teczno.com/notes/openaddresses-ci.html">read this blog post</a>
+            to learn more.
+        </p>
+        {% endblock %}
+    </footer>
 </body>
 </html>
