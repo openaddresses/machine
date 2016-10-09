@@ -1,3 +1,6 @@
+2016-10-08: 2.34.1
+- Switched a few debug strings to unicode to fix a bug.
+
 2016-09-30: 2.34.0
 - Added support for "Rerun" comments to trigger rebuilds.
 
