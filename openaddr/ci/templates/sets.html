@@ -19,6 +19,12 @@
         </span>
 
         <a href="{{ url_for('webhooks.app_get_set', set_id=set.id) }}">{{ set.id }}</a>
+        
+        {% if set.datetime_end is sameas None %}
+            <small>Started {{ (now - set.datetime_start)|nice_timedelta }}</small>
+        {% else %}
+            <small>{{ (now - set.datetime_end)|nice_timedelta }}</small>
+        {% endif %}
     </li>
 {% endfor %}
 </ol>
