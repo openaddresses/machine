@@ -188,7 +188,7 @@ def app_get_latest_set():
 def app_get_latest_run(source):
     '''
     '''
-    source_path = 'sources/{}.json'.format(source)
+    source_path = u'sources/{}.json'.format(source)
     
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
