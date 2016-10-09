@@ -115,7 +115,7 @@ class TestObjects (unittest.TestCase):
                   VALUES (%s::json, %s::json, %s::json, %s, %s, %s, %s, %s, NOW())''',
                   ('{}', '{}', '{}', 'o', 'a', 'http://', True, 'xyz'))
 
-    def test_write_job(self):
+    def test_write_job_success(self):
         ''' Check behavior of objects.write_job()
         '''
         write_job(self.db, 'xyz', True, {}, {}, {}, 'o', 'a', 'http://')
@@ -128,6 +128,34 @@ class TestObjects (unittest.TestCase):
                       datetime_end=CASE WHEN %s THEN NOW() ELSE null END
                   WHERE id = %s''',
                   ('{}', '{}', '{}', 'o', 'a', 'http://', True, True, 'xyz'))
+
+    def test_write_job_failure(self):
+        ''' Check behavior of objects.write_job()
+        '''
+        write_job(self.db, 'xyz', False, {}, {}, {}, 'o', 'a', 'http://')
+
+        self.db.execute.assert_called_once_with(
+               '''UPDATE jobs
+                  SET task_files=%s::json, file_states=%s::json,
+                      file_results=%s::json, github_owner=%s, github_repository=%s,
+                      github_status_url=%s, status=%s,
+                      datetime_end=CASE WHEN %s THEN NOW() ELSE null END
+                  WHERE id = %s''',
+                  ('{}', '{}', '{}', 'o', 'a', 'http://', False, True, 'xyz'))
+
+    def test_write_job_ongoing(self):
+        ''' Check behavior of objects.write_job()
+        '''
+        write_job(self.db, 'xyz', None, {}, {}, {}, 'o', 'a', 'http://')
+
+        self.db.execute.assert_called_once_with(
+               '''UPDATE jobs
+                  SET task_files=%s::json, file_states=%s::json,
+                      file_results=%s::json, github_owner=%s, github_repository=%s,
+                      github_status_url=%s, status=%s,
+                      datetime_end=CASE WHEN %s THEN NOW() ELSE null END
+                  WHERE id = %s''',
+                  ('{}', '{}', '{}', 'o', 'a', 'http://', None, False, 'xyz'))
 
     def test_read_job_yes(self):
         ''' Check behavior of objects.read_job()

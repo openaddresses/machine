@@ -139,7 +139,7 @@ def add_job(db, job_id, status, task_files, file_states, file_results, owner, re
 def write_job(db, job_id, status, task_files, file_states, file_results, owner, repo, status_url):
     ''' Save information about a job to the database.
     '''
-    is_complete = bool(status)
+    is_complete = bool(status is not None)
     
     db.execute('''UPDATE jobs
                   SET task_files=%s::json, file_states=%s::json,

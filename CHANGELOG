@@ -1,4 +1,7 @@
-2016-10-09: 2.3510
+2016-10-09: 2.35.2
+- Fixed write_job() status bug.
+
+2016-10-09: 2.35.1
 - Updated visual appearance slightly.
 
 2016-10-09: 2.35.0
