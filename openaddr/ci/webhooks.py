@@ -1,3 +1,5 @@
+from __future__ import division
+
 import logging; _L = logging.getLogger('openaddr.ci.webhooks')
 
 from functools import wraps
@@ -273,10 +275,10 @@ def nice_timedelta(delta):
         return (datetime.now(tz=tzutc()) - delta).strftime('%b %d, %Y')
     
     if delta.days > 12:
-        return '{:.0f} weeks ago'.format(seconds / 604800)
+        return '{:.0f} weeks ago'.format(round(seconds / 604800))
     
     if seconds > 1.5 * 86400:
-        return '{:.0f} days ago'.format(seconds / 86400)
+        return '{:.0f} days ago'.format(round(seconds / 86400))
     
     if seconds > 1.5 * 3600:
         return '{:.0f} hours ago'.format(seconds / 3600)
