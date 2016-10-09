@@ -636,6 +636,7 @@ class TestAPI (unittest.TestCase):
         app = Flask(__name__)
         app.config.update(load_config())
         apply_webapi_blueprint(app)
+        apply_webhooks_blueprint(app)
 
         recreate_db.recreate(app.config['DATABASE_URL'])
         
