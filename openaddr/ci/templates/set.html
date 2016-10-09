@@ -1,13 +1,7 @@
-<html>
-
-<head>
-<meta charset=utf-8 />
-<title>OpenAddresses</title>
-{% include "head.html" %}
-</head>
-
-<body>
-{% include "nav.html" %}
+{% extends "base.html" %}
+{% block title %}Set {{ set.id }}{% endblock %}
+{% block info %}{% endblock %}
+{% block main %}
 <p>
     This is a summary view of <a href="http://openaddresses.io">OpenAddresses data</a>.
     {% if last_modified %}
@@ -54,6 +48,4 @@
 {% endif %}
 
 {% include "runs-table.html" %}
-
-</body>
-</html>
+{% endblock main %}
