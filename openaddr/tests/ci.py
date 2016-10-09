@@ -110,8 +110,9 @@ class TestObjects (unittest.TestCase):
         self.db.execute.assert_called_once_with(
                '''INSERT INTO jobs
                   (task_files, file_states, file_results, github_owner,
-                   github_repository, github_status_url, status, id)
-                  VALUES (%s::json, %s::json, %s::json, %s, %s, %s, %s, %s)''',
+                   github_repository, github_status_url, status, id,
+                   datetime_start)
+                  VALUES (%s::json, %s::json, %s::json, %s, %s, %s, %s, %s, NOW())''',
                   ('{}', '{}', '{}', 'o', 'a', 'http://', True, 'xyz'))
 
     def test_write_job(self):
@@ -123,24 +124,28 @@ class TestObjects (unittest.TestCase):
                '''UPDATE jobs
                   SET task_files=%s::json, file_states=%s::json,
                       file_results=%s::json, github_owner=%s, github_repository=%s,
-                      github_status_url=%s, status=%s
+                      github_status_url=%s, status=%s,
+                      datetime_end=CASE WHEN %s THEN NOW() ELSE null END
                   WHERE id = %s''',
-                  ('{}', '{}', '{}', 'o', 'a', 'http://', True, 'xyz'))
+                  ('{}', '{}', '{}', 'o', 'a', 'http://', True, True, 'xyz'))
 
     def test_read_job_yes(self):
         ''' Check behavior of objects.read_job()
         '''
-        self.db.fetchone.return_value = True, {}, {}, {}, 'o', 'a', 'http://'
+        self.db.fetchone.return_value = True, {}, {}, {}, 'o', 'a', 'http://', None, None
         
         job = read_job(self.db, 'xyz')
         self.assertEqual(job.id, 'xyz')
         self.assertEqual(job.status, True)
         self.assertEqual(job.github_owner, 'o')
         self.assertEqual(job.github_repository, 'a')
+        self.assertIsNone(job.datetime_start)
+        self.assertIsNone(job.datetime_end)
 
         self.db.execute.assert_called_once_with(
                '''SELECT status, task_files, file_states, file_results,
-                         github_owner, github_repository, github_status_url
+                         github_owner, github_repository, github_status_url,
+                         datetime_start, datetime_end
                   FROM jobs WHERE id = %s
                   LIMIT 1''',
                   ('xyz', ))
@@ -155,7 +160,8 @@ class TestObjects (unittest.TestCase):
 
         self.db.execute.assert_called_once_with(
                '''SELECT status, task_files, file_states, file_results,
-                         github_owner, github_repository, github_status_url
+                         github_owner, github_repository, github_status_url,
+                         datetime_start, datetime_end
                   FROM jobs WHERE id = %s
                   LIMIT 1''',
                   ('xyz', ))
@@ -163,7 +169,7 @@ class TestObjects (unittest.TestCase):
     def test_read_jobs(self):
         ''' Check behavior of objects.read_jobs()
         '''
-        self.db.fetchall.return_value = (('xyz', True, {}, {}, {}, 'o', 'a', 'http://'), )
+        self.db.fetchall.return_value = (('xyz', True, {}, {}, {}, 'o', 'a', 'http://', None, None), )
         
         (job, ) = read_jobs(self.db, None)
         self.assertEqual(job.id, 'xyz')
@@ -171,7 +177,8 @@ class TestObjects (unittest.TestCase):
 
         self.db.execute.assert_called_once_with(
                '''SELECT id, status, task_files, file_states, file_results,
-                         github_owner, github_repository, github_status_url
+                         github_owner, github_repository, github_status_url,
+                         datetime_start, datetime_end
                   --
                   -- Select sequence value from jobs based on ID. Null sequence
                   -- values will be excluded by this comparison to an integer.

@@ -23,6 +23,8 @@ CREATE TABLE jobs
     github_owner        TEXT,
     github_repository   TEXT,
     github_status_url   TEXT,
+    datetime_start      TIMESTAMP WITH TIME ZONE,
+    datetime_end        TIMESTAMP WITH TIME ZONE,
     sequence            INTEGER NULL DEFAULT NEXTVAL('ints')
 );
 
