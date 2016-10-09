@@ -1,19 +1,9 @@
-<html>
-
-<head>
-<meta charset=utf-8 />
-<title>OpenAddresses</title>
-{% include "head.html" %}
-</head>
-
-<body>
-
-{% include "nav.html" %}
-{% include 'info.html' %}
-
+{% extends "base.html" %}
+{% block title %}Jobs{% endblock %}
+{% block main %}
 {% if n != 1 %}
     <p>
-        <a href="./">Newest</a>
+        <a href="{{ url_for('webhooks.app_get_jobs') }}">Newest</a>
     </p>
 {% endif %}
 
@@ -28,11 +18,21 @@
         {% endif %}
         </span>
 
-        {% if job.task_files|length != 1 %}
-            <a href="{{ job.id }}">{{ job.task_files|length }} files</a>
-        {% else %}
-            <a href="{{ job.id }}">{{ job.task_files|length }} file</a>
-        {% endif %}
+        <a href="{{ url_for('webhooks.app_get_job', job_id=job.id) }}">
+            {% if job.task_files|length != 1 %}
+                {{ job.task_files|length }} files
+            {% else %}
+                {{ job.task_files|length }} file
+            {% endif %}
+            
+            {% if job.datetime_start is sameas None %}
+                {# predates jobs.datetime_start #}
+            {% elif job.datetime_end is sameas None %}
+                Started {{ (now - job.datetime_start)|nice_timedelta }}
+            {% else %}
+                {{ (now - job.datetime_end)|nice_timedelta }}
+            {% endif %}
+        </a>
     </li>
 {% endfor %}
 </ol>
@@ -42,6 +42,4 @@
         <a href="{{ next_link }}">More…</a>
     </p>
 {% endif %}
-
-</body>
-</html>
+{% endblock main %}

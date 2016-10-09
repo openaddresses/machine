@@ -246,7 +246,7 @@
           {% endif %}
         </td>
         <td class="sample">
-          {% if state.sample and state.sample_link %}
+          {% if state.sample and state.run_id %}
             <button onclick="return showhide(this, '{{ state.shortname|element_id }}-sample-data', '{{ state.shortname|element_id }}-sample-link')">Show <span class="words">sample data</span></button>
           {% else %}
             No sample data {% if state.output %}( <a href="{{ state.output }}">log</a> ){% endif %}
@@ -268,12 +268,12 @@
   "lat": {% if state['conform type'] == 'csv' %}&lt;lat&gt;{% else %}"y"{% endif %}
 }</pre>
           {% endif %}
-          {% if state.sample and state.sample_link %}
+          {% if state.sample and state.run_id %}
             <p>
               Sample data for first rows of <a href="{{ state.cache }}">{{ state.shortname }}</a>:
             </p>
             <p id="{{ state.shortname|element_id }}-sample-link">
-                <a href="{{ state.sample_link }}">{{ state.shortname }} sample</a>
+                <a href="{{ url_for('webhooks.app_get_run_sample', run_id=state.run_id) }}">{{ state.shortname }} sample</a>
             </p>
           {% endif %}
         </td>

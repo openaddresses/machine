@@ -110,7 +110,7 @@ def convert_run(memcache, run, url_template):
         'process time': run_state.process_time,
         'processed': run_state.processed,
         'sample': run_state.sample,
-        'sample_link': expand_uri('/runs/{id}/sample.html', dict(id=run.id)),
+        'run_id': run.id,
         'shortname': splitext(relpath(run.source_path, 'sources'))[0],
         'skip': bool(source.get('skip', False)),
         'source': relpath(run.source_path, 'sources'),

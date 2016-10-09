@@ -1,0 +1,107 @@
+<html>
+<head>
+    <meta charset=utf-8 />
+    <title>OpenAddresses — {% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='writ.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="shortcut icon" href="{{ url_for('static', filename='17.png') }}">
+    <link rel="apple-touch-icon-precomposed" href="{{ url_for('static', filename='17.png') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style lang="text/css">
+
+        body
+        {
+            margin-bottom: 2em;
+            font-size: 1em;
+        }
+
+        body>*, main>*, footer>*
+        {
+            margin: 1em auto;
+            width: 960px;
+        }
+    
+        body>p, main>p, footer>p { line-height: 1.5em }
+        
+        img#icon
+        {
+            width: 1em;
+            height: 1em;
+            margin-right: .5em;
+        }
+    
+        pre
+        {
+            font-family: monospace;
+            line-height: 1.5em;
+            margin-left: 1em;
+        }
+    
+        nav a
+        {
+            padding: .5em 1em;
+            font-size: 65%;
+        }
+    
+        nav a:nth-child(1) { padding-left: 0 }
+    
+        @media (max-width: 360px)
+        {
+            nav a { padding-right: 0 }
+        }
+    
+        @media (max-width: 960px)
+        {
+            body>*, main>*, footer>* { width: 96% }
+        }
+    
+        @media (min-width: 960px)
+        {
+            a, .stat { white-space: nowrap }
+        }
+    
+        @media (max-width: 640px)
+        {
+            button .words { display: none }
+        }
+
+    </style>
+    <script type="text/javascript">
+
+        function choosemap(src)
+        {
+            var img = document.getElementById('render-img');
+        
+            if(img)
+            {
+                img.src = src;
+            }
+        
+            return false;
+        }
+
+    </script>
+</head>
+
+<body>
+    <nav>
+        <a href="http://openaddresses.io"> <img id="icon" src="{{ url_for('static', filename='17.png') }}">Home</a>
+        <a href="{{ url_for('webhooks.app_index') }}">Download Data</a>
+        <a href="{{ url_for('webhooks.app_get_sets') }}">All Batch Sets</a>
+        <a href="{{ url_for('webhooks.app_get_jobs') }}">All CI Jobs</a>
+    </nav>
+    <main>
+        {% block main %}{% endblock %}
+    </main>
+    <footer>
+        {% block info %}
+        <p>
+            I am the OpenAddresses data service.
+            <a href="https://github.com/openaddresses/machine">Find me on Github</a> or
+            <a href="http://mike.teczno.com/notes/openaddresses-ci.html">read this blog post</a>
+            to learn more.
+        </p>
+        {% endblock %}
+    </footer>
+</body>
+</html>

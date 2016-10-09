@@ -1,8 +1,12 @@
+from __future__ import division
+
 import logging; _L = logging.getLogger('openaddr.ci.webhooks')
 
 from functools import wraps
 from operator import itemgetter, attrgetter
 from collections import OrderedDict
+from datetime import datetime
+from dateutil.tz import tzutc
 from csv import DictWriter
 import hashlib, hmac
 import json, os
@@ -125,7 +129,8 @@ def app_get_jobs():
     else:
         next_link = False
     
-    return render_template('jobs.html', jobs=jobs, next_link=next_link, n=n)
+    return render_template('jobs.html', jobs=jobs, next_link=next_link,
+                           now=datetime.now(tz=tzutc()), n=n)
 
 @webhooks.route('/jobs/<job_id>', methods=['GET'])
 @log_application_errors
@@ -167,7 +172,8 @@ def app_get_sets():
     else:
         next_link = False
     
-    return render_template('sets.html', sets=sets, next_link=next_link, n=n)
+    return render_template('sets.html', sets=sets, next_link=next_link,
+                           now=datetime.now(tz=tzutc()), n=n)
 
 @webhooks.route('/latest/set', methods=['GET'])
 @log_application_errors
@@ -235,6 +241,54 @@ def app_get_run_sample(run_id):
     
     return render_template('run-sample.html', sample_data=sample_data or [])
 
+def nice_timedelta(delta):
+    '''
+    >>> nice_timedelta(timedelta(days=2))
+    '2 days'
+    >>> nice_timedelta(timedelta(hours=37))
+    '2 days'
+    >>> nice_timedelta(timedelta(hours=36))
+    '36 hours'
+    >>> nice_timedelta(timedelta(days=1))
+    '24 hours'
+
+    >>> nice_timedelta(timedelta(hours=2))
+    '2 hours'
+    >>> nice_timedelta(timedelta(minutes=91))
+    '2 hours'
+    >>> nice_timedelta(timedelta(minutes=90))
+    '90 minutes'
+    >>> nice_timedelta(timedelta(hours=1))
+    '60 minutes'
+
+    >>> nice_timedelta(timedelta(minutes=2))
+    '2 minutes'
+    >>> nice_timedelta(timedelta(seconds=91))
+    '2 minutes'
+    >>> nice_timedelta(timedelta(seconds=90))
+    '90 seconds'
+    >>> nice_timedelta(timedelta(minutes=1))
+    '60 seconds'
+    '''
+    seconds = delta.seconds + delta.days * 86400
+    
+    if delta.days > 90:
+        return (datetime.now(tz=tzutc()) - delta).strftime('%b %d, %Y')
+    
+    if delta.days > 12:
+        return '{:.0f} weeks ago'.format(round(seconds / 604800))
+    
+    if seconds > 1.5 * 86400:
+        return '{:.0f} days ago'.format(round(seconds / 86400))
+    
+    if seconds > 1.5 * 3600:
+        return '{:.0f} hours ago'.format(seconds / 3600)
+    
+    if seconds > 1.5 * 60:
+        return '{:.0f} minutes ago'.format(seconds / 60)
+    
+    return '{:.0f} seconds ago'.format(seconds)
+
 def nice_size(size):
     KB = 1024.
     MB = 1024. * KB
@@ -265,6 +319,7 @@ def apply_webhooks_blueprint(app):
     app.jinja_env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
     app.jinja_env.filters['element_id'] = lambda value: value.replace("'", '-')
     app.jinja_env.filters['nice_integer'] = nice_integer
+    app.jinja_env.filters['nice_timedelta'] = nice_timedelta
     app.jinja_env.filters['breakstate'] = break_state
     app.jinja_env.filters['nice_size'] = nice_size
 

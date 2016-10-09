@@ -1,13 +1,7 @@
-<html>
-
-<head>
-<meta charset=utf-8 />
-<title>OpenAddresses</title>
-{% include "head.html" %}
-</head>
-
-<body>
-{% include "nav.html" %}
+{% extends "base.html" %}
+{% block title %}Download Data{% endblock %}
+{% block info %}{% endblock %}
+{% block main %}
 <p>
     This is a summary view of <a href="http://openaddresses.io">OpenAddresses data</a>.
     <span class="stat">{{ counts.addresses|nice_integer }} addresses</span>
@@ -145,10 +139,8 @@
     The latest summary can always be found at
     <a href="http://results.openaddresses.io">results.openaddresses.io</a>.<br>
     A plain text version of data on this page can be found at
-    <a href="state.txt">state.txt</a>.
+    <a href="{{ url_for('webapi.app_get_state_txt') }}">state.txt</a>.
 </p>
 
 {% include "runs-table.html" %}
-
-</body>
-</html>
+{% endblock main %}

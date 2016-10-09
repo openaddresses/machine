@@ -1,19 +1,9 @@
-<html>
-
-<head>
-<meta charset=utf-8 />
-<title>OpenAddresses</title>
-{% include "head.html" %}
-</head>
-
-<body>
-
-{% include "nav.html" %}
-{% include 'info.html' %}
-
+{% extends "base.html" %}
+{% block title %}Sets{% endblock %}
+{% block main %}
 {% if n != 1 %}
     <p>
-        <a href="./">Newest</a>
+        <a href="{{ url_for('webhooks.app_get_sets') }}">Newest</a>
     </p>
 {% endif %}
 
@@ -28,7 +18,13 @@
         {% endif %}
         </span>
 
-        <a href="{{ set.id }}">{{ set.id }}</a>
+        <a href="{{ url_for('webhooks.app_get_set', set_id=set.id) }}">
+            {% if set.datetime_end is sameas None %}
+                Started {{ (now - set.datetime_start)|nice_timedelta }}
+            {% else %}
+                {{ (now - set.datetime_end)|nice_timedelta }}
+            {% endif %}
+        </a>
     </li>
 {% endfor %}
 </ol>
@@ -38,6 +34,4 @@
         <a href="{{ next_link }}">More…</a>
     </p>
 {% endif %}
-
-</body>
-</html>
+{% endblock main %}

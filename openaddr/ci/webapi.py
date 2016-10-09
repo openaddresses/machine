@@ -5,7 +5,7 @@ from operator import attrgetter
 from collections import defaultdict
 import json, os
 
-from flask import Response, Blueprint, request, current_app, jsonify
+from flask import Response, Blueprint, request, current_app, jsonify, url_for
 from flask.ext.cors import CORS
 
 from .objects import (
@@ -16,6 +16,7 @@ from .objects import (
 from . import setup_logger, db_connect, db_cursor
 from .webcommon import log_application_errors, nice_domain
 from ..compat import expand_uri, csvIO, csvDictWriter
+from .. import compat
 
 CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
              'version', 'fingerprint', 'cache time', 'processed', 'process time', \
@@ -50,10 +51,19 @@ def app_index_json():
         d['license'] = licenses[license]
         collections[collection][license] = d
     
+    run_states_url = url_for('webapi.app_get_state_txt')
+    latest_run_processed_url = url_for('webhooks.app_get_latest_run', source='____').replace('____', '{source}')
+    licenses_url = url_for('webapi.app_licenses_json')
+
+    if compat.PY2:
+        run_states_url = run_states_url.decode('utf8')
+        latest_run_processed_url = latest_run_processed_url.decode('utf8')
+        licenses_url = licenses_url.decode('utf8')
+
     return jsonify({
-        'run_states_url': urljoin(request.url, u'/state.txt'),
-        'latest_run_processed_url': urljoin(request.url, u'/latest/run/{source}.zip'),
-        'licenses_url': urljoin(request.url, u'/latest/licenses.json'),
+        'run_states_url': urljoin(request.url, run_states_url),
+        'latest_run_processed_url': urljoin(request.url, latest_run_processed_url),
+        'licenses_url': urljoin(request.url, licenses_url),
         'collections': collections
         })
 
