@@ -129,7 +129,8 @@ def app_get_jobs():
     else:
         next_link = False
     
-    return render_template('jobs.html', jobs=jobs, next_link=next_link, n=n)
+    return render_template('jobs.html', jobs=jobs, next_link=next_link,
+                           now=datetime.now(tz=tzutc()), n=n)
 
 @webhooks.route('/jobs/<job_id>', methods=['GET'])
 @log_application_errors
