@@ -22,6 +22,13 @@
         }
     
         body>p, main>p { line-height: 1.5em }
+        
+        img#icon
+        {
+            width: 1em;
+            height: 1em;
+            margin-right: .5em;
+        }
     
         pre
         {
@@ -38,9 +45,14 @@
     
         nav a:nth-child(1) { padding-left: 0 }
     
+        @media (max-width: 360px)
+        {
+            nav a { padding-right: 0 }
+        }
+    
         @media (max-width: 960px)
         {
-            body>* { width: 96% }
+            body>*, main>* { width: 96% }
         }
     
         @media (min-width: 960px)
@@ -73,9 +85,9 @@
 
 <body>
     <nav>
-        <a href="http://openaddresses.io">OA Home</a>
+        <a href="http://openaddresses.io"> <img id="icon" src="{{ url_for('static', filename='17.png') }}">Home</a>
         <a href="{{ url_for('webhooks.app_index') }}">Download Data</a>
-        <a href="{{ url_for('webhooks.app_get_sets') }}">All Sets</a>
+        <a href="{{ url_for('webhooks.app_get_sets') }}">All Batch Sets</a>
         <a href="{{ url_for('webhooks.app_get_jobs') }}">All CI Jobs</a>
     </nav>
     {% block info %}
