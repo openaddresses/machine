@@ -9,6 +9,7 @@ aws_secret_key = node[:aws_secret_key]
 aws_sns_arn = node[:aws_sns_arn]
 github_token = node['github_token']
 mapbox_key = node[:mapbox_key]
+slack_url = node[:slack_url]
 
 database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=require"
 
@@ -53,7 +54,9 @@ file "/etc/cron.d/openaddr_crontab-collect-extracts" do
     -a "#{aws_access_id}" \
     -s "#{aws_secret_key}" \
     --sns-arn "#{aws_sns_arn}" \
-    --verbose ) \
+    --verbose \
+  && curl -X POST -d '{"text": "Completed new collection zips."}' "#{slack_url}" -s \
+  || curl -X POST -d '{"text": "Failed to complete new collection zips."}' "#{slack_url}" -s ) \
   >> /var/log/openaddr_crontab/collect-extracts.log 2>&1
 CRONTAB
 end

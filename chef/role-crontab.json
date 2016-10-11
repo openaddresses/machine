@@ -10,6 +10,7 @@
     "aws_sns_arn": "{Amazon SNS Subscription ID}",
     "github_token": "{Github Token}",
     "mapbox_key": "{Mapbox Key}",
+    "slack_url": "{Slack URL}",
     "gag_github_status": "No",
     "run_list":
     [
