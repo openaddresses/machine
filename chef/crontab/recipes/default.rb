@@ -1,5 +1,4 @@
 username = node[:username]
-app_name = 'openaddr_crontab'
 
 db_user = node[:db_user]
 db_pass = node[:db_pass]
@@ -12,8 +11,6 @@ github_token = node['github_token']
 mapbox_key = node[:mapbox_key]
 
 database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=require"
-
-env_file = "/etc/#{app_name}.conf"
 
 #
 # Ensure configuration exists.
@@ -31,31 +28,32 @@ rotation = <<-ROTATION
 }
 ROTATION
 
-file "/etc/logrotate.d/#{app_name}-collect-extracts" do
-    content "/var/log/#{app_name}-collect-extracts.log\n#{rotation}\n"
+file "/etc/logrotate.d/openaddr_crontab-collect-extracts" do
+    content "/var/log/openaddr_crontab/collect-extracts.log\n#{rotation}\n"
 end
 
-file "/etc/logrotate.d/#{app_name}-dotmap" do
-    content "/var/log/#{app_name}-dotmap.log\n#{rotation}\n"
+file "/etc/logrotate.d/openaddr_crontab-dotmap" do
+    content "/var/log/openaddr_crontab/dotmap.log\n#{rotation}\n"
 end
 
 #
 # Place crontab scripts.
 #
 directory '/etc/cron.d'
+directory "/var/log/openaddr_crontab"
 
-file "/etc/cron.d/#{app_name}-collect-extracts" do
+file "/etc/cron.d/openaddr_crontab-collect-extracts" do
     content <<-CRONTAB
 # Archive collection, every other day at 5am UTC (10pm PDT)
 0 5	*/2 * *	openaddr	( openaddr-run-ec2-command \
-	--verbose \
-	-- \
-	openaddr-collect-extracts \
-		-d "#{database_url}" \
-		-a "#{aws_access_id}" \
-		-s "#{aws_secret_key}" \
-		--sns-arn "#{aws_sns_arn}" \
-		--verbose ) \
-		 >> /var/log/#{app_name}-collect-extracts.log 2>&1
+  --verbose \
+  -- \
+    openaddr-collect-extracts \
+    -d "#{database_url}" \
+    -a "#{aws_access_id}" \
+    -s "#{aws_secret_key}" \
+    --sns-arn "#{aws_sns_arn}" \
+    --verbose ) \
+  >> /var/log/openaddr_crontab/collect-extracts.log 2>&1
 CRONTAB
 end
