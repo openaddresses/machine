@@ -46,7 +46,11 @@ directory "/var/log/openaddr_crontab"
 file "/etc/cron.d/openaddr_crontab-collect-extracts" do
     content <<-CRONTAB
 # Archive collection, every other day at 5am UTC (10pm PDT)
-0 5	*/2 * *	openaddr	( openaddr-run-ec2-command \
+0 5	*/2 * *	openaddr	( \
+  openaddr-run-ec2-command \
+  -a "#{aws_access_id}" \
+  -s "#{aws_secret_key}" \
+  --sns-arn "#{aws_sns_arn}" \
   --verbose \
   -- \
     openaddr-collect-extracts \
