@@ -40,9 +40,11 @@ file "/etc/logrotate.d/#{app_name}-dotmap" do
 end
 
 #
+# Place crontab scripts.
 #
-#
-file "/etc/crontab.d/#{app_name}-collect-extracts" do
+directory '/etc/cron.d'
+
+file "/etc/cron.d/#{app_name}-collect-extracts" do
     content <<-CRONTAB
 # Archive collection, every other day at 5am UTC (10pm PDT)
 0 5	*/2 * *	openaddr	( openaddr-run-ec2-command \
