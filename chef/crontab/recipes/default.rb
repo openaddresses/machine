@@ -16,19 +16,8 @@ database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=r
 env_file = "/etc/#{app_name}.conf"
 
 #
-# Ensure upstart job exists.
+# Ensure configuration exists.
 #
-file env_file do
-  content <<-CONF
-DATABASE_URL=#{database_url}
-AWS_ACCESS_KEY_ID=#{aws_access_id}
-AWS_SECRET_ACCESS_KEY=#{aws_secret_key}
-AWS_SNS_ARN=#{aws_sns_arn}
-GITHUB_TOKEN=#{github_token}
-MAPBOX_KEY=#{mapbox_key}
-CONF
-end
-
 rotation = <<-ROTATION
 {
 	copytruncate
@@ -48,4 +37,23 @@ end
 
 file "/etc/logrotate.d/#{app_name}-dotmap" do
     content "/var/log/#{app_name}-dotmap.log\n#{rotation}\n"
+end
+
+#
+#
+#
+file "/etc/crontab.d/#{app_name}-collect-extracts" do
+    content <<-CRONTAB
+# Archive collection, every other day at 5am UTC (10pm PDT)
+0 5	*/2 * *	openaddr	( openaddr-run-ec2-command \
+	--verbose \
+	-- \
+	openaddr-collect-extracts \
+		-d "#{database_url}" \
+		-a "#{aws_access_id}" \
+		-s "#{aws_secret_key}" \
+		--sns-arn "#{aws_sns_arn}" \
+		--verbose ) \
+		 >> /var/log/#{app_name}-collect-extracts.log 2>&1
+CRONTAB
 end
