@@ -1,3 +1,6 @@
+2016-10-11: 2.37.3
+- Fixed crontab 999-character limit: http://serverfault.com/questions/546342/crontab-maximum-command-length.
+
 2016-10-11: 2.37.2
 - Fixed crontab directory ownership.
 
