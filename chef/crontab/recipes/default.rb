@@ -48,7 +48,7 @@ end
 directory '/etc/cron.d'
 
 directory "/var/log/openaddr_crontab" do
-  owner name
+  owner username
   mode "0755"
 end
 
