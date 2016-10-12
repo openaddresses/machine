@@ -1,6 +1,7 @@
 package 'apache2'
 
-hostname = node[:cname]
+bag = data_bag_item('data', 'local')
+hostname = bag['cname']
 
 file '/etc/apache2/sites-available/webhook.conf' do
   content <<-CONF
