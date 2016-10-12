@@ -46,10 +46,16 @@ end
 # Place crontab scripts.
 #
 directory '/etc/cron.d'
-directory "/var/log/openaddr_crontab"
+
+directory "/var/log/openaddr_crontab" do
+  owner name
+  mode "0755"
+end
 
 file "/etc/cron.d/openaddr_crontab-collect-extracts" do
     content <<-CRONTAB
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
 # Archive collection, every other day at 5am UTC (10pm PDT)
 0 5	*/2 * *	#{username}	( \
   curl -X POST -d '{"text": "Starting new collection zips..."}' "#{slack_url}" -s ; \
@@ -73,6 +79,8 @@ end
 
 file "/etc/cron.d/openaddr_crontab-dotmap" do
     content <<-CRONTAB
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
 # Generate OpenAddresses dot map, every third day midnight UTC (5pm PDT)
 0 0	*/3 * *	#{username}	( \
   curl -X POST -d '{"text": "Starting new dot map..."}' "#{slack_url}" -s ; \
@@ -98,6 +106,8 @@ end
 
 file "/etc/cron.d/openaddr_crontab-enqueue-sources" do
     content <<-CRONTAB
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
 # Enqueue sources, Fridays 11pm UTC (4pm PDT)
 0 23	* * fri	#{username}	( \
   curl -X POST -d '{"text": "Starting new batch run..."}' "#{slack_url}" -s ; \
@@ -114,6 +124,8 @@ end
 
 file "/etc/cron.d/openaddr_crontab-cleanup-tempdir" do
     content <<-CRONTAB
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
 # Clean up week-old contents of /tmp
 0 0	* * *	#{username}	find /tmp -depth -user #{username} -mtime +7 -delete
 CRONTAB
