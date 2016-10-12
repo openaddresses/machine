@@ -1,10 +1,10 @@
 package 'apache2'
 
-bag = data_bag_item('data', 'local')
-web_docroot = bag['web_docroot']
+local = data_bag_item('data', 'local')
+web_docroot = local['web_docroot']
 
 directory File.join(web_docroot, 'oa-runone') do
-  owner bag['username']
+  owner local['username']
   mode '0755'
 end
 

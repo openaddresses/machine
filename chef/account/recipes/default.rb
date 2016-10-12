@@ -1,5 +1,5 @@
-bag = data_bag_item('data', 'local')
-name = bag['username']
+local = data_bag_item('data', 'local')
+name = local['username']
 
 group name
 user name do

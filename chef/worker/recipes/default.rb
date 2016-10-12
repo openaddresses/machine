@@ -1,21 +1,21 @@
-bag = data_bag_item('data', 'local')
-username = bag['username']
+local = data_bag_item('data', 'local')
+username = local['username']
 app_name = 'openaddr_worker'
 
-db_user = bag['db_user']
-db_pass = bag['db_pass']
-db_host = bag['db_host']
-db_name = bag['db_name']
-aws_access_id = bag['aws_access_id']
-aws_secret_key = bag['aws_secret_key']
-aws_s3_bucket = bag['aws_s3_bucket']
-aws_sns_arn = bag['aws_sns_arn']
+db_user = local['db_user']
+db_pass = local['db_pass']
+db_host = local['db_host']
+db_name = local['db_name']
+aws_access_id = local['aws_access_id']
+aws_secret_key = local['aws_secret_key']
+aws_s3_bucket = local['aws_s3_bucket']
+aws_sns_arn = local['aws_sns_arn']
 
-worker_kind = bag['worker_kind']
-gag_github_status = bag['gag_github_status']
+worker_kind = local['worker_kind']
+gag_github_status = local['gag_github_status']
 database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=require"
-web_docroot = bag['web_docroot']
-slack_url = bag['slack_url']
+web_docroot = local['web_docroot']
+slack_url = local['slack_url']
 
 #
 # Announce status to the world.
