@@ -1,3 +1,6 @@
+2016-10-11: 2.36.0
+- Added openaddr-collect-extracts to crontab.
+
 2016-10-09: 2.35.2
 - Fixed write_job() status bug.
 
