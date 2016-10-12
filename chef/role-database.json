@@ -1,8 +1,4 @@
 {
-    "db_user": "openaddr",
-    "db_pass": "openaddr",
-    "db_host": "localhost",
-    "db_name": "openaddr",
     "run_list":
     [
         "openaddr-prereqs",
