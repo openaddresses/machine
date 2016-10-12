@@ -1,3 +1,4 @@
+cname = node[:cname]
 username = node[:username]
 
 db_user = node[:db_user]
@@ -46,7 +47,7 @@ directory "/var/log/openaddr_crontab"
 file "/etc/cron.d/openaddr_crontab-collect-extracts" do
     content <<-CRONTAB
 # Archive collection, every other day at 5am UTC (10pm PDT)
-0 5	*/2 * *	openaddr	( \
+0 5	*/2 * *	#{username}	( \
   openaddr-run-ec2-command \
   -a "#{aws_access_id}" \
   -s "#{aws_secret_key}" \
@@ -59,8 +60,32 @@ file "/etc/cron.d/openaddr_crontab-collect-extracts" do
     -s "#{aws_secret_key}" \
     --sns-arn "#{aws_sns_arn}" \
     --verbose \
-  && curl -X POST -d '{"text": "Completed new collection zips."}' "#{slack_url}" -s \
+  && curl -X POST -d '{"text": "Completed <https://#{cname}/latest/set|new collection zips>."}' "#{slack_url}" -s \
   || curl -X POST -d '{"text": "Failed to complete new collection zips."}' "#{slack_url}" -s ) \
   >> /var/log/openaddr_crontab/collect-extracts.log 2>&1
+CRONTAB
+end
+
+file "/etc/cron.d/openaddr_crontab-dotmap" do
+    content <<-CRONTAB
+# Generate OpenAddresses dot map, every third day midnight UTC (5pm PDT)
+0 0	*/3 * *	#{username}	( \
+  openaddr-run-ec2-command \
+  --role dotmap \
+  --instance-type r3.large \
+  -a "#{aws_access_id}" \
+  -s "#{aws_secret_key}" \
+  --sns-arn "#{aws_sns_arn}" \
+  --verbose \
+  -- \
+    openaddr-update-dotmap \
+    -d "#{database_url}" \
+    -m "#{mapbox_key}" \
+    -a "#{aws_access_id}" \
+    -s "#{aws_secret_key}" \
+    --sns-arn "#{aws_sns_arn}" \
+  && curl -X POST -d '{"text": "Completed <https://openaddresses.io|new dot map>."}' "#{slack_url}" -s \
+  || curl -X POST -d '{"text": "Failed to complete new dot map."}' "#{slack_url}" -s ) \
+  >> /var/log/openaddr_crontab/dotmap.log 2>&1
 CRONTAB
 end
