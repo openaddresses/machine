@@ -1,20 +1,21 @@
-username = node[:username]
+bag = data_bag_item('data', 'local')
+username = bag['username']
 app_name = 'openaddr_worker'
 
-db_user = node[:db_user]
-db_pass = node[:db_pass]
-db_host = node[:db_host]
-db_name = node[:db_name]
-aws_access_id = node[:aws_access_id]
-aws_secret_key = node[:aws_secret_key]
-aws_s3_bucket = node[:aws_s3_bucket]
-aws_sns_arn = node[:aws_sns_arn]
+db_user = bag['db_user']
+db_pass = bag['db_pass']
+db_host = bag['db_host']
+db_name = bag['db_name']
+aws_access_id = bag['aws_access_id']
+aws_secret_key = bag['aws_secret_key']
+aws_s3_bucket = bag['aws_s3_bucket']
+aws_sns_arn = bag['aws_sns_arn']
 
-worker_kind = node['worker_kind']
-gag_github_status = node['gag_github_status']
+worker_kind = bag['worker_kind']
+gag_github_status = bag['gag_github_status']
 database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=require"
-web_docroot = node['web_docroot']
-slack_url = node['slack_url']
+web_docroot = bag['web_docroot']
+slack_url = bag['slack_url']
 
 #
 # Announce status to the world.
@@ -38,10 +39,10 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 
 case "$1" in
   start)
-    curl -X POST -d '{"text": "Worker started on `'`hostname --long`'`."}' #{slack_url}
+    curl -X POST -d '{"text": "Worker started on `'`hostname --long`'`."}' '#{slack_url}'
     ;;
   stop)
-    curl -X POST -d '{"text": "Worker stopped on `'`hostname --long`'`."}' #{slack_url}
+    curl -X POST -d '{"text": "Worker stopped on `'`hostname --long`'`."}' '#{slack_url}'
     ;;
   restart|reload|force-reload)
     echo "Error: argument '$1' not supported" >&2

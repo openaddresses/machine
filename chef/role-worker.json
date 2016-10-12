@@ -1,18 +1,4 @@
 {
-    "worker_kind": null,
-    "web_docroot": "/var/www/html",
-    "username": "openaddr",
-    "db_user": "openaddr",
-    "db_pass": "openaddr",
-    "db_host": "localhost",
-    "db_name": "openaddr",
-    "aws_access_id": "{Amazon Access Key ID}",
-    "aws_secret_key": "{Amazon Secret Access Key}",
-    "aws_sns_arn": "{Amazon SNS Subscription ID}",
-    "aws_s3_bucket": "{Amazon S3 Bucket Name}",
-    "github_token": "{Github Token}",
-    "gag_github_status": "No",
-    "slack_url": "https://hooks.slack.com/services/{etc.}",
     "run_list":
     [
         "openaddr-prereqs",
