@@ -12,7 +12,7 @@ from _thread import get_ident
 import tempfile, json, csv
 
 from . import cache, conform, CacheResult, ConformResult
-from .compat import csvopen, csvwriter
+from .compat import csvopen, csvwriter, PY2
 
 class SourceSaysSkip(RuntimeError): pass
 
@@ -199,8 +199,13 @@ def main():
     args = parser.parse_args()
     setup_logger(logfile=args.logfile, log_level=args.loglevel)
     
+    if PY2:
+        source, destination = args.source.decode('utf8'), args.destination.decode('utf8')
+    else:
+        source, destination = args.source, args.destination
+    
     try:
-        file_path = process(args.source.decode('utf8'), args.destination.decode('utf8'))
+        file_path = process(source, destination)
     except Exception as e:
         _L.error(e, exc_info=True)
         return 1
