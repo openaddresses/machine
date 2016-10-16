@@ -1,17 +1,4 @@
 {
-    "cname": "results.openaddresses.io",
-    "username": "openaddr",
-    "db_user": "openaddr",
-    "db_pass": "openaddr",
-    "db_host": "localhost",
-    "db_name": "openaddr",
-    "aws_access_id": "{Amazon Access Key ID}",
-    "aws_secret_key": "{Amazon Secret Access Key}",
-    "aws_sns_arn": "{Amazon SNS Subscription ID}",
-    "github_token": "{Github Token}",
-    "mapbox_key": "{Mapbox Key}",
-    "slack_url": "{Slack URL}",
-    "gag_github_status": "No",
     "run_list":
     [
         "openaddr-prereqs",

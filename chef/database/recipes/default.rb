@@ -2,10 +2,11 @@
 # CircleCI has 9.4, while installing package 'postgresql' gets conflicting 9.5.
 package 'postgresql-9.4'
 
-user = node[:db_user]
-pass = node[:db_pass]
-host = node[:db_host]
-name = node[:db_name]
+local = data_bag_item('data', 'local')
+user = local['db_user']
+pass = local['db_pass']
+host = local['db_host']
+name = local['db_name']
 database_url = "postgres://#{user}:#{pass}@#{host}/#{name}?sslmode=require"
 
 if host == 'localhost' then

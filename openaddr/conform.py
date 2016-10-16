@@ -827,12 +827,10 @@ def row_transform_and_convert(sd, row):
             elif c[k]["function"] == "format":
                 row = row_fxn_format(sd, row, k)
 
-    ### Deprecated ###
     if "advanced_merge" in c:
-        row = row_fxn_join(sd, row, False)
+        raise ValueError('Found unsupported "advanced_merge" option in conform')
     if "split" in c:
-        row = row_fxn_regexp(sd, row, False)
-    ##################
+        raise ValueError('Found unsupported "split" option in conform')
     
     # Make up a random fingerprint if none exists
     cache_fingerprint = sd.get('fingerprint', str(uuid4()))
@@ -859,8 +857,7 @@ def conform_smash_case(source_definition):
                 conform[k]["fields"] = [s.lower() for s in conform[k]["fields"]]
     
     if "advanced_merge" in conform:
-        for new_col, spec in conform["advanced_merge"].items():
-            spec["fields"] = [s.lower() for s in spec["fields"]]
+        raise ValueError('Found unsupported "advanced_merge" option in conform')
     return new_sd
 
 def row_smash_case(sd, input):
@@ -876,41 +873,26 @@ def row_merge(sd, row, key):
 
 def row_fxn_join(sd, row, key):
     "Create new columns by merging arbitrary other columns with a separator"
-    if not key: ## Deprecated Behavior
-        advanced_merge = sd["conform"]["advanced_merge"]
-        for new_field_name, merge_spec in advanced_merge.items():
-            separator = merge_spec.get("separator", " ")
-            try:
-                fields = [(row[n] or u'').strip() for n in merge_spec["fields"]]
-                row[new_field_name] = separator.join([f for f in fields if f])
-            except Exception as e:
-                _L.debug("Failure to merge row %r %s", e, row)
-    else: ## New behavior
-        fxn = sd["conform"][key]
-        separator = fxn.get("separator", " ")
-        try:
-            fields = [(row[n] or u'').strip() for n in fxn["fields"]]
-            row[attrib_types[key]] = separator.join([f for f in fields if f])
-        except Exception as e:
-            _L.debug("Failure to merge row %r %s", e, row)
+    fxn = sd["conform"][key]
+    separator = fxn.get("separator", " ")
+    try:
+        fields = [(row[n] or u'').strip() for n in fxn["fields"]]
+        row[attrib_types[key]] = separator.join([f for f in fields if f])
+    except Exception as e:
+        _L.debug("Failure to merge row %r %s", e, row)
     return row
 
 def row_fxn_regexp(sd, row, key):
     "Split addresses like '123 Maple St' into '123' and 'Maple St'"
-    if not key: ## Deprecated Behavior
-        cols = row[sd["conform"]["split"]].split(' ', 1)  # maxsplit
-        row['auto_number'] = cols[0]
-        row['auto_street'] = cols[1] if len(cols) > 1 else ''
-    else: ## New Behavior
-        fxn = sd["conform"][key]
-        pattern = re.compile(fxn.get("pattern", False))
-        replace = fxn.get('replace', False)
-        if replace:
-            match = re.sub(pattern, convert_regexp_replace(replace), row[fxn["field"]])
-            row[attrib_types[key]] = match;
-        else:
-            match = pattern.search(row[fxn["field"]])
-            row[attrib_types[key]] = ''.join(match.groups()) if match else '';
+    fxn = sd["conform"][key]
+    pattern = re.compile(fxn.get("pattern", False))
+    replace = fxn.get('replace', False)
+    if replace:
+        match = re.sub(pattern, convert_regexp_replace(replace), row[fxn["field"]])
+        row[attrib_types[key]] = match;
+    else:
+        match = pattern.search(row[fxn["field"]])
+        row[attrib_types[key]] = ''.join(match.groups()) if match else '';
     return row
 
 def row_fxn_format(sd, row, key):

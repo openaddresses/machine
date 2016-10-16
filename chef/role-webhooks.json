@@ -1,20 +1,4 @@
 {
-    "cname": "results.openaddresses.io",
-    "username": "openaddr",
-    "db_user": "openaddr",
-    "db_pass": "openaddr",
-    "db_host": "localhost",
-    "db_name": "openaddr",
-    "memcache_server": "127.0.0.1:11211",
-    "aws_access_id": "{Amazon Access Key ID}",
-    "aws_secret_key": "{Amazon Secret Access Key}",
-    "aws_sns_arn": "{Amazon SNS Subscription ID}",
-    "webhook_secrets": "{Comma-delimited list of secrets}",
-    "github_token": "{Github Token}",
-    "github_callback": "{Github Callback URL}",
-    "github_client_id": "{Github Client ID}",
-    "github_secret": "{Github Secret}",
-    "gag_github_status": "No",
     "run_list":
     [
         "openaddr-prereqs",

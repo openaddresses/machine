@@ -5,9 +5,16 @@
     "conform": {
         "lon": "NONSENSE",
         "lat": "Y",
-        "split": "MAILSTREET",
-        "number": "auto_number",
-        "street": "auto_street",
+        "number": {
+            "function": "regexp",
+            "field": "MAILSTREET",
+            "pattern": "^(\\S+)"
+            },
+        "street": {
+            "function": "regexp",
+            "field": "MAILSTREET",
+            "pattern": "^(?:\\S+ )(.*)"
+            },
         "type": "geojson"
     }
 }

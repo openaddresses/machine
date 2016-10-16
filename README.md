@@ -72,10 +72,3 @@ Run the webhook server, queue listener, and worker processes:
     python -m openaddr.ci.run_dequeue
     
     python -m openaddr.ci.worker
-
-Extras
-------
-
-Convert remote ESRI feature services to GeoJSON with `openaddr-esri2geojson`:
-
-    openaddr-esri2geojson <ESRI URL> <GeoJSON path>

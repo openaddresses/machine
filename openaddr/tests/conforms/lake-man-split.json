@@ -6,9 +6,16 @@
     "conform": {
         "lon": "X",
         "lat": "Y",
-        "split": "ADD_RANGE",
-        "number": "auto_number",
-        "street": "auto_street",
+        "number": {
+            "function": "regexp",
+            "field": "ADD_RANGE",
+            "pattern": "^(\\S+)"
+            },
+        "street": {
+            "function": "regexp",
+            "field": "ADD_RANGE",
+            "pattern": "^(?:\\S+ )(.*)"
+            },
         "type": "shapefile"
     }
 }

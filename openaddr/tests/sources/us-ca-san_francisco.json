@@ -12,8 +12,11 @@
     "conform": {
         "lon": "x",
         "lat": "y",
-        "split": "address",
-        "number": "auto_number",
+        "number": {
+            "function": "regexp",
+            "field": "address",
+            "pattern": "^(\\S+)"
+            },
         "street": ["st_name", "st_type"],
         "type": "shapefile"
     }

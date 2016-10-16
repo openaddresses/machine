@@ -1,16 +1,17 @@
-cname = node[:cname]
-username = node[:username]
+local = data_bag_item('data', 'local')
+cname = local['cname']
+username = local['username']
 
-db_user = node[:db_user]
-db_pass = node[:db_pass]
-db_host = node[:db_host]
-db_name = node[:db_name]
-aws_access_id = node[:aws_access_id]
-aws_secret_key = node[:aws_secret_key]
-aws_sns_arn = node[:aws_sns_arn]
-github_token = node['github_token']
-mapbox_key = node[:mapbox_key]
-slack_url = node[:slack_url]
+db_user = local['db_user']
+db_pass = local['db_pass']
+db_host = local['db_host']
+db_name = local['db_name']
+aws_access_id = local['aws_access_id']
+aws_secret_key = local['aws_secret_key']
+aws_sns_arn = local['aws_sns_arn']
+github_token = local['github_token']
+mapbox_key = local['mapbox_key']
+slack_url = local['slack_url']
 
 database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=require"
 

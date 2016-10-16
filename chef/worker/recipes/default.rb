@@ -1,20 +1,21 @@
-username = node[:username]
+local = data_bag_item('data', 'local')
+username = local['username']
 app_name = 'openaddr_worker'
 
-db_user = node[:db_user]
-db_pass = node[:db_pass]
-db_host = node[:db_host]
-db_name = node[:db_name]
-aws_access_id = node[:aws_access_id]
-aws_secret_key = node[:aws_secret_key]
-aws_s3_bucket = node[:aws_s3_bucket]
-aws_sns_arn = node[:aws_sns_arn]
+db_user = local['db_user']
+db_pass = local['db_pass']
+db_host = local['db_host']
+db_name = local['db_name']
+aws_access_id = local['aws_access_id']
+aws_secret_key = local['aws_secret_key']
+aws_s3_bucket = local['aws_s3_bucket']
+aws_sns_arn = local['aws_sns_arn']
 
-worker_kind = node['worker_kind']
-gag_github_status = node['gag_github_status']
+worker_kind = local['worker_kind']
+gag_github_status = local['gag_github_status']
 database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=require"
-web_docroot = node['web_docroot']
-slack_url = node['slack_url']
+web_docroot = local['web_docroot']
+slack_url = local['slack_url']
 
 #
 # Announce status to the world.
@@ -38,10 +39,10 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 
 case "$1" in
   start)
-    curl -X POST -d '{"text": "Worker started on `'`hostname --long`'`."}' #{slack_url}
+    curl -X POST -d '{"text": "Worker started on `'`hostname --long`'`."}' '#{slack_url}'
     ;;
   stop)
-    curl -X POST -d '{"text": "Worker stopped on `'`hostname --long`'`."}' #{slack_url}
+    curl -X POST -d '{"text": "Worker stopped on `'`hostname --long`'`."}' '#{slack_url}'
     ;;
   restart|reload|force-reload)
     echo "Error: argument '$1' not supported" >&2
@@ -61,7 +62,7 @@ execute "/etc/init.d/openaddr-worker start"
 env_file = "/tmp/#{app_name}.conf"
 procfile = File.join(File.dirname(__FILE__), '..', '..', 'Procfile-worker')
 
-execute 'pip install honcho[export]'
+execute 'pip3 install honcho[export]'
 
 #
 # Ensure upstart job exists.

@@ -1,4 +1,5 @@
-name = node[:username]
+local = data_bag_item('data', 'local')
+name = local['username']
 
 group name
 user name do

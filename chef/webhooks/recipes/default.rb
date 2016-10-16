@@ -1,27 +1,28 @@
-username = node[:username]
+local = data_bag_item('data', 'local')
+username = local['username']
 app_name = 'openaddr_webhook'
 
-db_user = node[:db_user]
-db_pass = node[:db_pass]
-db_host = node[:db_host]
-db_name = node[:db_name]
-memcache_server = node[:memcache_server]
-aws_access_id = node[:aws_access_id]
-aws_secret_key = node[:aws_secret_key]
-aws_sns_arn = node[:aws_sns_arn]
-webhook_secrets = node[:webhook_secrets]
+db_user = local['db_user']
+db_pass = local['db_pass']
+db_host = local['db_host']
+db_name = local['db_name']
+memcache_server = local['memcache_server']
+aws_access_id = local['aws_access_id']
+aws_secret_key = local['aws_secret_key']
+aws_sns_arn = local['aws_sns_arn']
+webhook_secrets = local['webhook_secrets']
 
-gag_github_status = node['gag_github_status']
+gag_github_status = local['gag_github_status']
 database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=require"
-github_token = node['github_token']
-github_callback = node['github_callback']
-github_client_id = node['github_client_id']
-github_secret = node['github_secret']
+github_token = local['github_token']
+github_callback = local['github_callback']
+github_client_id = local['github_client_id']
+github_secret = local['github_secret']
 
 env_file = "/tmp/#{app_name}.conf"
 procfile = File.join(File.dirname(__FILE__), '..', '..', 'Procfile-webhook')
 
-execute 'pip install honcho[export]'
+execute 'pip3 install honcho[export]'
 
 #
 # Ensure upstart job exists.
