@@ -75,7 +75,7 @@ def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
     workdir = tempfile.mkdtemp(prefix='work-', dir=output_dir)
 
     # Write the user input to a file
-    out_fn = os.path.join(workdir, make_source_filename(source_name)).encode('utf8')
+    out_fn = os.path.join(workdir, make_source_filename(source_name))
     with open(out_fn, 'wb') as out_fp:
         out_fp.write(base64.b64decode(job_contents_b64))
 
