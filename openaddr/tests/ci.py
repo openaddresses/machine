@@ -2427,6 +2427,7 @@ class TestWorker (unittest.TestCase):
         ''' Test that return value of assemble_output() works for RunState.
         '''
         s3 = mock.Mock()
+        s3.new_key.return_value.md5 = b'0xWHATEVER'
 
         input1 = {'cache': False, 'sample': False, 'processed': False, 'output': False}
         state1 = RunState(assemble_output(s3, input1, 'xx/f', 1, 'dir'))
@@ -2440,7 +2441,7 @@ class TestWorker (unittest.TestCase):
         state2 = RunState(assemble_output(s3, input2, 'xx/f', 2, 'dir'))
 
         self.assertEqual(state2.cache, s3.new_key.return_value.generate_url.return_value)
-        self.assertEqual(state2.fingerprint, s3.new_key.return_value.md5)
+        self.assertEqual(state2.fingerprint, '0xWHATEVER')
         self.assertEqual(state2.sample, input2['sample'])
         self.assertEqual(state2.processed, input2['processed'])
         self.assertEqual(state2.output, input2['output'])
@@ -2472,7 +2473,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(state5.cache, input5['cache'])
         self.assertEqual(state5.sample, input5['sample'])
         self.assertEqual(state5.processed, s3.new_key.return_value.generate_url.return_value)
-        self.assertEqual(state5.process_hash, s3.new_key.return_value.md5)
+        self.assertEqual(state5.process_hash, '0xWHATEVER')
         self.assertEqual(state5.output, input5['output'])
         self.assertEqual(s3.new_key.mock_calls[-3], mock.call('/runs/5/xx/f.zip'))
 
