@@ -40,7 +40,7 @@ AWS_ACCESS_KEY_ID=#{aws_access_id}
 AWS_SECRET_ACCESS_KEY=#{aws_secret_key}
 AWS_SNS_ARN=#{aws_sns_arn}
 WEBHOOK_SECRETS=#{webhook_secrets}
-LC_ALL=en_US.UTF-8
+LC_ALL=C.UTF-8
 CONF
 end
 

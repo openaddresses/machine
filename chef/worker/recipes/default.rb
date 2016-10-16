@@ -77,7 +77,7 @@ AWS_SECRET_ACCESS_KEY=#{aws_secret_key}
 AWS_SNS_ARN=#{aws_sns_arn}
 AWS_S3_BUCKET=#{aws_s3_bucket}
 WORKER_KIND=#{worker_kind}
-LC_ALL=en_US.UTF-8
+LC_ALL=C.UTF-8
 CONF
 end
 
