@@ -21,8 +21,8 @@ from . import (
 
 parser = ArgumentParser(description='Run some source files.')
 
-parser.add_argument('-b', '--bucket', default='data.openaddresses.io',
-                    help='S3 bucket name. Defaults to "data.openaddresses.io".')
+parser.add_argument('-b', '--bucket', default=os.environ.get('AWS_S3_BUCKET', None),
+                    help='S3 bucket name. Defaults to value of AWS_S3_BUCKET environment variable.')
 
 parser.add_argument('-d', '--database-url', default=os.environ.get('DATABASE_URL', None),
                     help='Optional connection string for database. Defaults to value of DATABASE_URL environment variable.')
