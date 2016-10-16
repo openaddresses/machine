@@ -203,7 +203,7 @@ def _upload_s3_part(s3_bucket, multipart_id, part_num, source_path, offset, byte
             _L.info('Start uploading part #%d ...', part_num)
             for mp in s3_bucket.get_all_multipart_uploads():
                 if mp.id == multipart_id:
-                    with open(source_path, 'r') as fp:
+                    with open(source_path, 'rb') as fp:
                         fp.seek(offset)
                         mp.upload_part_from_file(fp=fp, part_num=part_num, size=bytes)
                     break
