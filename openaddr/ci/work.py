@@ -75,7 +75,7 @@ def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
 
     # Write the user input to a file
     out_fn = os.path.join(workdir, make_source_filename(source_name))
-    _L.info('Writing user input to {}'.format(repr(out_fn)))
+    _L.info('Writing user input from {} to {}'.format(repr(source_name), repr(out_fn)))
     with open(out_fn.encode('utf8'), 'wb') as out_fp:
         out_fp.write(base64.b64decode(job_contents_b64))
 
