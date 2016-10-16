@@ -31,8 +31,8 @@ parser.add_argument('-t', '--github-token', default=environ.get('GITHUB_TOKEN', 
 parser.add_argument('-d', '--database-url', default=environ.get('DATABASE_URL', None),
                     help='Optional connection string for database. Defaults to value of DATABASE_URL environment variable.')
 
-parser.add_argument('-b', '--bucket', default='data.openaddresses.io',
-                    help='S3 bucket name. Defaults to "data.openaddresses.io".')
+parser.add_argument('-b', '--bucket', default=os.environ.get('AWS_S3_BUCKET', None),
+                    help='S3 bucket name. Defaults to value of AWS_S3_BUCKET environment variable.')
 
 parser.add_argument('-a', '--access-key', default=environ.get('AWS_ACCESS_KEY_ID', None),
                     help='Optional AWS access key name. Defaults to value of AWS_ACCESS_KEY_ID environment variable.')

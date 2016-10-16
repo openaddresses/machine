@@ -8,6 +8,7 @@ db_host = local['db_host']
 db_name = local['db_name']
 aws_access_id = local['aws_access_id']
 aws_secret_key = local['aws_secret_key']
+aws_s3_bucket = local['aws_s3_bucket']
 aws_sns_arn = local['aws_sns_arn']
 github_token = local['github_token']
 mapbox_key = local['mapbox_key']
@@ -70,6 +71,7 @@ SLACK_URL=#{slack_url}
     -d "#{database_url}" \
     -a "#{aws_access_id}" \
     -s "#{aws_secret_key}" \
+    -b "#{aws_s3_bucket}" \
     --sns-arn "#{aws_sns_arn}" \
     --verbose \
   && curl -X POST -d '{"text": "Completed <https://#{cname}|new collection zips>."}' $SLACK_URL -s \
@@ -116,6 +118,7 @@ SLACK_URL=#{slack_url}
   -d "#{database_url}" \
   -a "#{aws_access_id}" \
   -s "#{aws_secret_key}" \
+  -b "#{aws_s3_bucket}" \
   --sns-arn "#{aws_sns_arn}" \
   && curl -X POST -d '{"text": "Completed <https://#{cname}/latest/set|new batch run>."}' $SLACK_URL -s \
   || curl -X POST -d '{"text": "Failed to complete new batch run."}' $SLACK_URL -s ) \
