@@ -3143,6 +3143,7 @@ class TestCollect (unittest.TestCase):
         remove(filename1)
         
         self.assertEqual(len(mp_upload.upload_part_from_file.mock_calls), 1, 'Should have uploaded one part')
+        self.assertEqual(mp_upload.upload_part_from_file.mock_calls[0][2]['fp'].mode, 'rb', 'Should be binary')
         bucket.initiate_multipart_upload.assert_has_calls([mock.call('keyname.csv', headers={'Content-Type': 'text/csv'})])
         self.assertEqual(bucket.get_key.mock_calls[0][1], ('keyname.csv', ), 'Should upload a correctly-named key')
         self.assertEqual(bucket.get_key.mock_calls[1][1], ('public-read', ), 'Should upload a publicly-readable key')
@@ -3168,6 +3169,8 @@ class TestCollect (unittest.TestCase):
         remove(filename1)
         
         self.assertEqual(len(mp_upload.upload_part_from_file.mock_calls), 2, 'Should have uploaded two parts')
+        self.assertEqual(mp_upload.upload_part_from_file.mock_calls[0][2]['fp'].mode, 'rb', 'Should be binary')
+        self.assertEqual(mp_upload.upload_part_from_file.mock_calls[1][2]['fp'].mode, 'rb', 'Should be binary')
         bucket.initiate_multipart_upload.assert_has_calls([mock.call('keyname.csv', headers={'Content-Type': 'text/csv'})])
         self.assertEqual(bucket.get_key.mock_calls[0][1], ('keyname.csv', ), 'Should upload a correctly-named key')
         self.assertEqual(bucket.get_key.mock_calls[1][1], ('public-read', ), 'Should upload a publicly-readable key')
