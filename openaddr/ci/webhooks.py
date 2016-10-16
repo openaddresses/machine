@@ -82,15 +82,18 @@ def app_index():
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
             set = read_latest_set(db, 'openaddresses', 'openaddresses')
-            runs = read_completed_runs_to_date(db, set.id)
+            runs = read_completed_runs_to_date(db, set and set.id)
             zips = load_collection_zips_dict(db)
     
-    good_runs = [run for run in runs if (run.state or {}).get('processed')]
-    last_modified = sorted(good_runs, key=attrgetter('datetime_tz'))[-1].datetime_tz
+    good_runs, last_modified = list(), datetime.now(tz=tzutc())
+
+    if runs:
+        good_runs = [run for run in runs if (run.state or {}).get('processed')]
+        last_modified = sorted(good_runs, key=attrgetter('datetime_tz'))[-1].datetime_tz
 
     mc = get_memcache_client(current_app.config)
-    summary_data = summarize_runs(mc, good_runs, last_modified, set.owner,
-                                  set.repository, GLASS_HALF_FULL)
+    summary_data = summarize_runs(mc, good_runs, last_modified, set and set.owner,
+                                  set and set.repository, GLASS_HALF_FULL)
 
     return render_template('index.html', set=None, zips=zips, **summary_data)
 
