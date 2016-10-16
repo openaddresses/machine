@@ -70,6 +70,7 @@ def assemble_output(s3, input, source_name, run_id, index_dirname):
 def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
     "Do the actual work of running a source file in job_contents"
     _L.info('Doing work on source {}'.format(repr(source_name)))
+    import sys; _L.info('sys.getfilesystemencoding is {}'.format(sys.getfilesystemencoding()))
 
     # Make a directory to run the whole job
     workdir = tempfile.mkdtemp(prefix='work-', dir=output_dir)
