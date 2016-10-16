@@ -210,7 +210,10 @@ def main():
         _L.error(e, exc_info=True)
         return 1
     else:
-        print(file_path.encode('utf8'))
+        if PY2:
+            print(file_path.encode('utf8'))
+        else:
+            print(file_path)
         return 0
 
 if __name__ == '__main__':

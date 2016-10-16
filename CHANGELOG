@@ -1,3 +1,6 @@
+2016-10-16: 3.0.2
+- Fixed Python 2 decode() behavior in process_one.py.
+
 2016-10-16: 3.0.1
 - Fixed Python 2 decode() behavior in process_one.py.
 
