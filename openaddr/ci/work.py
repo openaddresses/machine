@@ -70,13 +70,12 @@ def assemble_output(s3, input, source_name, run_id, index_dirname):
 def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
     "Do the actual work of running a source file in job_contents"
     _L.info('Doing work on source {}'.format(repr(source_name)))
-    import sys; _L.info('sys.getfilesystemencoding is {}'.format(sys.getfilesystemencoding()))
 
     # Make a directory to run the whole job
     workdir = tempfile.mkdtemp(prefix='work-', dir=output_dir)
 
     # Write the user input to a file
-    out_fn = os.path.join(workdir, make_source_filename(source_name)) #.encode('utf8')
+    out_fn = os.path.join(workdir, make_source_filename(source_name))
     with open(out_fn, 'wb') as out_fp:
         out_fp.write(base64.b64decode(job_contents_b64))
 
@@ -87,7 +86,6 @@ def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
     # Invoke the job to do
     logfile_path = os.path.join(workdir, 'logfile.txt')
     cmd = 'openaddr-process-one', '-l', logfile_path, out_fn, oa_dir
-    _L.info('Running command: {}'.format(repr(cmd)))
     try:
         known_error, cmd_status = False, 0
         timeout_seconds = JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400

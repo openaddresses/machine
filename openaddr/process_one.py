@@ -46,7 +46,6 @@ def process(source, destination, extras=dict()):
     skipped_source = False
 
     try:
-        _L.info('Opening {}'.format(repr(temp_src)))
         with open(temp_src) as file:
             if json.load(file).get('skip', None):
                 raise SourceSaysSkip()
@@ -167,7 +166,6 @@ def write_state(source, skipped, destination, log_handler, cache_result,
         ]
                
     with csvopen(join(statedir, 'index.txt'), 'w', encoding='utf8') as file:
-        _L.info('Writing to {}: {}'.format(file.name, repr(state)))
         out = csvwriter(file, dialect='excel-tab', encoding='utf8')
         for row in zip(*state):
             out.writerow(row)
@@ -207,7 +205,6 @@ def main():
         source, destination = args.source, args.destination
     
     try:
-        _L.info('Processing source, destination: {}, {}'.format(source, destination))
         file_path = process(source, destination)
     except Exception as e:
         _L.error(e, exc_info=True)
