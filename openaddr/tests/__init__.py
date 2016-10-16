@@ -1346,7 +1346,7 @@ class FakeS3 (S3):
 class FakeKey:
     ''' Just enough S3 to work for tests.
     '''
-    md5 = '0xDEADBEEF'
+    md5 = b'0xDEADBEEF'
     
     def __init__(self, name, fake_s3):
         self.name = name
