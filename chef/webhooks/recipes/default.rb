@@ -9,6 +9,7 @@ db_name = local['db_name']
 memcache_server = local['memcache_server']
 aws_access_id = local['aws_access_id']
 aws_secret_key = local['aws_secret_key']
+aws_s3_bucket = local['aws_s3_bucket']
 aws_sns_arn = local['aws_sns_arn']
 webhook_secrets = local['webhook_secrets']
 
@@ -39,6 +40,7 @@ GAG_GITHUB_STATUS=#{gag_github_status}
 AWS_ACCESS_KEY_ID=#{aws_access_id}
 AWS_SECRET_ACCESS_KEY=#{aws_secret_key}
 AWS_SNS_ARN=#{aws_sns_arn}
+AWS_S3_BUCKET=#{aws_s3_bucket}
 WEBHOOK_SECRETS=#{webhook_secrets}
 LC_ALL=C.UTF-8
 CONF

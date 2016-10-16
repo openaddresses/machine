@@ -50,6 +50,7 @@ def load_config():
                 GITHUB_OAUTH_CALLBACK=os.environ.get('GITHUB_CALLBACK'),
                 MEMCACHE_SERVER=os.environ.get('MEMCACHE_SERVER'),
                 DATABASE_URL=os.environ['DATABASE_URL'],
+                AWS_S3_BUCKET=os.environ.get('AWS_S3_BUCKET', 'data.openaddresses.io'),
                 WEBHOOK_SECRETS=webhook_secrets)
 
 TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, HEARTBEAT_QUEUE = 'tasks', 'finished', 'due', 'heartbeat'

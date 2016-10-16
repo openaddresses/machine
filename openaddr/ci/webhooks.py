@@ -95,7 +95,8 @@ def app_index():
     summary_data = summarize_runs(mc, good_runs, last_modified, set and set.owner,
                                   set and set.repository, GLASS_HALF_FULL)
 
-    return render_template('index.html', set=None, zips=zips, **summary_data)
+    return render_template('index.html', s3_bucket=current_app.config['AWS_S3_BUCKET'],
+                           set=None, zips=zips, **summary_data)
 
 @webhooks.route('/hook', methods=['POST'])
 @log_application_errors
