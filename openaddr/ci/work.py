@@ -1,3 +1,5 @@
+import logging; _L = logging.getLogger('openaddr.ci.work')
+
 from .. import compat, util
 from ..jobs import JOB_TIMEOUT
 
@@ -67,12 +69,13 @@ def assemble_output(s3, input, source_name, run_id, index_dirname):
 
 def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
     "Do the actual work of running a source file in job_contents"
+    _L.info('Doing work on source {}'.format(repr(source_name)))
 
     # Make a directory to run the whole job
     workdir = tempfile.mkdtemp(prefix='work-', dir=output_dir)
 
     # Write the user input to a file
-    out_fn = os.path.join(workdir, make_source_filename(source_name))
+    out_fn = os.path.join(workdir, make_source_filename(source_name)).encode('utf8')
     with open(out_fn, 'wb') as out_fp:
         out_fp.write(base64.b64decode(job_contents_b64))
 

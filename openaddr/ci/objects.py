@@ -333,7 +333,7 @@ def read_run(db, run_id):
     except TypeError:
         return None
     else:
-        return Run(id, source_path, source_id, source_data, datetime_tz,
+        return Run(id, source_path, source_id, source_data or b'', datetime_tz,
                    RunState(state), status, copy_of, code_version, worker_id,
                    job_id, set_id, commit_sha, is_merged)
     

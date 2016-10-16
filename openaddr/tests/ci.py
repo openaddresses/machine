@@ -394,6 +394,23 @@ class TestObjects (unittest.TestCase):
                   LIMIT 1''',
                   (123, ))
 
+    def test_read_run_yes_without_source_data(self):
+        ''' Check behavior of objects.read_run()
+        '''
+        self.db.fetchone.return_value = (123, '', '', None, None, {}, True, None,
+                                         __version__, '', None, None, '', False)
+        
+        run = read_run(self.db, 123)
+        self.assertEqual(run.id, 123)
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT id, source_path, source_id, source_data, datetime_tz,
+                         state, status, copy_of, code_version, worker_id,
+                         job_id, set_id, commit_sha, is_merged
+                  FROM runs WHERE id = %s
+                  LIMIT 1''',
+                  (123, ))
+
     def test_read_run_no(self):
         ''' Check behavior of objects.read_run()
         '''
@@ -2511,7 +2528,7 @@ class TestWorker (unittest.TestCase):
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
             os.path.join(self.output_dir, 'work/logfile.txt'),
-            os.path.join(self.output_dir, u'work/so--exalté.txt'),
+            os.path.join(self.output_dir, u'work/so--exalté.txt').encode('utf8'),
             os.path.join(self.output_dir, 'work/out')
             ),
             timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
@@ -2564,7 +2581,7 @@ class TestWorker (unittest.TestCase):
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
             os.path.join(self.output_dir, 'work/logfile.txt'),
-            os.path.join(self.output_dir, 'work/angry.txt'),
+            os.path.join(self.output_dir, 'work/angry.txt').encode('utf8'),
             os.path.join(self.output_dir, 'work/out')
             ),
             timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
@@ -2606,7 +2623,7 @@ class TestWorker (unittest.TestCase):
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
             os.path.join(self.output_dir, 'work/logfile.txt'),
-            os.path.join(self.output_dir, u'work/so--exalté.txt'),
+            os.path.join(self.output_dir, u'work/so--exalté.txt').encode('utf8'),
             os.path.join(self.output_dir, 'work/out')
             ),
             timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)

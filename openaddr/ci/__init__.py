@@ -503,10 +503,18 @@ def find_batch_sources(owner, repository, github_auth, run_times={}):
 def get_batch_run_times(db, owner, repository):
     ''' Return dictionary of source paths to run time strings like '00:01:23'.
     '''
-    last_set = objects.read_latest_set(db, owner, repository)
-    
     # return this dictionary
     run_times = dict()
+    
+    last_set = objects.read_latest_set(db, owner, repository)
+    
+    if not last_set:
+        return run_times
+    
+    completed_runs_to_date = objects.read_completed_runs_to_date(db, last_set.id)
+    
+    if not completed_runs_to_date:
+        return run_times
     
     for run in objects.read_completed_runs_to_date(db, last_set.id):
         if run.state:
