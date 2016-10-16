@@ -1,3 +1,8 @@
+2016-10-16: 3.0.0
+- Removed openaddr-supervise-extract-collection and openaddr-esri2geojson scripts.
+- Removed support for deprecated split and advanced_merge conforms.
+- Moved local chef config to a data bag.
+
 2016-10-11: 2.37.3
 - Fixed crontab 999-character limit: http://serverfault.com/questions/546342/crontab-maximum-command-length.
 
