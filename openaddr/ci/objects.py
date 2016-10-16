@@ -54,7 +54,7 @@ class Run:
         self.id = id
         self.source_path = source_path
         self.source_id = source_id
-        self.source_data = bytes(source_data)
+        self.source_data = bytes(source_data) if (source_data is not None) else None
         self.datetime_tz = datetime_tz
 
         self.state = state
@@ -333,7 +333,7 @@ def read_run(db, run_id):
     except TypeError:
         return None
     else:
-        return Run(id, source_path, source_id, source_data or b'', datetime_tz,
+        return Run(id, source_path, source_id, source_data, datetime_tz,
                    RunState(state), status, copy_of, code_version, worker_id,
                    job_id, set_id, commit_sha, is_merged)
     
