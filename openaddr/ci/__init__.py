@@ -508,6 +508,11 @@ def get_batch_run_times(db, owner, repository):
     # return this dictionary
     run_times = dict()
     
+    completed_runs_to_date = objects.read_completed_runs_to_date(db, last_set.id)
+    
+    if not completed_runs_to_date:
+        return run_times
+    
     for run in objects.read_completed_runs_to_date(db, last_set.id):
         if run.state:
             if run.state.process_time and run.state.cache_time:
