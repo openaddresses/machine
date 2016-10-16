@@ -207,6 +207,7 @@ def main():
         source, destination = args.source, args.destination
     
     try:
+        _L.info('Processing source, destination: {}, {}'.format(source, destination))
         file_path = process(source, destination)
     except Exception as e:
         _L.error(e, exc_info=True)
