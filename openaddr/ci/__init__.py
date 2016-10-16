@@ -874,6 +874,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
 
             # Send a Due task, possibly for later.
             due_task_data = dict(task_data=task.data, **passed_on_kwargs)
+            _L.info('due_task_data: {}'.format(repr(due_task_data)))
             due_queue.put(due_task_data, schedule_at=td2str(jobs.JOB_TIMEOUT + DUETASK_DELAY))
     
     if previous_run:
@@ -900,6 +901,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
 
     # Send a Done task
     done_task_data = dict(result=result, **passed_on_kwargs)
+    _L.info('done_task_data: {}'.format(repr(done_task_data)))
     done_queue.put(done_task_data, expected_at=td2str(timedelta(0)))
     _L.info('Done')
     
