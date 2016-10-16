@@ -1,3 +1,7 @@
+2016-10-16: 3.0.5
+- Fixed LC_ALL for utf8 encoding in headless processes.
+- Fixed S3 bucket settings to respect configured values.
+
 2016-10-16: 3.0.4
 - Fixed incorrect use of bytes(None) and missing S3 bucket config.
 
