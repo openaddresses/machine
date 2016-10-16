@@ -2528,7 +2528,7 @@ class TestWorker (unittest.TestCase):
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
             os.path.join(self.output_dir, 'work/logfile.txt'),
-            os.path.join(self.output_dir, u'work/so--exalté.txt').encode('utf8'),
+            os.path.join(self.output_dir, u'work/so--exalté.txt'),
             os.path.join(self.output_dir, 'work/out')
             ),
             timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
@@ -2581,7 +2581,7 @@ class TestWorker (unittest.TestCase):
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
             os.path.join(self.output_dir, 'work/logfile.txt'),
-            os.path.join(self.output_dir, 'work/angry.txt').encode('utf8'),
+            os.path.join(self.output_dir, 'work/angry.txt'),
             os.path.join(self.output_dir, 'work/out')
             ),
             timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
@@ -2623,7 +2623,7 @@ class TestWorker (unittest.TestCase):
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
             os.path.join(self.output_dir, 'work/logfile.txt'),
-            os.path.join(self.output_dir, u'work/so--exalté.txt').encode('utf8'),
+            os.path.join(self.output_dir, u'work/so--exalté.txt'),
             os.path.join(self.output_dir, 'work/out')
             ),
             timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
