@@ -86,6 +86,7 @@ def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
     # Invoke the job to do
     logfile_path = os.path.join(workdir, 'logfile.txt')
     cmd = 'openaddr-process-one', '-l', logfile_path, out_fn, oa_dir
+    _L.info('Running command: {}'.format(repr(cmd)))
     try:
         known_error, cmd_status = False, 0
         timeout_seconds = JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400
