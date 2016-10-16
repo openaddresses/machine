@@ -33,7 +33,7 @@ parser.add_argument('-o', '--owner', default='openaddresses',
 parser.add_argument('-r', '--repository', default='openaddresses',
                     help='Github repository name. Defaults to "openaddresses".')
 
-parser.add_argument('-b', '--bucket', default=os.environ.get('AWS_S3_BUCKET', None),
+parser.add_argument('-b', '--bucket', default=environ.get('AWS_S3_BUCKET', None),
                     help='S3 bucket name. Defaults to value of AWS_S3_BUCKET environment variable.')
 
 parser.add_argument('-d', '--database-url', default=environ.get('DATABASE_URL', None),
