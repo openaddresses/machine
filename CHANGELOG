@@ -1,3 +1,6 @@
+2016-10-16: 3.0.3
+- Fixed inaccurate  S3 key.md5 type in tests.
+
 2016-10-16: 3.0.2
 - Fixed Python 2 decode() behavior in process_one.py.
 
