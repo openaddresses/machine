@@ -1,3 +1,7 @@
+2016-10-16: 3.0.7
+- Fixed S3 multipart upload encoding.
+- Fixed S3 bucket choice for coverage maps.
+
 2016-10-16: 3.0.6
 - Fixed import typo.
 
