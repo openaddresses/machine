@@ -15,6 +15,10 @@ Machine Internals
     Periodic and event-driven processes paths through components and persistent
     data stores.
 
+*   **[Install](install.md)**
+    
+    How to install machine from scratch.
+
 For database, EC2, or AWS credentials and other privileged access to the
 internals documented here, contact [Ian Dees](https://github.com/iandees)
 or [Michal Migurski](https://github.com/migurski).
