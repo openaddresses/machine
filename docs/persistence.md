@@ -16,7 +16,7 @@ Database tables:
 
 Other information:
 
-* Complete schema can be [found in `openaddr/ci/schema.pgsql`](https://github.com/openaddresses/machine/blob/2.18.2/openaddr/ci/schema.pgsql).
+* Complete schema can be [found in `openaddr/ci/schema.pgsql`](https://github.com/openaddresses/machine/blob/3.0.7/openaddr/ci/schema.pgsql).
 * Public URL at [`machine-db.openaddresses.io`](postgres://machine-db.openaddresses.io).
 * Lives on an [RDS `db.t2.micro` instance](https://console.aws.amazon.com/rds/home?region=us-east-1#dbinstances:id=machine;sf=all).
 * Two weeks of nightly backups are kept.
