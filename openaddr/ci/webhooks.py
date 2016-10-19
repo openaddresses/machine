@@ -54,8 +54,8 @@ def enforce_signature(route_function):
             return 'sha1={}'.format(hash.hexdigest())
 
         actual = request.headers.get('X-Hub-Signature')
-        expecteds = [_sign(k) for k in current_app.config['WEBHOOK_SECRETS']]
-        expected = ', '.join(expecteds)
+        expecteds = {_sign(k): k for k in current_app.config['WEBHOOK_SECRETS']}
+        expected = ', '.join(expecteds.keys())
         
         if actual not in expecteds:
             # Signature mismatch is an error.
@@ -63,8 +63,13 @@ def enforce_signature(route_function):
             return Response(json.dumps({'error': 'Invalid signature'}),
                             401, content_type='application/json')
 
+        actual_secret = expecteds[actual].decode('utf8')
+        paraphrased_secret = '{}..{}'.format(actual_secret[:1], actual_secret[-3:])
+        
         current_app.logger.info('Matching /hook signature: {actual}'.format(**locals()))
-        return route_function(*args, **kwargs)
+        response = route_function(*args, **kwargs)
+        response.headers['X-Partial-Secret'] = paraphrased_secret
+        return response
 
     return decorated_function
 

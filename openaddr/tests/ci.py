@@ -1313,6 +1313,17 @@ class TestHook (unittest.TestCase):
         self.assertEqual(got_jobs.status_code, 200)
         self.assertEqual(self.last_status_state, 'pending', 'Should be pending even though content is invalid UTF8')
 
+    def test_webhook_good_signature(self):
+        ''' Send a request to /hook with a valid signature.
+        '''
+        data = '''{   }'''
+        
+        with HTTMock(self.response_content):
+            posted = self.client.post('/hook', data=data, headers=signed(data, valid=True))
+        
+        self.assertEqual(posted.status_code, 200)
+        self.assertIn('X-Partial-Secret', posted.headers)
+
     def test_webhook_bad_signature(self):
         ''' Send a request to /hook with an invalid signature.
         '''
@@ -1322,6 +1333,7 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data, headers=signed(data, valid=False))
         
         self.assertEqual(posted.status_code, 401)
+        self.assertNotIn('X-Partial-Secret', posted.headers)
 
     def test_webhook_missing_signature(self):
         ''' Send a request to /hook with no signature.
@@ -1332,6 +1344,7 @@ class TestHook (unittest.TestCase):
             posted = self.client.post('/hook', data=data)
         
         self.assertEqual(posted.status_code, 401)
+        self.assertNotIn('X-Partial-Secret', posted.headers)
 
     def test_webhook_one_master_commit(self):
         ''' Push a single commit with Alameda County source directly to master.
