@@ -3424,5 +3424,19 @@ class TestCollect (unittest.TestCase):
             '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,,',
             ])
 
+class TestTileIndex (unittest.TestCase):
+
+    def setUp(self):
+        '''
+        '''
+        self.output_dir = mkdtemp(prefix='TestTileIndex-')
+        self.s3 = FakeS3()
+    
+    def tearDown(self):
+        '''
+        '''
+        rmtree(self.output_dir)
+        remove(self.s3._fake_keys)
+
 if __name__ == '__main__':
     unittest.main()
