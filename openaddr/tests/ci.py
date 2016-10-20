@@ -3475,18 +3475,18 @@ class TestTileIndex (unittest.TestCase):
         with HTTMock(self.response_content):
             addresses1 = list(iterate_runs_points(self.runs[:1]))
             self.assertEqual(len(addresses1), 5305, 'Should equal first output')
-            self.assertEqual(addresses1[0].source_base, 'us/ca/alameda')
+            self.assertEqual(addresses1[0].result.source_base, 'us/ca/alameda')
 
         with HTTMock(self.response_content):
             addresses2 = list(iterate_runs_points(self.runs[1:]))
             self.assertEqual(len(addresses2), 4912, 'Should equal second output')
-            self.assertEqual(addresses2[0].source_base, 'us/ca/santa_clara')
+            self.assertEqual(addresses2[0].result.source_base, 'us/ca/santa_clara')
 
         with HTTMock(self.response_content):
             addresses3 = list(iterate_runs_points(self.runs))
             self.assertEqual(len(addresses3), 5305 + 4912, 'Should add up to the lengths of both outputs')
-            self.assertEqual(addresses3[0].source_base, 'us/ca/alameda')
-            self.assertEqual(addresses3[-1].source_base, 'us/ca/santa_clara')
+            self.assertEqual(addresses3[0].result.source_base, 'us/ca/alameda')
+            self.assertEqual(addresses3[-1].result.source_base, 'us/ca/santa_clara')
 
     def test_iterate_point_blocks(self):
         '''
@@ -3538,6 +3538,16 @@ class TestTileIndex (unittest.TestCase):
             self.assertEqual(lon2 // 1., -122)
             self.assertEqual(lat2 // 1., 37)
             self.assertEqual(source2, 'us/ca/alameda')
+            
+            self.assertNotIn('us/ca/alameda', tile1.states, 'Alameda is strictly north of 37.0')
+            self.assertIn('us/ca/alameda', tile2.states)
+            
+            self.assertEqual(tile2.states['us/ca/santa_clara'].website, 'https://sftp.sccgov.org/courier/web/1000@/wmLogin.html')
+            self.assertIsNone(tile2.states['us/ca/santa_clara'].license)
+            self.assertFalse(tile2.states['us/ca/santa_clara'].share_alike)
+            self.assertEqual(tile2.states['us/ca/santa_clara'].attribution_required, 'true')
+            self.assertEqual(tile2.states['us/ca/santa_clara'].attribution_name, 'Santa Clara County')
+            self.assertIsNone(tile2.states['us/ca/santa_clara'].attribution_flag)
 
 if __name__ == '__main__':
     unittest.main()

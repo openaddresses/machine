@@ -34,6 +34,7 @@ class Tile:
 
     def __init__(self, key, dirname):
         self.key = key
+        self.states = dict()
         
         handle, self.filename = mkstemp(prefix='tile-', suffix='.csv', dir=dirname)
         close(handle)
@@ -46,7 +47,9 @@ class Tile:
         with csvopen(self.filename, 'a', 'utf8') as file:
             rows = csvDictWriter(file, Tile.columns, encoding='utf8')
             for point in points:
-                row = {SOURCE_COLNAME: point.source_base}
+                self.states[point.result.source_base] = point.result.run_state
+
+                row = {SOURCE_COLNAME: point.result.source_base}
                 row.update(point.row)
                 rows.writerow(row)
 
@@ -72,7 +75,7 @@ def iterate_runs_points(runs):
             
             for row in point_rows:
                 lat, lon = float(row['LAT']), float(row['LON'])
-                yield Point(lon, lat, result.source_base, row)
+                yield Point(lon, lat, result, row)
 
 def iterate_point_blocks(points):
     ''' Group points into blocks by key, generate (key, points) pairs.
@@ -90,13 +93,13 @@ def iterate_point_blocks(points):
     _L.debug(len(list(points)), 'remain')
 
 def populate_tiles(dirname, point_blocks):
-    '''
+    ''' Return a dictionary of Tiles keyed on southwest lon, lat.
     '''
     tiles = dict()
     
     for (key, points) in point_blocks:
         if key not in tiles:
-            print('Adding', key)
+            _L.debug('Adding Tile', key)
             tiles[key] = Tile(key, dirname)
         
         tiles[key].add_points(points)
