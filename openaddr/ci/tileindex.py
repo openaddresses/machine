@@ -4,18 +4,21 @@ from ..compat import standard_library
 
 from zipfile import ZipFile
 from os.path import splitext
-from tempfile import mkstemp
 from io import TextIOWrapper
 from operator import attrgetter
+from tempfile import mkstemp, mkdtemp
 from itertools import groupby, zip_longest
+from argparse import ArgumentParser
+from os import close, environ
 from csv import DictReader
-from os import close
 
-from .. import iterate_local_processed_files
+from . import db_connect, db_cursor, setup_logger, log_function_errors
+from .objects import read_latest_set, read_completed_runs_to_date
+from .. import S3, iterate_local_processed_files, util
 from ..conform import OPENADDR_CSV_SCHEMA
 from ..compat import csvopen, csvDictWriter
 
-BLOCK_SIZE = 10000
+BLOCK_SIZE = 100000
 SOURCE_COLNAME = 'OA:Source'
 TILE_SIZE = 1.
 
@@ -51,14 +54,70 @@ class Tile:
                 row.update(point.row)
                 rows.writerow(row)
 
+parser = ArgumentParser(description='Run some source files.')
+
+parser.add_argument('-o', '--owner', default='openaddresses',
+                    help='Github repository owner. Defaults to "openaddresses".')
+
+parser.add_argument('-r', '--repository', default='openaddresses',
+                    help='Github repository name. Defaults to "openaddresses".')
+
+parser.add_argument('-b', '--bucket', default=environ.get('AWS_S3_BUCKET', None),
+                    help='S3 bucket name. Defaults to value of AWS_S3_BUCKET environment variable.')
+
+parser.add_argument('-d', '--database-url', default=environ.get('DATABASE_URL', None),
+                    help='Optional connection string for database. Defaults to value of DATABASE_URL environment variable.')
+
+parser.add_argument('-a', '--access-key', default=environ.get('AWS_ACCESS_KEY_ID', None),
+                    help='Optional AWS access key name. Defaults to value of AWS_ACCESS_KEY_ID environment variable.')
+
+parser.add_argument('-s', '--secret-key', default=environ.get('AWS_SECRET_ACCESS_KEY', None),
+                    help='Optional AWS secret key name. Defaults to value of AWS_SECRET_ACCESS_KEY environment variable.')
+
+parser.add_argument('--sns-arn', default=environ.get('AWS_SNS_ARN', None),
+                    help='Optional AWS Simple Notification Service (SNS) resource. Defaults to value of AWS_SNS_ARN environment variable.')
+
+parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
+                    action='store_const', dest='loglevel',
+                    const=logging.DEBUG, default=logging.INFO)
+
+parser.add_argument('-q', '--quiet', help='Turn off most logging',
+                    action='store_const', dest='loglevel',
+                    const=logging.WARNING, default=logging.INFO)
+
+@log_function_errors
+def main():
+    ''' Single threaded worker to serve the job queue.
+    '''
+    args = parser.parse_args()
+    setup_logger(args.access_key, args.secret_key, args.sns_arn, log_level=args.loglevel)
+    s3 = S3(args.access_key, args.secret_key, args.bucket)
+    db_args = util.prepare_db_kwargs(args.database_url)
+
+    with db_connect(**db_args) as conn:
+        with db_cursor(conn) as db:
+            set = read_latest_set(db, args.owner, args.repository)
+            runs = read_completed_runs_to_date(db, set and set.id)
+
+    print(runs)
+    dir = mkdtemp(prefix='tileindex-')
+    
+    print(dir)
+    addresses = iterate_runs_points(runs)
+    point_blocks = iterate_point_blocks(addresses)
+    tiles = populate_tiles(dir, point_blocks)
+    
+    for tile in tiles.values():
+        print(tile.key, '-', tile.states)
+
 def iterate_runs_points(runs):
     ''' Iterate over all the points.
     '''
     for result in iterate_local_processed_files(runs):
-        _L.debug('source_base:', result.source_base)
-        _L.debug('filename:', result.filename)
-        _L.debug('run_state:', result.run_state)
-        _L.debug('code_version:', result.code_version)
+        _L.debug('source_base: {}'.format(result.source_base))
+        _L.debug('filename: {}'.format(result.filename))
+        _L.debug('run_state: {}'.format(result.run_state))
+        _L.debug('code_version: {}'.format(result.code_version))
         with open(result.filename, 'rb') as file:
             result_zip = ZipFile(file)
             
@@ -85,10 +144,10 @@ def iterate_point_blocks(points):
         
         for key, key_points in groupby(point_block, attrgetter('key')):
             if key is not filler.key:
-                _L.debug('key:', key)
+                _L.debug('key: {}'.format(key))
                 yield (key, key_points)
     
-    _L.debug(len(list(points)), 'remain')
+    _L.debug('{} remain'.format(len(list(points))))
 
 def populate_tiles(dirname, point_blocks):
     ''' Return a dictionary of Tiles keyed on southwest lon, lat.
@@ -97,9 +156,12 @@ def populate_tiles(dirname, point_blocks):
     
     for (key, points) in point_blocks:
         if key not in tiles:
-            _L.debug('Adding Tile', key)
+            _L.debug('Adding Tile: {}'.format(key))
             tiles[key] = Tile(key, dirname)
         
         tiles[key].add_points(points)
     
     return tiles
+
+if __name__ == '__main__':
+    exit(main())
