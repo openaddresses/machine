@@ -148,8 +148,12 @@ def iterate_runs_points(runs):
             point_rows = DictReader(TextIOWrapper(zipped_file))
             
             for row in point_rows:
-                lat, lon = float(row['LAT']), float(row['LON'])
-                yield Point(lon, lat, result, row)
+                try:
+                    lat, lon = float(row['LAT']), float(row['LON'])
+                except:
+                    pass
+                else:
+                    yield Point(lon, lat, result, row)
 
 def iterate_point_blocks(points):
     ''' Group points into blocks by key, generate (key, points) pairs.
