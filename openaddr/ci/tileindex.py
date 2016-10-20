@@ -16,19 +16,21 @@ from ..conform import OPENADDR_CSV_SCHEMA
 from ..compat import csvopen, csvDictWriter
 
 BLOCK_SIZE = 10000
+SOURCE_COLNAME = 'OA:Source'
 
 class Point:
     
-    def __init__(self, lon, lat, row):
+    def __init__(self, lon, lat, source_base, row):
         self.lon = lon
         self.lat = lat
         self.row = row
+        self.source_base = source_base
         
         self.key = int(lon // 1.), int(lat // 1.) # Southwest corner lon, lat
 
 class Tile:
 
-    columns = OPENADDR_CSV_SCHEMA[:]
+    columns = OPENADDR_CSV_SCHEMA + [SOURCE_COLNAME]
 
     def __init__(self, key, dirname):
         self.key = key
@@ -44,7 +46,9 @@ class Tile:
         with csvopen(self.filename, 'a', 'utf8') as file:
             rows = csvDictWriter(file, Tile.columns, encoding='utf8')
             for point in points:
-                rows.writerow(point.row)
+                row = {SOURCE_COLNAME: point.source_base}
+                row.update(point.row)
+                rows.writerow(row)
 
 def iterate_runs_points(runs):
     ''' Iterate over all the points.
@@ -68,12 +72,12 @@ def iterate_runs_points(runs):
             
             for row in point_rows:
                 lat, lon = float(row['LAT']), float(row['LON'])
-                yield Point(lon, lat, row)
+                yield Point(lon, lat, result.source_base, row)
 
 def iterate_point_blocks(points):
     ''' Group points into blocks by key, generate (key, points) pairs.
     '''
-    args, filler = [points] * BLOCK_SIZE, Point(0, -99, None) # Illegal lon, lat
+    args, filler = [points] * BLOCK_SIZE, Point(0, -99, None, None) # Illegal lon, lat
     
     for block in zip_longest(*args, fillvalue=filler):
         point_block = sorted(block, key=attrgetter('key'))

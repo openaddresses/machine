@@ -3475,14 +3475,18 @@ class TestTileIndex (unittest.TestCase):
         with HTTMock(self.response_content):
             addresses1 = list(iterate_runs_points(self.runs[:1]))
             self.assertEqual(len(addresses1), 5305, 'Should equal first output')
+            self.assertEqual(addresses1[0].source_base, 'us/ca/alameda')
 
         with HTTMock(self.response_content):
             addresses2 = list(iterate_runs_points(self.runs[1:]))
             self.assertEqual(len(addresses2), 4912, 'Should equal second output')
+            self.assertEqual(addresses2[0].source_base, 'us/ca/santa_clara')
 
         with HTTMock(self.response_content):
             addresses3 = list(iterate_runs_points(self.runs))
             self.assertEqual(len(addresses3), 5305 + 4912, 'Should add up to the lengths of both outputs')
+            self.assertEqual(addresses3[0].source_base, 'us/ca/alameda')
+            self.assertEqual(addresses3[-1].source_base, 'us/ca/santa_clara')
 
     def test_iterate_point_blocks(self):
         '''
@@ -3513,13 +3517,27 @@ class TestTileIndex (unittest.TestCase):
             self.assertIn((-122, 37), tiles)
             self.assertIn((-123, 37), tiles)
             
-            for tile in tiles.values():
-                print('Tile:', tile.key, tile.filename)
-                with open(tile.filename) as file:
-                    print('Line:', next(file), end='')
-                    print('Line:', next(file), end='')
-                    print('Line:', next(file), end='')
-                    print('...', len(list(file)), 'more')
+            tile1 = tiles[(-122, 36)]
+            with open(tile1.filename) as file1:
+                # El-Cheapo CSV parser.
+                next(file1)
+                row1 = next(file1).strip().split(',')
+                (lon1, lat1), source1 = map(float, row1[:2]), row1[-1]
+
+            self.assertEqual(lon1 // 1., -122)
+            self.assertEqual(lat1 // 1., 36)
+            self.assertEqual(source1, 'us/ca/santa_clara')
+
+            tile2 = tiles[(-122, 37)]
+            with open(tile2.filename) as file2:
+                # El-Cheapo CSV parser.
+                next(file2)
+                row2 = next(file2).strip().split(',')
+                (lon2, lat2), source2 = map(float, row2[:2]), row2[-1]
+
+            self.assertEqual(lon2 // 1., -122)
+            self.assertEqual(lat2 // 1., 37)
+            self.assertEqual(source2, 'us/ca/alameda')
 
 if __name__ == '__main__':
     unittest.main()
