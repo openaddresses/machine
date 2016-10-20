@@ -4,12 +4,16 @@ from ..compat import standard_library
 
 from zipfile import ZipFile
 from os.path import splitext
-from csv import DictReader
+from tempfile import mkstemp
 from io import TextIOWrapper
 from operator import attrgetter
 from itertools import groupby, zip_longest
+from csv import DictReader
+from os import close
 
 from .. import iterate_local_processed_files
+from ..conform import OPENADDR_CSV_SCHEMA
+from ..compat import csvopen, csvDictWriter
 
 BLOCK_SIZE = 10000
 
@@ -22,8 +26,28 @@ class Point:
         
         self.key = int(lon // 1.), int(lat // 1.) # Southwest corner lon, lat
 
+class Tile:
+
+    columns = OPENADDR_CSV_SCHEMA[:]
+
+    def __init__(self, key, dirname):
+        self.key = key
+        
+        handle, self.filename = mkstemp(prefix='tile-', suffix='.csv', dir=dirname)
+        close(handle)
+        
+        with csvopen(self.filename, 'w', 'utf8') as file:
+            rows = csvDictWriter(file, Tile.columns, encoding='utf8')
+            rows.writerow({k: k for k in Tile.columns})
+    
+    def add_points(self, points):
+        with csvopen(self.filename, 'a', 'utf8') as file:
+            rows = csvDictWriter(file, Tile.columns, encoding='utf8')
+            for point in points:
+                rows.writerow(point.row)
+
 def iterate_runs_points(runs):
-    '''
+    ''' Iterate over all the points.
     '''
     for result in iterate_local_processed_files(runs):
         _L.debug('source_base:', result.source_base)
@@ -47,7 +71,7 @@ def iterate_runs_points(runs):
                 yield Point(lon, lat, row)
 
 def iterate_point_blocks(points):
-    ''' 
+    ''' Group points into blocks by key, generate (key, points) pairs.
     '''
     args, filler = [points] * BLOCK_SIZE, Point(0, -99, None) # Illegal lon, lat
     
@@ -60,3 +84,17 @@ def iterate_point_blocks(points):
                 yield (key, key_points)
     
     _L.debug(len(list(points)), 'remain')
+
+def populate_tiles(dirname, point_blocks):
+    '''
+    '''
+    tiles = dict()
+    
+    for (key, points) in point_blocks:
+        if key not in tiles:
+            print('Adding', key)
+            tiles[key] = Tile(key, dirname)
+        
+        tiles[key].add_points(points)
+    
+    return tiles

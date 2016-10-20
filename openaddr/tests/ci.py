@@ -50,8 +50,11 @@ from ..ci.collect import (
     expand_and_add_csv_to_zipfile, write_to_s3, MULTIPART_CHUNK_SIZE
     )
 
+from ..ci.tileindex import (
+    iterate_runs_points, iterate_point_blocks, populate_tiles
+    )
+
 from ..jobs import JOB_TIMEOUT
-from ..ci.tileindex import iterate_runs_points, iterate_point_blocks
 from ..ci.work import make_source_filename, assemble_output, MAGIC_OK_MESSAGE
 from ..ci.webhooks import apply_webhooks_blueprint
 from ..ci.webapi import apply_webapi_blueprint
@@ -3497,6 +3500,26 @@ class TestTileIndex (unittest.TestCase):
                 self.assertIn(key, ((-123, 37), (-122, 36), (-122, 37)))
                 total2 += len(list(points))
             self.assertEqual(total2, 5305 + 4912, 'Should add up to the lengths of both outputs')
+    
+    def test_populate_tiles(self):
+        '''
+        '''
+        with HTTMock(self.response_content):
+            addresses = iterate_runs_points(self.runs)
+            point_blocks = iterate_point_blocks(addresses)
+            tiles = populate_tiles(self.output_dir, point_blocks)
+            self.assertEqual(len(tiles), 3)
+            self.assertIn((-122, 36), tiles)
+            self.assertIn((-122, 37), tiles)
+            self.assertIn((-123, 37), tiles)
+            
+            for tile in tiles.values():
+                print('Tile:', tile.key, tile.filename)
+                with open(tile.filename) as file:
+                    print('Line:', next(file), end='')
+                    print('Line:', next(file), end='')
+                    print('Line:', next(file), end='')
+                    print('...', len(list(file)), 'more')
 
 if __name__ == '__main__':
     unittest.main()
