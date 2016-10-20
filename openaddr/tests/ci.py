@@ -51,7 +51,7 @@ from ..ci.collect import (
     )
 
 from ..ci.tileindex import (
-    iterate_runs_points, iterate_point_blocks, populate_tiles, TILE_SIZE
+    iterate_runs_points, iterate_point_blocks, populate_tiles, TILE_SIZE, Tile, Point
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -3548,6 +3548,28 @@ class TestTileIndex (unittest.TestCase):
             self.assertEqual(tile2.states['us/ca/santa_clara'].attribution_required, 'true')
             self.assertEqual(tile2.states['us/ca/santa_clara'].attribution_name, 'Santa Clara County')
             self.assertIsNone(tile2.states['us/ca/santa_clara'].attribution_flag)
+    
+    def test_tile_publish(self):
+        '''
+        '''
+        result, s3 = mock.Mock(), mock.Mock()
+        result.source_base = 'xx/anytown'
+        point = Point(0., 0., result, dict(LAT='0.0', LON='0.0'))
+        
+        tile = Tile((0, 0), self.output_dir)
+        tile.add_points([point])
+        
+        with patch('openaddr.ci.collect.write_to_s3') as write_to_s3:
+            tile.publish(s3)
+        
+        _s3, _zip_file, _keyname = write_to_s3.mock_calls[0][1]
+        zipfile = ZipFile(_zip_file, 'r')
+        names = zipfile.namelist()
+        
+        self.assertEqual(len(write_to_s3.mock_calls), 1, 'Write to S3 called just once')
+        self.assertIs(_s3, s3, 'S3 bucket should be first arg')
+        self.assertEqual(_keyname, 'tiles/0.0/0.0.zip')
+        self.assertEqual(names, ['addresses.csv'])
 
 if __name__ == '__main__':
     unittest.main()

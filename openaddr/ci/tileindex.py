@@ -2,17 +2,17 @@ import logging; _L = logging.getLogger('openaddr.ci.tileindex')
 
 from ..compat import standard_library
 
-from zipfile import ZipFile
 from os.path import splitext
 from io import TextIOWrapper
 from operator import attrgetter
 from tempfile import mkstemp, mkdtemp
+from zipfile import ZipFile, ZIP_DEFLATED
 from itertools import groupby, zip_longest
 from argparse import ArgumentParser
 from os import close, environ
 from csv import DictReader
 
-from . import db_connect, db_cursor, setup_logger, log_function_errors
+from . import db_connect, db_cursor, setup_logger, log_function_errors, collect
 from .objects import read_latest_set, read_completed_runs_to_date
 from .. import S3, iterate_local_processed_files, util
 from ..conform import OPENADDR_CSV_SCHEMA
@@ -35,6 +35,7 @@ class Tile:
 
     def __init__(self, key, dirname):
         self.key = key
+        self.dirname = dirname
         self.states = dict()
         
         handle, self.filename = mkstemp(prefix='tile-', suffix='.csv', dir=dirname)
@@ -53,6 +54,20 @@ class Tile:
                 row = {SOURCE_COLNAME: point.result.source_base}
                 row.update(point.row)
                 rows.writerow(row)
+    
+    def publish(self, s3_bucket):
+        '''
+        '''
+        handle, zip_filename = mkstemp(prefix='tile-', suffix='.zip', dir=self.dirname)
+        close(handle)
+        
+        zipfile = ZipFile(zip_filename, 'w', ZIP_DEFLATED, allowZip64=True)
+        zipfile.write(self.filename, 'addresses.csv')
+        zipfile.close()
+        
+        keyname = 'tiles/{:.1f}/{:.1f}.zip'.format(*self.key)
+        
+        collect.write_to_s3(s3_bucket, zipfile.filename, keyname)
 
 parser = ArgumentParser(description='Run some source files.')
 
@@ -109,12 +124,14 @@ def main():
     
     for tile in tiles.values():
         print(tile.key, '-', tile.states)
+        tile.publish(s3.bucket)
 
 def iterate_runs_points(runs):
     ''' Iterate over all the points.
     '''
     for result in iterate_local_processed_files(runs):
-        _L.debug('source_base: {}'.format(result.source_base))
+        _L.info('Indexing points from {}'.format(result.source_base))
+        print(result.run_state.processed)
         _L.debug('filename: {}'.format(result.filename))
         _L.debug('run_state: {}'.format(result.run_state))
         _L.debug('code_version: {}'.format(result.code_version))
@@ -144,8 +161,9 @@ def iterate_point_blocks(points):
         
         for key, key_points in groupby(point_block, attrgetter('key')):
             if key is not filler.key:
-                _L.debug('key: {}'.format(key))
-                yield (key, key_points)
+                key_points_list = list(key_points)
+                _L.debug('Found {} points in tile {}'.format(len(key_points_list), key))
+                yield (key, key_points_list)
     
     _L.debug('{} remain'.format(len(list(points))))
 
