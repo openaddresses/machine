@@ -114,7 +114,7 @@ def main():
             set = read_latest_set(db, args.owner, args.repository)
             runs = read_completed_runs_to_date(db, set and set.id)
 
-    print(runs)
+    print([r.source_path for r in runs])
     dir = mkdtemp(prefix='tileindex-')
     
     print(dir)
@@ -129,7 +129,7 @@ def main():
 def iterate_runs_points(runs):
     ''' Iterate over all the points.
     '''
-    for result in iterate_local_processed_files(runs):
+    for result in iterate_local_processed_files(runs, sort_on='source_path'):
         _L.info('Indexing points from {}'.format(result.source_base))
         print(result.run_state.processed)
         _L.debug('filename: {}'.format(result.filename))

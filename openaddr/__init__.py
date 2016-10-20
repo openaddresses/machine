@@ -210,14 +210,17 @@ def conform(srcjson, destdir, extras):
                          attr_flag,
                          attr_name)
 
-def iterate_local_processed_files(runs):
+def iterate_local_processed_files(runs, sort_on='datetime_tz'):
     ''' Yield a stream of local processed result files for a list of runs.
     
         Used in ci.collect and dotmap processes.
     '''
-    key = lambda run: run.datetime_tz or date(1970, 1, 1)
+    if sort_on == 'source_path':
+        reverse, key = False, lambda run: run.source_path
+    else:
+        reverse, key = True, lambda run: run.datetime_tz or date(1970, 1, 1)
     
-    for run in sorted(runs, key=key, reverse=True):
+    for run in sorted(runs, key=key, reverse=reverse):
         source_base, _ = splitext(relpath(run.source_path, 'sources'))
         processed_url = run.state and run.state.processed
         run_state = run.state
