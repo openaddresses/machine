@@ -150,9 +150,12 @@ def iterate_runs_points(runs):
             for row in point_rows:
                 try:
                     lat, lon = float(row['LAT']), float(row['LON'])
-                except:
-                    pass
-                else:
+                except ValueError:
+                    # Skip this point if the lat/lon don't parse
+                    continue
+                
+                # Include this point if it's on Earth
+                if -180 <= lon <= 180 and -90 <= lat <= 90:
                     yield Point(lon, lat, result, row)
 
 def iterate_point_blocks(points):
