@@ -3470,20 +3470,33 @@ class TestTileIndex (unittest.TestCase):
         '''
         '''
         with HTTMock(self.response_content):
-            addresses = list(iterate_runs_points(self.runs))
-            self.assertEqual(len(addresses), 10217, 'Should add up to the sum of both outputs')
+            addresses1 = list(iterate_runs_points(self.runs[:1]))
+            self.assertEqual(len(addresses1), 5305, 'Should equal first output')
+
+        with HTTMock(self.response_content):
+            addresses2 = list(iterate_runs_points(self.runs[1:]))
+            self.assertEqual(len(addresses2), 4912, 'Should equal second output')
+
+        with HTTMock(self.response_content):
+            addresses3 = list(iterate_runs_points(self.runs))
+            self.assertEqual(len(addresses3), 5305 + 4912, 'Should add up to the lengths of both outputs')
 
     def test_iterate_point_blocks(self):
         '''
         '''
         with HTTMock(self.response_content):
-            addresses = iterate_runs_points(self.runs)
-            
-            total = 0
-            for (key, points) in iterate_point_blocks(addresses):
-                total += len(list(points))
-            
-            self.assertEqual(total, 10217, 'Should add up to the sum of both outputs')
+            total1, addresses1 = 0, iterate_runs_points(self.runs[:1])
+            for (key, points) in iterate_point_blocks(addresses1):
+                self.assertIn(key, ((-123, 37), (-122, 37)), 'Alameda county is north of 37.0')
+                total1 += len(list(points))
+            self.assertEqual(total1, 5305, 'Should equal first output')
+
+        with HTTMock(self.response_content):
+            total2, addresses2 = 0, iterate_runs_points(self.runs)
+            for (key, points) in iterate_point_blocks(addresses2):
+                self.assertIn(key, ((-123, 37), (-122, 36), (-122, 37)))
+                total2 += len(list(points))
+            self.assertEqual(total2, 5305 + 4912, 'Should add up to the lengths of both outputs')
 
 if __name__ == '__main__':
     unittest.main()
