@@ -51,7 +51,7 @@ from ..ci.collect import (
     )
 
 from ..ci.tileindex import (
-    iterate_runs_points, iterate_point_blocks, populate_tiles
+    iterate_runs_points, iterate_point_blocks, populate_tiles, TILE_SIZE
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -3524,8 +3524,8 @@ class TestTileIndex (unittest.TestCase):
                 row1 = next(file1).strip().split(',')
                 (lon1, lat1), source1 = map(float, row1[:2]), row1[-1]
 
-            self.assertEqual(lon1 // 1., -122)
-            self.assertEqual(lat1 // 1., 36)
+            self.assertEqual(lon1 // TILE_SIZE, -122)
+            self.assertEqual(lat1 // TILE_SIZE, 36)
             self.assertEqual(source1, 'us/ca/santa_clara')
 
             tile2 = tiles[(-122, 37)]
@@ -3535,8 +3535,8 @@ class TestTileIndex (unittest.TestCase):
                 row2 = next(file2).strip().split(',')
                 (lon2, lat2), source2 = map(float, row2[:2]), row2[-1]
 
-            self.assertEqual(lon2 // 1., -122)
-            self.assertEqual(lat2 // 1., 37)
+            self.assertEqual(lon2 // TILE_SIZE, -122)
+            self.assertEqual(lat2 // TILE_SIZE, 37)
             self.assertEqual(source2, 'us/ca/alameda')
             
             self.assertNotIn('us/ca/alameda', tile1.states, 'Alameda is strictly north of 37.0')

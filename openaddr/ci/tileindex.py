@@ -17,16 +17,14 @@ from ..compat import csvopen, csvDictWriter
 
 BLOCK_SIZE = 10000
 SOURCE_COLNAME = 'OA:Source'
+TILE_SIZE = 1.
 
 class Point:
     
-    def __init__(self, lon, lat, source_base, row):
-        self.lon = lon
-        self.lat = lat
+    def __init__(self, lon, lat, result, row):
         self.row = row
-        self.source_base = source_base
-        
-        self.key = int(lon // 1.), int(lat // 1.) # Southwest corner lon, lat
+        self.result = result
+        self.key = int(lon // TILE_SIZE), int(lat // TILE_SIZE) # Southwest corner lon, lat
 
 class Tile:
 
