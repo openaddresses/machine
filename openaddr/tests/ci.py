@@ -51,7 +51,7 @@ from ..ci.collect import (
     )
 
 from ..jobs import JOB_TIMEOUT
-from ..ci.tileindex import iterate_runs_points
+from ..ci.tileindex import iterate_runs_points, iterate_point_blocks
 from ..ci.work import make_source_filename, assemble_output, MAGIC_OK_MESSAGE
 from ..ci.webhooks import apply_webhooks_blueprint
 from ..ci.webapi import apply_webapi_blueprint
@@ -3432,6 +3432,13 @@ class TestTileIndex (unittest.TestCase):
         '''
         self.output_dir = mkdtemp(prefix='TestTileIndex-')
         self.s3 = FakeS3()
+
+        _ = mock.Mock()
+        state1 = RunState({"website": None, "attribution required": "true", "skipped": False, "share-alike": "", "license": "http://www.acgov.org/acdata/terms.htm", "cache": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/cache.zip", "sample": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/sample.json", "source": "us--ca--alameda.txt", "version": None, "geometry type": "Point", "fingerprint": "177cd91707ab2c022304130849849255", "address count": 530524, "output": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/output.txt", "cache time": "0:00:17.432042", "attribution name": "Alameda County", "process time": "0:46:52.644191", "processed": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/us/ca/alameda.zip"})
+        state2 = RunState({"website": "https://sftp.sccgov.org/courier/web/1000@/wmLogin.html", "process hash": "e4e98759bfde43880240a1e8fe3be2e1", "attribution required": "true", "skipped": False, "share-alike": "", "license": None, "cache": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/cache.obj", "sample": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/sample.json", "source": "us--ca--santa_clara.txt", "version": None, "geometry type": "Point", "fingerprint": "a8486c25d4865ee091dacc8bb9c88554", "address count": 491270, "output": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/output.txt", "cache time": "0:00:01.883910", "attribution name": "Santa Clara County", "process time": "0:06:24.772217", "processed": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/us/ca/santa_clara.zip"})
+        run1 = Run(_, 'sources/us/ca/alameda.json', _, None, None, state1, _, _, '2.16.1', _, _, _, _, _)
+        run2 = Run(_, 'sources/us/ca/santa_clara.json', _, None, None, state2, _, _, '2.34.1', _, _, _, _, _)
+        self.runs = run1, run2
     
     def tearDown(self):
         '''
@@ -3462,15 +3469,21 @@ class TestTileIndex (unittest.TestCase):
     def test_iterate_runs_points(self):
         '''
         '''
-        _ = mock.Mock()
-        state1 = RunState({"website": None, "attribution required": "true", "skipped": False, "share-alike": "", "license": "http://www.acgov.org/acdata/terms.htm", "cache": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/cache.zip", "sample": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/sample.json", "source": "us--ca--alameda.txt", "version": None, "geometry type": "Point", "fingerprint": "177cd91707ab2c022304130849849255", "address count": 530524, "output": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/output.txt", "cache time": "0:00:17.432042", "attribution name": "Alameda County", "process time": "0:46:52.644191", "processed": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/us/ca/alameda.zip"})
-        state2 = RunState({"website": "https://sftp.sccgov.org/courier/web/1000@/wmLogin.html", "process hash": "e4e98759bfde43880240a1e8fe3be2e1", "attribution required": "true", "skipped": False, "share-alike": "", "license": None, "cache": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/cache.obj", "sample": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/sample.json", "source": "us--ca--santa_clara.txt", "version": None, "geometry type": "Point", "fingerprint": "a8486c25d4865ee091dacc8bb9c88554", "address count": 491270, "output": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/output.txt", "cache time": "0:00:01.883910", "attribution name": "Santa Clara County", "process time": "0:06:24.772217", "processed": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/us/ca/santa_clara.zip"})
-        run1 = Run(_, 'sources/us/ca/alameda.json', _, None, None, state1, _, _, '2.16.1', _, _, _, _, _)
-        run2 = Run(_, 'sources/us/ca/santa_clara.json', _, None, None, state2, _, _, '2.34.1', _, _, _, _, _)
-        
         with HTTMock(self.response_content):
-            addresses = list(iterate_runs_points([run1, run2]))
+            addresses = list(iterate_runs_points(self.runs))
             self.assertEqual(len(addresses), 10217, 'Should add up to the sum of both outputs')
+
+    def test_iterate_point_blocks(self):
+        '''
+        '''
+        with HTTMock(self.response_content):
+            addresses = iterate_runs_points(self.runs)
+            
+            total = 0
+            for (key, points) in iterate_point_blocks(addresses):
+                total += len(list(points))
+            
+            self.assertEqual(total, 10217, 'Should add up to the sum of both outputs')
 
 if __name__ == '__main__':
     unittest.main()
