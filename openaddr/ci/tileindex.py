@@ -2,14 +2,15 @@ import logging; _L = logging.getLogger('openaddr.ci.tileindex')
 
 from ..compat import standard_library
 
-from os.path import splitext
 from io import TextIOWrapper
 from operator import attrgetter
 from tempfile import mkstemp, mkdtemp
 from zipfile import ZipFile, ZIP_DEFLATED
 from itertools import groupby, zip_longest
+from os.path import splitext, join, exists
+from os import close, environ, mkdir
 from argparse import ArgumentParser
-from os import close, environ
+from random import randint
 from csv import DictReader
 
 from . import db_connect, db_cursor, setup_logger, log_function_errors, collect
@@ -181,8 +182,11 @@ def populate_tiles(dirname, point_blocks):
     
     for (key, points) in point_blocks:
         if key not in tiles:
+            tile_dirname = join(dirname, str(randint(100, 999)))
+            if not exists(tile_dirname):
+                mkdir(tile_dirname)
             _L.debug('Adding Tile: {}'.format(key))
-            tiles[key] = Tile(key, dirname)
+            tiles[key] = Tile(key, tile_dirname)
         
         tiles[key].add_points(points)
     
