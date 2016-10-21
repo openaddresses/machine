@@ -119,6 +119,7 @@ LC_ALL=C.UTF-8
   curl -X POST -d '{"text": "Starting new batch run..."}' $SLACK_URL -s ; \
   openaddr-enqueue-sources \
   -d "#{database_url}" \
+  -t "#{github_token}" \
   -a "#{aws_access_id}" \
   -s "#{aws_secret_key}" \
   -b "#{aws_s3_bucket}" \

@@ -1,3 +1,6 @@
+2016-10-21: 3.1.4
+- Fixed Github token in openaddr-enqueue-sources crontab.
+
 2016-10-20: 3.1.3
 - Fixed LC_ALL environment for remotely run user data.
 
