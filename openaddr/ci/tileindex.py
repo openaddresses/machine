@@ -17,7 +17,7 @@ from . import db_connect, db_cursor, setup_logger, log_function_errors, collect
 from .objects import read_latest_set, read_completed_runs_to_date
 from .. import S3, iterate_local_processed_files, util
 from ..conform import OPENADDR_CSV_SCHEMA
-from ..compat import csvopen, csvDictWriter
+from ..compat import csvopen, csvDictWriter, gzopen
 
 BLOCK_SIZE = 100000
 SOURCE_COLNAME = 'OA:Source'
@@ -39,15 +39,15 @@ class Tile:
         self.dirname = dirname
         self.states = dict()
         
-        handle, self.filename = mkstemp(prefix='tile-', suffix='.csv', dir=dirname)
+        handle, self.filename = mkstemp(prefix='tile-', suffix='.csv.gz', dir=dirname)
         close(handle)
         
-        with csvopen(self.filename, 'w', 'utf8') as file:
+        with gzopen(self.filename, 'wt', encoding='utf8') as file:
             rows = csvDictWriter(file, Tile.columns, encoding='utf8')
             rows.writerow({k: k for k in Tile.columns})
     
     def add_points(self, points):
-        with csvopen(self.filename, 'a', 'utf8') as file:
+        with gzopen(self.filename, 'at', encoding='utf8') as file:
             rows = csvDictWriter(file, Tile.columns, encoding='utf8')
             for point in points:
                 self.states[point.result.source_base] = point.result.run_state
@@ -63,9 +63,11 @@ class Tile:
         close(handle)
         
         zipfile = ZipFile(zip_filename, 'w', ZIP_DEFLATED, allowZip64=True)
-        zipfile.write(self.filename, 'addresses.csv')
-        zipfile.close()
         
+        with gzopen(self.filename, 'rb') as file:
+            zipfile.writestr('addresses.csv', file.read())
+
+        zipfile.close()
         keyname = 'tiles/{:.1f}/{:.1f}.zip'.format(*self.key)
         
         collect.write_to_s3(s3_bucket, zipfile.filename, keyname)

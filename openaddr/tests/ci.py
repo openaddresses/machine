@@ -3518,7 +3518,7 @@ class TestTileIndex (unittest.TestCase):
             self.assertIn((-123, 37), tiles)
             
             tile1 = tiles[(-122, 36)]
-            with open(tile1.filename) as file1:
+            with compat.gzopen(tile1.filename, 'rt', encoding='utf8') as file1:
                 # El-Cheapo CSV parser.
                 next(file1)
                 row1 = next(file1).strip().split(',')
@@ -3529,7 +3529,7 @@ class TestTileIndex (unittest.TestCase):
             self.assertEqual(source1, 'us/ca/santa_clara')
 
             tile2 = tiles[(-122, 37)]
-            with open(tile2.filename) as file2:
+            with compat.gzopen(tile2.filename, 'rt', encoding='utf8') as file2:
                 # El-Cheapo CSV parser.
                 next(file2)
                 row2 = next(file2).strip().split(',')
@@ -3570,6 +3570,9 @@ class TestTileIndex (unittest.TestCase):
         self.assertIs(_s3, s3, 'S3 bucket should be first arg')
         self.assertEqual(_keyname, 'tiles/0.0/0.0.zip')
         self.assertEqual(names, ['addresses.csv'])
+        
+        lines = zipfile.read('addresses.csv').decode('utf8').split()
+        self.assertEqual(lines[0], 'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH,OA:Source')
 
 if __name__ == '__main__':
     unittest.main()

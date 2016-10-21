@@ -1,4 +1,5 @@
 import sys
+import gzip
 import io
 
 PY2 = (sys.version_info[0] == 2)
@@ -57,6 +58,11 @@ if PY2:
 
         return unicodecsv.DictWriter(file, fieldnames, **kwargs)
     
+    def gzopen(filename, mode='r', encoding=None):
+        ''' Discard encoding
+        '''
+        return gzip.open(filename, mode=mode)
+    
     def csvopen(filename, mode='r', encoding=None):
         ''' Discard encoding
         '''
@@ -107,6 +113,11 @@ else:
         ''' Discard encoding
         '''
         return csv.DictWriter(file, fieldnames, **kwargs)
+    
+    def gzopen(filename, mode='r', encoding=None):
+        ''' Pass encoding to gzip.open
+        '''
+        return gzip.open(filename, mode=mode, encoding=encoding)
     
     def csvopen(filename, mode='r', encoding=None):
         ''' Pass encoding to io.open
