@@ -1,6 +1,5 @@
 #!/bin/sh -x
 apt-get update -y
-apt-get install -y git htop curl
 
 # (Re)install machine.
 cd /home/ubuntu/machine
