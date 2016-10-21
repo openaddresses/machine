@@ -17,7 +17,7 @@ from . import db_connect, db_cursor, setup_logger, log_function_errors, collect
 from .objects import read_latest_set, read_completed_runs_to_date
 from .. import S3, iterate_local_processed_files, util
 from ..conform import OPENADDR_CSV_SCHEMA
-from ..compat import csvopen, csvDictWriter, gzopen
+from ..compat import gzopen, csvDictWriter
 
 BLOCK_SIZE = 100000
 SOURCE_COLNAME = 'OA:Source'
@@ -72,7 +72,7 @@ class Tile:
         
         collect.write_to_s3(s3_bucket, zipfile.filename, keyname)
 
-parser = ArgumentParser(description='Run some source files.')
+parser = ArgumentParser(description='Create a tiled spatial index of CSV data in S3.')
 
 parser.add_argument('-o', '--owner', default='openaddresses',
                     help='Github repository owner. Defaults to "openaddresses".')
