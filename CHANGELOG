@@ -1,3 +1,6 @@
+2016-10-22: 3.2.1
+- Updated dependency versions.
+
 2016-10-21: 3.2.0
 - Added openaddr-index-tiles script with crontab entry.
 
