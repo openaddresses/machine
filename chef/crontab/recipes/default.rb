@@ -114,8 +114,8 @@ file "/etc/cron.d/openaddr_crontab-dotmap" do
     content <<-CRONTAB
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 SLACK_URL=#{slack_url}
-# Generate OpenAddresses dot map, every third day midnight UTC (5pm PDT)
-0 0	*/3 * *	#{username}	( \
+# Generate OpenAddresses dot map, every fifth day at 5am UTC (10pm PDT)
+0 5	*/5 * *	#{username}	( \
   curl -X POST -d '{"text": "Starting new dot map..."}' $SLACK_URL -s ; \
   openaddr-run-ec2-command \
   --role dotmap \
