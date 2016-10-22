@@ -124,8 +124,8 @@ setup(
         'esridump == 1.4.1',
 
         # Used in openaddr.parcels
-        'Shapely == 1.5.15',
-        'Fiona == 1.6.4',
+        'Shapely == 1.5.17',
+        'Fiona == 1.7.0.post2',
 
         # http://pythonhosted.org/itsdangerous/
         'itsdangerous == 0.24',
