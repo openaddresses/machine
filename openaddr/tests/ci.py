@@ -50,6 +50,10 @@ from ..ci.collect import (
     expand_and_add_csv_to_zipfile, write_to_s3, MULTIPART_CHUNK_SIZE
     )
 
+from ..ci.tileindex import (
+    iterate_runs_points, iterate_point_blocks, populate_tiles, TILE_SIZE, Tile, Point
+    )
+
 from ..jobs import JOB_TIMEOUT
 from ..ci.work import make_source_filename, assemble_output, MAGIC_OK_MESSAGE
 from ..ci.webhooks import apply_webhooks_blueprint
@@ -3423,6 +3427,152 @@ class TestCollect (unittest.TestCase):
             '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,,',
             '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,,',
             ])
+
+class TestTileIndex (unittest.TestCase):
+
+    def setUp(self):
+        '''
+        '''
+        self.output_dir = mkdtemp(prefix='TestTileIndex-')
+        self.s3 = FakeS3()
+
+        _ = mock.Mock()
+        state1 = RunState({"website": None, "attribution required": "true", "skipped": False, "share-alike": "", "license": "http://www.acgov.org/acdata/terms.htm", "cache": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/cache.zip", "sample": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/sample.json", "source": "us--ca--alameda.txt", "version": None, "geometry type": "Point", "fingerprint": "177cd91707ab2c022304130849849255", "address count": 530524, "output": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/output.txt", "cache time": "0:00:17.432042", "attribution name": "Alameda County", "process time": "0:46:52.644191", "processed": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/us/ca/alameda.zip"})
+        state2 = RunState({"website": "https://sftp.sccgov.org/courier/web/1000@/wmLogin.html", "process hash": "e4e98759bfde43880240a1e8fe3be2e1", "attribution required": "true", "skipped": False, "share-alike": "", "license": None, "cache": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/cache.obj", "sample": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/sample.json", "source": "us--ca--santa_clara.txt", "version": None, "geometry type": "Point", "fingerprint": "a8486c25d4865ee091dacc8bb9c88554", "address count": 491270, "output": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/output.txt", "cache time": "0:00:01.883910", "attribution name": "Santa Clara County", "process time": "0:06:24.772217", "processed": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/us/ca/santa_clara.zip"})
+        run1 = Run(_, 'sources/us/ca/alameda.json', _, None, None, state1, _, _, '2.16.1', _, _, _, _, _)
+        run2 = Run(_, 'sources/us/ca/santa_clara.json', _, None, None, state2, _, _, '2.34.1', _, _, _, _, _)
+        self.runs = run1, run2
+    
+    def tearDown(self):
+        '''
+        '''
+        rmtree(self.output_dir)
+        remove(self.s3._fake_keys)
+    
+    def response_content(self, url, request):
+        ''' Fake HTTP responses for use with HTTMock in tests.
+        '''
+        scheme, host, path, _, query, _ = urlparse(url.geturl())
+        local_path = None
+        
+        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/runs/65018/us/ca/alameda.zip'):
+            local_path = os.path.join(os.path.dirname(__file__), 'outputs', 'alameda.zip')
+            headers = {'Last-Modified': 'Sun, 28 Feb 2016 21:27:51 GMT', 'Content-Type': 'application/zip'}
+        
+        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/runs/117966/us/ca/santa_clara.zip'):
+            local_path = os.path.join(os.path.dirname(__file__), 'outputs', 'santa_clara.zip')
+            headers = {'Last-Modified': 'Sun, 09 Oct 2016 06:41:32 GMT', 'Content-Type': 'application/zip'}
+        
+        if local_path:
+            with open(local_path, 'rb') as file:
+                return response(200, file.read(), headers=headers)
+        
+        raise NotImplementedError(url.geturl())
+    
+    def test_iterate_runs_points(self):
+        '''
+        '''
+        with HTTMock(self.response_content):
+            addresses1 = list(iterate_runs_points(self.runs[:1]))
+            self.assertEqual(len(addresses1), 5305, 'Should equal first output')
+            self.assertEqual(addresses1[0].result.source_base, 'us/ca/alameda')
+
+        with HTTMock(self.response_content):
+            addresses2 = list(iterate_runs_points(self.runs[1:]))
+            self.assertEqual(len(addresses2), 4912, 'Should equal second output')
+            self.assertEqual(addresses2[0].result.source_base, 'us/ca/santa_clara')
+
+        with HTTMock(self.response_content):
+            addresses3 = list(iterate_runs_points(self.runs))
+            self.assertEqual(len(addresses3), 5305 + 4912, 'Should add up to the lengths of both outputs')
+            self.assertEqual(addresses3[0].result.source_base, 'us/ca/alameda')
+            self.assertEqual(addresses3[-1].result.source_base, 'us/ca/santa_clara')
+
+    def test_iterate_point_blocks(self):
+        '''
+        '''
+        with HTTMock(self.response_content):
+            total1, addresses1 = 0, iterate_runs_points(self.runs[:1])
+            for (key, points) in iterate_point_blocks(addresses1):
+                self.assertIn(key, ((-123, 37), (-122, 37)), 'Alameda county is north of 37.0')
+                total1 += len(list(points))
+            self.assertEqual(total1, 5305, 'Should equal first output')
+
+        with HTTMock(self.response_content):
+            total2, addresses2 = 0, iterate_runs_points(self.runs)
+            for (key, points) in iterate_point_blocks(addresses2):
+                self.assertIn(key, ((-123, 37), (-122, 36), (-122, 37)))
+                total2 += len(list(points))
+            self.assertEqual(total2, 5305 + 4912, 'Should add up to the lengths of both outputs')
+    
+    def test_populate_tiles(self):
+        '''
+        '''
+        with HTTMock(self.response_content):
+            addresses = iterate_runs_points(self.runs)
+            point_blocks = iterate_point_blocks(addresses)
+            tiles = populate_tiles(self.output_dir, point_blocks)
+            self.assertEqual(len(tiles), 3)
+            self.assertIn((-122, 36), tiles)
+            self.assertIn((-122, 37), tiles)
+            self.assertIn((-123, 37), tiles)
+            
+            tile1 = tiles[(-122, 36)]
+            with compat.gzopen(tile1.filename, 'rt', encoding='utf8') as file1:
+                # El-Cheapo CSV parser.
+                next(file1)
+                row1 = next(file1).strip().split(',')
+                (lon1, lat1), source1 = map(float, row1[:2]), row1[-1]
+
+            self.assertEqual(lon1 // TILE_SIZE, -122)
+            self.assertEqual(lat1 // TILE_SIZE, 36)
+            self.assertEqual(source1, 'us/ca/santa_clara')
+
+            tile2 = tiles[(-122, 37)]
+            with compat.gzopen(tile2.filename, 'rt', encoding='utf8') as file2:
+                # El-Cheapo CSV parser.
+                next(file2)
+                row2 = next(file2).strip().split(',')
+                (lon2, lat2), source2 = map(float, row2[:2]), row2[-1]
+
+            self.assertEqual(lon2 // TILE_SIZE, -122)
+            self.assertEqual(lat2 // TILE_SIZE, 37)
+            self.assertEqual(source2, 'us/ca/alameda')
+            
+            self.assertNotIn('us/ca/alameda', tile1.states, 'Alameda is strictly north of 37.0')
+            self.assertIn('us/ca/alameda', tile2.states)
+            
+            self.assertEqual(tile2.states['us/ca/santa_clara'].website, 'https://sftp.sccgov.org/courier/web/1000@/wmLogin.html')
+            self.assertIsNone(tile2.states['us/ca/santa_clara'].license)
+            self.assertFalse(tile2.states['us/ca/santa_clara'].share_alike)
+            self.assertEqual(tile2.states['us/ca/santa_clara'].attribution_required, 'true')
+            self.assertEqual(tile2.states['us/ca/santa_clara'].attribution_name, 'Santa Clara County')
+            self.assertIsNone(tile2.states['us/ca/santa_clara'].attribution_flag)
+    
+    def test_tile_publish(self):
+        '''
+        '''
+        result, s3 = mock.Mock(), mock.Mock()
+        result.source_base = 'xx/anytown'
+        point = Point(0., 0., result, dict(LAT='0.0', LON='0.0'))
+        
+        tile = Tile((0, 0), self.output_dir)
+        tile.add_points([point])
+        
+        with patch('openaddr.ci.collect.write_to_s3') as write_to_s3:
+            tile.publish(s3)
+        
+        _s3, _zip_file, _keyname = write_to_s3.mock_calls[0][1]
+        zipfile = ZipFile(_zip_file, 'r')
+        names = zipfile.namelist()
+        
+        self.assertEqual(len(write_to_s3.mock_calls), 1, 'Write to S3 called just once')
+        self.assertIs(_s3, s3, 'S3 bucket should be first arg')
+        self.assertEqual(_keyname, 'tiles/0.0/0.0.zip')
+        self.assertEqual(names, ['addresses.csv'])
+        
+        lines = zipfile.read('addresses.csv').decode('utf8').split()
+        self.assertEqual(lines[0], 'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH,OA:Source')
 
 if __name__ == '__main__':
     unittest.main()

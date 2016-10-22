@@ -24,8 +24,12 @@ from openaddr.tests.render import TestRender
 from openaddr.tests.dotmap import TestDotmap
 from openaddr.tests.util import TestUtilities
 from openaddr.tests.summarize import TestSummarizeFunctions
-from openaddr.tests.ci import TestHook, TestRuns, TestWorker, TestBatch, TestObjects, TestCollect, TestAPI, TestQueue, TestAuth
 from openaddr.tests.parcels import TestParcelsUtils, TestParcelsParse
+
+from openaddr.tests.ci import (
+    TestHook, TestRuns, TestWorker, TestBatch, TestObjects, TestCollect,
+    TestAPI, TestQueue, TestAuth, TestTileIndex
+    )
 
 if __name__ == '__main__':
     # Allow the user to turn on logging with -l or --logall

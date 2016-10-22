@@ -49,6 +49,7 @@ setup(
             'openaddr-ci-worker = openaddr.ci.worker:main',
             'openaddr-enqueue-sources = openaddr.ci.enqueue:main',
             'openaddr-collect-extracts = openaddr.ci.collect:main',
+            'openaddr-index-tiles = openaddr.ci.tileindex:main',
             'openaddr-run-ec2-command = openaddr.run_ec2_ami:main',
             'openaddr-update-dotmap = openaddr.dotmap:main',
         ]
@@ -62,7 +63,7 @@ setup(
             'schema.pgsql', 'templates/*.*', 'static/*.*'
         ],
         'openaddr.tests': [
-            'data/*.*', 'sources/*.*', 'sources/fr/*.*',
+            'data/*.*', 'outputs/*.*', 'sources/*.*', 'sources/fr/*.*',
             'sources/us/*/*.*', 'sources/de/*.*', 'sources/nl/*.*',
             'conforms/lake-man-gdb.gdb/*',
             'conforms/*.csv', 'conforms/*.dbf', 'conforms/*.zip', 'conforms/*.gfs',
