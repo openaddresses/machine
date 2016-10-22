@@ -108,8 +108,8 @@ setup(
         # http://initd.org/psycopg/
         'psycopg2 == 2.6.1',
         
-        # https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1306991/comments/10
-        'requests == 2.2.1',
+        # http://docs.python-requests.org/en/master/
+        'requests == 2.11.1',
 
         # https://pypi.python.org/pypi/requests-ftp, appears no longer maintained.
         'requests-ftp == 0.2.0',
