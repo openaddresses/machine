@@ -1,3 +1,6 @@
+2016-10-21: 3.2.0
+- Added openaddr-index-tiles script with crontab entry.
+
 2016-10-21: 3.1.4
 - Fixed Github token in openaddr-enqueue-sources crontab.
 
