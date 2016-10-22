@@ -118,7 +118,7 @@ setup(
         'httmock == 1.2.5',
         
         # https://boto3.readthedocs.org
-        'boto3 == 1.1.4',
+        'boto3 == 1.4.1',
 
         # https://github.com/openaddresses/pyesridump
         'esridump == 1.4.1',
