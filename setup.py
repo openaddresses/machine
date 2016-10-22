@@ -91,10 +91,10 @@ setup(
         'Flask-Cors == 3.0.2',
         
         # https://www.palletsproject.com/projects/werkzeug/
-        'Werkzeug == 0.11.5',
+        'Werkzeug == 0.11.11',
         
         # http://gunicorn.org
-        'gunicorn == 19.3.0',
+        'gunicorn == 19.6.0',
 
         # http://www.voidspace.org.uk/python/mock/
         'mock == 1.0.1',
