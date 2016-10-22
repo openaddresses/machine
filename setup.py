@@ -97,7 +97,7 @@ setup(
         'gunicorn == 19.6.0',
 
         # http://www.voidspace.org.uk/python/mock/
-        'mock == 1.0.1',
+        'mock == 2.0.0',
 
         # https://github.com/uri-templates/uritemplate-py/
         'uritemplate == 0.6',
