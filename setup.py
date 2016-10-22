@@ -115,7 +115,7 @@ setup(
         'requests-ftp == 0.2.0',
 
         # https://github.com/patrys/httmock
-        'httmock >= 1.2',
+        'httmock == 1.2.5',
         
         # https://boto3.readthedocs.org
         'boto3 == 1.1.4',
