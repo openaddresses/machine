@@ -82,50 +82,50 @@ setup(
     },
     test_suite = 'openaddr.tests',
     install_requires = [
-        'boto >= 2.22.0', 'Jinja2 >= 2.7.0', 'dateutils >= 0.6', 'ijson >= 2.0',
+        'boto == 2.43.0', 'Jinja2 == 2.8.0', 'dateutils == 0.6.6', 'ijson == 2.3',
 
         # http://flask.pocoo.org
-        'Flask == 0.10.1',
+        'Flask == 0.11.1',
         
         # http://flask-cors.corydolphin.com
-        'Flask-Cors == 2.1.2',
+        'Flask-Cors == 3.0.2',
         
         # https://www.palletsproject.com/projects/werkzeug/
-        'Werkzeug == 0.11.5',
+        'Werkzeug == 0.11.11',
         
         # http://gunicorn.org
-        'gunicorn == 19.3.0',
+        'gunicorn == 19.6.0',
 
         # http://www.voidspace.org.uk/python/mock/
-        'mock == 1.0.1',
+        'mock == 2.0.0',
 
         # https://github.com/uri-templates/uritemplate-py/
         'uritemplate == 0.6',
         
         # https://github.com/malthe/pq/
-        'pq == 1.3',
+        'pq == 1.4',
         
         # http://initd.org/psycopg/
-        'psycopg2 == 2.6.1',
+        'psycopg2 == 2.6.2',
         
-        # https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1306991/comments/10
-        'requests == 2.2.1',
+        # http://docs.python-requests.org/en/master/
+        'requests == 2.11.1',
 
         # https://pypi.python.org/pypi/requests-ftp, appears no longer maintained.
         'requests-ftp == 0.2.0',
 
         # https://github.com/patrys/httmock
-        'httmock >= 1.2',
+        'httmock == 1.2.5',
         
         # https://boto3.readthedocs.org
-        'boto3 == 1.1.4',
+        'boto3 == 1.4.1',
 
         # https://github.com/openaddresses/pyesridump
         'esridump == 1.4.1',
 
         # Used in openaddr.parcels
-        'Shapely == 1.5.15',
-        'Fiona == 1.6.4',
+        'Shapely == 1.5.17',
+        'Fiona == 1.7.0.post2',
 
         # http://pythonhosted.org/itsdangerous/
         'itsdangerous == 0.24',
