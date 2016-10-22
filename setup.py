@@ -82,7 +82,7 @@ setup(
     },
     test_suite = 'openaddr.tests',
     install_requires = [
-        'boto >= 2.22.0', 'Jinja2 >= 2.7.0', 'dateutils >= 0.6', 'ijson >= 2.0',
+        'boto == 2.43.0', 'Jinja2 == 2.8.0', 'dateutils == 0.6.6', 'ijson == 2.3',
 
         # http://flask.pocoo.org
         'Flask == 0.10.1',
