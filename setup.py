@@ -85,10 +85,10 @@ setup(
         'boto == 2.43.0', 'Jinja2 == 2.8.0', 'dateutils == 0.6.6', 'ijson == 2.3',
 
         # http://flask.pocoo.org
-        'Flask == 0.10.1',
+        'Flask == 0.11.1',
         
         # http://flask-cors.corydolphin.com
-        'Flask-Cors == 2.1.2',
+        'Flask-Cors == 3.0.2',
         
         # https://www.palletsproject.com/projects/werkzeug/
         'Werkzeug == 0.11.5',
