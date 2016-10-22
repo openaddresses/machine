@@ -103,10 +103,10 @@ setup(
         'uritemplate == 0.6',
         
         # https://github.com/malthe/pq/
-        'pq == 1.3',
+        'pq == 1.4',
         
         # http://initd.org/psycopg/
-        'psycopg2 == 2.6.1',
+        'psycopg2 == 2.6.2',
         
         # http://docs.python-requests.org/en/master/
         'requests == 2.11.1',
