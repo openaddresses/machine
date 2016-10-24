@@ -28,7 +28,7 @@ class Point:
     def __init__(self, lon, lat, result, row):
         self.row = row
         self.result = result
-        self.key = int(lon // TILE_SIZE), int(lat // TILE_SIZE) # Southwest corner lon, lat
+        self.key = lonlat_key(lon, lat)
 
 class Tile:
 
@@ -131,6 +131,11 @@ def main():
     for tile in tiles.values():
         print(tile.key, '-', len(tile.results), 'sources')
         tile.publish(s3.bucket)
+
+def lonlat_key(lon, lat):
+    '''
+    '''
+    return int(lon // TILE_SIZE), int(lat // TILE_SIZE) # Southwest corner lon, lat
 
 def iterate_runs_points(runs):
     ''' Iterate over all the points, skipping share-alike sources.

@@ -51,7 +51,7 @@ from ..ci.collect import (
     )
 
 from ..ci.tileindex import (
-    iterate_runs_points, iterate_point_blocks, populate_tiles, TILE_SIZE, Tile, Point
+    iterate_runs_points, iterate_point_blocks, populate_tiles, lonlat_key, Tile, Point
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -738,6 +738,7 @@ class TestAPI (unittest.TestCase):
         self.assertEqual(index['run_states_url'], 'http://localhost/state.txt')
         self.assertEqual(index['latest_run_processed_url'], 'http://localhost/latest/run/{source}.zip')
         self.assertEqual(index['licenses_url'], 'http://localhost/latest/licenses.json')
+        self.assertEqual(index['tileindex_url'], 'http://localhost/tiles/{lon}/{lat}.zip')
         
         self.assertEqual(colls['global']['']['url'], 'http://data.openaddresses.io/openaddr-collected-global.zip')
         self.assertEqual(colls['global']['sa']['url'], 'http://data.openaddresses.io/openaddr-collected-global-sa.zip')
@@ -845,6 +846,33 @@ class TestAPI (unittest.TestCase):
             for (key, value) in got_state3.items():
                 if key in run_state3:
                     self.assertEqual(value, run_state3[key])
+    
+    def test_tile_redirects(self):
+        '''
+        '''
+        got1 = self.client.get('tiles/-123/37.zip')
+        self.assertEqual(got1.status_code, 302)
+        self.assertIn('tiles/-123.0/37.0.zip', got1.headers['location'])
+
+        got2 = self.client.get('tiles/-123.001/37.001.zip')
+        self.assertEqual(got2.status_code, 302)
+        self.assertIn('tiles/-124.0/37.0.zip', got2.headers['location'])
+
+        got3 = self.client.get('tiles/-123.100/37.100.zip')
+        self.assertEqual(got3.status_code, 302)
+        self.assertIn('tiles/-124.0/37.0.zip', got3.headers['location'])
+
+        got4 = self.client.get('tiles/-123/yo.zip')
+        self.assertEqual(got4.status_code, 404)
+
+        got5 = self.client.get('tiles/yo/37.zip')
+        self.assertEqual(got5.status_code, 404)
+
+        got6 = self.client.get('tiles/999/37.zip')
+        self.assertEqual(got6.status_code, 404)
+
+        got7 = self.client.get('tiles/-123/999.zip')
+        self.assertEqual(got7.status_code, 404)
 
 class TestAuth (unittest.TestCase):
     
@@ -3530,8 +3558,7 @@ class TestTileIndex (unittest.TestCase):
                 row1 = next(file1).strip().split(',')
                 (lon1, lat1), source1 = map(float, row1[:2]), row1[-1]
 
-            self.assertEqual(lon1 // TILE_SIZE, -122)
-            self.assertEqual(lat1 // TILE_SIZE, 36)
+            self.assertEqual(lonlat_key(lon1, lat1), (-122, 36))
             self.assertEqual(source1, 'us/ca/santa_clara')
 
             tile2 = tiles[(-122, 37)]
@@ -3541,8 +3568,7 @@ class TestTileIndex (unittest.TestCase):
                 row2 = next(file2).strip().split(',')
                 (lon2, lat2), source2 = map(float, row2[:2]), row2[-1]
 
-            self.assertEqual(lon2 // TILE_SIZE, -122)
-            self.assertEqual(lat2 // TILE_SIZE, 37)
+            self.assertEqual(lonlat_key(lon2, lat2), (-122, 37))
             self.assertEqual(source2, 'us/ca/alameda')
             
             tile1_sources = [result.source_base for result in tile1.results]

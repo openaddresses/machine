@@ -5,7 +5,7 @@ from operator import attrgetter
 from collections import defaultdict
 import json, os
 
-from flask import Response, Blueprint, request, current_app, jsonify, url_for
+from flask import Response, Blueprint, request, current_app, jsonify, url_for, redirect
 from flask.ext.cors import CORS
 
 from .objects import (
@@ -13,7 +13,7 @@ from .objects import (
     new_read_completed_set_runs
     )
 
-from . import setup_logger, db_connect, db_cursor
+from . import setup_logger, db_connect, db_cursor, tileindex
 from .webcommon import log_application_errors, nice_domain
 from ..compat import expand_uri, csvIO, csvDictWriter
 from .. import compat
@@ -53,6 +53,7 @@ def app_index_json():
     
     run_states_url = url_for('webapi.app_get_state_txt')
     latest_run_processed_url = url_for('webhooks.app_get_latest_run', source='____').replace('____', '{source}')
+    tileindex_url = url_for('webapi.app_get_tileindex_zip', lon='xxx', lat='yyy').replace('xxx', '{lon}').replace('yyy', '{lat}')
     licenses_url = url_for('webapi.app_licenses_json')
 
     if compat.PY2:
@@ -63,6 +64,7 @@ def app_index_json():
     return jsonify({
         'run_states_url': urljoin(request.url, run_states_url),
         'latest_run_processed_url': urljoin(request.url, latest_run_processed_url),
+        'tileindex_url': urljoin(request.url, tileindex_url),
         'licenses_url': urljoin(request.url, licenses_url),
         'collections': collections
         })
@@ -145,6 +147,22 @@ def app_get_set_state_txt(set_id):
 
     return Response(buffer.getvalue(),
                     headers={'Content-Type': 'text/plain; charset=utf8'})
+
+@webapi.route('/tiles/<lon>/<lat>.zip', methods=['GET'])
+@log_application_errors
+def app_get_tileindex_zip(lon, lat):
+    '''
+    '''
+    try:
+        key = tileindex.lonlat_key(float(lon), float(lat))
+    except ValueError:
+        return Response('"{}" and "{}" must both be numeric.\n'.format(lon, lat), status=404)
+    
+    if not (-180 <= key[0] <= 180 and -90 <= key[1] <= 90):
+        return Response('"{}" and "{}" must both be on earth.\n'.format(lon, lat), status=404)
+
+    url = 'http://data.openaddresses.io/tiles/{:.1f}/{:.1f}.zip'.format(*key)
+    return redirect(url, 302)
 
 def apply_webapi_blueprint(app):
     '''
