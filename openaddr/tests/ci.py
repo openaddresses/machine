@@ -3110,7 +3110,9 @@ class TestCollect (unittest.TestCase):
                 s3_key_mock.generate_url.return_value = 'http://internet/collected-local.zip'
                 write_to_s3.return_value = s3_key_mock
 
-                collector_publisher.publish(db)
+                with patch('openaddr.util.summarize_result_licenses') as summarize_result_licenses:
+                    summarize_result_licenses.return_value = str(uuid4())
+                    collector_publisher.publish(db)
 
             write_to_s3.assert_has_calls([
                 mock.call(S3.bucket, collected_zip.filename, collected_zip.filename)
@@ -3125,9 +3127,7 @@ class TestCollect (unittest.TestCase):
         self.assertEqual(len(collected_zip.writestr.mock_calls), 1)
         filename, content = collected_zip.writestr.mock_calls[0][1]
         self.assertEqual(filename, 'LICENSE.txt')
-        self.assertTrue('abc\nWebsite: Unknown\nLicense: ODbL\nRequired attribution: ABC Co.\n' in content.decode('utf8'))
-        self.assertTrue('def\nWebsite: http://example.com\nLicense: Unknown\nRequired attribution: No\n' in content.decode('utf8'))
-        self.assertTrue('ghi\nWebsite: Unknown\nLicense: Unknown\nRequired attribution: Yes\n' in content.decode('utf8'))
+        self.assertTrue(content.decode('utf8'), summarize_result_licenses.return_value)
 
         collected_zip.close.assert_called_once_with()
 

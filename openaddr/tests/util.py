@@ -112,7 +112,7 @@ class TestUtilities (unittest.TestCase):
 
         instance.add_tag.assert_called_once_with('Name', expected_instance_name)
     
-    def test_generate_license_summary(self):
+    def test_summarize_result_licenses(self):
         '''
         '''
         s1 = {'license': 'ODbL', 'attribution name': 'ABC Co.'}

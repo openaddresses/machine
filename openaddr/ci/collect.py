@@ -146,7 +146,7 @@ class CollectorPublisher:
     def __init__(self, s3, collection_zip, collection_id, license_attr):
         self.s3 = s3
         self.zip = collection_zip
-        self.sources = dict()
+        self.results = set()
         self.collection_id = collection_id
         self.license_attr = license_attr
 
@@ -155,28 +155,13 @@ class CollectorPublisher:
         '''
         _L.info(u'Adding {} to {}'.format(result.source_base, self.zip.filename))
         add_source_to_zipfile(self.zip, result)
-
-        attribution = 'No'
-        if result.run_state.attribution_flag != 'false':
-            attribution = result.run_state.attribution_name or 'Yes'
-
-        self.sources[result.source_base] = {
-            'website': result.run_state.website or 'Unknown',
-            'license': result.run_state.license or 'Unknown',
-            'attribution': attribution
-            }
+        self.results.add(result)
 
     def publish(self, db):
         ''' Create new S3 object with zipfile name and upload the collection.
         '''
-        # Write a short file with source licenses.
-        template = u'{source}\nWebsite: {website}\nLicense: {license}\nRequired attribution: {attribution}\n'
-        license_lines = [u'Data collected by OpenAddresses (http://openaddresses.io).\n']
-        for (source, data) in sorted(self.sources.items()):
-            line = template.format(source=source, **data)
-            license_lines.append(line)
-
-        self.zip.writestr('LICENSE.txt', u'\n'.join(license_lines).encode('utf8'))
+        license_text = util.summarize_result_licenses(self.results)
+        self.zip.writestr('LICENSE.txt', license_text.encode('utf8'))
 
         self.zip.close()
         _L.info(u'Finished {}'.format(self.zip.filename))
