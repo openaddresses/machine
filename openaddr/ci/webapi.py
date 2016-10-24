@@ -59,6 +59,7 @@ def app_index_json():
     if compat.PY2:
         run_states_url = run_states_url.decode('utf8')
         latest_run_processed_url = latest_run_processed_url.decode('utf8')
+        tileindex_url = tileindex_url.decode('utf8')
         licenses_url = licenses_url.decode('utf8')
 
     return jsonify({
@@ -162,7 +163,7 @@ def app_get_tileindex_zip(lon, lat):
         return Response('"{}" and "{}" must both be on earth.\n'.format(lon, lat), status=404)
 
     bucket = current_app.config['AWS_S3_BUCKET']
-    url = 'https://s3.amazonaws.com/{}/tiles/{:.1f}/{:.1f}.zip'.format(bucket, *key)
+    url = u'https://s3.amazonaws.com/{}/tiles/{:.1f}/{:.1f}.zip'.format(bucket, *key)
     return redirect(nice_domain(url), 302)
 
 def apply_webapi_blueprint(app):
