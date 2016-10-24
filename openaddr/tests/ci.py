@@ -3565,7 +3565,9 @@ class TestTileIndex (unittest.TestCase):
         tile.add_points([point])
         
         with patch('openaddr.ci.collect.write_to_s3') as write_to_s3:
-            tile.publish(s3)
+            with patch('openaddr.util.summarize_result_licenses') as summarize_result_licenses:
+                summarize_result_licenses.return_value = str(uuid4())
+                tile.publish(s3)
         
         _s3, _zip_file, _keyname = write_to_s3.mock_calls[0][1]
         zipfile = ZipFile(_zip_file, 'r')
@@ -3574,10 +3576,13 @@ class TestTileIndex (unittest.TestCase):
         self.assertEqual(len(write_to_s3.mock_calls), 1, 'Write to S3 called just once')
         self.assertIs(_s3, s3, 'S3 bucket should be first arg')
         self.assertEqual(_keyname, 'tiles/0.0/0.0.zip')
-        self.assertEqual(names, ['addresses.csv'])
+        self.assertEqual(names, ['addresses.csv', 'LICENSE.txt'])
         
         lines = zipfile.read('addresses.csv').decode('utf8').split()
         self.assertEqual(lines[0], 'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH,OA:Source')
+        
+        license = zipfile.read('LICENSE.txt').decode('utf8')
+        self.assertEqual(license, summarize_result_licenses.return_value)
 
 if __name__ == '__main__':
     unittest.main()

@@ -67,6 +67,9 @@ class Tile:
         with gzopen(self.filename, 'rb') as file:
             zipfile.writestr('addresses.csv', file.read())
 
+        license_text = util.summarize_result_licenses(self.results)
+        zipfile.writestr('LICENSE.txt', license_text.encode('utf8'))
+
         zipfile.close()
         keyname = 'tiles/{:.1f}/{:.1f}.zip'.format(*self.key)
         
