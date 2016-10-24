@@ -3373,7 +3373,11 @@ class TestCollect (unittest.TestCase):
         input4 = u'LON,LAT,NUMBER,STREET,CITY,DISTRICT,REGION,POSTCODE,GOODTIMES\n-122.2359742,37.7362507,85,MAITLAND DR,ALAMEDA,,,94502,goodtimes\n-122.2353881,37.7223605,1360,S LOOP RD,ALAMEDA,,,94502,goodtimes\n-122.2385597,37.7284071,3508,CATALINA AV,ALAMEDA,,,94502,goodtimes\n-122.2368942,37.7305041,3512,MCSHERRY WY,ALAMEDA,,,94502,goodtimes\n-122.2349371,37.7357455,514,FLOWER LA,ALAMEDA,,,94502,goodtimes\n-122.2367819,37.7342157,1014,HOLLY ST,ALAMEDA,,,94502,goodtimes\n'
         expand_and_add_csv_to_zipfile(output, u'us/ca/älameda.csv', BytesIO(input4.encode('utf8')), False)
         
-        self.assertEqual(len(output.write.mock_calls), 10)
+        # Collection with illegal lat/lon value.
+        input5 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH\n-104.6843547,39.5793748,26050,E JAMISON CIR N,, CO,,,80016-2056,,629e0367e92b4c47\n-1.79769313486e+308,-1.79769313486e+308,26900,E COLFAX AVE,428,,,,,,8764a6de3c9f688c\n-104.1139093,39.6761295,2050,S PEORIA CROSSING RD,, CO,,,,,28b370f54c8e40ef\n'
+        expand_and_add_csv_to_zipfile(output, u'us/co/arapahoe.csv', BytesIO(input5.encode('utf8')), False)
+        
+        self.assertEqual(len(output.write.mock_calls), 12)
 
         self.assertEqual(output.write.mock_calls[0][1][1], u'us/ca/älameda.csv')
         self.assertEqual(output.write.mock_calls[1][1][1], u'summary/us/ca/älameda-summary.csv')
@@ -3385,6 +3389,8 @@ class TestCollect (unittest.TestCase):
         self.assertEqual(output.write.mock_calls[7][1][1], 'summary/de/he/frankfurt-summary.csv')
         self.assertEqual(output.write.mock_calls[8][1][1], output.write.mock_calls[0][1][1])
         self.assertEqual(output.write.mock_calls[9][1][1], output.write.mock_calls[1][1][1])
+        self.assertEqual(output.write.mock_calls[10][1][1], 'us/co/arapahoe.csv')
+        self.assertEqual(output.write.mock_calls[11][1][1], 'summary/us/co/arapahoe-summary.csv')
         
         self.assertIn(u'älameda'.encode('utf8'), output_writestr_contents[0])
         self.assertIn(u'älameda'.encode('utf8'), output_writestr_contents[1])
@@ -3454,6 +3460,20 @@ class TestCollect (unittest.TestCase):
             '-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,,',
             '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,,',
             '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,,',
+            ])
+        
+        # input5
+        self.assertEqual(output_write_contents[10],
+            [
+            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH',
+            '-104.6843547,39.5793748,26050,E JAMISON CIR N,, CO,,,80016-2056,,629e0367e92b4c47',
+            '-104.1139093,39.6761295,2050,S PEORIA CROSSING RD,, CO,,,,,28b370f54c8e40ef'
+            ])
+        self.assertEqual(output_write_contents[11],
+            [
+            'count,lon,lat,area',
+            '1,-104.7,39.5,"POLYGON((-104.7 39.5,-104.7 39.6,-104.6 39.6,-104.6 39.5,-104.7 39.5))"',
+            '1,-104.2,39.6,"POLYGON((-104.2 39.6,-104.2 39.7,-104.1 39.7,-104.1 39.6,-104.2 39.6))"'
             ])
 
 class TestTileIndex (unittest.TestCase):
