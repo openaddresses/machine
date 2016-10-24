@@ -3439,9 +3439,11 @@ class TestTileIndex (unittest.TestCase):
         _ = mock.Mock()
         state1 = RunState({"website": None, "attribution required": "true", "skipped": False, "share-alike": "", "license": "http://www.acgov.org/acdata/terms.htm", "cache": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/cache.zip", "sample": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/sample.json", "source": "us--ca--alameda.txt", "version": None, "geometry type": "Point", "fingerprint": "177cd91707ab2c022304130849849255", "address count": 530524, "output": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/output.txt", "cache time": "0:00:17.432042", "attribution name": "Alameda County", "process time": "0:46:52.644191", "processed": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/us/ca/alameda.zip"})
         state2 = RunState({"website": "https://sftp.sccgov.org/courier/web/1000@/wmLogin.html", "process hash": "e4e98759bfde43880240a1e8fe3be2e1", "attribution required": "true", "skipped": False, "share-alike": "", "license": None, "cache": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/cache.obj", "sample": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/sample.json", "source": "us--ca--santa_clara.txt", "version": None, "geometry type": "Point", "fingerprint": "a8486c25d4865ee091dacc8bb9c88554", "address count": 491270, "output": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/output.txt", "cache time": "0:00:01.883910", "attribution name": "Santa Clara County", "process time": "0:06:24.772217", "processed": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/us/ca/santa_clara.zip"})
+        state3 = RunState({"website": None, "process hash": "81a1c96beb9a0649a0c9eabc36a93124", "attribution required": "true", "skipped": False, "share-alike": "true", "license": "Open Database License (ODbL) v1.0", "cache": "http://data.openaddresses.io/runs/120133/cache.zip", "sample": "http://data.openaddresses.io/runs/120133/sample.json", "source": "us--or--portland_metro.txt", "version": '3.2.1', "geometry type": "Point", "fingerprint": "a394a7b0e5f2422ba466872856fef98e", "address count": 767617, "output": "http://data.openaddresses.io/runs/120133/output.txt", "cache time": "0:00:14.959910", "attribution name": "Oregon Metro", "process time": "0:03:31.185286", "processed": "http://data.openaddresses.io/runs/120133/us/or/portland_metro.zip"})
         run1 = Run(_, 'sources/us/ca/alameda.json', _, None, None, state1, _, _, '2.16.1', _, _, _, _, _)
         run2 = Run(_, 'sources/us/ca/santa_clara.json', _, None, None, state2, _, _, '2.34.1', _, _, _, _, _)
-        self.runs = run1, run2
+        run3 = Run(_, 'sources/us/or/portland_metro.json', _, None, None, state3, _, _, '3.2.1', _, _, _, _, _)
+        self.runs = run1, run2, run3
     
     def tearDown(self):
         '''
@@ -3462,6 +3464,10 @@ class TestTileIndex (unittest.TestCase):
         if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/runs/117966/us/ca/santa_clara.zip'):
             local_path = os.path.join(os.path.dirname(__file__), 'outputs', 'santa_clara.zip')
             headers = {'Last-Modified': 'Sun, 09 Oct 2016 06:41:32 GMT', 'Content-Type': 'application/zip'}
+        
+        if (host, path) == ('data.openaddresses.io', '/runs/120133/us/or/portland_metro.zip'):
+            local_path = os.path.join(os.path.dirname(__file__), 'outputs', 'portland_metro.zip')
+            headers = {'Last-Modified': 'Sun, 23 Oct 2016 03:40:47 GMT', 'Content-Type': 'application/zip'}
         
         if local_path:
             with open(local_path, 'rb') as file:
