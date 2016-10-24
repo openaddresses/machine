@@ -251,6 +251,9 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
                 lat, lon = float(row['LAT']), float(row['LON'])
             except ValueError:
                 continue
+            
+            if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+                continue
 
             if do_expand:
                 row['STREET'] = expand.expand_street_name(row['STREET'])

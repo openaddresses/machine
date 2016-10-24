@@ -3377,7 +3377,7 @@ class TestCollect (unittest.TestCase):
         input5 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH\n-104.6843547,39.5793748,26050,E JAMISON CIR N,, CO,,,80016-2056,,629e0367e92b4c47\n-1.79769313486e+308,-1.79769313486e+308,26900,E COLFAX AVE,428,,,,,,8764a6de3c9f688c\n-104.1139093,39.6761295,2050,S PEORIA CROSSING RD,, CO,,,,,28b370f54c8e40ef\n'
         expand_and_add_csv_to_zipfile(output, u'us/co/arapahoe.csv', BytesIO(input5.encode('utf8')), False)
         
-        self.assertEqual(len(output.write.mock_calls), 10)
+        self.assertEqual(len(output.write.mock_calls), 12)
 
         self.assertEqual(output.write.mock_calls[0][1][1], u'us/ca/älameda.csv')
         self.assertEqual(output.write.mock_calls[1][1][1], u'summary/us/ca/älameda-summary.csv')
