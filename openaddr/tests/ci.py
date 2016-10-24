@@ -3539,15 +3539,20 @@ class TestTileIndex (unittest.TestCase):
             self.assertEqual(lat2 // TILE_SIZE, 37)
             self.assertEqual(source2, 'us/ca/alameda')
             
-            self.assertNotIn('us/ca/alameda', tile1.states, 'Alameda is strictly north of 37.0')
-            self.assertIn('us/ca/alameda', tile2.states)
+            tile1_sources = [result.source_base for result in tile1.results]
+            tile2_sources = [result.source_base for result in tile2.results]
+            self.assertNotIn('us/ca/alameda', tile1_sources, 'Alameda is strictly north of 37.0')
+            self.assertIn('us/ca/alameda', tile2_sources)
+            self.assertIn('us/ca/santa_clara', tile2_sources)
             
-            self.assertEqual(tile2.states['us/ca/santa_clara'].website, 'https://sftp.sccgov.org/courier/web/1000@/wmLogin.html')
-            self.assertIsNone(tile2.states['us/ca/santa_clara'].license)
-            self.assertFalse(tile2.states['us/ca/santa_clara'].share_alike)
-            self.assertEqual(tile2.states['us/ca/santa_clara'].attribution_required, 'true')
-            self.assertEqual(tile2.states['us/ca/santa_clara'].attribution_name, 'Santa Clara County')
-            self.assertIsNone(tile2.states['us/ca/santa_clara'].attribution_flag)
+            for result in tile2.results:
+                if result.source_base == 'us/ca/santa_clara':
+                    self.assertEqual(result.run_state.website, 'https://sftp.sccgov.org/courier/web/1000@/wmLogin.html')
+                    self.assertIsNone(result.run_state.license)
+                    self.assertFalse(result.run_state.share_alike)
+                    self.assertEqual(result.run_state.attribution_required, 'true')
+                    self.assertEqual(result.run_state.attribution_name, 'Santa Clara County')
+                    self.assertIsNone(result.run_state.attribution_flag)
     
     def test_tile_publish(self):
         '''

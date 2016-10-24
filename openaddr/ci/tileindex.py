@@ -37,7 +37,7 @@ class Tile:
     def __init__(self, key, dirname):
         self.key = key
         self.dirname = dirname
-        self.states = dict()
+        self.results = set()
         
         handle, self.filename = mkstemp(prefix='tile-', suffix='.csv.gz', dir=dirname)
         close(handle)
@@ -50,7 +50,7 @@ class Tile:
         with gzopen(self.filename, 'at', encoding='utf8') as file:
             rows = csvDictWriter(file, Tile.columns, encoding='utf8')
             for point in points:
-                self.states[point.result.source_base] = point.result.run_state
+                self.results.add(point.result)
 
                 row = {SOURCE_COLNAME: point.result.source_base}
                 row.update(point.row)
@@ -126,7 +126,7 @@ def main():
     tiles = populate_tiles(dir, point_blocks)
     
     for tile in tiles.values():
-        print(tile.key, '-', tile.states)
+        print(tile.key, '-', len(tile.results), 'sources')
         tile.publish(s3.bucket)
 
 def iterate_runs_points(runs):
