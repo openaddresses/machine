@@ -63,8 +63,8 @@ file "/etc/cron.d/openaddr_crontab-collect-extracts" do
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 SLACK_URL=#{slack_url}
 LC_ALL=C.UTF-8
-# Archive collection, every other day at 5am UTC (10pm PDT)
-0 5	*/2 * *	#{username}	( \
+# Archive collection, every other day at 11am UTC (4am PDT)
+0 11	*/2 * *	#{username}	( \
   curl -X POST -d '{"text": "Starting new collection zips..."}' $SLACK_URL -s ; \
   openaddr-run-ec2-command \
   -a "#{aws_access_id}" \
@@ -90,8 +90,8 @@ file "/etc/cron.d/openaddr_crontab-index-tiles" do
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 SLACK_URL=#{slack_url}
 LC_ALL=C.UTF-8
-# Index into tiles, every third day at 5am UTC (10pm PDT)
-0 5	*/3 * *	#{username}	( \
+# Index into tiles, every third day at 11am UTC (4am PDT)
+0 11	*/3 * *	#{username}	( \
   curl -X POST -d '{"text": "Starting new spatial index..."}' $SLACK_URL -s ; \
   openaddr-run-ec2-command \
   -a "#{aws_access_id}" \
@@ -117,8 +117,8 @@ file "/etc/cron.d/openaddr_crontab-dotmap" do
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 SLACK_URL=#{slack_url}
 LC_ALL=C.UTF-8
-# Generate OpenAddresses dot map, every fifth day at 5am UTC (10pm PDT)
-0 5	*/5 * *	#{username}	( \
+# Generate OpenAddresses dot map, every fifth day at 11am UTC (4am PDT)
+0 11	*/5 * *	#{username}	( \
   curl -X POST -d '{"text": "Starting new dot map..."}' $SLACK_URL -s ; \
   openaddr-run-ec2-command \
   --role dotmap \
