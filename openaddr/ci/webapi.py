@@ -161,8 +161,9 @@ def app_get_tileindex_zip(lon, lat):
     if not (-180 <= key[0] <= 180 and -90 <= key[1] <= 90):
         return Response('"{}" and "{}" must both be on earth.\n'.format(lon, lat), status=404)
 
-    url = 'http://data.openaddresses.io/tiles/{:.1f}/{:.1f}.zip'.format(*key)
-    return redirect(url, 302)
+    bucket = current_app.config['AWS_S3_BUCKET']
+    url = 'https://s3.amazonaws.com/{}/tiles/{:.1f}/{:.1f}.zip'.format(bucket, *key)
+    return redirect(nice_domain(url), 302)
 
 def apply_webapi_blueprint(app):
     '''
