@@ -51,7 +51,7 @@ from ..ci.collect import (
     )
 
 from ..ci.tileindex import (
-    iterate_runs_points, iterate_point_blocks, populate_tiles, TILE_SIZE, Tile, Point
+    iterate_runs_points, iterate_point_blocks, populate_tiles, lonlat_key, Tile, Point
     )
 
 from ..jobs import JOB_TIMEOUT
@@ -738,6 +738,7 @@ class TestAPI (unittest.TestCase):
         self.assertEqual(index['run_states_url'], 'http://localhost/state.txt')
         self.assertEqual(index['latest_run_processed_url'], 'http://localhost/latest/run/{source}.zip')
         self.assertEqual(index['licenses_url'], 'http://localhost/latest/licenses.json')
+        self.assertEqual(index['tileindex_url'], 'http://localhost/tiles/{lon}/{lat}.zip')
         
         self.assertEqual(colls['global']['']['url'], 'http://data.openaddresses.io/openaddr-collected-global.zip')
         self.assertEqual(colls['global']['sa']['url'], 'http://data.openaddresses.io/openaddr-collected-global-sa.zip')
@@ -845,6 +846,33 @@ class TestAPI (unittest.TestCase):
             for (key, value) in got_state3.items():
                 if key in run_state3:
                     self.assertEqual(value, run_state3[key])
+    
+    def test_tile_redirects(self):
+        '''
+        '''
+        got1 = self.client.get('tiles/-123/37.zip')
+        self.assertEqual(got1.status_code, 302)
+        self.assertIn('tiles/-123.0/37.0.zip', got1.headers['location'])
+
+        got2 = self.client.get('tiles/-123.001/37.001.zip')
+        self.assertEqual(got2.status_code, 302)
+        self.assertIn('tiles/-124.0/37.0.zip', got2.headers['location'])
+
+        got3 = self.client.get('tiles/-123.100/37.100.zip')
+        self.assertEqual(got3.status_code, 302)
+        self.assertIn('tiles/-124.0/37.0.zip', got3.headers['location'])
+
+        got4 = self.client.get('tiles/-123/yo.zip')
+        self.assertEqual(got4.status_code, 404)
+
+        got5 = self.client.get('tiles/yo/37.zip')
+        self.assertEqual(got5.status_code, 404)
+
+        got6 = self.client.get('tiles/999/37.zip')
+        self.assertEqual(got6.status_code, 404)
+
+        got7 = self.client.get('tiles/-123/999.zip')
+        self.assertEqual(got7.status_code, 404)
 
 class TestAuth (unittest.TestCase):
     
@@ -3110,7 +3138,9 @@ class TestCollect (unittest.TestCase):
                 s3_key_mock.generate_url.return_value = 'http://internet/collected-local.zip'
                 write_to_s3.return_value = s3_key_mock
 
-                collector_publisher.publish(db)
+                with patch('openaddr.util.summarize_result_licenses') as summarize_result_licenses:
+                    summarize_result_licenses.return_value = str(uuid4())
+                    collector_publisher.publish(db)
 
             write_to_s3.assert_has_calls([
                 mock.call(S3.bucket, collected_zip.filename, collected_zip.filename)
@@ -3125,9 +3155,7 @@ class TestCollect (unittest.TestCase):
         self.assertEqual(len(collected_zip.writestr.mock_calls), 1)
         filename, content = collected_zip.writestr.mock_calls[0][1]
         self.assertEqual(filename, 'LICENSE.txt')
-        self.assertTrue('abc\nWebsite: Unknown\nLicense: ODbL\nRequired attribution: ABC Co.\n' in content.decode('utf8'))
-        self.assertTrue('def\nWebsite: http://example.com\nLicense: Unknown\nRequired attribution: No\n' in content.decode('utf8'))
-        self.assertTrue('ghi\nWebsite: Unknown\nLicense: Unknown\nRequired attribution: Yes\n' in content.decode('utf8'))
+        self.assertTrue(content.decode('utf8'), summarize_result_licenses.return_value)
 
         collected_zip.close.assert_called_once_with()
 
@@ -3439,9 +3467,11 @@ class TestTileIndex (unittest.TestCase):
         _ = mock.Mock()
         state1 = RunState({"website": None, "attribution required": "true", "skipped": False, "share-alike": "", "license": "http://www.acgov.org/acdata/terms.htm", "cache": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/cache.zip", "sample": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/sample.json", "source": "us--ca--alameda.txt", "version": None, "geometry type": "Point", "fingerprint": "177cd91707ab2c022304130849849255", "address count": 530524, "output": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/output.txt", "cache time": "0:00:17.432042", "attribution name": "Alameda County", "process time": "0:46:52.644191", "processed": "http://s3.amazonaws.com/data.openaddresses.io/runs/65018/us/ca/alameda.zip"})
         state2 = RunState({"website": "https://sftp.sccgov.org/courier/web/1000@/wmLogin.html", "process hash": "e4e98759bfde43880240a1e8fe3be2e1", "attribution required": "true", "skipped": False, "share-alike": "", "license": None, "cache": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/cache.obj", "sample": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/sample.json", "source": "us--ca--santa_clara.txt", "version": None, "geometry type": "Point", "fingerprint": "a8486c25d4865ee091dacc8bb9c88554", "address count": 491270, "output": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/output.txt", "cache time": "0:00:01.883910", "attribution name": "Santa Clara County", "process time": "0:06:24.772217", "processed": "http://s3.amazonaws.com/data.openaddresses.io/runs/117966/us/ca/santa_clara.zip"})
+        state3 = RunState({"website": None, "process hash": "81a1c96beb9a0649a0c9eabc36a93124", "attribution required": "true", "skipped": False, "share-alike": "true", "license": "Open Database License (ODbL) v1.0", "cache": "http://data.openaddresses.io/runs/120133/cache.zip", "sample": "http://data.openaddresses.io/runs/120133/sample.json", "source": "us--or--portland_metro.txt", "version": '3.2.1', "geometry type": "Point", "fingerprint": "a394a7b0e5f2422ba466872856fef98e", "address count": 767617, "output": "http://data.openaddresses.io/runs/120133/output.txt", "cache time": "0:00:14.959910", "attribution name": "Oregon Metro", "process time": "0:03:31.185286", "processed": "http://data.openaddresses.io/runs/120133/us/or/portland_metro.zip"})
         run1 = Run(_, 'sources/us/ca/alameda.json', _, None, None, state1, _, _, '2.16.1', _, _, _, _, _)
         run2 = Run(_, 'sources/us/ca/santa_clara.json', _, None, None, state2, _, _, '2.34.1', _, _, _, _, _)
-        self.runs = run1, run2
+        run3 = Run(_, 'sources/us/or/portland_metro.json', _, None, None, state3, _, _, '3.2.1', _, _, _, _, _)
+        self.runs = run1, run2, run3
     
     def tearDown(self):
         '''
@@ -3462,6 +3492,10 @@ class TestTileIndex (unittest.TestCase):
         if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/runs/117966/us/ca/santa_clara.zip'):
             local_path = os.path.join(os.path.dirname(__file__), 'outputs', 'santa_clara.zip')
             headers = {'Last-Modified': 'Sun, 09 Oct 2016 06:41:32 GMT', 'Content-Type': 'application/zip'}
+        
+        if (host, path) == ('data.openaddresses.io', '/runs/120133/us/or/portland_metro.zip'):
+            local_path = os.path.join(os.path.dirname(__file__), 'outputs', 'portland_metro.zip')
+            headers = {'Last-Modified': 'Sun, 23 Oct 2016 03:40:47 GMT', 'Content-Type': 'application/zip'}
         
         if local_path:
             with open(local_path, 'rb') as file:
@@ -3524,8 +3558,7 @@ class TestTileIndex (unittest.TestCase):
                 row1 = next(file1).strip().split(',')
                 (lon1, lat1), source1 = map(float, row1[:2]), row1[-1]
 
-            self.assertEqual(lon1 // TILE_SIZE, -122)
-            self.assertEqual(lat1 // TILE_SIZE, 36)
+            self.assertEqual(lonlat_key(lon1, lat1), (-122, 36))
             self.assertEqual(source1, 'us/ca/santa_clara')
 
             tile2 = tiles[(-122, 37)]
@@ -3535,19 +3568,23 @@ class TestTileIndex (unittest.TestCase):
                 row2 = next(file2).strip().split(',')
                 (lon2, lat2), source2 = map(float, row2[:2]), row2[-1]
 
-            self.assertEqual(lon2 // TILE_SIZE, -122)
-            self.assertEqual(lat2 // TILE_SIZE, 37)
+            self.assertEqual(lonlat_key(lon2, lat2), (-122, 37))
             self.assertEqual(source2, 'us/ca/alameda')
             
-            self.assertNotIn('us/ca/alameda', tile1.states, 'Alameda is strictly north of 37.0')
-            self.assertIn('us/ca/alameda', tile2.states)
+            tile1_sources = [result.source_base for result in tile1.results]
+            tile2_sources = [result.source_base for result in tile2.results]
+            self.assertNotIn('us/ca/alameda', tile1_sources, 'Alameda is strictly north of 37.0')
+            self.assertIn('us/ca/alameda', tile2_sources)
+            self.assertIn('us/ca/santa_clara', tile2_sources)
             
-            self.assertEqual(tile2.states['us/ca/santa_clara'].website, 'https://sftp.sccgov.org/courier/web/1000@/wmLogin.html')
-            self.assertIsNone(tile2.states['us/ca/santa_clara'].license)
-            self.assertFalse(tile2.states['us/ca/santa_clara'].share_alike)
-            self.assertEqual(tile2.states['us/ca/santa_clara'].attribution_required, 'true')
-            self.assertEqual(tile2.states['us/ca/santa_clara'].attribution_name, 'Santa Clara County')
-            self.assertIsNone(tile2.states['us/ca/santa_clara'].attribution_flag)
+            for result in tile2.results:
+                if result.source_base == 'us/ca/santa_clara':
+                    self.assertEqual(result.run_state.website, 'https://sftp.sccgov.org/courier/web/1000@/wmLogin.html')
+                    self.assertIsNone(result.run_state.license)
+                    self.assertFalse(result.run_state.share_alike)
+                    self.assertEqual(result.run_state.attribution_required, 'true')
+                    self.assertEqual(result.run_state.attribution_name, 'Santa Clara County')
+                    self.assertIsNone(result.run_state.attribution_flag)
     
     def test_tile_publish(self):
         '''
@@ -3560,7 +3597,9 @@ class TestTileIndex (unittest.TestCase):
         tile.add_points([point])
         
         with patch('openaddr.ci.collect.write_to_s3') as write_to_s3:
-            tile.publish(s3)
+            with patch('openaddr.util.summarize_result_licenses') as summarize_result_licenses:
+                summarize_result_licenses.return_value = str(uuid4())
+                tile.publish(s3)
         
         _s3, _zip_file, _keyname = write_to_s3.mock_calls[0][1]
         zipfile = ZipFile(_zip_file, 'r')
@@ -3569,10 +3608,13 @@ class TestTileIndex (unittest.TestCase):
         self.assertEqual(len(write_to_s3.mock_calls), 1, 'Write to S3 called just once')
         self.assertIs(_s3, s3, 'S3 bucket should be first arg')
         self.assertEqual(_keyname, 'tiles/0.0/0.0.zip')
-        self.assertEqual(names, ['addresses.csv'])
+        self.assertEqual(names, ['addresses.csv', 'LICENSE.txt'])
         
         lines = zipfile.read('addresses.csv').decode('utf8').split()
         self.assertEqual(lines[0], 'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH,OA:Source')
+        
+        license = zipfile.read('LICENSE.txt').decode('utf8')
+        self.assertEqual(license, summarize_result_licenses.return_value)
 
 if __name__ == '__main__':
     unittest.main()

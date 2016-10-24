@@ -28,7 +28,7 @@ class Point:
     def __init__(self, lon, lat, result, row):
         self.row = row
         self.result = result
-        self.key = int(lon // TILE_SIZE), int(lat // TILE_SIZE) # Southwest corner lon, lat
+        self.key = lonlat_key(lon, lat)
 
 class Tile:
 
@@ -37,7 +37,7 @@ class Tile:
     def __init__(self, key, dirname):
         self.key = key
         self.dirname = dirname
-        self.states = dict()
+        self.results = set()
         
         handle, self.filename = mkstemp(prefix='tile-', suffix='.csv.gz', dir=dirname)
         close(handle)
@@ -50,7 +50,7 @@ class Tile:
         with gzopen(self.filename, 'at', encoding='utf8') as file:
             rows = csvDictWriter(file, Tile.columns, encoding='utf8')
             for point in points:
-                self.states[point.result.source_base] = point.result.run_state
+                self.results.add(point.result)
 
                 row = {SOURCE_COLNAME: point.result.source_base}
                 row.update(point.row)
@@ -66,6 +66,9 @@ class Tile:
         
         with gzopen(self.filename, 'rb') as file:
             zipfile.writestr('addresses.csv', file.read())
+
+        license_text = util.summarize_result_licenses(self.results)
+        zipfile.writestr('LICENSE.txt', license_text.encode('utf8'))
 
         zipfile.close()
         keyname = 'tiles/{:.1f}/{:.1f}.zip'.format(*self.key)
@@ -126,13 +129,21 @@ def main():
     tiles = populate_tiles(dir, point_blocks)
     
     for tile in tiles.values():
-        print(tile.key, '-', tile.states)
+        print(tile.key, '-', len(tile.results), 'sources')
         tile.publish(s3.bucket)
 
+def lonlat_key(lon, lat):
+    '''
+    '''
+    return int(lon // TILE_SIZE), int(lat // TILE_SIZE) # Southwest corner lon, lat
+
 def iterate_runs_points(runs):
-    ''' Iterate over all the points.
+    ''' Iterate over all the points, skipping share-alike sources.
     '''
     for result in iterate_local_processed_files(runs, sort_on='source_path'):
+        if result.run_state.share_alike == 'true':
+            continue
+    
         _L.info('Indexing points from {}'.format(result.source_base))
         print(result.run_state.processed)
         _L.debug('filename: {}'.format(result.filename))
