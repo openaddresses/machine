@@ -1,3 +1,6 @@
+2016-10-23: 3.3.2
+- Fixed handling of out-of-bounds coordinates in collections.
+
 2016-10-23: 3.3.1
 - Tweaked crontab timing.
 
