@@ -188,7 +188,8 @@ def app_upload_cache_data():
     fields.update(
         bucket=current_app.config['AWS_S3_BUCKET'],
         access_key=current_app.config['AWS_ACCESS_KEY_ID'],
-        redirect=redirect_url
+        redirect=redirect_url,
+        callback=request.args
         )
     
     return render_template('upload-cache.html', user_required=True,
