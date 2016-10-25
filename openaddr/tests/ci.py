@@ -882,6 +882,36 @@ class TestAuth (unittest.TestCase):
         
         self.assertEqual(message, webauth.unserialize(secret, webauth.serialize(secret, message)))
     
+    def test_s3_upload_form_fields(self):
+        expires = datetime(1970, 1, 1, 0, 0, 0)
+        bucketname = str(uuid4())
+        redirect = str(uuid4())
+        secret = str(uuid4())
+
+        with patch('hmac.new') as hmac_new:
+            digest = str(uuid4()).encode('ascii')
+            hmac_new.return_value.digest.return_value = digest
+            fields = webauth.s3_upload_form_fields(expires, bucketname, redirect, secret)
+        
+        self.assertEqual(hmac_new.mock_calls[0][1][0].decode('utf8'), secret)
+        self.assertEqual(fields['signature'], b64encode(digest).decode('utf8'))
+        self.assertEqual(fields['key'], 'cache/uploads/${filename}')
+        self.assertEqual(fields['acl'], 'public-read')
+        
+        policy = json.loads(b64decode(fields['policy']).decode('utf8'))
+        
+        self.assertEqual(policy,
+            {
+                'expiration': '1970-01-01T00:00:00Z',
+                'conditions': [
+                    {'bucket': bucketname},
+                    ['starts-with', '$key', 'cache/uploads/'],
+                    {'acl': 'public-read'},
+                    {'success_action_redirect': redirect},
+                    ['content-length-range', 16, 104857600]
+                ]
+            })
+    
     def test_exchange_tokens(self):
         code, client_id, secret = str(uuid4()), str(uuid4()), str(uuid4())
         

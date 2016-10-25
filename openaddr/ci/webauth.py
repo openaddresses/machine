@@ -1,7 +1,10 @@
 import logging; _L = logging.getLogger('openaddr.ci.webapi')
 
-import os
+import os, json, hmac, hashlib
 from urllib.parse import urljoin, urlencode, urlunparse
+from datetime import datetime, timedelta
+from dateutil.tz import tzutc
+from base64 import b64encode
 from functools import wraps
 
 from flask import (
@@ -100,6 +103,31 @@ def update_authentication(untouched_route):
     
     return wrapper
 
+def s3_upload_form_fields(expires, bucketname, redirect_url, aws_secret):
+    '''
+    '''
+    policy = {
+        "expiration": expires.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        "conditions": [
+            {"bucket": bucketname},
+            ["starts-with", "$key", "cache/uploads/"],
+            {"acl": "public-read"},
+            {"success_action_redirect": redirect_url},
+            ["content-length-range", 16, 100 * 1024 * 1024]
+        ]
+        }
+    
+    policy_b64 = b64encode(json.dumps(policy).encode('utf8'))
+    signature = hmac.new(aws_secret.encode('utf8'), policy_b64, hashlib.sha1)
+    signature_b64 = b64encode(signature.digest())
+    
+    return dict(
+        key=policy['conditions'][1][2] + '${filename}',
+        acl=policy['conditions'][2]['acl'],
+        policy=policy_b64.decode('utf8'),
+        signature=signature_b64.decode('utf8')
+        )
+
 @webauth.route('/auth')
 @update_authentication
 @log_application_errors
@@ -141,6 +169,41 @@ def app_logout():
         session.pop(USER_KEY)
     
     return redirect(url_for('webauth.app_auth'), 302)
+
+@webauth.route('/upload-cache')
+@update_authentication
+def app_upload_cache_data():
+    '''
+    '''
+    if USER_KEY not in session:
+        return render_template('oauth-hello.html', user=session.get('github user', {}))
+    
+    expires = datetime.now(tz=tzutc()) + timedelta(minutes=5)
+    redirect_url = callback_url(request, url_for('webauth.app_upload_cache_data'))
+
+    fields = s3_upload_form_fields(expires, current_app.config['AWS_S3_BUCKET'],
+                                   redirect_url, current_app.config['AWS_SECRET_ACCESS_KEY'])
+    
+    fields.update(
+        bucket=current_app.config['AWS_S3_BUCKET'],
+        access_key=current_app.config['AWS_ACCESS_KEY_ID'],
+        redirect=redirect_url
+        )
+    
+    return '''
+    <form action="https://s3.amazonaws.com/{bucket}" method="post" enctype="multipart/form-data">
+      <input type="hidden" name="key" value="{key}">
+      <input type="hidden" name="AWSAccessKeyId" value="{access_key}"> 
+      <input type="hidden" name="acl" value="{acl}"> 
+      <input type="hidden" name="success_action_redirect" value="{redirect}">
+      <input type="hidden" name="policy" value="{policy}">
+      <input type="hidden" name="signature" value="{signature}">
+      File to upload to S3: 
+      <input name="file" type="file"> 
+      <br> 
+      <input type="submit" value="Upload File to S3"> 
+    </form> 
+    '''.format(**fields)
 
 def apply_webauth_blueprint(app):
     '''
