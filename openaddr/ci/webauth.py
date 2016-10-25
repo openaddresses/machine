@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 from base64 import b64encode
 from functools import wraps
+from random import randint
 
 from flask import (
     request, url_for, current_app, render_template, session, redirect, Blueprint
@@ -103,14 +104,14 @@ def update_authentication(untouched_route):
     
     return wrapper
 
-def s3_upload_form_fields(expires, bucketname, redirect_url, aws_secret):
+def s3_upload_form_fields(expires, bucketname, subdir, redirect_url, aws_secret):
     '''
     '''
     policy = {
         "expiration": expires.strftime('%Y-%m-%dT%H:%M:%SZ'),
         "conditions": [
             {"bucket": bucketname},
-            ["starts-with", "$key", "cache/uploads/"],
+            ["starts-with", "$key", "cache/uploads/{}/".format(subdir)],
             {"acl": "public-read"},
             {"success_action_redirect": redirect_url},
             ["content-length-range", 16, 100 * 1024 * 1024]
@@ -179,11 +180,13 @@ def app_upload_cache_data():
     if USER_KEY not in session:
         return render_template('upload-cache.html', user_required=True, user=None)
     
+    random = hex(randint(0x100000, 0xffffff))[2:]
+    subdir = '{login}/{0}'.format(random, **session[USER_KEY])
     expires = datetime.now(tz=tzutc()) + timedelta(minutes=5)
-    redirect_url = callback_url(request, url_for('webauth.app_upload_cache_data'))
 
-    fields = s3_upload_form_fields(expires, current_app.config['AWS_S3_BUCKET'],
-                                   redirect_url, current_app.config['AWS_SECRET_ACCESS_KEY'])
+    redirect_url = callback_url(request, url_for('webauth.app_upload_cache_data'))
+    bucketname, s3_secret = current_app.config['AWS_S3_BUCKET'], current_app.config['AWS_SECRET_ACCESS_KEY']
+    fields = s3_upload_form_fields(expires, bucketname, subdir, redirect_url, s3_secret)
     
     fields.update(
         bucket=current_app.config['AWS_S3_BUCKET'],
@@ -193,7 +196,7 @@ def app_upload_cache_data():
         )
     
     return render_template('upload-cache.html', user_required=True,
-                           user=session.get(USER_KEY, {}), **fields)
+                           user=session[USER_KEY], **fields)
 
 def apply_webauth_blueprint(app):
     '''

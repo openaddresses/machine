@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Github Login{% endblock %}
 {% block main %}
-<form action="{{url_for('webauth.app_logout')}}" method="post">
-    <button>LOG OUT {{user.login}}</button>
-</form>
+<ul>
+    <li><a href="{{ url_for('webauth.app_upload_cache_data') }}">Upload a thing to S3</a></li>
+</ul>
 {% endblock main %}
