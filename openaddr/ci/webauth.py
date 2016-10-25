@@ -176,7 +176,7 @@ def app_upload_cache_data():
     '''
     '''
     if USER_KEY not in session:
-        return render_template('oauth-hello.html', user=session.get('github user', {}))
+        return render_template('upload-cache.html', user=None, user_required=True)
     
     expires = datetime.now(tz=tzutc()) + timedelta(minutes=5)
     redirect_url = callback_url(request, url_for('webauth.app_upload_cache_data'))
@@ -190,20 +190,8 @@ def app_upload_cache_data():
         redirect=redirect_url
         )
     
-    return '''
-    <form action="https://s3.amazonaws.com/{bucket}" method="post" enctype="multipart/form-data">
-      <input type="hidden" name="key" value="{key}">
-      <input type="hidden" name="AWSAccessKeyId" value="{access_key}"> 
-      <input type="hidden" name="acl" value="{acl}"> 
-      <input type="hidden" name="success_action_redirect" value="{redirect}">
-      <input type="hidden" name="policy" value="{policy}">
-      <input type="hidden" name="signature" value="{signature}">
-      File to upload to S3: 
-      <input name="file" type="file"> 
-      <br> 
-      <input type="submit" value="Upload File to S3"> 
-    </form> 
-    '''.format(**fields)
+    return render_template('upload-cache.html', user=session.get(USER_KEY, {}),
+                           user_required=True, **fields)
 
 def apply_webauth_blueprint(app):
     '''

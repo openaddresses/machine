@@ -44,6 +44,9 @@
         }
     
         nav a:nth-child(1) { padding-left: 0 }
+        
+        nav form { float: right }
+        nav form img { width: 1em; height: 1em; vertical-align: middle }
     
         @media (max-width: 360px)
         {
@@ -85,13 +88,31 @@
 
 <body>
     <nav>
+        {% if user_required %}
+            {% if user %}
+            <form action="{{ url_for('webauth.app_logout') }}" method="post">
+                <img src="{{ user.avatar_url }}">
+                <button>LOG OUT {{ user.login }}</button>
+            </form>
+            {% else %}
+            <form action="{{ url_for('webauth.app_login') }}" method="post">
+                <button>LOG IN</button>
+            </form>
+            {% endif %}
+        {% endif %}
         <a href="http://openaddresses.io"> <img id="icon" src="{{ url_for('static', filename='17.png') }}">Home</a>
         <a href="{{ url_for('webhooks.app_index') }}">Download Data</a>
         <a href="{{ url_for('webhooks.app_get_sets') }}">All Batch Sets</a>
         <a href="{{ url_for('webhooks.app_get_jobs') }}">All CI Jobs</a>
     </nav>
     <main>
-        {% block main %}{% endblock %}
+        {% if user_required and not user %}
+            <form action="{{ url_for('webauth.app_login') }}" method="post">
+                Please log in with Github. <button>LOG IN</button>
+            </form>
+        {% else %}
+            {% block main %}{% endblock %}
+        {% endif %}
     </main>
     <footer>
         {% block info %}

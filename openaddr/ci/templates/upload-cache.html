@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Upload To S3 Cache{% endblock %}
+{% block main %}
+<form action="https://s3.amazonaws.com/{{ bucket }}" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="key" value="{{ key }}">
+    <input type="hidden" name="AWSAccessKeyId" value="{{ access_key }}"> 
+    <input type="hidden" name="acl" value="{{ acl }}"> 
+    <input type="hidden" name="success_action_redirect" value="{{ redirect }}">
+    <input type="hidden" name="policy" value="{{ policy }}">
+    <input type="hidden" name="signature" value="{{ signature }}">
+    File to upload to S3: 
+    <input name="file" type="file"> 
+    <br> 
+    <input type="submit" value="Upload File to S3"> 
+</form> 
+{% endblock main %}
