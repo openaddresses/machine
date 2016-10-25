@@ -132,7 +132,8 @@ def s3_upload_form_fields(expires, bucketname, redirect_url, aws_secret):
 @update_authentication
 @log_application_errors
 def app_auth():
-    return render_template('oauth-hello.html', user=session.get(USER_KEY, {}))
+    return render_template('oauth-hello.html', user_required=True,
+                           user=session.get(USER_KEY, {}))
 
 @webauth.route('/auth/callback')
 @log_application_errors
@@ -176,7 +177,7 @@ def app_upload_cache_data():
     '''
     '''
     if USER_KEY not in session:
-        return render_template('upload-cache.html', user=None, user_required=True)
+        return render_template('upload-cache.html', user_required=True, user=None)
     
     expires = datetime.now(tz=tzutc()) + timedelta(minutes=5)
     redirect_url = callback_url(request, url_for('webauth.app_upload_cache_data'))
@@ -190,8 +191,8 @@ def app_upload_cache_data():
         redirect=redirect_url
         )
     
-    return render_template('upload-cache.html', user=session.get(USER_KEY, {}),
-                           user_required=True, **fields)
+    return render_template('upload-cache.html', user_required=True,
+                           user=session.get(USER_KEY, {}), **fields)
 
 def apply_webauth_blueprint(app):
     '''
