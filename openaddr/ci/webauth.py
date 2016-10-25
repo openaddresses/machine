@@ -19,6 +19,8 @@ github_authorize_url = 'https://github.com/login/oauth/authorize{?state,client_i
 github_exchange_url = 'https://github.com/login/oauth/access_token'
 github_user_url = 'https://api.github.com/user'
 
+USER_KEY = 'github user'
+
 webauth = Blueprint('webauth', __name__)
 
 def serialize(secret, data):
@@ -85,14 +87,14 @@ def update_authentication(untouched_route):
     @wraps(untouched_route)
     def wrapper(*args, **kwargs):
         # remove this always
-        if 'github user' in session:
-            session.pop('github user')
+        if USER_KEY in session:
+            session.pop(USER_KEY)
     
         if 'github token' in session:
             login, avatar_url, in_org = user_information(session['github token'])
             
             if login and in_org:
-                session['github user'] = dict(login=login, avatar_url=avatar_url)
+                session[USER_KEY] = dict(login=login, avatar_url=avatar_url)
 
         return untouched_route(*args, **kwargs)
     
@@ -102,7 +104,7 @@ def update_authentication(untouched_route):
 @update_authentication
 @log_application_errors
 def app_auth():
-    return render_template('oauth-hello.html', user=session.get('github user', {}))
+    return render_template('oauth-hello.html', user=session.get(USER_KEY, {}))
 
 @webauth.route('/auth/callback')
 @log_application_errors
@@ -135,8 +137,8 @@ def app_logout():
     if 'github token' in session:
         session.pop('github token')
     
-    if 'github user' in session:
-        session.pop('github user')
+    if USER_KEY in session:
+        session.pop(USER_KEY)
     
     return redirect(url_for('webauth.app_auth'), 302)
 
