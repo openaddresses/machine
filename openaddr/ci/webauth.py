@@ -1,8 +1,12 @@
 import logging; _L = logging.getLogger('openaddr.ci.webapi')
 
-import os
+import os, json, hmac, hashlib
 from urllib.parse import urljoin, urlencode, urlunparse
+from datetime import datetime, timedelta
+from dateutil.tz import tzutc
+from base64 import b64encode
 from functools import wraps
+from random import randint
 
 from flask import (
     request, url_for, current_app, render_template, session, redirect, Blueprint
@@ -18,6 +22,8 @@ from .webcommon import log_application_errors
 github_authorize_url = 'https://github.com/login/oauth/authorize{?state,client_id,redirect_uri,response_type}'
 github_exchange_url = 'https://github.com/login/oauth/access_token'
 github_user_url = 'https://api.github.com/user'
+
+USER_KEY = 'github user'
 
 webauth = Blueprint('webauth', __name__)
 
@@ -85,24 +91,50 @@ def update_authentication(untouched_route):
     @wraps(untouched_route)
     def wrapper(*args, **kwargs):
         # remove this always
-        if 'github user' in session:
-            session.pop('github user')
+        if USER_KEY in session:
+            session.pop(USER_KEY)
     
         if 'github token' in session:
             login, avatar_url, in_org = user_information(session['github token'])
             
             if login and in_org:
-                session['github user'] = dict(login=login, avatar_url=avatar_url)
+                session[USER_KEY] = dict(login=login, avatar_url=avatar_url)
 
         return untouched_route(*args, **kwargs)
     
     return wrapper
 
+def s3_upload_form_fields(expires, bucketname, subdir, redirect_url, aws_secret):
+    '''
+    '''
+    policy = {
+        "expiration": expires.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        "conditions": [
+            {"bucket": bucketname},
+            ["starts-with", "$key", "cache/uploads/{}/".format(subdir)],
+            {"acl": "public-read"},
+            {"success_action_redirect": redirect_url},
+            ["content-length-range", 16, 100 * 1024 * 1024]
+        ]
+        }
+    
+    policy_b64 = b64encode(json.dumps(policy).encode('utf8'))
+    signature = hmac.new(aws_secret.encode('utf8'), policy_b64, hashlib.sha1)
+    signature_b64 = b64encode(signature.digest())
+    
+    return dict(
+        key=policy['conditions'][1][2] + '${filename}',
+        acl=policy['conditions'][2]['acl'],
+        policy=policy_b64.decode('utf8'),
+        signature=signature_b64.decode('utf8')
+        )
+
 @webauth.route('/auth')
 @update_authentication
 @log_application_errors
 def app_auth():
-    return render_template('oauth-hello.html', user=session.get('github user', {}))
+    return render_template('oauth-hello.html', user_required=True,
+                           user=session.get(USER_KEY, {}))
 
 @webauth.route('/auth/callback')
 @log_application_errors
@@ -135,10 +167,36 @@ def app_logout():
     if 'github token' in session:
         session.pop('github token')
     
-    if 'github user' in session:
-        session.pop('github user')
+    if USER_KEY in session:
+        session.pop(USER_KEY)
     
     return redirect(url_for('webauth.app_auth'), 302)
+
+@webauth.route('/upload-cache')
+@update_authentication
+def app_upload_cache_data():
+    '''
+    '''
+    if USER_KEY not in session:
+        return render_template('upload-cache.html', user_required=True, user=None)
+    
+    random = hex(randint(0x100000, 0xffffff))[2:]
+    subdir = '{login}/{0}'.format(random, **session[USER_KEY])
+    expires = datetime.now(tz=tzutc()) + timedelta(minutes=5)
+
+    redirect_url = callback_url(request, url_for('webauth.app_upload_cache_data'))
+    bucketname, s3_secret = current_app.config['AWS_S3_BUCKET'], current_app.config['AWS_SECRET_ACCESS_KEY']
+    fields = s3_upload_form_fields(expires, bucketname, subdir, redirect_url, s3_secret)
+    
+    fields.update(
+        bucket=current_app.config['AWS_S3_BUCKET'],
+        access_key=current_app.config['AWS_ACCESS_KEY_ID'],
+        redirect=redirect_url,
+        callback=request.args
+        )
+    
+    return render_template('upload-cache.html', user_required=True,
+                           user=session[USER_KEY], **fields)
 
 def apply_webauth_blueprint(app):
     '''

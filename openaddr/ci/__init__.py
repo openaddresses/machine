@@ -50,6 +50,8 @@ def load_config():
                 GITHUB_OAUTH_CALLBACK=os.environ.get('GITHUB_CALLBACK'),
                 MEMCACHE_SERVER=os.environ.get('MEMCACHE_SERVER'),
                 DATABASE_URL=os.environ['DATABASE_URL'],
+                AWS_ACCESS_KEY_ID=os.environ['AWS_ACCESS_KEY_ID'],
+                AWS_SECRET_ACCESS_KEY=os.environ['AWS_SECRET_ACCESS_KEY'],
                 AWS_S3_BUCKET=os.environ.get('AWS_S3_BUCKET', 'data.openaddresses.io'),
                 WEBHOOK_SECRETS=webhook_secrets)
 
@@ -1081,14 +1083,15 @@ def setup_logger(aws_key, aws_secret, sns_arn, log_level=logging.DEBUG):
     openaddr_logger.addHandler(handler1)
     
     # Set up a second logger to SNS
-    try:
-        handler2 = SnsHandler(aws_key, aws_secret, sns_arn)
-    except:
-        openaddr_logger.warning('Failed to authenticate SNS handler')
-    else:
-        handler2.setLevel(logging.ERROR)
-        handler2.setFormatter(logging.Formatter(log_format))
-        openaddr_logger.addHandler(handler2)
+    if sns_arn:
+        try:
+            handler2 = SnsHandler(aws_key, aws_secret, sns_arn)
+        except:
+            openaddr_logger.warning('Failed to authenticate SNS handler')
+        else:
+            handler2.setLevel(logging.ERROR)
+            handler2.setFormatter(logging.Formatter(log_format))
+            openaddr_logger.addHandler(handler2)
 
 def log_function_errors(route_function):
     ''' Error-logging decorator for functions.

@@ -681,6 +681,8 @@ class TestAPI (unittest.TestCase):
         os.environ['GITHUB_TOKEN'] = ''
         os.environ['DATABASE_URL'] = DATABASE_URL
         os.environ['WEBHOOK_SECRETS'] = 'hello,world'
+        os.environ['AWS_ACCESS_KEY_ID'] = '12345'
+        os.environ['AWS_SECRET_ACCESS_KEY'] = '67890'
 
         app = Flask(__name__)
         app.config.update(load_config())
@@ -725,6 +727,8 @@ class TestAPI (unittest.TestCase):
         del os.environ['GITHUB_TOKEN']
         del os.environ['DATABASE_URL']
         del os.environ['WEBHOOK_SECRETS']
+        del os.environ['AWS_ACCESS_KEY_ID']
+        del os.environ['AWS_SECRET_ACCESS_KEY']
 
     def test_data_index(self):
         '''
@@ -882,6 +886,37 @@ class TestAuth (unittest.TestCase):
         
         self.assertEqual(message, webauth.unserialize(secret, webauth.serialize(secret, message)))
     
+    def test_s3_upload_form_fields(self):
+        expires = datetime(1970, 1, 1, 0, 0, 0)
+        bucketname = str(uuid4())
+        subdir = 'jrandom/123'
+        redirect = str(uuid4())
+        secret = str(uuid4())
+
+        with patch('hmac.new') as hmac_new:
+            digest = str(uuid4()).encode('ascii')
+            hmac_new.return_value.digest.return_value = digest
+            fields = webauth.s3_upload_form_fields(expires, bucketname, subdir, redirect, secret)
+        
+        self.assertEqual(hmac_new.mock_calls[0][1][0].decode('utf8'), secret)
+        self.assertEqual(fields['signature'], b64encode(digest).decode('utf8'))
+        self.assertEqual(fields['key'], 'cache/uploads/jrandom/123/${filename}')
+        self.assertEqual(fields['acl'], 'public-read')
+        
+        policy = json.loads(b64decode(fields['policy']).decode('utf8'))
+        
+        self.assertEqual(policy,
+            {
+                'expiration': '1970-01-01T00:00:00Z',
+                'conditions': [
+                    {'bucket': bucketname},
+                    ['starts-with', '$key', 'cache/uploads/jrandom/123/'],
+                    {'acl': 'public-read'},
+                    {'success_action_redirect': redirect},
+                    ['content-length-range', 16, 104857600]
+                ]
+            })
+    
     def test_exchange_tokens(self):
         code, client_id, secret = str(uuid4()), str(uuid4()), str(uuid4())
         
@@ -1005,6 +1040,8 @@ class TestHook (unittest.TestCase):
         os.environ['GITHUB_TOKEN'] = ''
         os.environ['DATABASE_URL'] = DATABASE_URL
         os.environ['WEBHOOK_SECRETS'] = 'hello,world'
+        os.environ['AWS_ACCESS_KEY_ID'] = '12345'
+        os.environ['AWS_SECRET_ACCESS_KEY'] = '67890'
 
         app = Flask(__name__)
         app.config.update(load_config())
@@ -1026,6 +1063,8 @@ class TestHook (unittest.TestCase):
         del os.environ['GITHUB_TOKEN']
         del os.environ['DATABASE_URL']
         del os.environ['WEBHOOK_SECRETS']
+        del os.environ['AWS_ACCESS_KEY_ID']
+        del os.environ['AWS_SECRET_ACCESS_KEY']
 
         rmtree(self.output_dir)
         remove(self.s3._fake_keys)
@@ -2690,6 +2729,8 @@ class TestBatch (unittest.TestCase):
         os.environ['GITHUB_TOKEN'] = ''
         os.environ['DATABASE_URL'] = DATABASE_URL
         os.environ['WEBHOOK_SECRETS'] = 'hello,world'
+        os.environ['AWS_ACCESS_KEY_ID'] = '12345'
+        os.environ['AWS_SECRET_ACCESS_KEY'] = '67890'
         
         config = load_config()
 
@@ -2708,6 +2749,8 @@ class TestBatch (unittest.TestCase):
         del os.environ['GITHUB_TOKEN']
         del os.environ['DATABASE_URL']
         del os.environ['WEBHOOK_SECRETS']
+        del os.environ['AWS_ACCESS_KEY_ID']
+        del os.environ['AWS_SECRET_ACCESS_KEY']
 
         rmtree(self.output_dir)
         remove(self.s3._fake_keys)
@@ -3017,6 +3060,8 @@ class TestQueue (unittest.TestCase):
         '''
         os.environ['GITHUB_TOKEN'] = ''
         os.environ['DATABASE_URL'] = DATABASE_URL
+        os.environ['AWS_ACCESS_KEY_ID'] = '12345'
+        os.environ['AWS_SECRET_ACCESS_KEY'] = '67890'
         
         config = load_config()
 
@@ -3031,6 +3076,8 @@ class TestQueue (unittest.TestCase):
         '''
         del os.environ['GITHUB_TOKEN']
         del os.environ['DATABASE_URL']
+        del os.environ['AWS_ACCESS_KEY_ID']
+        del os.environ['AWS_SECRET_ACCESS_KEY']
 
         rmtree(self.output_dir)
         remove(self.s3._fake_keys)
