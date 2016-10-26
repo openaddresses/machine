@@ -6,7 +6,7 @@ from collections import defaultdict
 import json, os
 
 from flask import Response, Blueprint, request, current_app, jsonify, url_for, redirect
-from flask.ext.cors import CORS
+from flask_cors import CORS
 
 from .objects import (
     load_collection_zips_dict, read_latest_set, read_completed_runs_to_date,
