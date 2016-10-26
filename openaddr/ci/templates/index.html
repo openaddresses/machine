@@ -67,7 +67,16 @@
             display: table-cell
         }
     }
-
+    
+    p#all-runs { text-align: center }
+    p#all-runs a
+    {
+        background-color: white;
+        border: 1px solid #bcb7df;
+        border-radius: 3px;
+        padding: .2em 1em;
+    }
+    
 </style>
 <table id="downloads">
     <tr>
@@ -143,4 +152,10 @@
 </p>
 
 {% include "runs-table.html" %}
+
+{% if additional_runs %}
+    <p id="all-runs">
+        <a href="./?runs=all#runs">Show Remaining {{ additional_runs|nice_integer }} Data Sources</a>
+    </p>
+{% endif %}
 {% endblock main %}

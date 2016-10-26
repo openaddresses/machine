@@ -99,9 +99,15 @@ def app_index():
     mc = get_memcache_client(current_app.config)
     summary_data = summarize_runs(mc, good_runs, last_modified, set and set.owner,
                                   set and set.repository, GLASS_HALF_FULL)
+    
+    if request.args.get('runs') != 'all':
+        more_runs = len(summary_data['states'][20:])
+        summary_data['states'] = summary_data['states'][:20]
+    else:
+        more_runs = 0
 
     return render_template('index.html', s3_bucket=current_app.config['AWS_S3_BUCKET'],
-                           set=None, zips=zips, **summary_data)
+                           set=None, zips=zips, additional_runs=more_runs, **summary_data)
 
 @webhooks.route('/hook', methods=['POST'])
 @log_application_errors
