@@ -59,6 +59,8 @@ def exchange_tokens(code, client_id, secret):
     resp = requests.post(github_exchange_url, urlencode(data),
                          headers={'Accept': 'application/json'})
     auth = resp.json()
+    _L.warning('(exchange_tokens) Posted {} to {}'.format(code, github_exchange_url))
+    _L.warning('(exchange_tokens) Got back {} {}'.format(auth.status_code, auth.text))
 
     if 'error' in auth:
         raise RuntimeError('Github said "{error}".'.format(**auth))
@@ -73,6 +75,8 @@ def user_information(token, org_id=6895392):
     '''
     header = {'Authorization': 'token {}'.format(token)}
     resp1 = requests.get(github_user_url, headers=header)
+    _L.warning('(user_information) Got {} with {}'.format(github_user_url, token))
+    _L.warning('(user_information) Got back {} {}'.format(resp1.status_code, resp1.text))
     
     if resp1.status_code != 200:
         return None, None, None
