@@ -60,7 +60,7 @@ def exchange_tokens(code, client_id, secret):
                          headers={'Accept': 'application/json'})
     auth = resp.json()
     _L.warning('(exchange_tokens) Posted {} to {}'.format(code, github_exchange_url))
-    _L.warning('(exchange_tokens) Got back {} {}'.format(auth.status_code, auth.text))
+    _L.warning('(exchange_tokens) Got back {} {}'.format(resp.status_code, resp.text))
 
     if 'error' in auth:
         raise RuntimeError('Github said "{error}".'.format(**auth))
