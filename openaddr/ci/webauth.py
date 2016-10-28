@@ -137,6 +137,8 @@ def s3_upload_form_fields(expires, bucketname, subdir, redirect_url, aws_secret)
 @update_authentication
 @log_application_errors
 def app_auth():
+    _L.warning('(app_auth) rendering with user {}'.format(session.get(USER_KEY, {})))
+
     return render_template('oauth-hello.html', user_required=True,
                            user=session.get(USER_KEY, {}))
 
