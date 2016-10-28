@@ -98,6 +98,8 @@ def update_authentication(untouched_route):
         if USER_KEY in session:
             session.pop(USER_KEY)
     
+        _L.warning('(update_authentication) in session["github token"]: {}'.format(session.get('github token')))
+
         if 'github token' in session:
             login, avatar_url, in_org = user_information(session['github token'])
             
@@ -151,6 +153,7 @@ def app_callback():
                             current_app.config['GITHUB_OAUTH_CLIENT_ID'],
                             current_app.config['GITHUB_OAUTH_SECRET'])
     
+    _L.warning('(app_callback) set session["github token"] to {}'.format(token['access_token']))
     session['github token'] = token['access_token']
     
     return redirect(state.get('url', url_for('webauth.app_auth')), 302)
