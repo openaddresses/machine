@@ -24,6 +24,7 @@ github_exchange_url = 'https://github.com/login/oauth/access_token'
 github_user_url = 'https://api.github.com/user'
 
 USER_KEY = 'github user'
+TOKEN_KEY = 'github token'
 
 webauth = Blueprint('webauth', __name__)
 
@@ -94,17 +95,17 @@ def update_authentication(untouched_route):
         if USER_KEY in session:
             session.pop(USER_KEY)
     
-        if 'github token' in session:
-            login, avatar_url, in_org = user_information(session['github token'])
+        if TOKEN_KEY in session:
+            login, avatar_url, in_org = user_information(session[TOKEN_KEY])
             
             if login and in_org:
                 session[USER_KEY] = dict(login=login, avatar_url=avatar_url)
             elif not login:
-                session.pop('github token')
+                session.pop(TOKEN_KEY)
                 return render_template('oauth-hello.html', user_required=True,
                                        user=None, error_bad_login=True)
             elif not in_org:
-                session.pop('github token')
+                session.pop(TOKEN_KEY)
                 return render_template('oauth-hello.html', user_required=True,
                                        user=None, error_org_membership=True)
 
@@ -153,7 +154,7 @@ def app_callback():
                             current_app.config['GITHUB_OAUTH_CLIENT_ID'],
                             current_app.config['GITHUB_OAUTH_SECRET'])
     
-    session['github token'] = token['access_token']
+    session[TOKEN_KEY] = token['access_token']
     
     return redirect(state.get('url', url_for('webauth.app_auth')), 302)
 
@@ -173,8 +174,8 @@ def app_login():
 @webauth.route('/auth/logout', methods=['POST'])
 @log_application_errors
 def app_logout():
-    if 'github token' in session:
-        session.pop('github token')
+    if TOKEN_KEY in session:
+        session.pop(TOKEN_KEY)
     
     if USER_KEY in session:
         session.pop(USER_KEY)
