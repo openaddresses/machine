@@ -1,4 +1,4 @@
-#!/bin/sh -x
+#!/bin/sh -ex
 apt-get update -y
 
 # (Re)install machine.
