@@ -82,7 +82,10 @@ setup(
     },
     test_suite = 'openaddr.tests',
     install_requires = [
-        'boto == 2.43.0', 'Jinja2 == 2.8.0', 'dateutils == 0.6.6', 'ijson == 2.3',
+        'boto == 2.43.0', 'dateutils == 0.6.6', 'ijson == 2.3',
+        
+        # Honcho (imported for worker) requires Jinja2 < 2.8.
+        'Jinja2 == 2.7.3',
 
         # http://flask.pocoo.org
         'Flask == 0.11.1',

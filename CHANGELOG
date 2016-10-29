@@ -1,3 +1,6 @@
+2016-10-29: 3.4.3
+- Fixed Jinja/Honcho version dependency mismatch.
+
 2016-10-28: 3.4.2
 - Fixed login confusion with Github org membership.
 
