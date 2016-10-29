@@ -19,7 +19,7 @@ from .. import compat
 from . import setup_logger
 from .webcommon import log_application_errors
 
-github_authorize_url = 'https://github.com/login/oauth/authorize{?state,client_id,redirect_uri,response_type}'
+github_authorize_url = 'https://github.com/login/oauth/authorize{?state,client_id,redirect_uri,response_type,scope}'
 github_exchange_url = 'https://github.com/login/oauth/access_token'
 github_user_url = 'https://api.github.com/user'
 
@@ -167,6 +167,7 @@ def app_login():
     url = current_app.config.get('GITHUB_OAUTH_CALLBACK') or url_for('webauth.app_callback')
     args = dict(redirect_uri=callback_url(request, url), response_type='code', state=state)
     args.update(client_id=current_app.config['GITHUB_OAUTH_CLIENT_ID'])
+    args.update(scope='user,public_repo,read:org')
     
     return redirect(uritemplate.expand(github_authorize_url, args), 303)
 
