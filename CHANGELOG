@@ -1,3 +1,6 @@
+2016-10-28: 3.4.2
+- Fixed login confusion with Github org membership.
+
 2016-10-25: 3.4.1
 - Fixed one import.
 - Fixed giant front-page download with link to see all runs.
