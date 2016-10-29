@@ -105,6 +105,14 @@ def update_authentication(untouched_route):
             
             if login and in_org:
                 session[USER_KEY] = dict(login=login, avatar_url=avatar_url)
+            elif not login:
+                session.pop('github token')
+                return render_template('oauth-hello.html', user_required=True,
+                                       user=None, error_bad_login=True)
+            elif not in_org:
+                session.pop('github token')
+                return render_template('oauth-hello.html', user_required=True,
+                                       user=None, error_org_membership=True)
 
         return untouched_route(*args, **kwargs)
     
