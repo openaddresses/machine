@@ -19,11 +19,12 @@ from .. import compat
 from . import setup_logger
 from .webcommon import log_application_errors
 
-github_authorize_url = 'https://github.com/login/oauth/authorize{?state,client_id,redirect_uri,response_type}'
+github_authorize_url = 'https://github.com/login/oauth/authorize{?state,client_id,redirect_uri,response_type,scope}'
 github_exchange_url = 'https://github.com/login/oauth/access_token'
 github_user_url = 'https://api.github.com/user'
 
 USER_KEY = 'github user'
+TOKEN_KEY = 'github token'
 
 webauth = Blueprint('webauth', __name__)
 
@@ -94,11 +95,19 @@ def update_authentication(untouched_route):
         if USER_KEY in session:
             session.pop(USER_KEY)
     
-        if 'github token' in session:
-            login, avatar_url, in_org = user_information(session['github token'])
+        if TOKEN_KEY in session:
+            login, avatar_url, in_org = user_information(session[TOKEN_KEY])
             
             if login and in_org:
                 session[USER_KEY] = dict(login=login, avatar_url=avatar_url)
+            elif not login:
+                session.pop(TOKEN_KEY)
+                return render_template('oauth-hello.html', user_required=True,
+                                       user=None, error_bad_login=True)
+            elif not in_org:
+                session.pop(TOKEN_KEY)
+                return render_template('oauth-hello.html', user_required=True,
+                                       user=None, error_org_membership=True)
 
         return untouched_route(*args, **kwargs)
     
@@ -145,7 +154,7 @@ def app_callback():
                             current_app.config['GITHUB_OAUTH_CLIENT_ID'],
                             current_app.config['GITHUB_OAUTH_SECRET'])
     
-    session['github token'] = token['access_token']
+    session[TOKEN_KEY] = token['access_token']
     
     return redirect(state.get('url', url_for('webauth.app_auth')), 302)
 
@@ -158,14 +167,15 @@ def app_login():
     url = current_app.config.get('GITHUB_OAUTH_CALLBACK') or url_for('webauth.app_callback')
     args = dict(redirect_uri=callback_url(request, url), response_type='code', state=state)
     args.update(client_id=current_app.config['GITHUB_OAUTH_CLIENT_ID'])
+    args.update(scope='user,public_repo,read:org')
     
     return redirect(uritemplate.expand(github_authorize_url, args), 303)
 
 @webauth.route('/auth/logout', methods=['POST'])
 @log_application_errors
 def app_logout():
-    if 'github token' in session:
-        session.pop('github token')
+    if TOKEN_KEY in session:
+        session.pop(TOKEN_KEY)
     
     if USER_KEY in session:
         session.pop(USER_KEY)
