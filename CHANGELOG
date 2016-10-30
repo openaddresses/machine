@@ -1,3 +1,6 @@
+2016-10-30: 3.4.6
+- Added Mapzen API key to chef configuration.
+
 2016-10-30: 3.4.5
 - Fixed Jinja/Honcho dependency typo.
 
