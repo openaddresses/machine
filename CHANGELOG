@@ -1,3 +1,6 @@
+2016-10-30: 3.4.5
+- Fixed Jinja/Honcho dependency typo.
+
 2016-10-29: 3.4.4
 - Tweaked exit behavior for EC2 run commands.
 

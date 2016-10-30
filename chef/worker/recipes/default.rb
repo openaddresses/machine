@@ -62,7 +62,7 @@ execute "/etc/init.d/openaddr-worker start"
 env_file = "/tmp/#{app_name}.conf"
 procfile = File.join(File.dirname(__FILE__), '..', '..', 'Procfile-worker')
 
-execute 'pip3 install honcho[export] == 0.7.1' # note Jinja2 version dep.
+execute 'pip3 install "honcho[export] == 0.7.1"' # note Jinja2 version dep.
 
 #
 # Ensure upstart job exists.
