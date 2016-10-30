@@ -2,9 +2,13 @@ from zipfile import ZipFile
 from io import TextIOWrapper
 from csv import DictReader
 from math import pow, sqrt, pi, log
+import requests, json, itertools
 
 from osgeo import osr, ogr
 from .compat import cairo
+
+TILE_URL = 'http://tile.mapzen.com/mapzen/vector/v1/all/{z}/{x}/{y}.json'
+EARTH_DIAMETER = 6378137 * 2 * pi
 
 # WGS 84, http://spatialreference.org/ref/epsg/4326/
 EPSG4326 = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs'
@@ -35,48 +39,13 @@ def main():
     context.rectangle(xmin, ymax, xmax - xmin, ymin - ymax)
     context.fill()
     
-    zoom = round(calculate_zoom(scale, resolution))
-    earth_diameter = 6378137 * 2 * pi
-    mincol = 2**zoom * (xmin + earth_diameter/2) / earth_diameter
-    minrow = 2**zoom * (earth_diameter/2 - ymax) / earth_diameter
-    maxcol = 2**zoom * (xmax + earth_diameter/2) / earth_diameter
-    maxrow = 2**zoom * (earth_diameter/2 - ymin) / earth_diameter
-    print(mincol)
-    print(minrow)
-    print(maxcol)
-    print(maxrow)
+    water_geoms, roads_geoms = get_map_features(xmin, ymin, xmax, ymax, resolution, scale)
     
-    import requests, json
-    osr.UseExceptions()
-    sref_geo = osr.SpatialReference(); sref_geo.ImportFromProj4(EPSG4326)
-    sref_map = osr.SpatialReference(); sref_map.ImportFromProj4(EPSG900913)
-    project = osr.CoordinateTransformation(sref_geo, sref_map)
-    for col in range(int(mincol), int(maxcol) + 1):
-        for row in range(int(minrow), int(maxrow) + 1):
-            url = 'http://tile.mapzen.com/mapzen/vector/v1/water/{z}/{x}/{y}.json'.format(z=zoom, x=col, y=row)
-            got = requests.get(url)
-            for feature in got.json()['features']:
-                if 'Polygon' in feature['geometry']['type']:
-                    if feature['properties']['kind'] not in ('basin', 'lake', 'ocean', 'riverbank', 'water'):
-                        continue
-                    geom = ogr.CreateGeometryFromJson(json.dumps(feature['geometry']))
-                    geom.Transform(project)
-                    fill_geometries(context, [geom], muppx, (0xdd/0xff, 0xea/0xff, 0xf8/0xff))
-            print(zoom, col, row, url)
-    for col in range(int(mincol), int(maxcol) + 1):
-        for row in range(int(minrow), int(maxrow) + 1):
-            url = 'http://tile.mapzen.com/mapzen/vector/v1/roads/{z}/{x}/{y}.json'.format(z=zoom, x=col, y=row)
-            got = requests.get(url)
-            for feature in got.json()['features']:
-                if 'LineString' in feature['geometry']['type']:
-                    if feature['properties']['kind'] not in ('highway', 'major_road', 'minor_road', 'rail', 'path'):
-                        continue
-                    geom = ogr.CreateGeometryFromJson(json.dumps(feature['geometry']))
-                    geom.Transform(project)
-                    context.set_line_width(.25 * muppx)
-                    context.set_source_rgb(0xe0/0xff, 0xe3/0xff, 0xe5/0xff)
-                    stroke_geometries(context, [geom])
-            print(zoom, col, row, url)
+    fill_geometries(context, water_geoms, muppx, (0xdd/0xff, 0xea/0xff, 0xf8/0xff))
+
+    context.set_line_width(.25 * muppx)
+    context.set_source_rgb(0xe0/0xff, 0xe3/0xff, 0xe5/0xff)
+    stroke_geometries(context, roads_geoms)
     
     context.set_line_width(.25 * muppx)
 
@@ -110,27 +79,61 @@ def iterate_zipfile_points(filename):
             if -180 <= lon <= 180 and -90 <= lat <= 90:
                 yield (lon, lat)
 
-def project_points(lonlats):
+def get_map_features(xmin, ymin, xmax, ymax, resolution, scale):
+    '''
+    '''
+    zoom = round(calculate_zoom(scale, resolution))
+    mincol = 2**zoom * (xmin + EARTH_DIAMETER/2) / EARTH_DIAMETER
+    minrow = 2**zoom * (EARTH_DIAMETER/2 - ymax) / EARTH_DIAMETER
+    maxcol = 2**zoom * (xmax + EARTH_DIAMETER/2) / EARTH_DIAMETER
+    maxrow = 2**zoom * (EARTH_DIAMETER/2 - ymin) / EARTH_DIAMETER
+    
+    row_cols = itertools.product(range(int(minrow), int(maxrow) + 1),
+                                 range(int(mincol), int(maxcol) + 1))
+
+    water_geoms, roads_geoms, project = list(), list(), get_projection()
+    
+    def projected_geom(feature):
+        geom = ogr.CreateGeometryFromJson(json.dumps(feature['geometry']))
+        geom.Transform(project)
+        return geom
+    
+    for (row, col) in row_cols:
+        url = TILE_URL.format(z=zoom, x=col, y=row)
+        got = requests.get(url)
+
+        for feature in got.json()['water']['features']:
+            if 'Polygon' in feature['geometry']['type']:
+                if feature['properties']['kind'] in ('basin', 'lake', 'ocean', 'riverbank', 'water'):
+                    water_geoms.append(projected_geom(feature))
+
+        for feature in got.json()['roads']['features']:
+            if 'LineString' in feature['geometry']['type']:
+                if feature['properties']['kind'] in ('highway', 'major_road', 'minor_road', 'rail', 'path'):
+                    roads_geoms.append(projected_geom(feature))
+
+        print(zoom, col, row, url)
+    
+    return water_geoms, roads_geoms
+
+def get_projection():
     '''
     '''
     osr.UseExceptions()
     sref_geo = osr.SpatialReference(); sref_geo.ImportFromProj4(EPSG4326)
     sref_map = osr.SpatialReference(); sref_map.ImportFromProj4(EPSG900913)
-    project = osr.CoordinateTransformation(sref_geo, sref_map)
-    
+    return osr.CoordinateTransformation(sref_geo, sref_map)
+
+def project_points(lonlats):
+    '''
+    '''
+    project = get_projection()
     points = list()
-    
-    minlon, minlat, maxlon, maxlat = 180, 90, -180, -90
     
     for (lon, lat) in lonlats:
         geom = ogr.CreateGeometryFromWkt('POINT({:.7f} {:.7f})'.format(lon, lat))
         geom.Transform(project)
         points.append((geom.GetX(), geom.GetY()))
-        
-        minlon, minlat = min(lon, minlon), min(lat, minlat)
-        maxlon, maxlat = max(lon, maxlon), max(lat, maxlat)
-    
-    print(minlon, minlat, maxlon, maxlat)
     
     return points
 
@@ -146,8 +149,7 @@ def stats(values):
 def calculate_zoom(scale, resolution):
     ''' Calculate web map zoom based on scale.
     '''
-    earth_diameter = 6378137 * 2 * pi
-    scale_at_zero = resolution * 256 / earth_diameter
+    scale_at_zero = resolution * 256 / EARTH_DIAMETER
     zoom = log(scale / scale_at_zero) / log(2)
     
     return zoom
