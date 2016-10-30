@@ -40,26 +40,30 @@ def render(zip_filename_or_url, png_filename, width, resolution, mapzen_key):
     muppx = resolution / scale
     
     black = 0, 0, 0
-    light_green = 0x74/0xff, 0xA5/0xff, 0x78/0xff
+    point_fill = 0x74/0xFF, 0xA5/0xFF, 0x78/0xFF
+    water_fill = 0xC7/0xFF, 0xDE/0xFF, 0xF5/0xFF # 0xDD/0xFF, 0xEA/0xFF, 0xF8/0xFF
+    road_stroke = 0xC0/0xFF, 0xE0/0xFF, 0xE0/0xFF # 0xE0/0xFF, 0xE3/0xFF, 0xE5/0xFF
+    park_fill = 0xDD/0xFF, 0xF6/0xFF, 0xDE/0xFF
 
     context.set_source_rgb(1, 1, 1)
     context.rectangle(xmin, ymax, xmax - xmin, ymin - ymax)
     context.fill()
     
-    water_geoms, roads_geoms = \
+    landuse_geoms, water_geoms, roads_geoms = \
         get_map_features(xmin, ymin, xmax, ymax, resolution, scale, mapzen_key)
     
-    fill_geometries(context, water_geoms, muppx, (0xdd/0xff, 0xea/0xff, 0xf8/0xff))
+    fill_geometries(context, landuse_geoms, muppx, park_fill)
+    fill_geometries(context, water_geoms, muppx, water_fill)
 
-    context.set_line_width(.25 * muppx)
-    context.set_source_rgb(0xe0/0xff, 0xe3/0xff, 0xe5/0xff)
+    context.set_line_width(.5 * muppx)
+    context.set_source_rgb(*road_stroke)
     stroke_geometries(context, roads_geoms)
     
     context.set_line_width(.25 * muppx)
 
     for (x, y) in points:
         context.arc(x, y, 15, 0, 2 * pi)
-        context.set_source_rgb(*light_green)
+        context.set_source_rgb(*point_fill)
         context.fill()
         context.arc(x, y, 15, 0, 2 * pi)
         context.set_source_rgb(*black)
@@ -116,7 +120,8 @@ def get_map_features(xmin, ymin, xmax, ymax, resolution, scale, mapzen_key):
     row_cols = itertools.product(range(int(minrow), int(maxrow) + 1),
                                  range(int(mincol), int(maxcol) + 1))
 
-    water_geoms, roads_geoms, project = list(), list(), get_projection()
+    landuse_geoms, water_geoms, roads_geoms = list(), list(), list()
+    project = get_projection()
     
     def projected_geom(feature):
         geom = ogr.CreateGeometryFromJson(json.dumps(feature['geometry']))
@@ -126,6 +131,11 @@ def get_map_features(xmin, ymin, xmax, ymax, resolution, scale, mapzen_key):
     for (row, col) in row_cols:
         url = uritemplate.expand(TILE_URL, dict(z=zoom, x=col, y=row, api_key=mapzen_key))
         got = requests.get(url)
+
+        for feature in got.json()['landuse']['features']:
+            if 'Polygon' in feature['geometry']['type']:
+                if feature['properties'].get('kind') in ('cemetery', 'forest', 'golf_course', 'grave_yard', 'meadow', 'park', 'pitch', 'wood'):
+                    landuse_geoms.append(projected_geom(feature))
 
         for feature in got.json()['water']['features']:
             if 'Polygon' in feature['geometry']['type']:
@@ -139,7 +149,7 @@ def get_map_features(xmin, ymin, xmax, ymax, resolution, scale, mapzen_key):
 
         _L.debug('Getting tile {}'.format(url))
     
-    return water_geoms, roads_geoms
+    return landuse_geoms, water_geoms, roads_geoms
 
 def get_projection():
     '''
