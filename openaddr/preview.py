@@ -1,13 +1,20 @@
+from __future__ import division
+import logging; _L = logging.getLogger('openaddr.preview')
+
 from zipfile import ZipFile
 from io import TextIOWrapper
 from csv import DictReader
 from math import pow, sqrt, pi, log
-import requests, json, itertools
+from argparse import ArgumentParser
+import json, itertools
+
+import requests, uritemplate
 
 from osgeo import osr, ogr
+from .ci import setup_logger
 from .compat import cairo
 
-TILE_URL = 'http://tile.mapzen.com/mapzen/vector/v1/all/{z}/{x}/{y}.json'
+TILE_URL = 'http://tile.mapzen.com/mapzen/vector/v1/all/{z}/{x}/{y}.json{?api_key}'
 EARTH_DIAMETER = 6378137 * 2 * pi
 
 # WGS 84, http://spatialreference.org/ref/epsg/4326/
@@ -16,18 +23,15 @@ EPSG4326 = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs'
 # Web Mercator, https://trac.osgeo.org/openlayers/wiki/SphericalMercator
 EPSG900913 = '+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs'
 
-def main():
+def render(zip_filename, png_filename, width, resolution, mapzen_key):
     '''
     '''
-    lonlats = iterate_zipfile_points('us-ca-berkeley.zip')
-    points = project_points(lonlats)
-    
+    points = project_points(iterate_zipfile_points(zip_filename))
     xmin, ymin, xmax, ymax = calculate_bounds(points)
     
-    print(points[:3], (xmin, ymin), (xmax, ymax))
-    
-    resolution = 2
-    surface, context, scale = make_context(xmin, ymin, xmax, ymax, resolution=resolution)
+    surface, context, scale = make_context(xmin, ymin, xmax, ymax, width, resolution)
+
+    _L.info('Preview width {:.0f}, scale {:.3f}, zoom {:.2f}'.format(width, scale, calculate_zoom(scale, resolution)))
 
     # Map units per reference pixel (http://www.w3.org/TR/css3-values/#reference-pixel)
     muppx = resolution / scale
@@ -39,7 +43,8 @@ def main():
     context.rectangle(xmin, ymax, xmax - xmin, ymin - ymax)
     context.fill()
     
-    water_geoms, roads_geoms = get_map_features(xmin, ymin, xmax, ymax, resolution, scale)
+    water_geoms, roads_geoms = \
+        get_map_features(xmin, ymin, xmax, ymax, resolution, scale, mapzen_key)
     
     fill_geometries(context, water_geoms, muppx, (0xdd/0xff, 0xea/0xff, 0xf8/0xff))
 
@@ -57,10 +62,7 @@ def main():
         context.set_source_rgb(*black)
         context.stroke()
     
-    print('scale:', scale)
-    print('zoom:', calculate_zoom(scale, resolution))
-    
-    surface.write_to_png('preview.png')
+    surface.write_to_png(png_filename)
 
 def iterate_zipfile_points(filename):
     '''
@@ -79,7 +81,7 @@ def iterate_zipfile_points(filename):
             if -180 <= lon <= 180 and -90 <= lat <= 90:
                 yield (lon, lat)
 
-def get_map_features(xmin, ymin, xmax, ymax, resolution, scale):
+def get_map_features(xmin, ymin, xmax, ymax, resolution, scale, mapzen_key):
     '''
     '''
     zoom = round(calculate_zoom(scale, resolution))
@@ -99,7 +101,7 @@ def get_map_features(xmin, ymin, xmax, ymax, resolution, scale):
         return geom
     
     for (row, col) in row_cols:
-        url = TILE_URL.format(z=zoom, x=col, y=row)
+        url = uritemplate.expand(TILE_URL, dict(z=zoom, x=col, y=row, api_key=mapzen_key))
         got = requests.get(url)
 
         for feature in got.json()['water']['features']:
@@ -112,7 +114,7 @@ def get_map_features(xmin, ymin, xmax, ymax, resolution, scale):
                 if feature['properties']['kind'] in ('highway', 'major_road', 'minor_road', 'rail', 'path'):
                     roads_geoms.append(projected_geom(feature))
 
-        print(zoom, col, row, url)
+        _L.debug('Getting tile {}'.format(url))
     
     return water_geoms, roads_geoms
 
@@ -257,6 +259,38 @@ def draw_line(ctx, start, points):
 
     for point in points:
         ctx.line_to(*point)
+
+parser = ArgumentParser(description='Draw a map of a single source preview.')
+
+parser.add_argument('zip_filename', help='Input Zip filename.')
+parser.add_argument('png_filename', help='Output PNG filename.')
+
+parser.set_defaults(resolution=1, width=668)
+
+parser.add_argument('--2x', dest='resolution', action='store_const', const=2,
+                    help='Draw at double resolution.')
+
+parser.add_argument('--1x', dest='resolution', action='store_const', const=1,
+                    help='Draw at normal resolution.')
+
+parser.add_argument('--width', dest='width', type=int,
+                    help='Width in pixels.')
+
+parser.add_argument('--mapzen-key', dest='mapzen_key',
+                    help='Mapze API Key. See: https://mapzen.com/documentation/overview/')
+
+parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
+                    action='store_const', dest='loglevel',
+                    const=logging.DEBUG, default=logging.INFO)
+
+parser.add_argument('-q', '--quiet', help='Turn off most logging',
+                    action='store_const', dest='loglevel',
+                    const=logging.WARNING, default=logging.INFO)
+
+def main():
+    args = parser.parse_args()
+    setup_logger(None, None, None, log_level=args.loglevel)
+    render(args.zip_filename, args.png_filename, args.width, args.resolution, args.mapzen_key)
 
 if __name__ == '__main__':
     exit(main())
