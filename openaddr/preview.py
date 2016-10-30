@@ -34,7 +34,7 @@ def render(zip_filename_or_url, png_filename, width, resolution, mapzen_key):
     
     surface, context, scale = make_context(xmin, ymin, xmax, ymax, width, resolution)
 
-    _L.info('Preview width {:.0f}, scale {:.3f}, zoom {:.2f}'.format(width, scale, calculate_zoom(scale, resolution)))
+    _L.info('Preview width {:.0f}, scale {:.5f}, zoom {:.2f}'.format(width, scale, calculate_zoom(scale, resolution)))
 
     # Map units per reference pixel (http://www.w3.org/TR/css3-values/#reference-pixel)
     muppx = resolution / scale
@@ -194,10 +194,11 @@ def calculate_bounds(points):
     '''
     xs, ys = zip(*points)
 
-    # use standard deviation to avoid far-flung mistakes
+    # use standard deviation to avoid far-flung mistakes, and look further
+    # horizontally to account for Github comment thread image appearance.
     (xmean, xsdev), (ymean, ysdev) = stats(xs), stats(ys)
     xmin, xmax = xmean - 5 * xsdev, xmean + 5 * xsdev
-    ymin, ymax = ymean - 5 * ysdev, ymean + 5 * ysdev
+    ymin, ymax = ymean - 3 * ysdev, ymean + 3 * ysdev
     
     # look at the actual points
     okay_xs = [x for (x, y) in points if (xmin <= x <= xmax)]
