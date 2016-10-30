@@ -9,8 +9,8 @@ from .compat import cairo
 # WGS 84, http://spatialreference.org/ref/epsg/4326/
 EPSG4326 = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs'
 
-# Web Mercator, http://spatialreference.org/ref/sr-org/6864/
-EPSG3857 = '+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs'
+# Web Mercator, https://trac.osgeo.org/openlayers/wiki/SphericalMercator
+EPSG900913 = '+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs'
 
 def main():
     '''
@@ -34,6 +34,49 @@ def main():
     context.set_source_rgb(1, 1, 1)
     context.rectangle(xmin, ymax, xmax - xmin, ymin - ymax)
     context.fill()
+    
+    zoom = round(calculate_zoom(scale, resolution))
+    earth_diameter = 6378137 * 2 * pi
+    mincol = 2**zoom * (xmin + earth_diameter/2) / earth_diameter
+    minrow = 2**zoom * (earth_diameter/2 - ymax) / earth_diameter
+    maxcol = 2**zoom * (xmax + earth_diameter/2) / earth_diameter
+    maxrow = 2**zoom * (earth_diameter/2 - ymin) / earth_diameter
+    print(mincol)
+    print(minrow)
+    print(maxcol)
+    print(maxrow)
+    
+    import requests, json
+    osr.UseExceptions()
+    sref_geo = osr.SpatialReference(); sref_geo.ImportFromProj4(EPSG4326)
+    sref_map = osr.SpatialReference(); sref_map.ImportFromProj4(EPSG900913)
+    project = osr.CoordinateTransformation(sref_geo, sref_map)
+    for col in range(int(mincol), int(maxcol) + 1):
+        for row in range(int(minrow), int(maxrow) + 1):
+            url = 'http://tile.mapzen.com/mapzen/vector/v1/water/{z}/{x}/{y}.json'.format(z=zoom, x=col, y=row)
+            got = requests.get(url)
+            for feature in got.json()['features']:
+                if 'Polygon' in feature['geometry']['type']:
+                    if feature['properties']['kind'] not in ('basin', 'lake', 'ocean', 'riverbank', 'water'):
+                        continue
+                    geom = ogr.CreateGeometryFromJson(json.dumps(feature['geometry']))
+                    geom.Transform(project)
+                    fill_geometries(context, [geom], muppx, (0xdd/0xff, 0xea/0xff, 0xf8/0xff))
+            print(zoom, col, row, url)
+    for col in range(int(mincol), int(maxcol) + 1):
+        for row in range(int(minrow), int(maxrow) + 1):
+            url = 'http://tile.mapzen.com/mapzen/vector/v1/roads/{z}/{x}/{y}.json'.format(z=zoom, x=col, y=row)
+            got = requests.get(url)
+            for feature in got.json()['features']:
+                if 'LineString' in feature['geometry']['type']:
+                    if feature['properties']['kind'] not in ('highway', 'major_road', 'minor_road', 'rail', 'path'):
+                        continue
+                    geom = ogr.CreateGeometryFromJson(json.dumps(feature['geometry']))
+                    geom.Transform(project)
+                    context.set_line_width(.25 * muppx)
+                    context.set_source_rgb(0xe0/0xff, 0xe3/0xff, 0xe5/0xff)
+                    stroke_geometries(context, [geom])
+            print(zoom, col, row, url)
     
     context.set_line_width(.25 * muppx)
 
@@ -72,7 +115,7 @@ def project_points(lonlats):
     '''
     osr.UseExceptions()
     sref_geo = osr.SpatialReference(); sref_geo.ImportFromProj4(EPSG4326)
-    sref_map = osr.SpatialReference(); sref_map.ImportFromProj4(EPSG3857)
+    sref_map = osr.SpatialReference(); sref_map.ImportFromProj4(EPSG900913)
     project = osr.CoordinateTransformation(sref_geo, sref_map)
     
     points = list()
@@ -157,6 +200,61 @@ def make_context(left, bottom, right, top, width=668, resolution=1):
     context.translate(hoffset, voffset)
     
     return surface, context, hscale
+
+def stroke_geometries(ctx, geometries):
+    '''
+    '''
+    for geometry in geometries:
+        if geometry.GetGeometryType() in (ogr.wkbMultiPolygon, ogr.wkbMultiLineString):
+            parts = geometry
+        elif geometry.GetGeometryType() in (ogr.wkbPolygon, ogr.wkbLineString):
+            parts = [geometry]
+        else:
+            continue
+
+        for part in parts:
+            if part.GetGeometryType() is ogr.wkbPolygon:
+                rings = part
+            else:
+                rings = [part]
+
+            for ring in rings:
+                points = ring.GetPoints()
+                if geometry.GetGeometryType() in (ogr.wkbPolygon, ogr.wkbMultiPolygon):
+                    draw_line(ctx, points[-1], points)
+                else:
+                    draw_line(ctx, points[0], points[1:])
+                ctx.stroke()
+
+def fill_geometries(ctx, geometries, muppx, rgb):
+    '''
+    '''
+    ctx.set_source_rgb(*rgb)
+
+    for geometry in geometries:
+        if geometry.GetGeometryType() == ogr.wkbMultiPolygon:
+            parts = geometry
+        elif geometry.GetGeometryType() == ogr.wkbPolygon:
+            parts = [geometry]
+        elif geometry.GetGeometryType() == ogr.wkbPoint:
+            buffer = geometry.Buffer(2 * muppx, 3)
+            parts = [buffer]
+        else:
+            raise NotImplementedError()
+
+        for part in parts:
+            for ring in part:
+                points = ring.GetPoints()
+                draw_line(ctx, points[-1], points)
+            ctx.fill()
+
+def draw_line(ctx, start, points):
+    '''
+    '''
+    ctx.move_to(*start)
+
+    for point in points:
+        ctx.line_to(*point)
 
 if __name__ == '__main__':
     exit(main())
