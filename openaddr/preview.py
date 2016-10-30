@@ -4,9 +4,11 @@ import logging; _L = logging.getLogger('openaddr.preview')
 from zipfile import ZipFile
 from io import TextIOWrapper
 from csv import DictReader
+from tempfile import mkstemp
 from math import pow, sqrt, pi, log
 from argparse import ArgumentParser
-import json, itertools
+from urllib.parse import urlparse
+import json, itertools, os
 
 import requests, uritemplate
 
@@ -23,9 +25,10 @@ EPSG4326 = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs'
 # Web Mercator, https://trac.osgeo.org/openlayers/wiki/SphericalMercator
 EPSG900913 = '+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs'
 
-def render(zip_filename, png_filename, width, resolution, mapzen_key):
+def render(zip_filename_or_url, png_filename, width, resolution, mapzen_key):
     '''
     '''
+    zip_filename = get_local_zip_filename(zip_filename_or_url)
     points = project_points(iterate_zipfile_points(zip_filename))
     xmin, ymin, xmax, ymax = calculate_bounds(points)
     
@@ -63,6 +66,26 @@ def render(zip_filename, png_filename, width, resolution, mapzen_key):
         context.stroke()
     
     surface.write_to_png(png_filename)
+
+def get_local_zip_filename(zip_filename_or_url):
+    '''
+    '''
+    if urlparse(zip_filename_or_url).scheme in ('', 'file'):
+        return zip_filename_or_url
+    
+    if urlparse(zip_filename_or_url).scheme not in ('http', 'https'):
+        raise ValueError('Unknown URL type: {}'.format(zip_filename_or_url))
+    
+    _L.info('Downloading {}...'.format(zip_filename_or_url))
+
+    got = requests.get(zip_filename_or_url)
+    _, zip_filename = mkstemp(prefix='Preview-', suffix='.zip')
+
+    with open(zip_filename, 'wb') as file:
+        file.write(got.content)
+        _L.debug('Saved to {}'.format(zip_filename))
+    
+    return zip_filename
 
 def iterate_zipfile_points(filename):
     '''
@@ -262,7 +285,7 @@ def draw_line(ctx, start, points):
 
 parser = ArgumentParser(description='Draw a map of a single source preview.')
 
-parser.add_argument('zip_filename', help='Input Zip filename.')
+parser.add_argument('zip_filename', help='Input Zip filename or URL.')
 parser.add_argument('png_filename', help='Output PNG filename.')
 
 parser.set_defaults(resolution=1, width=668)
