@@ -43,6 +43,7 @@ setup(
     entry_points = dict(
         console_scripts = [
             'openaddr-render-us = openaddr.render:main',
+            'openaddr-preview-source = openaddr.preview:main',
             'openaddr-process-one = openaddr.process_one:main',
             'openaddr-ci-recreate-db = openaddr.ci.recreate_db:main',
             'openaddr-ci-run-dequeue = openaddr.ci.run_dequeue:main',
