@@ -60,13 +60,13 @@ def main():
                 break
 
             if time() > deadline:
+                log_instance_log(instance)
                 _L.warning('Stopping instance {} at deadline'.format(instance))
                 raise RuntimeError('Out of time')
 
             sleep(60)
 
-        log_output = instance.get_console_output().output.decode('utf8')
-        _L.info('Cloud-init log from EC2 instance:\n\n{}\n\n'.format(log_output))
+        log_instance_log(instance)
         
     except:
         _L.error('Error in worker main()', exc_info=True)
@@ -76,6 +76,12 @@ def main():
 
     else:
         return 0
+
+def log_instance_log(instance):
+    '''
+    '''
+    log_output = instance.get_console_output().output.decode('utf8')
+    _L.info('Cloud-init log from EC2 instance:\n\n{}\n\n'.format(log_output))
 
 if __name__ == '__main__':
     exit(main())

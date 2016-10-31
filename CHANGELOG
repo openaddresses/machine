@@ -1,3 +1,6 @@
+2016-10-31: 3.4.7
+- Fixed cloud-init logging when EC2 instance runs out of time.
+
 2016-10-30: 3.4.6
 - Added Mapzen API key to chef configuration.
 
