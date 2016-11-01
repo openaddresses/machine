@@ -9,7 +9,7 @@ from .objects import (
     get_completed_file_run, get_completed_run, new_read_completed_set_runs
     )
 
-from . import objects, work
+from . import objects, work, queuedata
 
 from os.path import relpath, splitext, join, basename
 from datetime import timedelta, datetime
@@ -596,13 +596,14 @@ def enqueue_sources(queue, the_set, sources):
         
         with queue as db:
             _L.info(u'Sending {path} to task queue, {remain} more to go'.format(**source))
-            task_data = dict(job_id=None, url=None, set_id=the_set.id,
-                             name=source['path'],
-                             content_b64=source['content'],
-                             commit_sha=source['commit_sha'],
-                             file_id=source['blob_sha'])
-        
-            task_id = queue.put(task_data)
+            
+            task = queuedata.Task(job_id=None, url=None, set_id=the_set.id,
+                                  name=source['path'],
+                                  content_b64=source['content'],
+                                  commit_sha=source['commit_sha'],
+                                  file_id=source['blob_sha'])
+            
+            task_id = task.enqueue(queue)
             expected_paths.add(source['path'])
             commit_sha = source['commit_sha']
     
@@ -727,14 +728,14 @@ def add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun):
     tasks = {}
     
     for (file_name, (content_b64, file_id)) in files.items():
-        task_data = dict(job_id=job_id, url=job_url, name=file_name,
-                         content_b64=content_b64, file_id=file_id,
-                         commit_sha=commit_sha, rerun=rerun)
+        task = queuedata.Task(job_id=job_id, url=job_url, name=file_name,
+                              content_b64=content_b64, file_id=file_id,
+                              commit_sha=commit_sha, rerun=rerun)
     
         # Spread tasks out over time.
         delay = timedelta(seconds=len(tasks))
 
-        queue.put(task_data, expected_at=td2str(delay))
+        task.enqueue(queue, expected_at=td2str(delay))
         tasks[file_id] = file_name
     
     return tasks
@@ -845,8 +846,8 @@ def _wait_for_work_lock(lock, heartbeat_queue, worker_kind):
             break
         
         if time() > next_put:
-            # Keep this put() outside the lock, so threads don't confuse Postgres.
-            heartbeat_queue.put({'worker_id': _worker_id(), 'worker_kind': worker_kind})
+            # Keep this .enqueue() outside the lock, so threads don't confuse Postgres.
+            queuedata.Heartbeat(_worker_id(), worker_kind).enqueue(heartbeat_queue)
             next_put += HEARTBEAT_INTERVAL.seconds + HEARTBEAT_INTERVAL.days * 86400
 
 def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, output_dir, worker_kind):
@@ -858,18 +859,19 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
         # PQ will return NULL after 1 second timeout if not ask
         if task is None:
             return
-
-        _L.info(u'Got file {name} from task queue'.format(**task.data))
+        
+        taskdata = queuedata.Task(**task.data)
+        _L.info(u'Got file {} from task queue'.format(taskdata.name))
         passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'commit_sha', 'set_id', 'rerun'
-        passed_on_kwargs = {k: task.data.get(k) for k in passed_on_keys}
+        passed_on_kwargs = {k: getattr(taskdata, k) for k in passed_on_keys}
         passed_on_kwargs['worker_id'] = _worker_id()
 
-        if task.data.get('rerun') is True:
+        if taskdata.rerun is True:
             # Do not look for a previous run, because this is an explicit re-run request.
             previous_run = None
         else:
             interval = '{} seconds'.format(RUN_REUSE_TIMEOUT.seconds + RUN_REUSE_TIMEOUT.days * 86400)
-            previous_run = get_completed_file_run(db, task.data.get('file_id'), interval)
+            previous_run = get_completed_file_run(db, taskdata.file_id, interval)
     
         if previous_run:
             # Make a copy of the previous run.
@@ -884,8 +886,8 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
             passed_on_kwargs['run_id'] = add_run(db)
 
             # Send a Due task, possibly for later.
-            due_task_data = dict(task_data=task.data, **passed_on_kwargs)
-            due_queue.put(due_task_data, schedule_at=td2str(jobs.JOB_TIMEOUT + DUETASK_DELAY))
+            due_task = queuedata.Due(**passed_on_kwargs)
+            due_task.enqueue(due_queue, td2str(jobs.JOB_TIMEOUT + DUETASK_DELAY))
     
     if previous_run:
         # Re-use result from the previous run.
@@ -900,7 +902,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
         work_wait = threading.Thread(target=_wait_for_work_lock, args=work_args)
 
         with work_lock:
-            heartbeat_queue.put({'worker_id': _worker_id(), 'worker_kind': worker_kind})
+            queuedata.Heartbeat(_worker_id(), worker_kind).enqueue(heartbeat_queue)
             work_wait.start()
 
             source_name, _ = splitext(relpath(passed_on_kwargs['name'], 'sources'))
@@ -910,8 +912,8 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
         work_wait.join()
 
     # Send a Done task
-    done_task_data = dict(result=result, **passed_on_kwargs)
-    done_queue.put(done_task_data, expected_at=td2str(timedelta(0)))
+    done_task = queuedata.Done(result=result, **passed_on_kwargs)
+    done_task.enqueue(done_queue, td2str(timedelta(0)))
     _L.info('Done')
     
     # Sleep a short time to allow done task to show up in runs table.
@@ -928,19 +930,20 @@ def pop_task_from_donequeue(queue, github_auth):
         if task is None:
             return
     
-        _L.info(u'Got file {name} from done queue'.format(**task.data))
-        results = task.data['result']
+        donedata = queuedata.Done(**task.data)
+        _L.info(u'Got file {} from done queue'.format(donedata.name))
+        results = donedata.result
         message = results['message']
         run_state = RunState(results.get('output', None))
-        content_b64 = task.data['content_b64']
-        commit_sha = task.data['commit_sha']
-        worker_id = task.data.get('worker_id')
-        set_id = task.data.get('set_id')
-        job_url = task.data['url']
-        filename = task.data['name']
-        file_id = task.data['file_id']
-        run_id = task.data['run_id']
-        job_id = task.data['job_id']
+        content_b64 = donedata.content_b64
+        commit_sha = donedata.commit_sha
+        worker_id = donedata.worker_id
+        set_id = donedata.set_id
+        job_url = donedata.url
+        filename = donedata.name
+        file_id = donedata.file_id
+        run_id = donedata.run_id
+        job_id = donedata.job_id
         
         if is_completed_run(db, run_id, task.enqueued_at):
             # We are too late, this got handled.
@@ -964,17 +967,17 @@ def pop_task_from_duequeue(queue, github_auth):
         if task is None:
             return
         
-        _L.info(u'Got file {name} from due queue'.format(**task.data))
-        original_task = task.data['task_data']
-        content_b64 = task.data['content_b64']
-        commit_sha = task.data['commit_sha']
-        worker_id = task.data.get('worker_id')
-        set_id = task.data.get('set_id')
-        job_url = task.data['url']
-        filename = task.data['name']
-        file_id = task.data['file_id']
-        run_id = task.data['run_id']
-        job_id = task.data['job_id']
+        duedata = queuedata.Due(**task.data)
+        _L.info(u'Got file {} from due queue'.format(duedata.name))
+        content_b64 = duedata.content_b64
+        commit_sha = duedata.commit_sha
+        worker_id = duedata.worker_id
+        set_id = duedata.set_id
+        job_url = duedata.url
+        filename = duedata.name
+        file_id = duedata.file_id
+        run_id = duedata.run_id
+        job_id = duedata.job_id
     
         if is_completed_run(db, run_id, task.enqueued_at):
             # Everything's fine, this got handled.
@@ -997,18 +1000,19 @@ def flush_heartbeat_queue(queue):
             if task is None:
                 break
 
-            _L.info('Got heartbeat {}: {}'.format(task.id, task.data))
-            id, kind = task.data.get('worker_id'), task.data.get('worker_kind')
+            beatdata = queuedata.Heartbeat(**task.data)
+            w_id, w_kind = beatdata.worker_id, beatdata.worker_kind
+            _L.info('Got heartbeat {}: {} ({})'.format(task.id, w_id, w_kind))
             
             db.execute('''DELETE FROM heartbeats
                           WHERE worker_id = %s
                             AND ((worker_kind IS NULL AND %s IS NULL)
                                  OR worker_kind = %s)''',
-                       (id, kind, kind))
+                       (w_id, w_kind, w_kind))
             
             db.execute('''INSERT INTO heartbeats (worker_id, worker_kind, datetime)
                           VALUES (%s, %s, NOW())''',
-                       (id, kind))
+                       (w_id, w_kind))
 
 def get_recent_workers(db):
     '''
