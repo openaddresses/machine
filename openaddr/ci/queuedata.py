@@ -6,15 +6,14 @@ class Task:
         self.content_b64, self.commit_sha = content_b64, commit_sha
         self.file_id, self.rerun, self.set_id = file_id, rerun, set_id
     
-    def enqueue(self, queue, expected_at=None):
+    def asdata(self):
         data = dict(job_id=self.job_id, url=self.url, name=self.name,
                     content_b64=self.content_b64, file_id=self.file_id,
                     commit_sha=self.commit_sha)
         
         if self.rerun is not None: data.update(rerun=self.rerun)
         if self.set_id is not None: data.update(set_id=self.set_id)
-
-        queue.put(data, expected_at=expected_at)
+        return data
 
 class Due:
 
@@ -25,14 +24,12 @@ class Due:
         self.file_id, self.rerun, self.set_id = file_id, rerun, set_id
         self.worker_id, self.run_id = worker_id, run_id
     
-    def enqueue(self, queue, schedule_at):
-        data = dict(job_id=self.job_id, url=self.url, name=self.name,
+    def asdata(self):
+        return dict(job_id=self.job_id, url=self.url, name=self.name,
                     content_b64=self.content_b64, file_id=self.file_id,
                     commit_sha=self.commit_sha, rerun=self.rerun,
                     set_id=self.set_id, worker_id=self.worker_id,
                     run_id=self.run_id)
-    
-        queue.put(data, schedule_at=schedule_at)
 
 class Done:
 
@@ -45,7 +42,7 @@ class Done:
         self.worker_id, self.run_id = worker_id, run_id
         self.result = result
     
-    def enqueue(self, queue, expected_at):
+    def asdata(self):
         data = dict(job_id=self.job_id, url=self.url, name=self.name,
                     content_b64=self.content_b64, file_id=self.file_id,
                     commit_sha=self.commit_sha, run_id=self.run_id,
@@ -54,13 +51,12 @@ class Done:
         if self.rerun is not None: data.update(rerun=self.rerun)
         if self.worker_id is not None: data.update(worker_id=self.worker_id)
         if self.set_id is not None: data.update(set_id=self.set_id)
-
-        queue.put(data, expected_at=expected_at)
+        return data
 
 class Heartbeat:
 
     def __init__(self, worker_id, worker_kind):
         self.worker_id, self.worker_kind = worker_id, worker_kind
     
-    def enqueue(self, queue):
-        queue.put(dict(worker_id=self.worker_id, worker_kind=self.worker_kind))
+    def asdata(self):
+        return dict(worker_id=self.worker_id, worker_kind=self.worker_kind)

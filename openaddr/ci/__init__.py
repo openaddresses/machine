@@ -603,7 +603,7 @@ def enqueue_sources(queue, the_set, sources):
                                   commit_sha=source['commit_sha'],
                                   file_id=source['blob_sha'])
             
-            task_id = task.enqueue(queue)
+            task_id = queue.put(task.asdata())
             expected_paths.add(source['path'])
             commit_sha = source['commit_sha']
     
@@ -735,7 +735,7 @@ def add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun):
         # Spread tasks out over time.
         delay = timedelta(seconds=len(tasks))
 
-        task.enqueue(queue, expected_at=td2str(delay))
+        queue.put(task.asdata(), expected_at=td2str(delay))
         tasks[file_id] = file_name
     
     return tasks
@@ -847,7 +847,8 @@ def _wait_for_work_lock(lock, heartbeat_queue, worker_kind):
         
         if time() > next_put:
             # Keep this .enqueue() outside the lock, so threads don't confuse Postgres.
-            queuedata.Heartbeat(_worker_id(), worker_kind).enqueue(heartbeat_queue)
+            beatdata = queuedata.Heartbeat(_worker_id(), worker_kind)
+            heartbeat_queue.put(beatdata.asdata())
             next_put += HEARTBEAT_INTERVAL.seconds + HEARTBEAT_INTERVAL.days * 86400
 
 def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, output_dir, worker_kind):
@@ -887,7 +888,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
 
             # Send a Due task, possibly for later.
             due_task = queuedata.Due(**passed_on_kwargs)
-            due_task.enqueue(due_queue, td2str(jobs.JOB_TIMEOUT + DUETASK_DELAY))
+            due_queue.put(due_task.asdata(), schedule_at=td2str(jobs.JOB_TIMEOUT + DUETASK_DELAY))
     
     if previous_run:
         # Re-use result from the previous run.
@@ -902,7 +903,8 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
         work_wait = threading.Thread(target=_wait_for_work_lock, args=work_args)
 
         with work_lock:
-            queuedata.Heartbeat(_worker_id(), worker_kind).enqueue(heartbeat_queue)
+            beatdata = queuedata.Heartbeat(_worker_id(), worker_kind)
+            heartbeat_queue.put(beatdata.asdata())
             work_wait.start()
 
             source_name, _ = splitext(relpath(passed_on_kwargs['name'], 'sources'))
@@ -913,7 +915,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
 
     # Send a Done task
     done_task = queuedata.Done(result=result, **passed_on_kwargs)
-    done_task.enqueue(done_queue, td2str(timedelta(0)))
+    done_queue.put(done_task.asdata(), expected_at=td2str(timedelta(0)))
     _L.info('Done')
     
     # Sleep a short time to allow done task to show up in runs table.
