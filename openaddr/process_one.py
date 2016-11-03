@@ -181,6 +181,14 @@ parser = ArgumentParser(description='Run one source file locally, prints output 
 parser.add_argument('source', help='Required source file name.')
 parser.add_argument('destination', help='Required output directory name.')
 
+parser.add_argument('--render-preview', help='Render a map preview',
+                    action='store_const', dest='render_preview',
+                    const=True, default=False)
+
+parser.add_argument('--skip-preview', help="Don't render a map preview",
+                    action='store_const', dest='render_preview',
+                    const=False, default=False)
+
 parser.add_argument('-l', '--logfile', help='Optional log file name.')
 
 parser.add_argument('-v', '--verbose', help='Turn on verbose logging',

@@ -911,7 +911,8 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
 
             source_name, _ = splitext(relpath(passed_on_kwargs['name'], 'sources'))
             result = work.do_work(s3, passed_on_kwargs['run_id'], source_name,
-                                  passed_on_kwargs['content_b64'], output_dir)
+                                  passed_on_kwargs['content_b64'],
+                                  taskdata.render_preview, output_dir)
         
         work_wait.join()
 
