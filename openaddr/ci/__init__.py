@@ -601,7 +601,8 @@ def enqueue_sources(queue, the_set, sources):
                                   name=source['path'],
                                   content_b64=source['content'],
                                   commit_sha=source['commit_sha'],
-                                  file_id=source['blob_sha'])
+                                  file_id=source['blob_sha'],
+                                  render_preview=False)
             
             task_id = queue.put(task.asdata())
             expected_paths.add(source['path'])
@@ -730,7 +731,8 @@ def add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun):
     for (file_name, (content_b64, file_id)) in files.items():
         task = queuedata.Task(job_id=job_id, url=job_url, name=file_name,
                               content_b64=content_b64, file_id=file_id,
-                              commit_sha=commit_sha, rerun=rerun)
+                              commit_sha=commit_sha, rerun=rerun,
+                              render_preview=True)
     
         # Spread tasks out over time.
         delay = timedelta(seconds=len(tasks))

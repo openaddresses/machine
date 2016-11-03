@@ -1445,7 +1445,8 @@ class TestHook (unittest.TestCase):
         with db_connect(self.database_url) as conn:
             task = db_queue(conn, TASK_QUEUE).get()
             
-        self.assertTrue('us-ca-alameda_county' in task.data['name'])
+        self.assertIn('us-ca-alameda_county', task.data['name'])
+        self.assertTrue(task.data['render_preview'])
         
         # This is the JSON source payload, just make sure it parses.
         content = json.loads(de64(task.data['content_b64']))
@@ -2916,6 +2917,7 @@ class TestBatch (unittest.TestCase):
                     self.assertEqual(task.data['commit_sha'][:6], '8dd262')
                     self.assertTrue(task.data['job_id'] is None, 'There should be no job ID')
                     self.assertTrue(task.data['url'] is None, 'There should be no job URL')
+                    self.assertFalse(task.data['render_preview'], 'No previews for batches')
                     file_names.add(task.data['name'])
                     with task_Q as db:
                         set_run(db, add_run(db), task.data['name'], None, None,
