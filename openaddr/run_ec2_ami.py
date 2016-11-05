@@ -24,6 +24,9 @@ parser.add_argument('--sns-arn', default=environ.get('AWS_SNS_ARN', None),
 parser.add_argument('--role', default='openaddr',
                     help='Machine chef role to execute. Defaults to "openaddr".')
 
+parser.add_argument('--hours', default=12, type=int,
+                    help='Number of hours to allow before giving up. Defaults to 12 hours.')
+
 parser.add_argument('--instance-type', default='m3.medium',
                     help='EC2 instance type. Defaults to "m3.medium".')
 
@@ -41,9 +44,8 @@ parser.add_argument('command', nargs='*', help='Command with arguments to run on
 def main():
     ''' 
     '''
-    instance, deadline = False, time() + 12 * 3600
-
     args = parser.parse_args()
+    instance, deadline = False, time() + args.hours * 3600
     setup_logger(args.access_key, args.secret_key, args.sns_arn, log_level=args.loglevel)
 
     try:

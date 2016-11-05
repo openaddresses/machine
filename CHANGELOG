@@ -1,3 +1,6 @@
+2016-11-05: 3.6.0
+- Added hours setting to openaddr-run-ec2-command for dotmap.
+
 2016-11-05: 3.5.2
 - Fixed misplaced previews in write_state().
 

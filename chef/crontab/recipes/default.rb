@@ -94,6 +94,7 @@ LC_ALL=C.UTF-8
 0 11	*/3 * *	#{username}	( \
   curl -X POST -d '{"text": "Starting new spatial index..."}' $SLACK_URL -s ; \
   openaddr-run-ec2-command \
+  --hours 9 \
   -a "#{aws_access_id}" \
   -s "#{aws_secret_key}" \
   --sns-arn "#{aws_sns_arn}" \
@@ -122,6 +123,7 @@ LC_ALL=C.UTF-8
   curl -X POST -d '{"text": "Starting new dot map..."}' $SLACK_URL -s ; \
   openaddr-run-ec2-command \
   --role dotmap \
+  --hours 16 \
   --instance-type r3.large \
   -a "#{aws_access_id}" \
   -s "#{aws_secret_key}" \
