@@ -52,6 +52,10 @@ def traverse(item):
         yield item
 
 def request(method, url, **kwargs):
+    if urlparse(url).scheme == 'ftp' and method == 'GET':
+        sess = requests.Session()
+        return sess.get(url, timeout=_http_timeout, **kwargs)
+
     try:
         _L.debug("Requesting %s with args %s", url, kwargs.get('params') or kwargs.get('data'))
         return requests.request(method, url, timeout=_http_timeout, **kwargs)
