@@ -67,7 +67,7 @@ def assemble_output(s3, input, source_name, run_id, index_dirname):
     
     return output
 
-def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_dir):
+def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_dir, mapzen_key=None):
     ''' Do the actual work of running a source file in job_contents.
     '''
     _L.info('Doing work on source {}'.format(repr(source_name)))
@@ -87,7 +87,12 @@ def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_di
     # Invoke the job to do
     logfile_path = os.path.join(workdir, 'logfile.txt')
     cmd = 'openaddr-process-one', '-l', logfile_path, out_fn, oa_dir
-    cmd += ('--render-preview' if render_preview else '--skip-preview', )
+    
+    if render_preview and mapzen_key:
+        cmd += ('--render-preview', '--mapzen-key', mapzen_key)
+    else:
+        cmd += ('--skip-preview', )
+
     try:
         known_error, cmd_status = False, 0
         timeout_seconds = JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400

@@ -327,7 +327,7 @@ parser.add_argument('--width', dest='width', type=int,
                     help='Width in pixels.')
 
 parser.add_argument('--mapzen-key', dest='mapzen_key',
-                    help='Mapze API Key. See: https://mapzen.com/documentation/overview/')
+                    help='Mapzen API Key. See: https://mapzen.com/documentation/overview/')
 
 parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
                     action='store_const', dest='loglevel',

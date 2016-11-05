@@ -210,6 +210,9 @@ parser.add_argument('--skip-preview', help="Don't render a map preview",
                     action='store_const', dest='render_preview',
                     const=False, default=False)
 
+parser.add_argument('--mapzen-key', dest='mapzen_key',
+                    help='Mapzen API Key. See: https://mapzen.com/documentation/overview/')
+
 parser.add_argument('-l', '--logfile', help='Optional log file name.')
 
 parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
@@ -234,7 +237,7 @@ def main():
         source, destination = args.source, args.destination
     
     try:
-        file_path = process(source, destination, args.render_preview)
+        file_path = process(source, destination, args.render_preview, mapzen_key=args.mapzen_key)
     except Exception as e:
         _L.error(e, exc_info=True)
         return 1
