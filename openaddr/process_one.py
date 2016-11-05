@@ -11,7 +11,7 @@ from os import mkdir, rmdir, close, chmod
 from _thread import get_ident
 import tempfile, json, csv
 
-from . import cache, conform, CacheResult, ConformResult
+from . import cache, conform, preview, CacheResult, ConformResult
 from .compat import csvopen, csvwriter, PY2
 
 class SourceSaysSkip(RuntimeError): pass
@@ -30,7 +30,7 @@ def boolstr(value):
     
     raise ValueError(repr(value))
 
-def process(source, destination, extras=dict()):
+def process(source, destination, do_preview, extras=dict()):
     ''' Process a single source and destination, return path to JSON state file.
     
         Creates a new directory and files under destination.
@@ -43,7 +43,7 @@ def process(source, destination, extras=dict()):
     logging.getLogger('openaddr').addHandler(log_handler)
     
     cache_result, conform_result = CacheResult.empty(), ConformResult.empty()
-    skipped_source = False
+    preview_path, skipped_source = None, False
 
     try:
         with open(temp_src) as file:
@@ -65,6 +65,18 @@ def process(source, destination, extras=dict()):
                 _L.warning('Nothing processed')
             else:
                 _L.info('Processed data in {}'.format(conform_result.path))
+                
+                try:
+                    if do_preview:
+                        preview_path = render_preview(conform_result.path, temp_dir, 'mapzen-XXXX')
+    
+                    if not preview_path:
+                        _L.warning('Nothing previewed')
+                    else:
+                        print('Preview image in {}'.format(preview_path))
+                        _L.info('Preview image in {}'.format(preview_path))
+                except Exception as e:
+                    print('!!!', e, e.__class__)
     
     except SourceSaysSkip as e:
         _L.info('Source says to skip in process_one.process()')
@@ -79,11 +91,19 @@ def process(source, destination, extras=dict()):
 
     # Write output
     state_path = write_state(source, skipped_source, destination, log_handler,
-                             cache_result, conform_result, temp_dir)
+                             cache_result, conform_result, preview_path, temp_dir)
 
     log_handler.close()
     rmtree(temp_dir)
     return state_path
+
+def render_preview(csv_filename, temp_dir, mapzen_key):
+    '''
+    '''
+    png_filename = join(temp_dir, 'preview.png')
+    preview.render(csv_filename, png_filename, 668, 2, mapzen_key)
+
+    return png_filename
 
 class LogFilter:
     ''' Logging filter object to match only record in the current thread.
@@ -110,7 +130,7 @@ def get_log_handler(directory):
     return handler
 
 def write_state(source, skipped, destination, log_handler, cache_result,
-                conform_result, temp_dir):
+                conform_result, preview_path, temp_dir):
     '''
     '''
     source_id, _ = splitext(basename(source))
@@ -160,6 +180,7 @@ def write_state(source, skipped, destination, log_handler, cache_result,
         ('processed', conform_result.path and relpath(processed_path2, statedir)),
         ('process time', conform_result.elapsed and str(conform_result.elapsed)),
         ('output', relpath(output_path, statedir)),
+        ('preview', preview_path),
         ('attribution required', boolstr(conform_result.attribution_flag)),
         ('attribution name', conform_result.attribution_name),
         ('share-alike', boolstr(conform_result.sharealike_flag)),
@@ -213,7 +234,7 @@ def main():
         source, destination = args.source, args.destination
     
     try:
-        file_path = process(source, destination)
+        file_path = process(source, destination, args.render_preview)
     except Exception as e:
         _L.error(e, exc_info=True)
         return 1

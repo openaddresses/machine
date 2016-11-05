@@ -80,6 +80,12 @@ class TestOA (unittest.TestCase):
         if host == 'fake-s3.local':
             return response(200, self.s3._read_fake_key(path))
         
+        if host == 'tile.mapzen.com' and path.startswith('/mapzen/vector/v1'):
+            if 'api_key=mapzen-XXXX' not in url.query:
+                raise ValueError('Missing or wrong API key')
+            data = b'{"landuse": {"features": []}, "water": {"features": []}, "roads": {"features": []}}'
+            return response(200, data, headers={'Content-Type': 'application/json'})
+
         if (host, path) == ('data.acgov.org', '/api/geospatial/8e4s-7f4v'):
             local_path = join(data_dirname, 'us-ca-alameda_county-excerpt.zip')
         
@@ -224,14 +230,15 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-alameda_county.json')
         
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, True)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
-        self.assertTrue(state['cache'] is not None)
-        self.assertTrue(state['processed'] is not None)
+        self.assertIsNotNone(state['cache'])
+        self.assertIsNotNone(state['processed'])
         self.assertIsNotNone(state['sample'])
+        self.assertIsNotNone(state['preview'])
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'], 'http://www.acgov.org/acdata/terms.htm')
@@ -271,14 +278,15 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-alameda_county-mixedcase.json')
         
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, True)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
-        self.assertTrue(state['cache'] is not None)
-        self.assertTrue(state['processed'] is not None)
+        self.assertIsNotNone(state['cache'])
+        self.assertIsNotNone(state['processed'])
         self.assertIsNotNone(state['sample'])
+        self.assertIsNotNone(state['preview'])
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'], 'http://www.acgov.org/acdata/terms.htm')
@@ -314,14 +322,15 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-san_francisco.json')
         
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, True)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
-        self.assertTrue(state['cache'] is not None)
-        self.assertTrue(state['processed'] is not None)
+        self.assertIsNotNone(state['cache'])
+        self.assertIsNotNone(state['processed'])
         self.assertIsNotNone(state['sample'])
+        self.assertIsNotNone(state['preview'])
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'], '')
@@ -360,15 +369,16 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-carson.json')
         
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, True)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
-        self.assertTrue(state['cache'] is not None)
+        self.assertIsNotNone(state['cache'])
         self.assertEqual(state['fingerprint'], 'ef20174833d33c4ea50451a0b8a2d7f3')
-        self.assertTrue(state['processed'] is not None)
+        self.assertIsNotNone(state['processed'])
         self.assertIsNotNone(state['sample'])
+        self.assertIsNotNone(state['preview'])
         self.assertEqual(state['geometry type'], 'Point')
         self.assertEqual(state['website'], 'http://ci.carson.ca.us/')
         self.assertIsNone(state['license'])
@@ -397,15 +407,16 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-carson-cached.json')
         
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
-        self.assertTrue(state['cache'] is not None)
+        self.assertIsNotNone(state['cache'])
         self.assertEqual(state['fingerprint'], 'aff4e5c82562533c6e44adb5cf87103c')
-        self.assertTrue(state['processed'] is not None)
+        self.assertIsNotNone(state['processed'])
         self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
         self.assertEqual(state['geometry type'], 'Point')
 
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -423,15 +434,16 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-carson-old-cached.json')
         
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
-        self.assertTrue(state['cache'] is not None)
+        self.assertIsNotNone(state['cache'])
         self.assertEqual(state['fingerprint'], 'aff4e5c82562533c6e44adb5cf87103c')
-        self.assertTrue(state['processed'] is not None)
+        self.assertIsNotNone(state['processed'])
         self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
         self.assertEqual(state['geometry type'], 'Point')
 
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -449,7 +461,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-oakland.json')
         
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -458,6 +470,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state['cache'])
         # This test data does not contain a working conform object
         self.assertIsNone(state['processed'])
+        self.assertIsNone(state['preview'])
         self.assertEqual(state['website'], 'http://data.openoakland.org/dataset/property-parcels/resource/df20b818-0d16-4da8-a9c1-a7b8b720ff49')
         self.assertIsNone(state['license'])
         
@@ -472,7 +485,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-oakland-skip.json')
         
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -481,6 +494,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state['skipped'])
         self.assertIsNone(state['cache'])
         self.assertIsNone(state['processed'])
+        self.assertIsNone(state['preview'])
 
     def test_single_berk(self):
         ''' Test complete process_one.process on Berkeley sample data.
@@ -488,14 +502,15 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-berkeley.json')
         
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
-        self.assertTrue(state['cache'] is not None)
+        self.assertIsNotNone(state['cache'])
         # This test data does not contain a conform object at all
-        self.assertTrue(state['processed'] is None)
+        self.assertIsNone(state['processed'])
+        self.assertIsNone(state['preview'])
         self.assertEqual(state['website'], 'http://www.ci.berkeley.ca.us/datacatalog/')
         self.assertIsNone(state['license'])
         
@@ -510,13 +525,14 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-berkeley-404.json')
         
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
-        self.assertTrue(state['cache'] is None)
-        self.assertTrue(state['processed'] is None)
+        self.assertIsNone(state['cache'])
+        self.assertIsNone(state['processed'])
+        self.assertIsNone(state['preview'])
         
     def test_single_berk_apn(self):
         ''' Test complete process_one.process on Berkeley sample data.
@@ -524,13 +540,14 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-berkeley-apn.json')
         
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
         self.assertIsNotNone(state['cache'])
         self.assertIsNotNone(state['processed'])
+        self.assertIsNone(state['preview'])
         self.assertEqual(state['website'], 'http://www.ci.berkeley.ca.us/datacatalog/')
         self.assertIsNone(state['license'])
         
@@ -557,14 +574,15 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'pl-dolnoslaskie.json')
         
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
-        self.assertTrue(state['cache'] is not None)
-        self.assertTrue(state['processed'] is not None)
+        self.assertIsNotNone(state['cache'])
+        self.assertIsNotNone(state['processed'])
         self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'][:21], 'Polish Law on Geodesy')
@@ -585,14 +603,15 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'pl-lodzkie.json')
         
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
-        self.assertTrue(state['cache'] is not None)
-        self.assertTrue(state['processed'] is not None)
+        self.assertIsNotNone(state['cache'])
+        self.assertIsNotNone(state['processed'])
         self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'][:21], 'Polish Law on Geodesy')
@@ -627,12 +646,13 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'jp-fukushima.json')
         
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
         self.assertEqual(state['website'], 'http://nlftp.mlit.go.jp/isj/index.html')
         self.assertEqual(state['license'], u'http://nlftp.mlit.go.jp/ksj/other/yakkan§.html')
         self.assertEqual(state['attribution required'], 'true')
@@ -653,12 +673,13 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ut.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
         self.assertIsNone(state['website'])
         self.assertIsNone(state['license'])
 
@@ -673,12 +694,13 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'fr-paris.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
         self.assertEqual(state['website'], 'http://adresse.data.gouv.fr/download/')
         self.assertIsNone(state['license'])
         self.assertEqual(state['attribution required'], 'true')
@@ -700,12 +722,13 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, u'fr/la-réunion.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
         self.assertEqual(state['website'], 'http://adresse.data.gouv.fr/download/')
         self.assertIsNone(state['license'])
         self.assertEqual(state['attribution required'], 'true')
@@ -727,12 +750,13 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us/va/statewide.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -749,12 +773,13 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us/oh/trumbull.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -771,12 +796,13 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us/ks/brown_county.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -790,12 +816,13 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us/pa/lancaster.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -831,12 +858,13 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us/nm/washington.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -872,7 +900,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'de/berlin.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -889,6 +917,7 @@ class TestOA (unittest.TestCase):
             self.assertEqual(rows[2]['STREET'], u'Alte Jakobstra\xdfe')
 
         self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -905,7 +934,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us/or/portland.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -938,7 +967,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'nl/countrywide.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -963,12 +992,13 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'lake-man-gdb.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -1002,12 +1032,13 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'lake-man-gdb-nested.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -1041,12 +1072,13 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'lake-man-gdb-nested-nodir.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir)
+            state_path = process_one.process(source, self.testdir, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
