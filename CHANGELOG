@@ -1,3 +1,6 @@
+2016-11-05: 3.5.2
+- Fixed misplaced previews in write_state().
+
 2016-11-05: 3.5.1
 - Fixed missing worker MAPZEN_KEY config.
 
