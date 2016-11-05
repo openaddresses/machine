@@ -1,18 +1,17 @@
 class Task:
 
     def __init__(self, job_id, url, name, content_b64, commit_sha, file_id,
-                 rerun=None, set_id=None, render_preview=False, mapzen_key=None):
+                 rerun=None, set_id=None, render_preview=False):
         self.job_id, self.url, self.name = job_id, url, name
         self.content_b64, self.commit_sha = content_b64, commit_sha
         self.file_id, self.rerun, self.set_id = file_id, rerun, set_id
         self.render_preview = render_preview
-        self.mapzen_key = mapzen_key
     
     def asdata(self):
         data = dict(job_id=self.job_id, url=self.url, name=self.name,
                     content_b64=self.content_b64, file_id=self.file_id,
-                    mapzen_key=self.mapzen_key, commit_sha=self.commit_sha,
-                    render_preview=self.render_preview)
+                    render_preview=self.render_preview,
+                    commit_sha=self.commit_sha)
         
         if self.rerun is not None: data.update(rerun=self.rerun)
         if self.set_id is not None: data.update(set_id=self.set_id)

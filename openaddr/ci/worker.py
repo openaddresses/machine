@@ -36,6 +36,9 @@ parser.add_argument('-s', '--secret-key', default=os.environ.get('AWS_SECRET_ACC
 parser.add_argument('--sns-arn', default=os.environ.get('AWS_SNS_ARN', None),
                     help='Optional AWS Simple Notification Service (SNS) resource. Defaults to value of AWS_SNS_ARN environment variable.')
 
+parser.add_argument('--mapzen-key', default=os.environ.get('MAPZEN_KEY', None),
+                    help='Mapzen API Key. Defaults to value of MAPZEN_KEY environment variable. See: https://mapzen.com/documentation/overview/')
+
 parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
                     action='store_const', dest='loglevel',
                     const=logging.DEBUG, default=logging.INFO)
@@ -64,7 +67,8 @@ def main():
                 done_Q = db_queue(conn, DONE_QUEUE)
                 due_Q = db_queue(conn, DUE_QUEUE)
                 beat_Q = db_queue(conn, HEARTBEAT_QUEUE)
-                pop_task_from_taskqueue(s3, task_Q, done_Q, due_Q, beat_Q, worker_dir, worker_kind)
+                pop_task_from_taskqueue(s3, task_Q, done_Q, due_Q, beat_Q,
+                                        worker_dir, worker_kind, args.mapzen_key)
         except:
             _L.error('Error in worker main()', exc_info=True)
             time.sleep(5)

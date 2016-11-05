@@ -50,7 +50,6 @@ def load_config():
                 GITHUB_OAUTH_CALLBACK=os.environ.get('GITHUB_CALLBACK'),
                 MEMCACHE_SERVER=os.environ.get('MEMCACHE_SERVER'),
                 DATABASE_URL=os.environ['DATABASE_URL'],
-                MAPZEN_KEY=os.environ['MAPZEN_KEY'],
                 AWS_ACCESS_KEY_ID=os.environ['AWS_ACCESS_KEY_ID'],
                 AWS_SECRET_ACCESS_KEY=os.environ['AWS_SECRET_ACCESS_KEY'],
                 AWS_S3_BUCKET=os.environ.get('AWS_S3_BUCKET', 'data.openaddresses.io'),
@@ -86,8 +85,7 @@ def td2str(td):
     '''
     return '{}s'.format(td.seconds + td.days * 86400)
 
-def process_github_payload(queue, request_url, app_logger, github_auth,
-                           webhook_payload, gag_status, mapzen_key):
+def process_github_payload(queue, request_url, app_logger, github_auth, webhook_payload, gag_status):
     '''
     '''
     if skip_payload(webhook_payload):
@@ -116,7 +114,7 @@ def process_github_payload(queue, request_url, app_logger, github_auth,
 
     try:
         job_id = create_queued_job(queue, files, job_url_template, commit_sha,
-                                   is_rerun, mapzen_key, owner, repo, status_url)
+                                   is_rerun, owner, repo, status_url)
         job_url = expand_uri(job_url_template, dict(id=job_id))
     except Exception as e:
         # Oops, tell Github something went wrong.
@@ -708,7 +706,7 @@ def calculate_job_id(files):
     
     return job_id
 
-def create_queued_job(queue, files, job_url_template, commit_sha, rerun, mapzen_key, owner, repo, status_url):
+def create_queued_job(queue, files, job_url_template, commit_sha, rerun, owner, repo, status_url):
     ''' Create a new job, and add its files to the queue.
     '''
     filenames = list(files.keys())
@@ -720,12 +718,12 @@ def create_queued_job(queue, files, job_url_template, commit_sha, rerun, mapzen_
     job_status = None
 
     with queue as db:
-        task_files = add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun, mapzen_key)
+        task_files = add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun)
         add_job(db, job_id, None, task_files, file_states, file_results, owner, repo, status_url)
     
     return job_id
 
-def add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun, mapzen_key):
+def add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun):
     ''' Make a new task for each file, return dict of file IDs to file names.
     '''
     tasks = {}
@@ -734,7 +732,7 @@ def add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun, mapzen_
         task = queuedata.Task(job_id=job_id, url=job_url, name=file_name,
                               content_b64=content_b64, file_id=file_id,
                               commit_sha=commit_sha, rerun=rerun,
-                              render_preview=True, mapzen_key=mapzen_key)
+                              render_preview=True)
     
         # Spread tasks out over time.
         delay = timedelta(seconds=len(tasks))
@@ -855,7 +853,8 @@ def _wait_for_work_lock(lock, heartbeat_queue, worker_kind):
             heartbeat_queue.put(beatdata.asdata())
             next_put += HEARTBEAT_INTERVAL.seconds + HEARTBEAT_INTERVAL.days * 86400
 
-def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, output_dir, worker_kind):
+def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue,
+                            output_dir, worker_kind, mapzen_key):
     '''
     '''
     with task_queue as db:
@@ -915,7 +914,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
             result = work.do_work(s3, passed_on_kwargs['run_id'], source_name,
                                   passed_on_kwargs['content_b64'],
                                   taskdata.render_preview, output_dir,
-                                  taskdata.mapzen_key)
+                                  mapzen_key)
         
         work_wait.join()
 
