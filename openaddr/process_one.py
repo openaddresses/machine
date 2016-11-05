@@ -157,6 +157,10 @@ def write_state(source, skipped, destination, log_handler, cache_result,
         with open(sample_path, 'w') as sample_file:
             json.dump(conform_result.sample, sample_file, indent=2)
     
+    if preview_path:
+        preview_path2 = join(statedir, 'preview.png')
+        copy(preview_path, preview_path2)
+    
     log_handler.flush()
     output_path = join(statedir, 'output.txt')
     copy(log_handler.stream.name, output_path)
@@ -176,7 +180,7 @@ def write_state(source, skipped, destination, log_handler, cache_result,
         ('processed', conform_result.path and relpath(processed_path2, statedir)),
         ('process time', conform_result.elapsed and str(conform_result.elapsed)),
         ('output', relpath(output_path, statedir)),
-        ('preview', preview_path),
+        ('preview', preview_path and relpath(preview_path2, statedir)),
         ('attribution required', boolstr(conform_result.attribution_flag)),
         ('attribution name', conform_result.attribution_name),
         ('share-alike', boolstr(conform_result.sharealike_flag)),

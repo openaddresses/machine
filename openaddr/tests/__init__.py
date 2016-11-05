@@ -1129,6 +1129,9 @@ class TestState (unittest.TestCase):
         with open(join(self.output_dir, 'processed.zip'), 'w') as file:
             processed_path = file.name
 
+        with open(join(self.output_dir, 'preview.png'), 'w') as file:
+            preview_path = file.name
+
         conform_result = ConformResult(processed=None, sample='/tmp/sample.json',
                                        website='http://example.com', license='ODbL',
                                        geometry_type='Point', address_count=999,
@@ -1146,7 +1149,7 @@ class TestState (unittest.TestCase):
         args = dict(source='sources/foo.json', skipped=False,
                     destination=self.output_dir, log_handler=log_handler,
                     cache_result=cache_result, conform_result=conform_result,
-                    temp_dir=self.output_dir, preview_path='preview.png')
+                    temp_dir=self.output_dir, preview_path=preview_path)
 
         path1 = process_one.write_state(**args)
         
