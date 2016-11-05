@@ -1,3 +1,6 @@
+2016-11-05: 3.5.0
+- Added preview renders for CI jobs.
+
 2016-11-03: 3.4.8
 - Wrapped internal queue messages with classes.
 
