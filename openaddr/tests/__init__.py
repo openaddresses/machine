@@ -1146,7 +1146,7 @@ class TestState (unittest.TestCase):
         args = dict(source='sources/foo.json', skipped=False,
                     destination=self.output_dir, log_handler=log_handler,
                     cache_result=cache_result, conform_result=conform_result,
-                    temp_dir=self.output_dir)
+                    temp_dir=self.output_dir, preview_path='preview.png')
 
         path1 = process_one.write_state(**args)
         
@@ -1167,6 +1167,7 @@ class TestState (unittest.TestCase):
         self.assertEqual(state1['processed'], 'out.zip')
         self.assertEqual(state1['process time'], '0:00:01')
         self.assertEqual(state1['output'], 'output.txt')
+        self.assertEqual(state1['preview'], 'preview.png')
         self.assertEqual(state1['share-alike'], 'true')
         self.assertEqual(state1['attribution required'], 'true')
         self.assertEqual(state1['attribution name'], 'Example')

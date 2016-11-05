@@ -77,7 +77,7 @@ class RunState:
         'address count', 'version', 'fingerprint', 'cache time', 'processed',
         'output', 'process time', 'website', 'skipped', 'license',
         'share-alike', 'attribution required', 'attribution name',
-        'attribution flag', 'process hash')}
+        'attribution flag', 'process hash', 'preview')}
 
     def __init__(self, json_blob):
         blob_dict = dict(json_blob or {})
@@ -93,6 +93,7 @@ class RunState:
         self.cache_time = blob_dict.get('cache time')
         self.processed = blob_dict.get('processed')
         self.output = blob_dict.get('output')
+        self.preview = blob_dict.get('preview')
         self.process_time = blob_dict.get('process time')
         self.process_hash = blob_dict.get('process hash')
         self.website = blob_dict.get('website')
