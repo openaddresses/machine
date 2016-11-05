@@ -66,17 +66,13 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
             else:
                 _L.info('Processed data in {}'.format(conform_result.path))
                 
-                try:
-                    if do_preview and mapzen_key:
-                        preview_path = render_preview(conform_result.path, temp_dir, mapzen_key)
-    
-                    if not preview_path:
-                        _L.warning('Nothing previewed')
-                    else:
-                        print('Preview image in {}'.format(preview_path))
-                        _L.info('Preview image in {}'.format(preview_path))
-                except Exception as e:
-                    print('!!!', e, e.__class__)
+                if do_preview and mapzen_key:
+                    preview_path = render_preview(conform_result.path, temp_dir, mapzen_key)
+
+                if not preview_path:
+                    _L.warning('Nothing previewed')
+                else:
+                    _L.info('Preview image in {}'.format(preview_path))
     
     except SourceSaysSkip as e:
         _L.info('Source says to skip in process_one.process()')
