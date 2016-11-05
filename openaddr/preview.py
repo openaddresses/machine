@@ -25,11 +25,11 @@ EPSG4326 = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs'
 # Web Mercator, https://trac.osgeo.org/openlayers/wiki/SphericalMercator
 EPSG900913 = '+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs'
 
-def render(zip_filename_or_url, png_filename, width, resolution, mapzen_key):
+def render(filename_or_url, png_filename, width, resolution, mapzen_key):
     '''
     '''
-    zip_filename = get_local_zip_filename(zip_filename_or_url)
-    points = project_points(iterate_zipfile_points(zip_filename))
+    src_filename = get_local_filename(filename_or_url)
+    points = project_points(iterate_file_points(src_filename))
     xmin, ymin, xmax, ymax = calculate_bounds(points)
     
     surface, context, scale = make_context(xmin, ymin, xmax, ymax, width, resolution)
@@ -75,33 +75,46 @@ def render(zip_filename_or_url, png_filename, width, resolution, mapzen_key):
     
     surface.write_to_png(png_filename)
 
-def get_local_zip_filename(zip_filename_or_url):
+def get_local_filename(filename_or_url):
     '''
     '''
-    if urlparse(zip_filename_or_url).scheme in ('', 'file'):
-        return zip_filename_or_url
+    parsed = urlparse(filename_or_url)
+    suffix = os.path.splitext(parsed.path)[1]
     
-    if urlparse(zip_filename_or_url).scheme not in ('http', 'https'):
-        raise ValueError('Unknown URL type: {}'.format(zip_filename_or_url))
+    if parsed.scheme in ('', 'file'):
+        return filename_or_url
     
-    _L.info('Downloading {}...'.format(zip_filename_or_url))
+    if parsed.scheme not in ('http', 'https'):
+        raise ValueError('Unknown URL type: {}'.format(filename_or_url))
+    
+    _L.info('Downloading {}...'.format(filename_or_url))
 
-    got = requests.get(zip_filename_or_url)
-    _, zip_filename = mkstemp(prefix='Preview-', suffix='.zip')
+    got = requests.get(filename_or_url)
+    _, filename = mkstemp(prefix='Preview-', suffix=suffix)
 
-    with open(zip_filename, 'wb') as file:
+    with open(filename, 'wb') as file:
         file.write(got.content)
-        _L.debug('Saved to {}'.format(zip_filename))
+        _L.debug('Saved to {}'.format(filename))
     
-    return zip_filename
+    return filename
 
-def iterate_zipfile_points(filename):
+def iterate_file_points(filename):
     '''
     '''
-    with open(filename, 'rb') as file:
-        zip = ZipFile(file)
-        csv_names = [name for name in zip.namelist() if name.endswith('.csv')]
-        csv_file = TextIOWrapper(zip.open(csv_names[0]))
+    suffix = os.path.splitext(filename)[1].lower()
+    
+    if suffix == '.csv':
+        open_file = open(filename, 'r')
+    elif suffix == '.zip':
+        open_file = open(filename, 'rb')
+    
+    with open_file as file:
+        if suffix == '.csv':
+            csv_file = file
+        elif suffix == '.zip':
+            zip = ZipFile(file)
+            csv_names = [name for name in zip.namelist() if name.endswith('.csv')]
+            csv_file = TextIOWrapper(zip.open(csv_names[0]))
         
         for row in DictReader(csv_file):
             try:
@@ -300,7 +313,7 @@ def draw_line(ctx, start, points):
 
 parser = ArgumentParser(description='Draw a map of a single source preview.')
 
-parser.add_argument('zip_filename', help='Input Zip filename or URL.')
+parser.add_argument('src_filename', help='Input Zip or CSV filename or URL.')
 parser.add_argument('png_filename', help='Output PNG filename.')
 
 parser.set_defaults(resolution=1, width=668)
@@ -328,7 +341,7 @@ parser.add_argument('-q', '--quiet', help='Turn off most logging',
 def main():
     args = parser.parse_args()
     setup_logger(None, None, None, log_level=args.loglevel)
-    render(args.zip_filename, args.png_filename, args.width, args.resolution, args.mapzen_key)
+    render(args.src_filename, args.png_filename, args.width, args.resolution, args.mapzen_key)
 
 if __name__ == '__main__':
     exit(main())

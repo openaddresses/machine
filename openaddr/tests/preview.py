@@ -6,6 +6,7 @@ import tempfile
 import subprocess
 
 from os.path import join, dirname
+from zipfile import ZipFile
 
 from httmock import HTTMock, response
 
@@ -25,7 +26,7 @@ class TestPreview (unittest.TestCase):
         bbox = preview.calculate_bounds(points)
         self.assertEqual(bbox, (-1.04, -1.04, 1.04, 1.04), 'The two outliers are ignored')
     
-    def test_render(self):
+    def test_render_zip(self):
         '''
         '''
         def response_content(url, request):
@@ -50,3 +51,38 @@ class TestPreview (unittest.TestCase):
             self.assertTrue('8-bit/color RGB' in info)
         finally:
             os.remove(png_filename)
+    
+    def test_render_csv(self):
+        '''
+        '''
+        def response_content(url, request):
+            if url.hostname == 'tile.mapzen.com' and url.path.startswith('/mapzen/vector/v1'):
+                if 'api_key=mapzen-XXXX' not in url.query:
+                    raise ValueError('Missing or wrong API key')
+                data = b'{"landuse": {"features": []}, "water": {"features": []}, "roads": {"features": []}}'
+                return response(200, data, headers={'Content-Type': 'application/json'})
+            raise Exception("Uknown URL")
+
+        zip_filename = join(dirname(__file__), 'outputs', 'portland_metro.zip')
+        handle, png_filename = tempfile.mkstemp(prefix='render-', suffix='.png')
+        os.close(handle)
+
+        try:
+            temp_dir = tempfile.mkdtemp(prefix='test_render_csv-')
+            zipfile = ZipFile(zip_filename)
+            
+            with open(join(temp_dir, 'portland.csv'), 'wb') as file:
+                file.write(zipfile.read('portland_metro/us/or/portland_metro.csv'))
+                csv_filename = file.name
+        
+            with HTTMock(response_content):
+                preview.render(csv_filename, png_filename, 668, 1, 'mapzen-XXXX')
+            info = str(subprocess.check_output(('file', png_filename)))
+
+            self.assertTrue('PNG image data' in info)
+            self.assertTrue('668 x 289' in info)
+            self.assertTrue('8-bit/color RGB' in info)
+        finally:
+            os.remove(png_filename)
+            os.remove(csv_filename)
+            os.rmdir(temp_dir)
