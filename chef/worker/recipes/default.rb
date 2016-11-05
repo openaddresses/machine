@@ -15,6 +15,7 @@ worker_kind = local['worker_kind']
 gag_github_status = local['gag_github_status']
 database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=require"
 web_docroot = local['web_docroot']
+mapzen_key = local['mapzen_key']
 slack_url = local['slack_url']
 
 #
@@ -76,6 +77,7 @@ AWS_ACCESS_KEY_ID=#{aws_access_id}
 AWS_SECRET_ACCESS_KEY=#{aws_secret_key}
 AWS_SNS_ARN=#{aws_sns_arn}
 AWS_S3_BUCKET=#{aws_s3_bucket}
+MAPZEN_KEY=#{mapzen_key}
 WORKER_KIND=#{worker_kind}
 LC_ALL=C.UTF-8
 CONF
