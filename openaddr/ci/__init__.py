@@ -113,8 +113,8 @@ def process_github_payload(queue, request_url, app_logger, github_auth, webhook_
     is_rerun = is_rerun_payload(webhook_payload)
 
     try:
-        job_id = create_queued_job(queue, files, job_url_template,
-                                   commit_sha, is_rerun, owner, repo, status_url)
+        job_id = create_queued_job(queue, files, job_url_template, commit_sha,
+                                   is_rerun, owner, repo, status_url)
         job_url = expand_uri(job_url_template, dict(id=job_id))
     except Exception as e:
         # Oops, tell Github something went wrong.
@@ -601,7 +601,8 @@ def enqueue_sources(queue, the_set, sources):
                                   name=source['path'],
                                   content_b64=source['content'],
                                   commit_sha=source['commit_sha'],
-                                  file_id=source['blob_sha'])
+                                  file_id=source['blob_sha'],
+                                  render_preview=False)
             
             task_id = queue.put(task.asdata())
             expected_paths.add(source['path'])
@@ -730,7 +731,8 @@ def add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun):
     for (file_name, (content_b64, file_id)) in files.items():
         task = queuedata.Task(job_id=job_id, url=job_url, name=file_name,
                               content_b64=content_b64, file_id=file_id,
-                              commit_sha=commit_sha, rerun=rerun)
+                              commit_sha=commit_sha, rerun=rerun,
+                              render_preview=True)
     
         # Spread tasks out over time.
         delay = timedelta(seconds=len(tasks))
@@ -851,7 +853,8 @@ def _wait_for_work_lock(lock, heartbeat_queue, worker_kind):
             heartbeat_queue.put(beatdata.asdata())
             next_put += HEARTBEAT_INTERVAL.seconds + HEARTBEAT_INTERVAL.days * 86400
 
-def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, output_dir, worker_kind):
+def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue,
+                            output_dir, worker_kind, mapzen_key):
     '''
     '''
     with task_queue as db:
@@ -909,7 +912,9 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
 
             source_name, _ = splitext(relpath(passed_on_kwargs['name'], 'sources'))
             result = work.do_work(s3, passed_on_kwargs['run_id'], source_name,
-                                  passed_on_kwargs['content_b64'], output_dir)
+                                  passed_on_kwargs['content_b64'],
+                                  taskdata.render_preview, output_dir,
+                                  mapzen_key)
         
         work_wait.join()
 

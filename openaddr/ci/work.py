@@ -65,10 +65,18 @@ def assemble_output(s3, input, source_name, run_id, index_dirname):
         url, _ = upload_file(s3, key_name, output_path)
         output['output'] = url
     
+    if input['preview']:
+        # e.g. /runs/0/preview.png
+        preview_path = os.path.join(index_dirname, input['preview'])
+        key_name = '/runs/{run}/{preview}'.format(run=run_id, **input)
+        url, _ = upload_file(s3, key_name, preview_path)
+        output['preview'] = url
+    
     return output
 
-def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
-    "Do the actual work of running a source file in job_contents"
+def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_dir, mapzen_key=None):
+    ''' Do the actual work of running a source file in job_contents.
+    '''
     _L.info('Doing work on source {}'.format(repr(source_name)))
 
     # Make a directory to run the whole job
@@ -86,6 +94,12 @@ def do_work(s3, run_id, source_name, job_contents_b64, output_dir):
     # Invoke the job to do
     logfile_path = os.path.join(workdir, 'logfile.txt')
     cmd = 'openaddr-process-one', '-l', logfile_path, out_fn, oa_dir
+    
+    if render_preview and mapzen_key:
+        cmd += ('--render-preview', '--mapzen-key', mapzen_key)
+    else:
+        cmd += ('--skip-preview', )
+
     try:
         known_error, cmd_status = False, 0
         timeout_seconds = JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400

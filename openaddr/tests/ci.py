@@ -1360,7 +1360,7 @@ class TestHook (unittest.TestCase):
             done_q = db_queue(conn, DONE_QUEUE)
             due_q = db_queue(conn, DUE_QUEUE)
             beat_q = db_queue(conn, HEARTBEAT_QUEUE)
-            pop_task_from_taskqueue(self.s3, task_q, done_q, due_q, beat_q, self.output_dir, None)
+            pop_task_from_taskqueue(self.s3, task_q, done_q, due_q, beat_q, self.output_dir, None, None)
             pop_task_from_donequeue(done_q, self.github_auth)
             
         self.assertEqual(self.last_status_state, 'failure', 'Bad JSON should lead to failure')
@@ -1445,7 +1445,8 @@ class TestHook (unittest.TestCase):
         with db_connect(self.database_url) as conn:
             task = db_queue(conn, TASK_QUEUE).get()
             
-        self.assertTrue('us-ca-alameda_county' in task.data['name'])
+        self.assertIn('us-ca-alameda_county', task.data['name'])
+        self.assertTrue(task.data['render_preview'])
         
         # This is the JSON source payload, just make sure it parses.
         content = json.loads(de64(task.data['content_b64']))
@@ -1976,7 +1977,7 @@ class TestRuns (unittest.TestCase):
         
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
         
-        def returns_plausible_result(s3, run_id, source_name, content, output_dir):
+        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
             return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
         
         do_work.side_effect = returns_plausible_result
@@ -1990,7 +1991,7 @@ class TestRuns (unittest.TestCase):
 
             files = {source_path: (en64(source), source_id)}
             job_id = create_queued_job(task_Q, files, *self.fake_queued_job_args_unmerged)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND, None)
             self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
             
             # Work done! 
@@ -2052,7 +2053,7 @@ class TestRuns (unittest.TestCase):
         
             # Bad things will happen and the job will fail.
             with self.assertRaises(NotImplementedError) as e:
-                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
+                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND, None)
 
             # Should do nothing, because a Done task was never sent.
             pop_task_from_donequeue(done_Q, None)
@@ -2101,7 +2102,7 @@ class TestRuns (unittest.TestCase):
     def test_overdue_run(self, do_work):
         ''' Test a run that succeeds past its due date.
         '''
-        def returns_plausible_result(s3, run_id, source_name, content, output_dir):
+        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
             return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
 
         do_work.side_effect = returns_plausible_result
@@ -2121,7 +2122,7 @@ class TestRuns (unittest.TestCase):
 
             files = {source_path: (en64(source), source_id)}
             job_id = create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND, None)
 
             # Should do nothing, because no Due task is yet scheduled.
             pop_task_from_duequeue(due_Q, None)
@@ -2191,7 +2192,7 @@ class TestRuns (unittest.TestCase):
 
             files = {source_path: (en64(source), source_id)}
             job_id = create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND, None)
 
             # The job eventually completes, but it's too late
             pop_task_from_donequeue(done_Q, None)
@@ -2232,7 +2233,7 @@ class TestRuns (unittest.TestCase):
 
             files = {source_path: (en64(source), source_id)}
             job_id = create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND, None)
 
             # The job eventually completes, but it's too late
             pop_task_from_donequeue(done_Q, None)
@@ -2266,7 +2267,7 @@ class TestRuns (unittest.TestCase):
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
         fprint = itertools.count(1)
         
-        def returns_plausible_result(s3, run_id, source_name, content, output_dir):
+        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
             return dict(message='Something went wrong', output={"source": "user_input.txt", "fingerprint": next(fprint)}, result_code=0, result_stdout='...')
         
         def raises_an_error(s3, run_id, source_name, content, output_dir):
@@ -2283,7 +2284,7 @@ class TestRuns (unittest.TestCase):
 
             files = {source_path: (en64(source), source_id)}
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND, None)
             self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
             
             # Work done!
@@ -2304,7 +2305,7 @@ class TestRuns (unittest.TestCase):
             self.last_status_state = None
 
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND, None)
             self.assertEqual(self.last_status_state, None, 'Should be nothing still')
             
             # Work done again!
@@ -2329,7 +2330,7 @@ class TestRuns (unittest.TestCase):
             self.last_status_state = None
 
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND, None)
             self.assertEqual(self.last_status_state, None, 'Should be nothing still')
             
             # Work done a third time!
@@ -2372,7 +2373,7 @@ class TestRuns (unittest.TestCase):
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
         fprint = itertools.count(1)
         
-        def returns_plausible_result(s3, run_id, source_name, content, output_dir):
+        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
             return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "fingerprint": next(fprint)})
         
         fake_queued_job_args = list(self.fake_queued_job_args[:])
@@ -2389,7 +2390,7 @@ class TestRuns (unittest.TestCase):
 
             files = {source_path: (en64(source), source_id)}
             create_queued_job(task_Q, files, *fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND, None)
             self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
             
             # Work done!
@@ -2409,7 +2410,7 @@ class TestRuns (unittest.TestCase):
             self.last_status_state = None
 
             create_queued_job(task_Q, files, *fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND, None)
             self.assertEqual(self.last_status_state, None, 'Should be nothing still')
             
             # Work done again!
@@ -2447,7 +2448,7 @@ class TestRuns (unittest.TestCase):
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
         fprint = itertools.count(1)
         
-        def returns_plausible_result(s3, run_id, source_name, content, output_dir):
+        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
             return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "fingerprint": next(fprint)}, result_code=0, result_stdout='...')
         
         do_work.side_effect = returns_plausible_result
@@ -2461,7 +2462,7 @@ class TestRuns (unittest.TestCase):
 
             files = {source_path: (en64(source), source_id)}
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND, None)
             self.assertEqual(self.last_status_state, None, 'Should be nothing yet')
             
             # Work done!
@@ -2481,7 +2482,7 @@ class TestRuns (unittest.TestCase):
             sleep(1.5)
 
             create_queued_job(task_Q, files, *self.fake_queued_job_args)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND, None)
             self.assertEqual(self.last_status_state, None, 'Should be nothing still')
             
             # Work done again!
@@ -2530,15 +2531,16 @@ class TestWorker (unittest.TestCase):
         s3 = mock.Mock()
         s3.new_key.return_value.md5 = b'0xWHATEVER'
 
-        input1 = {'cache': False, 'sample': False, 'processed': False, 'output': False}
+        input1 = {'cache': False, 'sample': False, 'processed': False, 'output': False, 'preview': False}
         state1 = RunState(assemble_output(s3, input1, 'xx/f', 1, 'dir'))
 
         self.assertEqual(state1.cache, input1['cache'])
         self.assertEqual(state1.sample, input1['sample'])
         self.assertEqual(state1.processed, input1['processed'])
         self.assertEqual(state1.output, input1['output'])
+        self.assertEqual(state1.preview, input1['preview'])
 
-        input2 = {'cache': 'cache.csv', 'sample': False, 'processed': False, 'output': False}
+        input2 = {'cache': 'cache.csv', 'sample': False, 'processed': False, 'output': False, 'preview': False}
         state2 = RunState(assemble_output(s3, input2, 'xx/f', 2, 'dir'))
 
         self.assertEqual(state2.cache, s3.new_key.return_value.generate_url.return_value)
@@ -2546,29 +2548,32 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(state2.sample, input2['sample'])
         self.assertEqual(state2.processed, input2['processed'])
         self.assertEqual(state2.output, input2['output'])
+        self.assertEqual(state2.preview, input2['preview'])
         self.assertEqual(s3.new_key.mock_calls[-3], mock.call('/runs/2/cache.csv'))
 
-        input3 = {'cache': False, 'sample': 'sample.json', 'processed': False, 'output': False}
+        input3 = {'cache': False, 'sample': 'sample.json', 'processed': False, 'output': False, 'preview': False}
         state3 = RunState(assemble_output(s3, input3, 'xx/f', 3, 'dir'))
 
         self.assertEqual(state3.cache, input3['cache'])
         self.assertEqual(state3.sample, s3.new_key.return_value.generate_url.return_value)
         self.assertEqual(state3.processed, input3['processed'])
         self.assertEqual(state3.output, input3['output'])
+        self.assertEqual(state3.preview, input3['preview'])
         self.assertEqual(s3.new_key.mock_calls[-3], mock.call('/runs/3/sample.json'))
 
-        input4 = {'cache': False, 'sample': False, 'processed': False, 'output': 'out.txt'}
+        input4 = {'cache': False, 'sample': False, 'processed': False, 'output': 'out.txt', 'preview': False}
         state4 = RunState(assemble_output(s3, input4, 'xx/f', 4, 'dir'))
 
         self.assertEqual(state4.cache, input4['cache'])
         self.assertEqual(state4.sample, input4['sample'])
         self.assertEqual(state4.processed, input4['processed'])
         self.assertEqual(state4.output, s3.new_key.return_value.generate_url.return_value)
+        self.assertEqual(state4.preview, input4['preview'])
         self.assertEqual(s3.new_key.mock_calls[-3], mock.call('/runs/4/out.txt'))
 
         with patch('openaddr.util.package_output') as package_output:
             package_output.return_value = 'nothing.zip'
-            input5 = {'cache': False, 'sample': False, 'processed': 'data.zip', 'output': False}
+            input5 = {'cache': False, 'sample': False, 'processed': 'data.zip', 'output': False, 'preview': False}
             state5 = RunState(assemble_output(s3, input5, 'xx/f', 5, 'dir'))
 
         self.assertEqual(state5.cache, input5['cache'])
@@ -2576,7 +2581,18 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(state5.processed, s3.new_key.return_value.generate_url.return_value)
         self.assertEqual(state5.process_hash, '0xWHATEVER')
         self.assertEqual(state5.output, input5['output'])
+        self.assertEqual(state5.preview, input5['preview'])
         self.assertEqual(s3.new_key.mock_calls[-3], mock.call('/runs/5/xx/f.zip'))
+
+        input6 = {'cache': False, 'sample': False, 'processed': False, 'output': False, 'preview': 'preview.png'}
+        state6 = RunState(assemble_output(s3, input6, 'xx/f', 4, 'dir'))
+
+        self.assertEqual(state6.cache, input6['cache'])
+        self.assertEqual(state6.sample, input6['sample'])
+        self.assertEqual(state6.processed, input6['processed'])
+        self.assertEqual(state6.output, input6['output'])
+        self.assertEqual(state6.preview, s3.new_key.return_value.generate_url.return_value)
+        self.assertEqual(s3.new_key.mock_calls[-3], mock.call('/runs/4/preview.png'))
 
     @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')
@@ -2590,9 +2606,9 @@ class TestWorker (unittest.TestCase):
             os.makedirs(index_dirname)
             
             with open(index_filename, 'w') as file:
-                file.write('''[ ["skipped", "source", "cache", "sample", "website", "license", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "process hash", "output"], [false, "user_input.txt", "cache.zip", "sample.json", "http://example.com", "GPL", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "dd9af289289fb70f6c4852b8c7b0f1c7", "output.txt"] ]''')
+                file.write('''[ ["skipped", "source", "cache", "sample", "website", "license", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "process hash", "output", "preview"], [false, "user_input.txt", "cache.zip", "sample.json", "http://example.com", "GPL", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "dd9af289289fb70f6c4852b8c7b0f1c7", "output.txt", "preview.png"] ]''')
             
-            for name in ('cache.zip', 'sample.json', 'out.csv', 'output.txt'):
+            for name in ('cache.zip', 'sample.json', 'out.csv', 'output.txt', 'preview.png'):
                 with open(os.path.join(index_dirname, name), 'w') as file:
                     file.write('Yo')
             
@@ -2607,13 +2623,15 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
         
         job_id, content = task_data['id'], task_data['content']
-        result = work.do_work(self.s3, -1, u'so/exalté', content, self.output_dir)
+        result = work.do_work(self.s3, -1, u'so/exalté', content, True, self.output_dir, mapzen_key='mapzen-XXXX')
         
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
             os.path.join(self.output_dir, 'work/logfile.txt'),
             os.path.join(self.output_dir, u'work/so--exalté.txt'),
-            os.path.join(self.output_dir, 'work/out')
+            os.path.join(self.output_dir, 'work/out'),
+            '--render-preview',
+            '--mapzen-key', 'mapzen-XXXX'
             ),
             timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
         
@@ -2624,6 +2642,7 @@ class TestWorker (unittest.TestCase):
         self.assertTrue(result['output']['cache'].endswith('/cache.zip'))
         self.assertTrue(result['output']['sample'].endswith('/sample.json'))
         self.assertTrue(result['output']['output'].endswith('/output.txt'))
+        self.assertTrue(result['output']['preview'].endswith('/preview.png'))
         self.assertTrue(result['output']['processed'].endswith(u'/so/exalté.zip'))
         self.assertEqual(result['output']['website'], 'http://example.com')
         self.assertEqual(result['output']['license'], 'GPL')
@@ -2660,13 +2679,14 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
         
         job_id, content = task_data['id'], task_data['content']
-        result = work.do_work(self.s3, -1, 'angry', content, self.output_dir)
+        result = work.do_work(self.s3, -1, 'angry', content, True, self.output_dir, mapzen_key=None)
         
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
             os.path.join(self.output_dir, 'work/logfile.txt'),
             os.path.join(self.output_dir, 'work/angry.txt'),
-            os.path.join(self.output_dir, 'work/out')
+            os.path.join(self.output_dir, 'work/out'),
+            '--skip-preview'
             ),
             timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
         
@@ -2686,7 +2706,7 @@ class TestWorker (unittest.TestCase):
             os.makedirs(index_dirname)
             
             with open(index_filename, 'w') as file:
-                file.write('''[ ["skipped", "source", "cache", "sample", "website", "license", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "process hash", "output"], [true, "user_input.txt", null, null, null, null, null, null, null, null, null, null, null, null, "output.txt"] ]''')
+                file.write('''[ ["skipped", "source", "cache", "sample", "website", "license", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "process hash", "output", "preview"], [true, "user_input.txt", null, null, null, null, null, null, null, null, null, null, null, null, "output.txt", null] ]''')
             
             with open(os.path.join(index_dirname, 'output.txt'), 'w') as file:
                 file.write('Yo')
@@ -2702,13 +2722,15 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
         
         job_id, content = task_data['id'], task_data['content']
-        result = work.do_work(self.s3, -1, u'so/exalté', content, self.output_dir)
+        result = work.do_work(self.s3, -1, u'so/exalté', content, True, self.output_dir, mapzen_key='mapzen-XXXX')
         
         check_output.assert_called_with((
             'openaddr-process-one', '-l',
             os.path.join(self.output_dir, 'work/logfile.txt'),
             os.path.join(self.output_dir, u'work/so--exalté.txt'),
-            os.path.join(self.output_dir, 'work/out')
+            os.path.join(self.output_dir, 'work/out'),
+            '--render-preview',
+            '--mapzen-key', 'mapzen-XXXX'
             ),
             timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
         
@@ -2916,6 +2938,7 @@ class TestBatch (unittest.TestCase):
                     self.assertEqual(task.data['commit_sha'][:6], '8dd262')
                     self.assertTrue(task.data['job_id'] is None, 'There should be no job ID')
                     self.assertTrue(task.data['url'] is None, 'There should be no job URL')
+                    self.assertFalse(task.data['render_preview'], 'No previews for batches')
                     file_names.add(task.data['name'])
                     with task_Q as db:
                         set_run(db, add_run(db), task.data['name'], None, None,
@@ -2945,7 +2968,7 @@ class TestBatch (unittest.TestCase):
     def test_single_run(self, do_work):
         ''' Show that the tasks enqueued in a batch context can be run.
         '''
-        def returns_plausible_result(s3, run_id, source_name, content, output_dir):
+        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
             return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
         
         do_work.side_effect = returns_plausible_result
@@ -2965,7 +2988,7 @@ class TestBatch (unittest.TestCase):
             # There is a task for us in the queue, run it successfully.
             #
             next(enqueued)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND, None)
             pop_task_from_donequeue(done_Q, self.github_auth)
             
             sleep(1.1)
@@ -2975,7 +2998,7 @@ class TestBatch (unittest.TestCase):
             # There is a task for us in the queue, make it take too long.
             #
             next(enqueued)
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND)
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, PERMANENT_KIND, None)
             
             sleep(1.1)
             pop_task_from_duequeue(due_Q, self.github_auth)
@@ -3006,7 +3029,7 @@ class TestBatch (unittest.TestCase):
     def test_run_with_renders(self, do_work):
         ''' Show that a batch context will result in rendered maps.
         '''
-        def returns_plausible_result(s3, run_id, source_name, content, output_dir):
+        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
             return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
         
         do_work.side_effect = returns_plausible_result
@@ -3024,7 +3047,7 @@ class TestBatch (unittest.TestCase):
             
             # Burn through all the runs
             for _ in enqueued:
-                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND)
+                pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, beat_Q, self.output_dir, TEMPORARY_KIND, None)
                 pop_task_from_donequeue(done_Q, self.github_auth)
                 pop_task_from_duequeue(due_Q, self.github_auth)
             
@@ -3095,7 +3118,7 @@ class TestQueue (unittest.TestCase):
             done_Q, due_Q, heartbeat_Q = mock.Mock(), mock.Mock(), mock.Mock()
             task_Q.put(task_data)
 
-            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, heartbeat_Q, self.output_dir, 'testworker')
+            pop_task_from_taskqueue(self.s3, task_Q, done_Q, due_Q, heartbeat_Q, self.output_dir, 'testworker', None)
             done_data = done_Q.put.mock_calls[0][1][0]
         
         for (key, value) in task_data.items():

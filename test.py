@@ -22,6 +22,7 @@ from openaddr.tests.conform import TestConformCli, TestConformTransforms, TestCo
 from openaddr.tests.expand import TestExpand
 from openaddr.tests.render import TestRender
 from openaddr.tests.dotmap import TestDotmap
+from openaddr.tests.preview import TestPreview
 from openaddr.tests.util import TestUtilities
 from openaddr.tests.summarize import TestSummarizeFunctions
 from openaddr.tests.parcels import TestParcelsUtils, TestParcelsParse
