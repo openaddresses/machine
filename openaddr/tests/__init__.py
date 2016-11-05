@@ -230,7 +230,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-alameda_county.json')
         
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, True)
+            state_path = process_one.process(source, self.testdir, True, mapzen_key='mapzen-XXXX')
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -278,7 +278,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-alameda_county-mixedcase.json')
         
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, True)
+            state_path = process_one.process(source, self.testdir, True, mapzen_key='mapzen-XXXX')
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -322,7 +322,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-san_francisco.json')
         
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, True)
+            state_path = process_one.process(source, self.testdir, True, mapzen_key='mapzen-XXXX')
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -369,7 +369,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-carson.json')
         
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, True)
+            state_path = process_one.process(source, self.testdir, True, mapzen_key='mapzen-XXXX')
         
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))

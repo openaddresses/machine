@@ -13,7 +13,6 @@ import json, itertools, os
 import requests, uritemplate
 
 from osgeo import osr, ogr
-from .ci import setup_logger
 from .compat import cairo
 
 TILE_URL = 'http://tile.mapzen.com/mapzen/vector/v1/all/{z}/{x}/{y}.json{?api_key}'
@@ -340,6 +339,7 @@ parser.add_argument('-q', '--quiet', help='Turn off most logging',
 
 def main():
     args = parser.parse_args()
+    from .ci import setup_logger
     setup_logger(None, None, None, log_level=args.loglevel)
     render(args.src_filename, args.png_filename, args.width, args.resolution, args.mapzen_key)
 

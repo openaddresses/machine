@@ -30,7 +30,7 @@ def boolstr(value):
     
     raise ValueError(repr(value))
 
-def process(source, destination, do_preview, extras=dict()):
+def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
     ''' Process a single source and destination, return path to JSON state file.
     
         Creates a new directory and files under destination.
@@ -67,8 +67,8 @@ def process(source, destination, do_preview, extras=dict()):
                 _L.info('Processed data in {}'.format(conform_result.path))
                 
                 try:
-                    if do_preview:
-                        preview_path = render_preview(conform_result.path, temp_dir, 'mapzen-XXXX')
+                    if do_preview and mapzen_key:
+                        preview_path = render_preview(conform_result.path, temp_dir, mapzen_key)
     
                     if not preview_path:
                         _L.warning('Nothing previewed')
