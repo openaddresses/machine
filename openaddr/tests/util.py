@@ -127,3 +127,8 @@ class TestUtilities (unittest.TestCase):
         self.assertIn('abc\nWebsite: Unknown\nLicense: ODbL\nRequired attribution: ABC Co.\n', content)
         self.assertIn('def\nWebsite: http://example.com\nLicense: Unknown\nRequired attribution: No\n', content)
         self.assertIn('ghi\nWebsite: Unknown\nLicense: Unknown\nRequired attribution: Yes\n', content)
+    
+    def test_request_ftp_file(self):
+        '''
+        '''
+        raise NotImplementedError()

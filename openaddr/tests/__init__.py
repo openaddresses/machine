@@ -110,17 +110,11 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('data.sfgov.org', '/download/kvej-w5kb/ZIPPED%20SHAPEFILE'):
             local_path = join(data_dirname, 'us-ca-san_francisco-excerpt.zip')
 
-        if (host, path) == ('ftp.agrc.utah.gov', '/UtahSGID_Vector/UTM12_NAD83/LOCATION/UnpackagedData/AddressPoints/_Statewide/AddressPoints_shp.zip'):
-            local_path = join(data_dirname, 'us-ut-excerpt.zip')
-        
         if (host, path) == ('ftp.vgingis.com', '/Download/VA_SiteAddress.txt.zip'):
             local_path = join(data_dirname, 'VA_SiteAddress-excerpt.zip')
         
         if (host, path) == ('gis3.oit.ohio.gov', '/LBRS/_downloads/TRU_ADDS.zip'):
             local_path = join(data_dirname, 'TRU_ADDS-excerpt.zip')
-        
-        if (host, path) == ('ftp02.portlandoregon.gov', '/CivicApps/address.zip'):
-            local_path = join(data_dirname, 'us-or-portland.zip')
         
         if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1/query'):
             qs = parse_qs(query)
@@ -224,6 +218,29 @@ class TestOA (unittest.TestCase):
         
         raise NotImplementedError(url.geturl())
     
+    def response_content_ftp(self, url):
+        ''' Fake FTP responses for use with mock.patch in tests.
+        '''
+        scheme, host, path, _, _, _ = urlparse(url)
+        data_dirname = join(dirname(__file__), 'data')
+        local_path = None
+        
+        if scheme != 'ftp':
+            raise ValueError("Don't know how to {}".format(scheme))
+        
+        if (host, path) == ('ftp.agrc.utah.gov', '/UtahSGID_Vector/UTM12_NAD83/LOCATION/UnpackagedData/AddressPoints/_Statewide/AddressPoints_shp.zip'):
+            local_path = join(data_dirname, 'us-ut-excerpt.zip')
+        
+        if (host, path) == ('ftp02.portlandoregon.gov', '/CivicApps/address.zip'):
+            local_path = join(data_dirname, 'us-or-portland.zip')
+
+        if local_path:
+            type, _ = guess_type(local_path)
+            with open(local_path, 'rb') as file:
+                return response(200, file.read(), headers={'Content-Type': type})
+        
+        raise NotImplementedError(url)
+        
     def test_single_ac(self):
         ''' Test complete process_one.process on Alameda County sample data.
         '''
@@ -672,7 +689,7 @@ class TestOA (unittest.TestCase):
         '''
         source = join(self.src_dir, 'us-ut.json')
 
-        with HTTMock(self.response_content):
+        with mock.patch('openaddr.util.request_ftp_file', new=self.response_content_ftp):
             state_path = process_one.process(source, self.testdir, False)
 
         with open(state_path) as file:
@@ -933,7 +950,7 @@ class TestOA (unittest.TestCase):
         '''
         source = join(self.src_dir, 'us/or/portland.json')
 
-        with HTTMock(self.response_content):
+        with mock.patch('openaddr.util.request_ftp_file', new=self.response_content_ftp):
             state_path = process_one.process(source, self.testdir, False)
 
         with open(state_path) as file:

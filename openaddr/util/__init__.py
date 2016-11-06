@@ -5,11 +5,17 @@ from datetime import datetime, timedelta, date
 from os.path import join, basename, splitext, dirname
 from operator import attrgetter
 from tempfile import mkstemp
+from ftplib import FTP
 from os import close
 import io, zipfile
 
-from .. import __version__
 from ..compat import quote
+
+def get_version():
+    ''' Prevent circular imports.
+    '''
+    from .. import __version__
+    return __version__
 
 def prepare_db_kwargs(dsn):
     '''
@@ -35,7 +41,7 @@ def set_autoscale_capacity(autoscale, cloudwatch, capacity):
 
     (measure, ) = cloudwatch.get_metric_statistics(span, start, end, *args)
 
-    group_name = 'CI Workers {0}.x'.format(*__version__.split('.'))
+    group_name = 'CI Workers {0}.x'.format(*get_version().split('.'))
     (group, ) = autoscale.get_all_groups([group_name])
     
     if group.desired_capacity >= capacity:
@@ -47,7 +53,7 @@ def set_autoscale_capacity(autoscale, cloudwatch, capacity):
 def request_task_instance(ec2, autoscale, instance_type, chef_role, command):
     '''
     '''
-    group_name = 'CI Workers {0}.x'.format(*__version__.split('.'))
+    group_name = 'CI Workers {0}.x'.format(*get_version().split('.'))
 
     (group, ) = autoscale.get_all_groups([group_name])
     (config, ) = autoscale.get_all_launch_configurations(names=[group.launch_config_name])
@@ -56,7 +62,7 @@ def request_task_instance(ec2, autoscale, instance_type, chef_role, command):
     
     with open(join(dirname(__file__), 'templates', 'task-instance-userdata.sh')) as file:
         userdata_kwargs = dict(role=chef_role, command=' '.join(map(quote, command)))
-        userdata_kwargs.update(version=quote(__version__))
+        userdata_kwargs.update(version=quote(get_version()))
     
         run_kwargs = dict(instance_type=instance_type, security_groups=['default'],
                           instance_initiated_shutdown_behavior='terminate',
@@ -119,3 +125,9 @@ def summarize_result_licenses(results):
         license_lines.append(license_line)
 
     return '\n'.join(license_lines)
+
+def request_ftp_file(url):
+    '''
+    '''
+    print('Failing to FTP get', url)
+    raise NotImplementedError(url)
