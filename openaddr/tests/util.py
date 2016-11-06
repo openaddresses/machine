@@ -4,11 +4,11 @@ from shutil import rmtree
 from os.path import dirname, join
 from datetime import datetime
 
-import unittest, tempfile, json
+import unittest, tempfile, json, io
 from mimetypes import guess_type
 from urllib.parse import urlparse, parse_qs
 from httmock import HTTMock, response
-from mock import Mock
+from mock import Mock, patch
 
 from ..compat import quote
 from .. import util, ci, LocalProcessedResult, __version__
@@ -131,4 +131,26 @@ class TestUtilities (unittest.TestCase):
     def test_request_ftp_file(self):
         '''
         '''
-        raise NotImplementedError()
+        data_sources = [
+            (join(dirname(__file__), 'data', 'us-or-portland.zip'), 'ftp://ftp02.portlandoregon.gov/CivicApps/address.zip'),
+            (join(dirname(__file__), 'data', 'us-ut-excerpt.zip'), 'ftp://ftp.agrc.utah.gov/UtahSGID_Vector/UTM12_NAD83/LOCATION/UnpackagedData/AddressPoints/_Statewide/AddressPoints_shp.zip'),
+            ]
+        
+        for (zip_path, ftp_url) in data_sources:
+            _, ftp_host, ftp_path, _, _, _ = urlparse(ftp_url)
+
+            with patch('ftplib.FTP') as FTP:
+                with open(zip_path, 'rb') as zip_file:
+                    zip_bytes = zip_file.read()
+        
+                cb_file = io.BytesIO()
+                FTP.return_value.retrbinary.side_effect = lambda cmd, cb: cb_file.write(zip_bytes)
+
+                with patch('openaddr.util.build_request_ftp_file_callback') as build_request_ftp_file_callback:
+                    build_request_ftp_file_callback.return_value = cb_file, None
+                    resp = util.request_ftp_file(ftp_url)
+        
+                FTP.assert_called_once_with(ftp_host)
+                FTP.return_value.login.assert_called_once_with(None, None)
+                FTP.return_value.retrbinary.assert_called_once_with('RETR {}'.format(ftp_path), None)
+                self.assertEqual(len(resp.content), len(zip_bytes), 'Expected number of bytes')

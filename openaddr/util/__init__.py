@@ -5,8 +5,8 @@ from datetime import datetime, timedelta, date
 from os.path import join, basename, splitext, dirname
 from operator import attrgetter
 from tempfile import mkstemp
-from ftplib import FTP
 from os import close
+import ftplib, httmock
 import io, zipfile
 
 from ..compat import quote
@@ -126,8 +126,29 @@ def summarize_result_licenses(results):
 
     return '\n'.join(license_lines)
 
+def build_request_ftp_file_callback():
+    '''
+    '''
+    file = io.BytesIO()
+
+    def callback(bytes):
+        print('{} bytes'.format(len(bytes)))
+        file.write(bytes)
+    
+    return file, callback
+
 def request_ftp_file(url):
     '''
     '''
-    print('Failing to FTP get', url)
-    raise NotImplementedError(url)
+    _L.info('Getting {} via FTP'.format(url))
+    parsed = urlparse(url)
+    
+    ftp = ftplib.FTP(parsed.hostname)
+    ftp.login(parsed.username, parsed.password)
+    
+    file, callback = build_request_ftp_file_callback()
+    ftp.retrbinary('RETR {}'.format(parsed.path), callback)
+    file.seek(0)
+
+    # Using mock response because HTTP responses are expected downstream
+    return httmock.response(200, file.read(), headers={'Content-Type': 'application/octet-stream'})
