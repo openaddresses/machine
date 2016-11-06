@@ -4,11 +4,11 @@ from shutil import rmtree
 from os.path import dirname, join
 from datetime import datetime
 
-import unittest, tempfile, json
+import unittest, tempfile, json, io
 from mimetypes import guess_type
 from urllib.parse import urlparse, parse_qs
 from httmock import HTTMock, response
-from mock import Mock
+from mock import Mock, patch
 
 from ..compat import quote
 from .. import util, ci, LocalProcessedResult, __version__
@@ -127,3 +127,43 @@ class TestUtilities (unittest.TestCase):
         self.assertIn('abc\nWebsite: Unknown\nLicense: ODbL\nRequired attribution: ABC Co.\n', content)
         self.assertIn('def\nWebsite: http://example.com\nLicense: Unknown\nRequired attribution: No\n', content)
         self.assertIn('ghi\nWebsite: Unknown\nLicense: Unknown\nRequired attribution: Yes\n', content)
+    
+    def test_request_ftp_file(self):
+        '''
+        '''
+        data_sources = [
+            # Two working cases based on real data
+            (join(dirname(__file__), 'data', 'us-or-portland.zip'), 'ftp://ftp02.portlandoregon.gov/CivicApps/address.zip'),
+            (join(dirname(__file__), 'data', 'us-ut-excerpt.zip'), 'ftp://ftp.agrc.utah.gov/UtahSGID_Vector/UTM12_NAD83/LOCATION/UnpackagedData/AddressPoints/_Statewide/AddressPoints_shp.zip'),
+            
+            # Some additional special cases
+            (None, 'ftp://ftp02.portlandoregon.gov/CivicApps/address-fake.zip'),
+            (None, 'ftp://username:password@ftp02.portlandoregon.gov/CivicApps/address-fake.zip'),
+            ]
+        
+        for (zip_path, ftp_url) in data_sources:
+            parsed = urlparse(ftp_url)
+
+            with patch('ftplib.FTP') as FTP:
+                if zip_path is None:
+                    zip_bytes = None
+                else:
+                    with open(zip_path, 'rb') as zip_file:
+                        zip_bytes = zip_file.read()
+        
+                cb_file = io.BytesIO()
+                FTP.return_value.retrbinary.side_effect = lambda cmd, cb: cb_file.write(zip_bytes)
+
+                with patch('openaddr.util.build_request_ftp_file_callback') as build_request_ftp_file_callback:
+                    build_request_ftp_file_callback.return_value = cb_file, None
+                    resp = util.request_ftp_file(ftp_url)
+        
+                FTP.assert_called_once_with(parsed.hostname)
+                FTP.return_value.login.assert_called_once_with(parsed.username, parsed.password)
+                FTP.return_value.retrbinary.assert_called_once_with('RETR {}'.format(parsed.path), None)
+                
+                if zip_bytes is None:
+                    self.assertEqual(resp.status_code, 400, 'Nothing to return means failure')
+                else:
+                    self.assertEqual(resp.status_code, 200)
+                    self.assertEqual(resp.content, zip_bytes, 'Expected number of bytes')

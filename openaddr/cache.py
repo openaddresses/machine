@@ -24,14 +24,13 @@ from shapely.geometry import shape
 from esridump import EsriDumper
 
 import requests
-import requests_ftp
-requests_ftp.monkeypatch_session()
 
 # HTTP timeout in seconds, used in various calls to requests.get() and requests.post()
 _http_timeout = 180
 
 from .compat import csvopen, csvDictWriter
 from .conform import X_FIELDNAME, Y_FIELDNAME, GEOM_FIELDNAME, attrib_types
+from . import util
 
 def mkdirsp(path):
     try:
@@ -52,6 +51,11 @@ def traverse(item):
         yield item
 
 def request(method, url, **kwargs):
+    if urlparse(url).scheme == 'ftp':
+        if method != 'GET':
+            raise NotImplementedError("Don't know how to {} with {}".format(method, url))
+        return util.request_ftp_file(url)
+
     try:
         _L.debug("Requesting %s with args %s", url, kwargs.get('params') or kwargs.get('data'))
         return requests.request(method, url, timeout=_http_timeout, **kwargs)

@@ -115,9 +115,6 @@ setup(
         # http://docs.python-requests.org/en/master/
         'requests == 2.11.1',
 
-        # https://pypi.python.org/pypi/requests-ftp, appears no longer maintained.
-        'requests-ftp == 0.2.0',
-
         # https://github.com/patrys/httmock
         'httmock == 1.2.5',
         
