@@ -52,16 +52,13 @@ def traverse(item):
         yield item
 
 def request(method, url, **kwargs):
-    if urlparse(url).scheme == 'ftp' and method == 'GET':
-        sess = requests.Session()
-        return sess.get(url, timeout=_http_timeout, **kwargs)
-
+    session = requests.Session() # Necessary for both FTP and HTTMock support.
     try:
         _L.debug("Requesting %s with args %s", url, kwargs.get('params') or kwargs.get('data'))
-        return requests.request(method, url, timeout=_http_timeout, **kwargs)
+        return session.request(method, url, timeout=_http_timeout, **kwargs)
     except requests.exceptions.SSLError as e:
         _L.warning("Retrying %s without SSL verification", url)
-        return requests.request(method, url, timeout=_http_timeout, verify=False, **kwargs)
+        return session.request(method, url, timeout=_http_timeout, verify=False, **kwargs)
 
 class CacheResult:
     cache = None
