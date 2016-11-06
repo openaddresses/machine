@@ -130,11 +130,7 @@ def build_request_ftp_file_callback():
     '''
     '''
     file = io.BytesIO()
-
-    def callback(bytes):
-        print('{} bytes'.format(len(bytes)))
-        file.write(bytes)
-    
+    callback = lambda bytes: file.write(bytes)
     return file, callback
 
 def request_ftp_file(url):
