@@ -1,3 +1,6 @@
+2016-11-06: 3.6.1
+- Fixed FTP handling by removeing requests-ftp dependency.
+
 2016-11-05: 3.6.0
 - Added hours setting to openaddr-run-ec2-command for dotmap.
 
