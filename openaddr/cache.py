@@ -24,8 +24,6 @@ from shapely.geometry import shape
 from esridump import EsriDumper
 
 import requests
-import requests_ftp
-requests_ftp.monkeypatch_session()
 
 # HTTP timeout in seconds, used in various calls to requests.get() and requests.post()
 _http_timeout = 180
@@ -52,13 +50,16 @@ def traverse(item):
         yield item
 
 def request(method, url, **kwargs):
-    session = requests.Session() # Necessary for both FTP and HTTMock support.
+    if urlparse(url).scheme == 'ftp' and method == 'GET':
+        print(url)
+        raise ValueError(url)
+
     try:
         _L.debug("Requesting %s with args %s", url, kwargs.get('params') or kwargs.get('data'))
-        return session.request(method, url, timeout=_http_timeout, **kwargs)
+        return requests.request(method, url, timeout=_http_timeout, **kwargs)
     except requests.exceptions.SSLError as e:
         _L.warning("Retrying %s without SSL verification", url)
-        return session.request(method, url, timeout=_http_timeout, verify=False, **kwargs)
+        return requests.request(method, url, timeout=_http_timeout, verify=False, **kwargs)
 
 class CacheResult:
     cache = None

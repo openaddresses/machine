@@ -115,9 +115,6 @@ setup(
         # http://docs.python-requests.org/en/master/
         'requests == 2.11.1',
 
-        # https://pypi.python.org/pypi/requests-ftp
-        'requests-ftp == 0.3.1',
-
         # https://github.com/patrys/httmock
         'httmock == 1.2.5',
         
