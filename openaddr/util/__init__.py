@@ -143,12 +143,16 @@ def request_ftp_file(url):
     _L.info('Getting {} via FTP'.format(url))
     parsed = urlparse(url)
     
-    ftp = ftplib.FTP(parsed.hostname)
-    ftp.login(parsed.username, parsed.password)
+    try:
+        ftp = ftplib.FTP(parsed.hostname)
+        ftp.login(parsed.username, parsed.password)
     
-    file, callback = build_request_ftp_file_callback()
-    ftp.retrbinary('RETR {}'.format(parsed.path), callback)
-    file.seek(0)
+        file, callback = build_request_ftp_file_callback()
+        ftp.retrbinary('RETR {}'.format(parsed.path), callback)
+        file.seek(0)
+    except Exception as e:
+        _L.warning('Got an error from {}: {}'.format(parsed.hostname, e))
+        return httmock.response(400, b'', headers={'Content-Type': 'application/octet-stream'})
 
     # Using mock response because HTTP responses are expected downstream
     return httmock.response(200, file.read(), headers={'Content-Type': 'application/octet-stream'})

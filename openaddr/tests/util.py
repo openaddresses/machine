@@ -132,16 +132,24 @@ class TestUtilities (unittest.TestCase):
         '''
         '''
         data_sources = [
+            # Two working cases based on real data
             (join(dirname(__file__), 'data', 'us-or-portland.zip'), 'ftp://ftp02.portlandoregon.gov/CivicApps/address.zip'),
             (join(dirname(__file__), 'data', 'us-ut-excerpt.zip'), 'ftp://ftp.agrc.utah.gov/UtahSGID_Vector/UTM12_NAD83/LOCATION/UnpackagedData/AddressPoints/_Statewide/AddressPoints_shp.zip'),
+            
+            # Some additional special cases
+            (None, 'ftp://ftp02.portlandoregon.gov/CivicApps/address-fake.zip'),
+            (None, 'ftp://username:password@ftp02.portlandoregon.gov/CivicApps/address-fake.zip'),
             ]
         
         for (zip_path, ftp_url) in data_sources:
-            _, ftp_host, ftp_path, _, _, _ = urlparse(ftp_url)
+            parsed = urlparse(ftp_url)
 
             with patch('ftplib.FTP') as FTP:
-                with open(zip_path, 'rb') as zip_file:
-                    zip_bytes = zip_file.read()
+                if zip_path is None:
+                    zip_bytes = None
+                else:
+                    with open(zip_path, 'rb') as zip_file:
+                        zip_bytes = zip_file.read()
         
                 cb_file = io.BytesIO()
                 FTP.return_value.retrbinary.side_effect = lambda cmd, cb: cb_file.write(zip_bytes)
@@ -150,7 +158,12 @@ class TestUtilities (unittest.TestCase):
                     build_request_ftp_file_callback.return_value = cb_file, None
                     resp = util.request_ftp_file(ftp_url)
         
-                FTP.assert_called_once_with(ftp_host)
-                FTP.return_value.login.assert_called_once_with(None, None)
-                FTP.return_value.retrbinary.assert_called_once_with('RETR {}'.format(ftp_path), None)
-                self.assertEqual(len(resp.content), len(zip_bytes), 'Expected number of bytes')
+                FTP.assert_called_once_with(parsed.hostname)
+                FTP.return_value.login.assert_called_once_with(parsed.username, parsed.password)
+                FTP.return_value.retrbinary.assert_called_once_with('RETR {}'.format(parsed.path), None)
+                
+                if zip_bytes is None:
+                    self.assertEqual(resp.status_code, 400, 'Nothing to return means failure')
+                else:
+                    self.assertEqual(resp.status_code, 200)
+                    self.assertEqual(resp.content, zip_bytes, 'Expected number of bytes')
