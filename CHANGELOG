@@ -1,3 +1,6 @@
+2016-11-08: 3.6.3
+- Fixed support for long CSV fields.
+
 2016-11-07: 3.6.2
 - Fixed GDAL version dependencies in CI configuration.
 
