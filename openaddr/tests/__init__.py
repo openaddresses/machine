@@ -22,6 +22,7 @@ import re
 import pickle
 import sys
 import os
+import csv
 from os import close, environ, mkdir, remove
 from io import BytesIO
 from csv import DictReader
@@ -932,27 +933,30 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us/tx/city_of_waco.json')
 
         with HTTMock(self.response_content):
+            ofs = csv.field_size_limit()
+            csv.field_size_limit(1)
             state_path = process_one.process(source, self.testdir, False)
+            csv.field_size_limit(ofs)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
-        self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['sample'], 'Sample should be missing when csv.field_size_limit() is too short')
+
+        source = join(self.src_dir, 'us/tx/city_of_waco.json')
+
+        with HTTMock(self.response_content):
+            ofs = csv.field_size_limit()
+            csv.field_size_limit(sys.maxsize)
+            state_path = process_one.process(source, self.testdir, False)
+            csv.field_size_limit(ofs)
+
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+
+        self.assertIsNotNone(state['sample'], 'Sample should be present when csv.field_size_limit() is long enough')
         self.assertIsNone(state['preview'])
 
-        with open(join(dirname(state_path), state['sample'])) as file:
-            sample_data = json.load(file)
-
-        self.assertEqual(len(sample_data), 2)
-        self.assertIn('OA:geom', sample_data[0])
-        self.assertIn('situs_num', sample_data[0])
-        self.assertIn('situs_street_prefx', sample_data[0])
-        self.assertIn('situs_street', sample_data[0])
-        self.assertIn('situs_street_sufix', sample_data[0])
-        self.assertIn('situs_city', sample_data[0])
-        self.assertIn('situs_state', sample_data[0])
-        self.assertIn('situs_zip', sample_data[0])
-        
         output_path = join(dirname(state_path), state['processed'])
         
         with csvopen(output_path, encoding='utf8') as input:
