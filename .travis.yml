@@ -9,6 +9,8 @@ cache:
 addons:
   postgresql: "9.4"
 before_install:
+  # Add Ubuntu GIS PPA for various geospatial dependencies.
+  - sudo add-apt-repository -y ppa:ubuntugis
   - sudo apt-get update -y
 install:
   # Install Machine globally via Chef recipe, to pick up complete dependencies.
