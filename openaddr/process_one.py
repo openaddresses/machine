@@ -235,6 +235,9 @@ def main():
         source, destination = args.source.decode('utf8'), args.destination.decode('utf8')
     else:
         source, destination = args.source, args.destination
+
+    # Allow CSV files with very long fields
+    csv.field_size_limit(sys.maxsize)
     
     try:
         file_path = process(source, destination, args.render_preview, mapzen_key=args.mapzen_key)
