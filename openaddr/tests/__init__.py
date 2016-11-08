@@ -184,6 +184,21 @@ class TestOA (unittest.TestCase):
             if qs.get('f') == ['json']:
                 local_path = join(data_dirname, 'us-nm-washington-metadata.json')
 
+        if (host, path) == ('gis.ci.waco.tx.us', '/arcgis/rest/services/Parcels/MapServer/0/query'):
+            qs = parse_qs(query)
+            body_data = parse_qs(request.body) if request.body else {}
+
+            if qs.get('returnCountOnly') == ['true']:
+                local_path = join(data_dirname, 'us-tx-waco-count-only.json')
+            elif body_data.get('outSR') == ['4326']:
+                local_path = join(data_dirname, 'us-tx-waco-0.json')
+
+        if (host, path) == ('gis.ci.waco.tx.us', '/arcgis/rest/services/Parcels/MapServer/0'):
+            qs = parse_qs(query)
+
+            if qs.get('f') == ['json']:
+                local_path = join(data_dirname, 'us-tx-waco-metadata.json')
+
         if (host, path) == ('data.openaddresses.io', '/20000101/us-ca-carson-cached.json'):
             local_path = join(data_dirname, 'us-ca-carson-cache.geojson')
         
@@ -910,6 +925,49 @@ class TestOA (unittest.TestCase):
             self.assertEqual(rows[1]['STREET'], u'5TH STREET LN N')
             self.assertEqual(rows[5]['STREET'], u'ABERCROMBIE LN')
             self.assertEqual(rows[9]['STREET'], u'')
+
+    def test_single_tx_waco(self):
+        ''' Test complete process_one.process on data without ESRI support for resultRecordCount.
+        '''
+        source = join(self.src_dir, 'us/tx/city_of_waco.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir, False)
+
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+
+        self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
+
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+
+        self.assertEqual(len(sample_data), 2)
+        self.assertIn('OA:geom', sample_data[0])
+        self.assertIn('situs_num', sample_data[0])
+        self.assertIn('situs_street_prefx', sample_data[0])
+        self.assertIn('situs_street', sample_data[0])
+        self.assertIn('situs_street_sufix', sample_data[0])
+        self.assertIn('situs_city', sample_data[0])
+        self.assertIn('situs_state', sample_data[0])
+        self.assertIn('situs_zip', sample_data[0])
+        
+        output_path = join(dirname(state_path), state['processed'])
+        
+        with csvopen(output_path, encoding='utf8') as input:
+            rows = list(csvDictReader(input, encoding='utf8'))
+            self.assertEqual(rows[0]['REGION'], u'TX')
+            self.assertEqual(rows[0]['ID'], u'')
+            self.assertEqual(rows[0]['NUMBER'], u'308')
+            self.assertEqual(rows[0]['HASH'], u'0b0395441e3477b7')
+            self.assertEqual(rows[0]['CITY'], u'Mcgregor')
+            self.assertEqual(rows[0]['LON'], u'-97.3961771')
+            self.assertEqual(rows[0]['LAT'], u'31.4432703')
+            self.assertEqual(rows[0]['STREET'], u'PULLEN ST')
+            self.assertEqual(rows[0]['POSTCODE'], u'76657')
+            self.assertEqual(rows[0]['UNIT'], u'')
+            self.assertEqual(rows[0]['DISTRICT'], u'')
 
     def test_single_de_berlin(self):
         ''' Test complete process_one.process on data.
