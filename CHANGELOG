@@ -1,3 +1,6 @@
+2016-11-07: 3.6.2
+- Fixed GDAL version dependencies in CI configuration.
+
 2016-11-06: 3.6.1
 - Fixed FTP handling by removeing requests-ftp dependency.
 
