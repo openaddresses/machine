@@ -1,3 +1,6 @@
+2016-11-08: 3.6.4
+- Fixed bug in support for long CSV fields.
+
 2016-11-08: 3.6.3
 - Fixed support for long CSV fields.
 

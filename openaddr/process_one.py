@@ -9,7 +9,7 @@ from shutil import copy, move, rmtree
 from argparse import ArgumentParser
 from os import mkdir, rmdir, close, chmod
 from _thread import get_ident
-import tempfile, json, csv
+import tempfile, json, csv, sys
 
 from . import cache, conform, preview, CacheResult, ConformResult
 from .compat import csvopen, csvwriter, PY2
