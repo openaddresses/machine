@@ -1,3 +1,6 @@
+2016-11-09: 3.6.5
+- Fixed sorting bug in licenses JSON output.
+
 2016-11-08: 3.6.4
 - Fixed bug in support for long CSV fields.
 

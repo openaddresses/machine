@@ -92,7 +92,7 @@ def app_licenses_json():
         licenses[key].append((source, run_state.website))
         
     licenses = [dict(license=lic, attribution=attr, sources=sorted(srcs))
-                for ((lic, attr), srcs) in sorted(licenses.items())]
+                for ((lic, attr), srcs) in sorted(licenses.items(), key=repr)]
     
     return jsonify(licenses=licenses)
 
