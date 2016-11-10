@@ -1889,6 +1889,19 @@ class TestHook (unittest.TestCase):
         got5 = self.client.get('/latest/run/a5.zip')
         self.assertEqual(got5.status_code, 302)
         self.assertEqual(got5.headers.get('Location'), 'http://s3.amazonaws.com/past.openaddresses.io/runs/5/a5.zip')
+
+    def test_get_job(self):
+        '''
+        '''
+        got1 = self.client.get('/jobs/abc')
+        self.assertEqual(got1.status_code, 404, 'Job does not exist yet')
+
+        with db_connect(self.database_url) as conn:
+            with db_cursor(conn) as db:
+                add_job(db, 'abc', True, {}, {}, {}, 'oa', 'oa', None)
+
+        got1 = self.client.get('/jobs/abc')
+        self.assertEqual(got1.status_code, 200)
     
 class TestRuns (unittest.TestCase):
 

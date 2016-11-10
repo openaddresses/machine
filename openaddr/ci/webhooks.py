@@ -158,6 +158,9 @@ def app_get_job(job_id):
                 job = read_job(db, job_id)
             except TypeError:
                 return Response('Job {} not found'.format(job_id), 404)
+            else:
+                if job is None:
+                    return Response('Job {} not found'.format(job_id), 404)
     
     statuses = False, None, True
     key_func = lambda _path: (statuses.index(job.states[_path[1]]), _path[1])
