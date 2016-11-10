@@ -114,7 +114,7 @@ def process_github_payload(queue, request_url, app_logger, github_auth, webhook_
 
     try:
         job_id = create_queued_job(queue, files, job_url_template, commit_sha,
-                                   is_rerun, owner, repo, status_url)
+                                   is_rerun, owner, repo, status_url, comments_url)
         job_url = expand_uri(job_url_template, dict(id=job_id))
     except Exception as e:
         # Oops, tell Github something went wrong.
@@ -712,7 +712,7 @@ def calculate_job_id(files):
     
     return job_id
 
-def create_queued_job(queue, files, job_url_template, commit_sha, rerun, owner, repo, status_url):
+def create_queued_job(queue, files, job_url_template, commit_sha, rerun, owner, repo, status_url, comments_url):
     ''' Create a new job, and add its files to the queue.
     '''
     filenames = list(files.keys())

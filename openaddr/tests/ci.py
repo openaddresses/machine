@@ -1933,7 +1933,8 @@ class TestRuns (unittest.TestCase):
             'ff9900ff9900ff9900ff9900ff9900ff9900',
             False,
             'openaddresses', 'fake-sources',
-            'http://api.github.com/repos/openaddresses/fake-sources/statuses/ff9900'
+            'http://api.github.com/repos/openaddresses/fake-sources/statuses/ff9900',
+            'https://api.github.com/repos/openaddresses/hooked-on-sources/issues/99/comments',
             )
 
         self.fake_queued_job_args_unmerged = (
@@ -1941,7 +1942,8 @@ class TestRuns (unittest.TestCase):
             '0099ff0099ff0099ff0099ff0099ff0099ff',
             False,
             'openaddresses', 'fake-sources',
-            'http://api.github.com/repos/openaddresses/fake-sources/statuses/0099ff'
+            'http://api.github.com/repos/openaddresses/fake-sources/statuses/ff9900',
+            'https://api.github.com/repos/openaddresses/hooked-on-sources/issues/99/comments',
             )
     
     def tearDown(self):
