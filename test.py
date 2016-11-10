@@ -19,7 +19,6 @@ from openaddr.tests import TestOA, TestState, TestPackage
 from openaddr.tests.sample import TestSample
 from openaddr.tests.cache import TestCacheExtensionGuessing, TestCacheEsriDownload
 from openaddr.tests.conform import TestConformCli, TestConformTransforms, TestConformMisc, TestConformCsv, TestConformLicense
-from openaddr.tests.expand import TestExpand
 from openaddr.tests.render import TestRender
 from openaddr.tests.dotmap import TestDotmap
 from openaddr.tests.preview import TestPreview
