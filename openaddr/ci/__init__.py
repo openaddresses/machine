@@ -725,7 +725,7 @@ def create_queued_job(queue, files, job_url_template, commit_sha, rerun, owner, 
 
     with queue as db:
         task_files = add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun)
-        add_job(db, job_id, None, task_files, file_states, file_results, owner, repo, status_url)
+        add_job(db, job_id, None, task_files, file_states, file_results, owner, repo, status_url, comments_url)
     
     return job_id
 
@@ -770,9 +770,9 @@ def is_completed_run(db, run_id, min_datetime):
 def update_job_status(db, job_id, job_url, filename, run_status, results, github_auth):
     '''
     '''
-    try:
-        job = read_job(db, job_id)
-    except TypeError:
+    job = read_job(db, job_id)
+
+    if job is None:
         raise Exception('Job {} not found'.format(job_id))
 
     if filename not in job.states:
@@ -793,7 +793,8 @@ def update_job_status(db, job_id, job_url, filename, run_status, results, github
         job.status = True
     
     write_job(db, job.id, job.status, job.task_files, job.states, job.file_results,
-              job.github_owner, job.github_repository, job.github_status_url)
+              job.github_owner, job.github_repository, job.github_status_url,
+              job.github_comments_url)
     
     if not job.github_status_url:
         _L.warning('No status_url to tell about {} status of job {}'.format(job.status, job.id))
