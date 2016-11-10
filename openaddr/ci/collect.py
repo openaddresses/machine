@@ -19,7 +19,7 @@ from math import ceil, floor, sqrt
 
 from .objects import read_latest_set, read_completed_runs_to_date
 from . import db_connect, db_cursor, setup_logger, render_index_maps, log_function_errors
-from .. import S3, iterate_local_processed_files, util, expand
+from .. import S3, iterate_local_processed_files, util
 from ..conform import OPENADDR_CSV_SCHEMA
 from ..compat import PY2
 
@@ -229,8 +229,8 @@ def write_to_s3(s3_bucket, filename, keyname, policy='public-read', content_type
     key.set_acl(policy)
     return key
 
-def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
-    ''' Write csv to zipfile, with optional expand.expand_street_name().
+def add_csv_to_zipfile(zip_out, arc_filename, file):
+    ''' Write csv to zipfile.
 
         File is assumed to be open in binary mode.
     '''
@@ -254,9 +254,6 @@ def expand_and_add_csv_to_zipfile(zip_out, arc_filename, file, do_expand):
             
             if not (-90 <= lat <= 90 and -180 <= lon <= 180):
                 continue
-
-            if do_expand:
-                row['STREET'] = expand.expand_street_name(row['STREET'])
 
             out_csv.writerow({col: row.get(col) for col in OPENADDR_CSV_SCHEMA})
             key = floor(lat / size) * size, floor(lon / size) * size
@@ -303,35 +300,13 @@ def _add_spatial_summary_to_zipfile(zip_out, arc_filename, size, squares):
     remove(tmp_filename)
 
 def add_source_to_zipfile(zip_out, result):
-    ''' Add a LocalProcessedResult to zipfile via expand_and_add_csv_to_zipfile().
-
-        Use result code_version to determine whether to expand; 2.13+ will do it.
+    ''' Add a LocalProcessedResult to zipfile via add_csv_to_zipfile().
     '''
     _, ext = splitext(result.filename)
 
-    try:
-        number = [int(n) for n in result.code_version.split('.')]
-    except Exception as e:
-        _L.info(u'Skipping street name expansion for {} (error {})'.format(result.source_base, e))
-        do_expand = False # Be conservative for now.
-    else:
-        if number >= [2, 13]:
-            do_expand = True # Expand for 2.13+.
-        else:
-            _L.info(u'Skipping street name expansion for {} (version {})'.format(result.source_base, result.code_version))
-            do_expand = False
-
-    if do_expand:
-        is_us = (is_us_northeast(result) or is_us_midwest(result)
-                 or is_us_south(result) or is_us_west(result))
-
-        if not is_us:
-            _L.info(u'Skipping street name expansion for {} (not U.S.)'.format(result.source_base))
-            do_expand = False
-
     if ext == '.csv':
         with open(result.filename) as file:
-            expand_and_add_csv_to_zipfile(zip_out, result.source_base + ext, file, do_expand)
+            add_csv_to_zipfile(zip_out, result.source_base + ext, file)
 
     elif ext == '.zip':
         zip_in = ZipFile(result.filename, 'r')
@@ -341,7 +316,7 @@ def add_source_to_zipfile(zip_out, result):
                 continue
             elif splitext(zipinfo.filename)[1] == '.csv':
                 zipped_file = zip_in.open(zipinfo.filename)
-                expand_and_add_csv_to_zipfile(zip_out, zipinfo.filename, zipped_file, do_expand)
+                add_csv_to_zipfile(zip_out, zipinfo.filename, zipped_file)
             else:
                 zip_out.writestr(zipinfo, zip_in.read(zipinfo.filename))
         zip_in.close()

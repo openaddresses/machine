@@ -47,7 +47,7 @@ from ..ci.objects import (
 from ..ci.collect import (
     is_us_northeast, is_us_midwest, is_us_south, is_us_west, is_europe, is_asia,
     add_source_to_zipfile, CollectorPublisher, prepare_collections,
-    expand_and_add_csv_to_zipfile, write_to_s3, MULTIPART_CHUNK_SIZE
+    add_csv_to_zipfile, write_to_s3, MULTIPART_CHUNK_SIZE
     )
 
 from ..ci.tileindex import (
@@ -3385,7 +3385,7 @@ class TestCollect (unittest.TestCase):
         output = mock.Mock()
         output.write.side_effect = remember_write_contents
         
-        with patch('openaddr.ci.collect.expand_and_add_csv_to_zipfile') as expand_and_add_csv_to_zipfile:
+        with patch('openaddr.ci.collect.add_csv_to_zipfile') as add_csv_to_zipfile:
             add_source_to_zipfile(output, LocalProcessedResult('us/ca/oakland', 'temp', RunState({}), '2.0.0'))
             add_source_to_zipfile(output, LocalProcessedResult('us/ca/oakland', filename1, RunState({}), '2.12.0'))
             add_source_to_zipfile(output, LocalProcessedResult('us/ca/oakland', filename2, RunState({}), '2.13.0'))
@@ -3393,15 +3393,10 @@ class TestCollect (unittest.TestCase):
             add_source_to_zipfile(output, LocalProcessedResult('ca/bc/vancouver', filename1, RunState({}), '3'))
             add_source_to_zipfile(output, LocalProcessedResult('us/ca/oakland', filename1, RunState({}), None))
         
-        self.assertEqual(len(expand_and_add_csv_to_zipfile.mock_calls), 5)
-        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[0][1][1], 'us/ca/oakland.csv')
-        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[0][1][3], False, 'Should be False for 2.12.x')
-        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[1][1][1], 'us/ca/oakland.csv')
-        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[1][1][3], True, 'Should be True for 2.13.x')
-        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[2][1][3], True, 'Should be True for 3.x')
-        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[3][1][1], 'ca/bc/vancouver.csv')
-        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[3][1][3], False, 'Should be False for non-US 3.x')
-        self.assertEqual(expand_and_add_csv_to_zipfile.mock_calls[4][1][3], False, 'Should be False for missing version')
+        self.assertEqual(len(add_csv_to_zipfile.mock_calls), 5)
+        self.assertEqual(add_csv_to_zipfile.mock_calls[0][1][1], 'us/ca/oakland.csv')
+        self.assertEqual(add_csv_to_zipfile.mock_calls[1][1][1], 'us/ca/oakland.csv')
+        self.assertEqual(add_csv_to_zipfile.mock_calls[3][1][1], 'ca/bc/vancouver.csv')
         
         self.assertEqual(len(output.writestr.mock_calls), 1)
         self.assertEqual(output.writestr.mock_calls[0][1][0].filename, 'us/ca/oakland.vrt')
@@ -3410,7 +3405,7 @@ class TestCollect (unittest.TestCase):
         remove(filename1)
         remove(filename2)
     
-    def test_expand_and_add_csv_to_zipfile(self):
+    def test_add_csv_to_zipfile(self):
         '''
         '''
         output = mock.Mock()
@@ -3430,59 +3425,40 @@ class TestCollect (unittest.TestCase):
         
         # Addresses that should trigger expansion.
         input1 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH\n-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77,h4sh\n-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11,h4sh\n-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,74-1033-146,h4sh\n-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,74-1033-122,h4sh\n-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26,h4sh\n-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222,h4sh\n'
-        expand_and_add_csv_to_zipfile(output, u'us/ca/älameda.csv', BytesIO(input1.encode('utf8')), True)
-        expand_and_add_csv_to_zipfile(output, u'us/ca/älameda.csv', BytesIO(input1.encode('utf8')), False)
+        add_csv_to_zipfile(output, u'us/ca/älameda.csv', BytesIO(input1.encode('utf8')))
 
         # Collections with missing columns and non-ASCII characters.
         input2 = u'LON,LAT,NUMBER,STREET,CITY,DISTRICT,REGION,POSTCODE\n-122.2359742,37.7362507,85,MAITLAND DR,ALAMEDA,,,94502\n-122.2353881,37.7223605,1360,S LOOP RD,ALAMEDA,,,94502\n-122.2385597,37.7284071,3508,CATALINA AV,ALAMEDA,,,94502\n-122.2368942,37.7305041,3512,MCSHERRY WY,ALAMEDA,,,94502\n-122.2349371,37.7357455,514,FLOWER LA,ALAMEDA,,,94502\n-122.2367819,37.7342157,1014,HOLLY ST,ALAMEDA,,,94502\n'
-        expand_and_add_csv_to_zipfile(output, u'us/ca/älameda.csv', BytesIO(input2.encode('utf8')), False)
+        add_csv_to_zipfile(output, u'us/ca/älameda.csv', BytesIO(input2.encode('utf8')))
         input3 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID\n8.6885893,50.1042197,12,Abtsgäßchen,,Frankfurt am Main,,,60594,\n8.6885485,50.1041506,14,Abtsgäßchen,,Frankfurt am Main,,,60594,\n'
-        expand_and_add_csv_to_zipfile(output, 'de/he/frankfurt.csv', BytesIO(input3.encode('utf8')), False)
+        add_csv_to_zipfile(output, 'de/he/frankfurt.csv', BytesIO(input3.encode('utf8')))
 
         # Collection with extra columns.
         input4 = u'LON,LAT,NUMBER,STREET,CITY,DISTRICT,REGION,POSTCODE,GOODTIMES\n-122.2359742,37.7362507,85,MAITLAND DR,ALAMEDA,,,94502,goodtimes\n-122.2353881,37.7223605,1360,S LOOP RD,ALAMEDA,,,94502,goodtimes\n-122.2385597,37.7284071,3508,CATALINA AV,ALAMEDA,,,94502,goodtimes\n-122.2368942,37.7305041,3512,MCSHERRY WY,ALAMEDA,,,94502,goodtimes\n-122.2349371,37.7357455,514,FLOWER LA,ALAMEDA,,,94502,goodtimes\n-122.2367819,37.7342157,1014,HOLLY ST,ALAMEDA,,,94502,goodtimes\n'
-        expand_and_add_csv_to_zipfile(output, u'us/ca/älameda.csv', BytesIO(input4.encode('utf8')), False)
+        add_csv_to_zipfile(output, u'us/ca/älameda.csv', BytesIO(input4.encode('utf8')))
         
         # Collection with illegal lat/lon value.
         input5 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH\n-104.6843547,39.5793748,26050,E JAMISON CIR N,, CO,,,80016-2056,,629e0367e92b4c47\n-1.79769313486e+308,-1.79769313486e+308,26900,E COLFAX AVE,428,,,,,,8764a6de3c9f688c\n-104.1139093,39.6761295,2050,S PEORIA CROSSING RD,, CO,,,,,28b370f54c8e40ef\n'
-        expand_and_add_csv_to_zipfile(output, u'us/co/arapahoe.csv', BytesIO(input5.encode('utf8')), False)
+        add_csv_to_zipfile(output, u'us/co/arapahoe.csv', BytesIO(input5.encode('utf8')))
         
-        self.assertEqual(len(output.write.mock_calls), 12)
+        self.assertEqual(len(output.write.mock_calls), 10)
 
         self.assertEqual(output.write.mock_calls[0][1][1], u'us/ca/älameda.csv')
         self.assertEqual(output.write.mock_calls[1][1][1], u'summary/us/ca/älameda-summary.csv')
         self.assertEqual(output.write.mock_calls[2][1][1], output.write.mock_calls[0][1][1])
         self.assertEqual(output.write.mock_calls[3][1][1], output.write.mock_calls[1][1][1])
-        self.assertEqual(output.write.mock_calls[4][1][1], output.write.mock_calls[0][1][1])
-        self.assertEqual(output.write.mock_calls[5][1][1], output.write.mock_calls[1][1][1])
-        self.assertEqual(output.write.mock_calls[6][1][1], 'de/he/frankfurt.csv')
-        self.assertEqual(output.write.mock_calls[7][1][1], 'summary/de/he/frankfurt-summary.csv')
-        self.assertEqual(output.write.mock_calls[8][1][1], output.write.mock_calls[0][1][1])
-        self.assertEqual(output.write.mock_calls[9][1][1], output.write.mock_calls[1][1][1])
-        self.assertEqual(output.write.mock_calls[10][1][1], 'us/co/arapahoe.csv')
-        self.assertEqual(output.write.mock_calls[11][1][1], 'summary/us/co/arapahoe-summary.csv')
+        self.assertEqual(output.write.mock_calls[4][1][1], 'de/he/frankfurt.csv')
+        self.assertEqual(output.write.mock_calls[5][1][1], 'summary/de/he/frankfurt-summary.csv')
+        self.assertEqual(output.write.mock_calls[6][1][1], output.write.mock_calls[0][1][1])
+        self.assertEqual(output.write.mock_calls[7][1][1], output.write.mock_calls[1][1][1])
+        self.assertEqual(output.write.mock_calls[8][1][1], 'us/co/arapahoe.csv')
+        self.assertEqual(output.write.mock_calls[9][1][1], 'summary/us/co/arapahoe-summary.csv')
         
         self.assertIn(u'älameda'.encode('utf8'), output_writestr_contents[0])
         self.assertIn(u'älameda'.encode('utf8'), output_writestr_contents[1])
-        self.assertIn(u'älameda'.encode('utf8'), output_writestr_contents[2])
 
         # input1
         self.assertEqual(output_write_contents[0],
-            [
-            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH',
-            '-122.2359742,37.7362507,85,Maitland Drive,A,ALAMEDA,,,94502,74-1035-77,h4sh',
-            '-122.2353881,37.7223605,1360,South Loop Road,,ALAMEDA,,,94502,74-1339-11,h4sh',
-            '-122.2385597,37.7284071,3508,Catalina Avenue,,ALAMEDA,,,94502,74-1033-146,h4sh',
-            '-122.2368942,37.7305041,3512,Mcsherry Way,,ALAMEDA,,,94502,74-1033-122,h4sh',
-            '-122.2349371,37.7357455,514,Flower Lane,,ALAMEDA,,,94502,74-1036-26,h4sh',
-            '-122.2367819,37.7342157,1014,Holly Street,,ALAMEDA,,,94502,74-1075-222,h4sh',
-            ])
-        self.assertEqual(output_write_contents[1],
-            [
-            'count,lon,lat,area',
-            '6,-122.3,37.7,"POLYGON((-122.3 37.7,-122.3 37.8,-122.2 37.8,-122.2 37.7,-122.3 37.7))"',
-            ])
-        self.assertEqual(output_write_contents[2],
             [
             'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH',
             '-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77,h4sh',
@@ -3492,10 +3468,14 @@ class TestCollect (unittest.TestCase):
             '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26,h4sh',
             '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222,h4sh',
             ])
-        self.assertEqual(output_write_contents[3], output_write_contents[1])
+        self.assertEqual(output_write_contents[1],
+            [
+            'count,lon,lat,area',
+            '6,-122.3,37.7,"POLYGON((-122.3 37.7,-122.3 37.8,-122.2 37.8,-122.2 37.7,-122.3 37.7))"',
+            ])
         
         # input2
-        self.assertEqual(output_write_contents[4],
+        self.assertEqual(output_write_contents[2],
             [
             'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH',
             '-122.2359742,37.7362507,85,MAITLAND DR,,ALAMEDA,,,94502,,',
@@ -3505,23 +3485,23 @@ class TestCollect (unittest.TestCase):
             '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,,',
             '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,,',
             ])
-        self.assertEqual(output_write_contents[5], output_write_contents[1])
+        self.assertEqual(output_write_contents[3], output_write_contents[1])
         
         # input3
-        self.assertEqual(output_write_contents[6],
+        self.assertEqual(output_write_contents[4],
             [
             'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH',
             '8.6885893,50.1042197,12,Abtsgäßchen,,Frankfurt am Main,,,60594,,',
             '8.6885485,50.1041506,14,Abtsgäßchen,,Frankfurt am Main,,,60594,,',
             ])
-        self.assertEqual(output_write_contents[7],
+        self.assertEqual(output_write_contents[5],
             [
             'count,lon,lat,area',
             '2,8.6,50.1,"POLYGON((8.6 50.1,8.6 50.2,8.7 50.2,8.7 50.1,8.6 50.1))"',
             ])
         
         # input4
-        self.assertEqual(output_write_contents[8],
+        self.assertEqual(output_write_contents[6],
             [
             'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH',
             '-122.2359742,37.7362507,85,MAITLAND DR,,ALAMEDA,,,94502,,',
@@ -3533,13 +3513,13 @@ class TestCollect (unittest.TestCase):
             ])
         
         # input5
-        self.assertEqual(output_write_contents[10],
+        self.assertEqual(output_write_contents[8],
             [
             'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH',
             '-104.6843547,39.5793748,26050,E JAMISON CIR N,, CO,,,80016-2056,,629e0367e92b4c47',
             '-104.1139093,39.6761295,2050,S PEORIA CROSSING RD,, CO,,,,,28b370f54c8e40ef'
             ])
-        self.assertEqual(output_write_contents[11],
+        self.assertEqual(output_write_contents[9],
             [
             'count,lon,lat,area',
             '1,-104.7,39.5,"POLYGON((-104.7 39.5,-104.7 39.6,-104.6 39.6,-104.6 39.5,-104.7 39.5))"',
