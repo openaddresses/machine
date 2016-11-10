@@ -1,8 +1,9 @@
 {
-    "postgresql package": "postgresql-9.4",
+    "postgresql package": "postgresql-9.3",
     "run_list":
     [
         "openaddr-prereqs",
+        "openaddr",
         "database",
         "account"
     ]

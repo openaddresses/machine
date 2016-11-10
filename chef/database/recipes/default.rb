@@ -1,6 +1,7 @@
-# Specify 9.4 because this recipe tends to be used only in CI.
+# For testing role, specify 9.4.
 # CircleCI has 9.4, while installing package 'postgresql' gets conflicting 9.5.
-package 'postgresql-9.4'
+# For localdev role, specify 9.3 which is normally available in Ubuntu 14.04.
+package node['postgresql package']
 
 local = data_bag_item('data', 'local')
 user = local['db_user']
