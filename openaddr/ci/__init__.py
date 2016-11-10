@@ -91,7 +91,7 @@ def process_github_payload(queue, request_url, app_logger, github_auth, webhook_
     if skip_payload(webhook_payload):
         return True, {'url': None, 'files': [], 'skip': True}
     
-    owner, repo, commit_sha, status_url = get_commit_info(app_logger, webhook_payload, github_auth)
+    owner, repo, commit_sha, status_url, comments_url = get_commit_info(app_logger, webhook_payload, github_auth)
     if gag_status:
         status_url = None
     
@@ -399,9 +399,6 @@ def get_commit_info(app_logger, payload, github_auth):
     else:
         raise ValueError('Unintelligible payload')
     
-    _L.info('comments_url: {}'.format(comments_url))
-    _L.info(json.dumps(payload))
-    
     if 'repository' not in payload:
         raise ValueError('Unintelligible payload')
 
@@ -411,7 +408,7 @@ def get_commit_info(app_logger, payload, github_auth):
     
     app_logger.debug('Status URL {}'.format(status_url))
     
-    return owner, repository, commit_sha, status_url
+    return owner, repository, commit_sha, status_url, comments_url
 
 def post_github_status(status_url, status_json, github_auth):
     ''' POST status JSON to Github status API.
