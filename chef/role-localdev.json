@@ -1,5 +1,4 @@
 {
-    "postgresql package": "postgresql-9.3",
     "run_list":
     [
         "openaddr-prereqs",
