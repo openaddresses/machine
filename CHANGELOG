@@ -1,3 +1,6 @@
+2016-11-10: 3.6.6
+- Fixed 404 bug in job endpoint.
+
 2016-11-09: 3.6.5
 - Fixed sorting bug in licenses JSON output.
 
