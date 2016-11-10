@@ -376,22 +376,31 @@ def get_commit_info(app_logger, payload, github_auth):
         If payload links to a pull request instead of including it, get that.
     '''
     if 'pull_request' in payload:
+        # https://developer.github.com/v3/activity/events/types/#pullrequestevent
         commit_sha = payload['pull_request']['head']['sha']
         status_url = payload['pull_request']['statuses_url']
+        comments_url = payload['pull_request']['comments_url']
     
     elif 'head_commit' in payload:
+        # https://developer.github.com/v3/activity/events/types/#pushevent
         commit_sha = payload['head_commit']['id']
         status_url = payload['repository']['statuses_url']
         status_url = expand_uri(status_url, dict(sha=commit_sha))
+        comments_url = None
     
     elif 'issue' in payload and 'pull_request' in payload['issue']:
         # nested PR is probably linked, so retrieve it.
+        # https://developer.github.com/v3/activity/events/types/#issuecommentevent
         resp = get(payload['issue']['pull_request']['url'], auth=github_auth)
         commit_sha = resp.json()['head']['sha']
         status_url = resp.json()['statuses_url']
+        comments_url = resp.json()['comments_url']
     
     else:
         raise ValueError('Unintelligible payload')
+    
+    _L.info('comments_url: {}'.format(comments_url))
+    _L.info(json.dumps(payload))
     
     if 'repository' not in payload:
         raise ValueError('Unintelligible payload')
