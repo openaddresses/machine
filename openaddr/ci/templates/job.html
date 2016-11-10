@@ -49,6 +49,11 @@
             <a href="{{ file_result.output['processed'] }}">data</a>
         {% endif %}
         </td>
+        <td>
+        {% if file_result and file_result.output and file_result.output['preview'] %}
+            <a href="{{ file_result.output['preview'] }}">preview</a>
+        {% endif %}
+        </td>
     </tr>
 
 {% endfor %}
