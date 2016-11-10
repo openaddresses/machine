@@ -10,8 +10,12 @@ All logging is suppressed unless --logall or -l specified
 ~/.openaddr-logging-test.json can also be used to configure log behavior
 """
 import unittest
-import sys
+import sys, os
 import logging
+
+if 'DATABASE_URL' not in os.environ:
+    # Default to the testing DB if no DATABASE_URL env var is found.
+    os.environ['DATABASE_URL'] = 'postgres://openaddr:openaddr@localhost/openaddr'
 
 from openaddr import jobs
 
