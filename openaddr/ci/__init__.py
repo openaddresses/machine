@@ -335,6 +335,10 @@ def process_issuecomment_payload_files(issuecomment_payload, github_auth, app_lo
         https://developer.github.com/v3/activity/events/types/#issuecommentevent
     '''
     files = dict()
+
+    if issuecomment_payload['action'] == 'deleted':
+        return files
+    
     pull_request_url = issuecomment_payload['issue']['pull_request']['url']
     pull_request = get(pull_request_url, auth=github_auth).json()
 
