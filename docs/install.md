@@ -8,7 +8,7 @@ You can edit a local copy of OpenAddresses code with working tests by installing
 
 1.  Download and install [VirtualBox](https://www.virtualbox.org/wiki/Downloads) on your development machine.
 2.  Download an [Ubuntu 14.04 Trusty server install image](http://releases.ubuntu.com/14.04/). A good choice might be `ubuntu-14.04.4-server-amd64.iso`.
-3.  Create a new virtual machine, and configure its NAT network adapter so you can SSH into the machine [as described in this guide](http://stackoverflow.com/questions/5906441/how-to-ssh-to-a-virtualbox-guest-externally-through-a-host#10532299).
+3.  Create a new virtual machine, and configure its NAT network adapter so you can SSH into the machine [as described in this guide](http://stackoverflow.com/questions/5906441/how-to-ssh-to-a-virtualbox-guest-externally-through-a-host#10532299). Note that you’ll be SSHing into `127.0.0.1`, not the VM’s address.
 4.  Install Ubuntu 14.04 on the new machine, and log in.
 5.  Clone [OpenAddresses Machine code](https://github.com/openaddresses/machine) from Github.
 6.  From inside the new `machine` directory, install the code for local development:
