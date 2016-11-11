@@ -817,9 +817,7 @@ def update_job_status(db, job_id, job_url, filename, run_status, results, github
 def update_job_comments(db, job_id, run_id, github_auth):
     '''
     '''
-    print('job_id, run_id:', job_id, run_id)
-
-    if run_id is None:
+    if job_id is None or run_id is None:
         return
     
     job, run = objects.read_job(db, job_id), objects.read_run(db, run_id)
@@ -830,16 +828,13 @@ def update_job_comments(db, job_id, run_id, github_auth):
     if not run.state.preview or job.status is not True:
         return
     
-    print(job.github_comments_url)
-    print(run.state.preview)
-    
     got = get(job.github_comments_url, auth=github_auth)
     
     for comment in got.json():
         if run.state.preview in comment['body']:
             # This image has already been posted, great.
+            _L.warning('Found {} in an existing comment: {url}'.format(run.state.preview, **comment))
             return
-    
     
     comment_json = {'body': '![Preview]({})'.format(run.state.preview)}
     posted = post(job.github_comments_url, data=json.dumps(comment_json), auth=github_auth,
