@@ -1,3 +1,6 @@
+2016-11-11: 3.7.2
+- Fixed repeated status update error in ci.post_github_status().
+
 2016-11-11: 3.7.1
 - Fixed missing job.github_comments_url in ci.update_job_comments().
 
