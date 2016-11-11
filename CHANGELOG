@@ -1,3 +1,6 @@
+2016-11-10: 3.7.0
+- Added jobs.github_comments_url field and started posting preview images.
+
 2016-11-10: 3.6.6
 - Fixed 404 bug in job endpoint.
 
