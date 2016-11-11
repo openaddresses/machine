@@ -8,7 +8,7 @@ class Job:
     '''
     def __init__(self, id, status, task_files, states, file_results,
                  github_owner, github_repository, github_status_url,
-                 datetime_start, datetime_end):
+                 github_comments_url, datetime_start, datetime_end):
         '''
         '''
         self.id = id
@@ -19,6 +19,7 @@ class Job:
         self.github_owner = github_owner
         self.github_repository = github_repository
         self.github_status_url = github_status_url
+        self.github_comments_url = github_comments_url
         self.datetime_start = datetime_start
         self.datetime_end = datetime_end
     
@@ -124,20 +125,21 @@ class Zip:
         self.url = url
         self.content_length = content_length
 
-def add_job(db, job_id, status, task_files, file_states, file_results, owner, repo, status_url):
+def add_job(db, job_id, status, task_files, file_states, file_results, owner, repo, status_url, comments_url):
     ''' Save information about a job to the database.
     
         Throws an IntegrityError exception if the job ID exists.
     '''
     db.execute('''INSERT INTO jobs
                   (task_files, file_states, file_results, github_owner,
-                   github_repository, github_status_url, status, id,
-                   datetime_start)
-                  VALUES (%s::json, %s::json, %s::json, %s, %s, %s, %s, %s, NOW())''',
+                   github_repository, github_status_url, github_comments_url,
+                   status, id, datetime_start)
+                  VALUES (%s::json, %s::json, %s::json, %s, %s, %s, %s, %s, %s, NOW())''',
                (json.dumps(task_files), json.dumps(file_states),
-                json.dumps(file_results), owner, repo, status_url, status, job_id))
+                json.dumps(file_results), owner, repo, status_url,
+                comments_url, status, job_id))
 
-def write_job(db, job_id, status, task_files, file_states, file_results, owner, repo, status_url):
+def write_job(db, job_id, status, task_files, file_states, file_results, owner, repo, status_url, comments_url):
     ''' Save information about a job to the database.
     '''
     is_complete = bool(status is not None)
@@ -145,12 +147,12 @@ def write_job(db, job_id, status, task_files, file_states, file_results, owner, 
     db.execute('''UPDATE jobs
                   SET task_files=%s::json, file_states=%s::json,
                       file_results=%s::json, github_owner=%s, github_repository=%s,
-                      github_status_url=%s, status=%s,
+                      github_status_url=%s, github_comments_url=%s, status=%s,
                       datetime_end=CASE WHEN %s THEN NOW() ELSE null END
                   WHERE id = %s''',
                (json.dumps(task_files), json.dumps(file_states),
-                json.dumps(file_results), owner, repo, status_url, status,
-                is_complete, job_id))
+                json.dumps(file_results), owner, repo, status_url, comments_url,
+                status, is_complete, job_id))
 
 def read_job(db, job_id):
     ''' Read information about a job from the database.
@@ -159,19 +161,19 @@ def read_job(db, job_id):
     '''
     db.execute('''SELECT status, task_files, file_states, file_results,
                          github_owner, github_repository, github_status_url,
-                         datetime_start, datetime_end
+                         github_comments_url, datetime_start, datetime_end
                   FROM jobs WHERE id = %s
                   LIMIT 1''', (job_id, ))
     
     try:
         status, task_files, states, file_results, github_owner, github_repository, \
-        github_status_url, datetime_start, datetime_end = db.fetchone()
+        github_status_url, github_comments_url, datetime_start, datetime_end = db.fetchone()
     except TypeError:
         return None
     else:
         return Job(job_id, status, task_files, states, file_results,
                    github_owner, github_repository, github_status_url,
-                   datetime_start, datetime_end)
+                   github_comments_url, datetime_start, datetime_end)
     
 def read_jobs(db, past_id):
     ''' Read information about recent jobs.
@@ -180,7 +182,7 @@ def read_jobs(db, past_id):
     '''
     db.execute('''SELECT id, status, task_files, file_states, file_results,
                          github_owner, github_repository, github_status_url,
-                         datetime_start, datetime_end
+                         github_comments_url, datetime_start, datetime_end
                   --
                   -- Select sequence value from jobs based on ID. Null sequence
                   -- values will be excluded by this comparison to an integer.

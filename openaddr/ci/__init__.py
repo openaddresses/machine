@@ -91,7 +91,7 @@ def process_github_payload(queue, request_url, app_logger, github_auth, webhook_
     if skip_payload(webhook_payload):
         return True, {'url': None, 'files': [], 'skip': True}
     
-    owner, repo, commit_sha, status_url = get_commit_info(app_logger, webhook_payload, github_auth)
+    owner, repo, commit_sha, status_url, comments_url = get_commit_info(app_logger, webhook_payload, github_auth)
     if gag_status:
         status_url = None
     
@@ -114,7 +114,7 @@ def process_github_payload(queue, request_url, app_logger, github_auth, webhook_
 
     try:
         job_id = create_queued_job(queue, files, job_url_template, commit_sha,
-                                   is_rerun, owner, repo, status_url)
+                                   is_rerun, owner, repo, status_url, comments_url)
         job_url = expand_uri(job_url_template, dict(id=job_id))
     except Exception as e:
         # Oops, tell Github something went wrong.
@@ -335,6 +335,10 @@ def process_issuecomment_payload_files(issuecomment_payload, github_auth, app_lo
         https://developer.github.com/v3/activity/events/types/#issuecommentevent
     '''
     files = dict()
+
+    if issuecomment_payload['action'] == 'deleted':
+        return files
+    
     pull_request_url = issuecomment_payload['issue']['pull_request']['url']
     pull_request = get(pull_request_url, auth=github_auth).json()
 
@@ -376,19 +380,25 @@ def get_commit_info(app_logger, payload, github_auth):
         If payload links to a pull request instead of including it, get that.
     '''
     if 'pull_request' in payload:
+        # https://developer.github.com/v3/activity/events/types/#pullrequestevent
         commit_sha = payload['pull_request']['head']['sha']
         status_url = payload['pull_request']['statuses_url']
+        comments_url = payload['pull_request']['comments_url']
     
     elif 'head_commit' in payload:
+        # https://developer.github.com/v3/activity/events/types/#pushevent
         commit_sha = payload['head_commit']['id']
         status_url = payload['repository']['statuses_url']
         status_url = expand_uri(status_url, dict(sha=commit_sha))
+        comments_url = None
     
     elif 'issue' in payload and 'pull_request' in payload['issue']:
         # nested PR is probably linked, so retrieve it.
+        # https://developer.github.com/v3/activity/events/types/#issuecommentevent
         resp = get(payload['issue']['pull_request']['url'], auth=github_auth)
         commit_sha = resp.json()['head']['sha']
         status_url = resp.json()['statuses_url']
+        comments_url = resp.json()['comments_url']
     
     else:
         raise ValueError('Unintelligible payload')
@@ -402,7 +412,7 @@ def get_commit_info(app_logger, payload, github_auth):
     
     app_logger.debug('Status URL {}'.format(status_url))
     
-    return owner, repository, commit_sha, status_url
+    return owner, repository, commit_sha, status_url, comments_url
 
 def post_github_status(status_url, status_json, github_auth):
     ''' POST status JSON to Github status API.
@@ -706,7 +716,7 @@ def calculate_job_id(files):
     
     return job_id
 
-def create_queued_job(queue, files, job_url_template, commit_sha, rerun, owner, repo, status_url):
+def create_queued_job(queue, files, job_url_template, commit_sha, rerun, owner, repo, status_url, comments_url):
     ''' Create a new job, and add its files to the queue.
     '''
     filenames = list(files.keys())
@@ -719,7 +729,7 @@ def create_queued_job(queue, files, job_url_template, commit_sha, rerun, owner, 
 
     with queue as db:
         task_files = add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun)
-        add_job(db, job_id, None, task_files, file_states, file_results, owner, repo, status_url)
+        add_job(db, job_id, None, task_files, file_states, file_results, owner, repo, status_url, comments_url)
     
     return job_id
 
@@ -764,9 +774,9 @@ def is_completed_run(db, run_id, min_datetime):
 def update_job_status(db, job_id, job_url, filename, run_status, results, github_auth):
     '''
     '''
-    try:
-        job = read_job(db, job_id)
-    except TypeError:
+    job = read_job(db, job_id)
+
+    if job is None:
         raise Exception('Job {} not found'.format(job_id))
 
     if filename not in job.states:
@@ -787,7 +797,8 @@ def update_job_status(db, job_id, job_url, filename, run_status, results, github
         job.status = True
     
     write_job(db, job.id, job.status, job.task_files, job.states, job.file_results,
-              job.github_owner, job.github_repository, job.github_status_url)
+              job.github_owner, job.github_repository, job.github_status_url,
+              job.github_comments_url)
     
     if not job.github_status_url:
         _L.warning('No status_url to tell about {} status of job {}'.format(job.status, job.id))
@@ -802,6 +813,39 @@ def update_job_status(db, job_id, job_url, filename, run_status, results, github
     
     elif job.status is True:
         update_success_status(job.github_status_url, job_url, filenames, github_auth)
+
+def update_job_comments(db, job_id, run_id, github_auth):
+    '''
+    '''
+    if job_id is None or run_id is None:
+        return
+    
+    job, run = objects.read_job(db, job_id), objects.read_run(db, run_id)
+
+    if job is None or run is None:
+        raise Exception('Run or Job not found')
+    
+    if not run.state.preview or job.status is not True:
+        return
+    
+    got = get(job.github_comments_url, auth=github_auth)
+    
+    for comment in got.json():
+        if run.state.preview in comment['body']:
+            # This image has already been posted, great.
+            _L.warning('Found {} in an existing comment: {url}'.format(run.state.preview, **comment))
+            return
+    
+    comment_json = {'body': '![Preview]({})'.format(run.state.preview)}
+    posted = post(job.github_comments_url, data=json.dumps(comment_json), auth=github_auth,
+                  headers={'Content-Type': 'application/json'})
+    
+    if posted.status_code not in range(200, 299):
+        _L.warning('update_job_comments() request: {}'.format(json.dumps(comment_json)))
+        _L.warning('update_job_comments() response: {}, {}'.format(posted.status_code, posted.text))
+        raise ValueError('Failed status post to {}'.format(job.github_comments_url))
+    
+    _L.info('Posted {} to new comment: {url}'.format(run.state.preview, **posted.json()))
 
 def is_merged_to_master(db, set_id, job_id, commit_sha, github_auth):
     '''
@@ -964,6 +1008,8 @@ def pop_task_from_donequeue(queue, github_auth):
 
         if job_id:
             update_job_status(db, job_id, job_url, filename, run_status, results, github_auth)
+            if run_status:
+                update_job_comments(db, job_id, run_id, github_auth)
 
 def pop_task_from_duequeue(queue, github_auth):
     '''
