@@ -1,3 +1,6 @@
+2016-11-11: 3.7.1
+- Fixed missing job.github_comments_url in ci.update_job_comments().
+
 2016-11-10: 3.7.0
 - Added jobs.github_comments_url field and started posting preview images.
 
