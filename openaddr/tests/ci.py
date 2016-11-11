@@ -1792,6 +1792,23 @@ class TestHook (unittest.TestCase):
     
     @patch('openaddr.ci.objects.read_run')
     @patch('openaddr.ci.objects.read_job')
+    def test_update_job_comments_no_url(self, read_job, read_run):
+        '''
+        '''
+        read_job.return_value = Job(-1, True, None, None, None, None, None, None,
+            None, None, None)
+
+        run_state = RunState({'preview': 'http://s3.amazonaws.com/data-testpreviews.openaddresses.io/runs/10/preview.png'})
+        read_run.return_value = Run(-2, None, None, None, None, run_state, None,
+                                    None, None, None, None, None, None, None)
+
+        
+        with HTTMock(self.response_content):
+            # good enough that this does not throw an exception
+            update_job_comments(mock.Mock(), -1, -2, tuple())
+    
+    @patch('openaddr.ci.objects.read_run')
+    @patch('openaddr.ci.objects.read_job')
     def test_update_job_comments_yes_post(self, read_job, read_run):
         '''
         '''

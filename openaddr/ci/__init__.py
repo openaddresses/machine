@@ -825,7 +825,7 @@ def update_job_comments(db, job_id, run_id, github_auth):
     if job is None or run is None:
         raise Exception('Run or Job not found')
     
-    if not run.state.preview or job.status is not True:
+    if not run.state.preview or job.status is not True or not job.github_comments_url:
         return
     
     got = get(job.github_comments_url, auth=github_auth)
