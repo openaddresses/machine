@@ -810,6 +810,44 @@ def update_job_status(db, job_id, job_url, filename, run_status, results, github
     elif job.status is True:
         update_success_status(job.github_status_url, job_url, filenames, github_auth)
 
+def update_job_comments(db, job_id, run_id, github_auth):
+    '''
+    '''
+    print('job_id, run_id:', job_id, run_id)
+
+    if run_id is None:
+        return
+    
+    job, run = objects.read_job(db, job_id), objects.read_run(db, run_id)
+
+    if job is None or run is None:
+        raise Exception('Run or Job not found')
+    
+    if not run.state.preview or job.status is not True:
+        return
+    
+    print(job.github_comments_url)
+    print(run.state.preview)
+    
+    got = get(job.github_comments_url, auth=github_auth)
+    
+    for comment in got.json():
+        if run.state.preview in comment['body']:
+            # This image has already been posted, great.
+            return
+    
+    
+    comment_json = {'body': '![Preview]({})'.format(run.state.preview)}
+    posted = post(job.github_comments_url, data=json.dumps(comment_json), auth=github_auth,
+                  headers={'Content-Type': 'application/json'})
+    
+    if posted.status_code not in range(200, 299):
+        _L.warning('update_job_comments() request: {}'.format(json.dumps(comment_json)))
+        _L.warning('update_job_comments() response: {}, {}'.format(posted.status_code, posted.text))
+        raise ValueError('Failed status post to {}'.format(job.github_comments_url))
+    
+    _L.info('Posted {} to new comment: {url}'.format(run.state.preview, **posted.json()))
+
 def is_merged_to_master(db, set_id, job_id, commit_sha, github_auth):
     '''
     '''
@@ -971,6 +1009,8 @@ def pop_task_from_donequeue(queue, github_auth):
 
         if job_id:
             update_job_status(db, job_id, job_url, filename, run_status, results, github_auth)
+            if run_status:
+                update_job_comments(db, job_id, run_id, github_auth)
 
 def pop_task_from_duequeue(queue, github_auth):
     '''
