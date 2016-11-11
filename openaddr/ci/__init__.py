@@ -429,7 +429,11 @@ def post_github_status(status_url, status_json, github_auth):
     if posted.status_code not in range(200, 299):
         _L.warning('post_github_status() request: {}'.format(json.dumps(status_json)))
         _L.warning('post_github_status() response: {}, {}'.format(posted.status_code, posted.text))
-        raise ValueError('Failed status post to {}'.format(status_url))
+        if posted.status_code in range(400, 499) and "This SHA and context has reached the maximum number of statuses." in posted.text:
+            _L.warning('Not going to try again')
+            return
+        else:
+            raise ValueError('Failed status post to {}'.format(status_url))
     
     if posted.json()['state'] != status_json['state']:
         raise ValueError('Mismatched status post to {}'.format(status_url))
