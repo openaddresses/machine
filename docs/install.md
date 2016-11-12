@@ -11,13 +11,14 @@ You can edit a local copy of OpenAddresses code with working tests by installing
 3.  Create a new virtual machine, and configure its NAT network adapter so you can SSH into the machine [as described in this guide](http://stackoverflow.com/questions/5906441/how-to-ssh-to-a-virtualbox-guest-externally-through-a-host#10532299). Note that you’ll be SSHing into `127.0.0.1`, not the VM’s address.
 4.  Install Ubuntu 14.04 on the new machine, and log in.
 5.  Clone [OpenAddresses Machine code](https://github.com/openaddresses/machine) from Github.
-6.  From inside the new `machine` directory, install the code for local development:
+6.  From inside the new `machine` directory, install the code for local development. This might take a few minutes the first time. `chef/run.sh` is safe to run multiple times:
     
         sudo chef/run.sh localdev
 7.  Run the complete test suite to verify that it works:
     
         python3 test.py
-8.  You should now be able to make changes and test them.
+
+You should now be able to make changes and test them. Be sure to use `pip3` and `python3` when running, or [set up an optional quick local virtual environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/) with Python 3.
 
 Production
 ----------
