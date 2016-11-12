@@ -1,0 +1,9 @@
+{
+    "run_list":
+    [
+        "openaddr-prereqs",
+        "openaddr",
+        "database",
+        "account"
+    ]
+}

@@ -1,6 +1,5 @@
-# Specify 9.4 because this recipe tends to be used only in CI.
-# CircleCI has 9.4, while installing package 'postgresql' gets conflicting 9.5.
-package 'postgresql-9.4'
+# CircleCI has 9.3, while installing package 'postgresql' gets conflicting 9.5.
+package 'postgresql-9.3'
 
 local = data_bag_item('data', 'local')
 user = local['db_user']
