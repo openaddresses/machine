@@ -259,6 +259,25 @@ def app_get_run_sample(run_id):
     
     return render_template('run-sample.html', sample_data=sample_data or [])
 
+@webhooks.route('/sources/<path:source>', methods=['GET'])
+@log_application_errors
+def app_get_source_history(source):
+    '''
+    '''
+    source_path = u'sources/{}.json'.format(source)
+    
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            db.execute('''select datetime_tz, id, status, code_version, is_merged, state->'fingerprint', state->'process hash', set_id
+                          from runs
+                          where source_path = %s
+                          order by id desc''',
+                       (source_path, ))
+            
+            runs = list(db)
+
+    return jsonify(runs)
+
 def nice_timedelta(delta):
     '''
     >>> nice_timedelta(timedelta(days=2))
