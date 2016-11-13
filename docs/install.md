@@ -13,6 +13,8 @@ You can edit a local copy of OpenAddresses code with working tests by installing
 5.  Clone [OpenAddresses Machine code](https://github.com/openaddresses/machine) from Github.
 6.  From inside the new `machine` directory, install the code for local development. This might take a few minutes the first time. `chef/run.sh` is safe to run multiple times:
     
+        sudo add-apt-repository -y ppa:openaddresses/ci
+        sudo apt-get update -y
         sudo chef/run.sh localdev
 7.  Run the complete test suite to verify that it works:
     
