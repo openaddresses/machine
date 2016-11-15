@@ -41,7 +41,8 @@ from ..ci.objects import (
     Set, add_set, complete_set, update_set_renders, read_set, read_sets,
     add_run, set_run, copy_run, get_completed_file_run, get_completed_run,
     read_completed_set_runs, new_read_completed_set_runs, read_latest_set,
-    read_run, read_completed_runs_to_date, read_latest_run, Run, RunState
+    read_run, read_completed_runs_to_date, read_latest_run, Run, RunState,
+    read_completed_source_runs
     )
 
 from ..ci.collect import (
@@ -534,6 +535,28 @@ class TestObjects (unittest.TestCase):
                          job_id, set_id, commit_sha, is_merged FROM runs
                   WHERE set_id = %s AND status IS NOT NULL''',
                   (123, ))
+    
+    def test_read_completed_source_runs(self):
+        ''' Check behavior of objects.read_completed_source_runs()
+        '''
+        self.db.fetchall.return_value = (('abc', 'pl', 'jkl', b'', None, {}, True,
+                                          None, '', '', 'mno', 123, 'abc', False), )
+        
+        runs = read_completed_source_runs(self.db, 'pl')
+        self.assertEqual(runs[0].id, 'abc')
+        self.assertEqual(runs[0].source_path, 'pl')
+        self.assertEqual(runs[0].source_data, b'')
+        self.assertEqual(runs[0].status, True)
+        self.assertFalse(runs[0].is_merged)
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT id, source_path, source_id, source_data, datetime_tz,
+                         state, status, copy_of, code_version, worker_id,
+                         job_id, set_id, commit_sha, is_merged FROM runs
+                  WHERE source_path = %s AND status IS NOT NULL
+                    AND (is_merged or is_merged is null)
+                    AND copy_of IS NULL''',
+                  ('pl', ))
     
     def test_read_completed_runs_to_date_missing_set(self):
         ''' Check when read_completed_runs_to_date() called with missing set.

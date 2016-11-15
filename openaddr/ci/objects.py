@@ -391,6 +391,19 @@ def new_read_completed_set_runs(db, set_id):
     
     return [Run(*row[:5]+(RunState(row[5]),)+row[6:]) for row in db.fetchall()]
 
+def read_completed_source_runs(db, source_path):
+    '''
+    '''
+    db.execute('''SELECT id, source_path, source_id, source_data, datetime_tz,
+                         state, status, copy_of, code_version, worker_id,
+                         job_id, set_id, commit_sha, is_merged FROM runs
+                  WHERE source_path = %s AND status IS NOT NULL
+                    AND (is_merged or is_merged is null)
+                    AND copy_of IS NULL''',
+               (source_path, ))
+    
+    return [Run(*row[:5]+(RunState(row[5]),)+row[6:]) for row in db.fetchall()]
+
 def read_completed_runs_to_date(db, starting_set_id):
     ''' Get only successful runs.
     '''
