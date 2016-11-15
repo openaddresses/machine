@@ -353,15 +353,17 @@ def apply_webhooks_blueprint(app):
     '''
     app.register_blueprint(webhooks)
 
-    app.jinja_env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
-    app.jinja_env.filters['element_id'] = lambda value: value.replace("'", '-')
-    app.jinja_env.filters['nice_integer'] = nice_integer
-    app.jinja_env.filters['nice_timedelta'] = nice_timedelta
-    app.jinja_env.filters['breakstate'] = break_state
-    app.jinja_env.filters['nice_size'] = nice_size
-
     @app.before_first_request
     def app_prepare():
+        # Filters are set here so Jinja debug reload works; see also:
+        # https://github.com/pallets/flask/issues/1907#issuecomment-225743376
+        app.jinja_env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
+        app.jinja_env.filters['element_id'] = lambda value: value.replace("'", '-')
+        app.jinja_env.filters['nice_integer'] = nice_integer
+        app.jinja_env.filters['nice_timedelta'] = nice_timedelta
+        app.jinja_env.filters['breakstate'] = break_state
+        app.jinja_env.filters['nice_size'] = nice_size
+
         setup_logger(os.environ.get('AWS_ACCESS_KEY_ID'),
                      os.environ.get('AWS_SECRET_ACCESS_KEY'),
                      os.environ.get('AWS_SNS_ARN'), logging.WARNING)
