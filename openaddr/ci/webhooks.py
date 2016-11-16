@@ -8,8 +8,8 @@ from collections import OrderedDict
 from datetime import datetime
 from dateutil.tz import tzutc
 from csv import DictWriter
+import json, os, base64
 import hashlib, hmac
-import json, os
 
 import memcache, requests
 from jinja2 import Environment, FileSystemLoader
@@ -25,7 +25,7 @@ from . import (
 from .objects import (
     read_job, read_jobs, read_sets, read_set, read_latest_set,
     read_run, new_read_completed_set_runs, read_completed_runs_to_date,
-    load_collection_zips_dict, read_latest_run
+    load_collection_zips_dict, read_latest_run, read_completed_source_runs
     )
 
 from ..summarize import summarize_runs, GLASS_HALF_FULL, GLASS_HALF_EMPTY, nice_integer, break_state
@@ -259,6 +259,27 @@ def app_get_run_sample(run_id):
     
     return render_template('run-sample.html', sample_data=sample_data or [])
 
+@webhooks.route('/sources/<path:source>', methods=['GET'])
+@log_application_errors
+def app_get_source_history(source):
+    '''
+    '''
+    source_path = u'sources/{}.json'.format(source)
+    
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            run = read_latest_run(db, source_path)
+            runs = read_completed_source_runs(db, source_path)
+            runs.sort(key=attrgetter('datetime_tz'), reverse=True)
+    
+    print(run.__dict__)
+    
+    source_data = json.loads(base64.b64decode(run.source_data).decode('utf8'))
+    
+    return render_template('source.html', runs=runs, run=run, source_data=source_data)
+
+    return jsonify(runs)
+
 def nice_timedelta(delta):
     '''
     >>> nice_timedelta(timedelta(days=2))
@@ -334,15 +355,17 @@ def apply_webhooks_blueprint(app):
     '''
     app.register_blueprint(webhooks)
 
-    app.jinja_env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
-    app.jinja_env.filters['element_id'] = lambda value: value.replace("'", '-')
-    app.jinja_env.filters['nice_integer'] = nice_integer
-    app.jinja_env.filters['nice_timedelta'] = nice_timedelta
-    app.jinja_env.filters['breakstate'] = break_state
-    app.jinja_env.filters['nice_size'] = nice_size
-
     @app.before_first_request
     def app_prepare():
+        # Filters are set here so Jinja debug reload works; see also:
+        # https://github.com/pallets/flask/issues/1907#issuecomment-225743376
+        app.jinja_env.filters['tojson'] = lambda value: json.dumps(value, ensure_ascii=False)
+        app.jinja_env.filters['element_id'] = lambda value: value.replace("'", '-')
+        app.jinja_env.filters['nice_integer'] = nice_integer
+        app.jinja_env.filters['nice_timedelta'] = nice_timedelta
+        app.jinja_env.filters['breakstate'] = break_state
+        app.jinja_env.filters['nice_size'] = nice_size
+
         setup_logger(os.environ.get('AWS_ACCESS_KEY_ID'),
                      os.environ.get('AWS_SECRET_ACCESS_KEY'),
                      os.environ.get('AWS_SNS_ARN'), logging.WARNING)

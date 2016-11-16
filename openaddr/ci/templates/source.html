@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Source whatever{% endblock %}
+{% block main %}
+
+<style lang="text/css">
+
+    #source { border-collapse: collapse }
+    
+    #source tr th,
+    #source tr td.type,
+    #source tr td.cached,
+    #source tr td.problems,
+    #source tr td.sample,
+    #source tr td table tr td
+    {
+        font-size: 65%;
+    }
+    
+    #source tr th, #source tr td
+    {
+        text-align: left;
+        padding: 3px 10px;
+        border: none;
+    }
+    
+    #source tr td>a
+    {
+        display: block;
+        margin: -3px -10px;
+        padding: 3px 10px;
+        text-decoration: underline;
+    }
+    
+    #source tr td small>a,
+    #source tr td.sample>a
+    {
+        display: inline;
+        margin: 0;
+        padding: 0;
+    }
+    
+    #source tr td.name>a
+    {
+        text-decoration: none;
+    }
+    
+    #source tr:nth-child(2n+0) td { background-color: #f8f8f8 }
+    #source tr:nth-child(2n+1) td { background-color: #ffffff }
+
+    #source tr td table { margin: 1em 0 }
+    #source tr td table { margin: 1em 0 }
+    #source tr td table tr th { color: #666 }
+
+    #source tr td table tr th,
+    #source tr td table tr td
+    {
+        font-family: monospace;
+        background-color: transparent !important;
+        line-height: 1.5em;
+        padding: 1px 10px;
+    }
+    
+   /*
+    * Progressively show additional sample data columns.
+    */
+
+    /*
+    #source tr th,
+    #source tr td
+    {
+        display: none
+    }
+    */
+
+    /*
+    Column classes:
+    1. name, 2. type, 3. cached, 4. processed, 5. problems, 6. sample
+    */
+
+    #source tr th:nth-child(1), /* name + data sample */
+    #source tr td:nth-child(1), /* name + data sample */
+    #source tr th.processed,
+    #source tr th.sample,
+    #source tr td.processed,
+    #source tr td.sample
+    {
+        display: table-cell
+    }
+
+    @media (min-width: 400px)
+    {
+        #source tr td table tr th:nth-child(4),
+        #source tr td table tr td:nth-child(4)
+        {
+            display: table-cell
+        }
+    }
+    
+    @media (min-width: 640px)
+    {
+        #source tr th.cached,
+        #source tr td.cached
+        {
+            display: table-cell
+        }
+    }
+    
+    @media (min-width: 960px)
+    {
+        #source tr th.type,
+        #source tr th.problems,
+        #source tr td.type,
+        #source tr td.problems
+        {
+            display: table-cell
+        }
+    }
+
+</style>
+
+<h1><a href="https://github.com/openaddresses/openaddresses/blob/{{ run.commit_sha }}/{{ run.source_path }}">{{ run.source_path }}</a></h1>
+
+{% if run.state.processed %}
+<p>
+    <a href="{{ run.state.processed }}">
+    {{ run.state.address_count|nice_integer }} addresses
+    downloaded {{ run.datetime_tz.strftime('%b %d %Y') }}
+    </a>
+</p>
+{% endif %}
+
+{% if source_data.website %}
+<p>
+    <a href="{{ source_data.website }}">{{ source_data.website }}</a>
+</p>
+{% endif %}
+
+<table id="source">
+<tr>
+    <th></th>
+    <th>Addresses</th>
+    <th>Date</th>
+    <th>Output</th>
+    <th>Cache</th>
+    <th>Source</th>
+    <th>Code</th>
+</tr>
+{% for run in runs %}
+
+    <tr>
+        <td>
+        {% if run.status is sameas False %}
+            <span style="color: #f00">&#x274C;</span>
+        {% else %}
+            <span style="color: #0c3">&#x2714;</span>
+        {% endif %}
+        </td>
+        <td>
+        {{ run.state.address_count|nice_integer }}
+        </td>
+        <td>
+        <a href="{{ run.state.output }}">{{ run.datetime_tz.strftime('%b %d %Y') }}</a>
+        </td>
+        <td>
+        {% if run.state.process_hash %}
+            <a href="{{ run.state.processed }}"><tt>{{ run.state.process_hash[:7] }}</tt></a>
+        {% elif run.state.processed %}
+            <a href="{{ run.state.processed }}">zip</a>
+        {% endif %}
+        </td>
+        <td>
+        {% if run.state.fingerprint %}
+            <a href="{{ run.state.cache }}"><tt>{{ run.state.fingerprint[:7] }}</tt></a>
+        {% elif run.state.cache %}
+            <a href="{{ run.state.cache }}">cache</a>
+        {% endif %}
+        </td>
+        <td>
+        <a href="https://github.com/openaddresses/openaddresses/blob/{{ run.commit_sha }}/{{ run.source_path }}"><tt>{{ run.source_id[:7] }}</tt></a>
+        </td>
+        <td>
+        <a href="https://github.com/openaddresses/machine/releases/tag/{{ run.code_version }}"><tt>{{ run.code_version }}</tt></a>
+        </td>
+    </tr>
+
+{% endfor %}
+</table>
+{% endblock main %}
