@@ -23,6 +23,7 @@
         border: none;
     }
     
+    /*
     #source tr td>a
     {
         display: block;
@@ -30,6 +31,7 @@
         padding: 3px 10px;
         text-decoration: underline;
     }
+    */
     
     #source tr td small>a,
     #source tr td.sample>a
@@ -159,20 +161,24 @@
         {{ run.state.address_count|nice_integer }}
         </td>
         <td>
-        <a href="{{ run.state.output }}">{{ run.datetime_tz.strftime('%b %d %Y') }}</a>
+        <a href="{{ run.state.output }}">{{ run.datetime_tz.strftime('%Y-%m-%d') }}</a>
         </td>
         <td>
         {% if run.state.process_hash %}
             <a href="{{ run.state.processed }}"><tt>{{ run.state.process_hash[:7] }}</tt></a>
+            <small>({{ run.state.process_time.split('.')[0] }})</small>
         {% elif run.state.processed %}
             <a href="{{ run.state.processed }}">zip</a>
+            <small>({{ run.state.process_time.split('.')[0] }})</small>
         {% endif %}
         </td>
         <td>
         {% if run.state.fingerprint %}
             <a href="{{ run.state.cache }}"><tt>{{ run.state.fingerprint[:7] }}</tt></a>
+            <small>({{ run.state.cache_time.split('.')[0] }})</small>
         {% elif run.state.cache %}
             <a href="{{ run.state.cache }}">cache</a>
+            <small>({{ run.state.cache_time.split('.')[0] }})</small>
         {% endif %}
         </td>
         <td>
