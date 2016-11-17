@@ -1,3 +1,6 @@
+2016-11-16: 3.7.6
+- Fixed error-handling in GDAL point transforms.
+
 2016-11-16: 3.7.5
 - Fixed error when ESRI server unable to handle feature count.
 
