@@ -1,3 +1,6 @@
+2016-11-16: 3.7.5
+- Fixed error when ESRI server unable to handle feature count.
+
 2016-11-16: 3.7.4
 - Tweaked display on secret source history pages.
 
