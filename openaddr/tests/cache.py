@@ -6,6 +6,8 @@ from os.path import join, dirname
 import shutil
 import mimetypes
 
+from mock import patch
+from esridump.errors import EsriDownloadError
 import unittest
 import httmock
 import tempfile
@@ -76,3 +78,17 @@ class TestCacheEsriDownload (unittest.TestCase):
         for expected, conform in conforms:
             actual = task.field_names_to_request(conform)
             self.assertEqual(expected, actual)
+
+    def test_download_handles_no_count(self):
+        """ ESRI Caching Will Handle A Server Without returnCountOnly Support """
+        task = EsriRestDownloadTask('us-fl-palmbeach')
+
+        with patch('esridump.EsriDumper.get_metadata') as metadata_patch:
+            metadata_patch.return_value = {'fields': []}
+            with patch('esridump.EsriDumper.get_feature_count') as feature_patch:
+                feature_patch.side_effect = EsriDownloadError("Server doesn't support returnCountOnly")
+                with self.assertRaises(EsriDownloadError) as e:
+                    task.download(['http://example.com/'], self.workdir)
+
+                    # This is the expected exception at this point
+                    self.assertEqual(e.message, "Could not find object ID field name for deduplication")

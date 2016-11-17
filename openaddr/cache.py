@@ -22,6 +22,7 @@ from hashlib import sha1
 from shutil import move
 from shapely.geometry import shape
 from esridump import EsriDumper
+from esridump.errors import EsriDownloadError
 
 import requests
 
@@ -363,9 +364,11 @@ class EsriRestDownloadTask(DownloadTask):
                 field_names.append(GEOM_FIELDNAME)
 
             # Get the count of rows in the layer
-            row_count = downloader.get_feature_count()
-
-            _L.info("Source has {} rows".format(row_count))
+            try:
+                row_count = downloader.get_feature_count()
+                _L.info("Source has {} rows".format(row_count))
+            except EsriDownloadError:
+                _L.info("Source doesn't support count")
 
             with csvopen(file_path, 'w', encoding='utf-8') as f:
                 writer = csvDictWriter(f, fieldnames=field_names, encoding='utf-8')
