@@ -1,5 +1,8 @@
+2016-11-16: 3.7.4
+- Tweaked display on secret source history pages.
+
 2016-11-15: 3.7.3
-- Created secret souce history pages.
+- Created secret source history pages.
 
 2016-11-11: 3.7.2
 - Fixed repeated status update error in ci.post_github_status().
