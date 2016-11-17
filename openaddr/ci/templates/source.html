@@ -6,12 +6,7 @@
 
     #source { border-collapse: collapse }
     
-    #source tr th,
-    #source tr td.type,
-    #source tr td.cached,
-    #source tr td.problems,
-    #source tr td.sample,
-    #source tr td table tr td
+    #source tr th
     {
         font-size: 65%;
     }
@@ -23,6 +18,7 @@
         border: none;
     }
     
+    /*
     #source tr td>a
     {
         display: block;
@@ -30,6 +26,7 @@
         padding: 3px 10px;
         text-decoration: underline;
     }
+    */
     
     #source tr td small>a,
     #source tr td.sample>a
@@ -64,33 +61,29 @@
     * Progressively show additional sample data columns.
     */
 
-    /*
     #source tr th,
     #source tr td
     {
         display: none
     }
-    */
 
     /*
     Column classes:
-    1. name, 2. type, 3. cached, 4. processed, 5. problems, 6. sample
+    1. status, 2. addresses, 3. datetimelog, 4. processed, 5. cached, 6. source, 7. version
     */
 
-    #source tr th:nth-child(1), /* name + data sample */
-    #source tr td:nth-child(1), /* name + data sample */
-    #source tr th.processed,
-    #source tr th.sample,
-    #source tr td.processed,
-    #source tr td.sample
+    #source tr th.status,
+    #source tr th.addresses,
+    #source tr td.status,
+    #source tr td.addresses
     {
         display: table-cell
     }
 
     @media (min-width: 400px)
     {
-        #source tr td table tr th:nth-child(4),
-        #source tr td table tr td:nth-child(4)
+        #source tr th.datetimelog,
+        #source tr td.datetimelog
         {
             display: table-cell
         }
@@ -98,7 +91,9 @@
     
     @media (min-width: 640px)
     {
+        #source tr th.processed,
         #source tr th.cached,
+        #source tr td.processed,
         #source tr td.cached
         {
             display: table-cell
@@ -107,10 +102,10 @@
     
     @media (min-width: 960px)
     {
-        #source tr th.type,
-        #source tr th.problems,
-        #source tr td.type,
-        #source tr td.problems
+        #source tr th.source,
+        #source tr th.version,
+        #source tr td.source,
+        #source tr td.version
         {
             display: table-cell
         }
@@ -137,48 +132,52 @@
 
 <table id="source">
 <tr>
-    <th></th>
-    <th>Addresses</th>
-    <th>Date</th>
-    <th>Output</th>
-    <th>Cache</th>
-    <th>Source</th>
-    <th>Code</th>
+    <th class="status"></th>
+    <th class="addresses">Addresses</th>
+    <th class="datetimelog">Date</th>
+    <th class="processed">Output</th>
+    <th class="cached">Cache</th>
+    <th class="source">Source</th>
+    <th class="version">Code</th>
 </tr>
 {% for run in runs %}
 
     <tr>
-        <td>
+        <td class="status">
         {% if run.status is sameas False %}
             <span style="color: #f00">&#x274C;</span>
         {% else %}
             <span style="color: #0c3">&#x2714;</span>
         {% endif %}
         </td>
-        <td>
+        <td class="addresses">
         {{ run.state.address_count|nice_integer }}
         </td>
-        <td>
-        <a href="{{ run.state.output }}">{{ run.datetime_tz.strftime('%b %d %Y') }}</a>
+        <td class="datetimelog">
+        <a href="{{ run.state.output }}">{{ run.datetime_tz.strftime('%Y-%m-%d') }}</a>
         </td>
-        <td>
+        <td class="processed">
         {% if run.state.process_hash %}
             <a href="{{ run.state.processed }}"><tt>{{ run.state.process_hash[:7] }}</tt></a>
+            <small>({{ run.state.process_time.split('.')[0] }})</small>
         {% elif run.state.processed %}
             <a href="{{ run.state.processed }}">zip</a>
+            <small>({{ run.state.process_time.split('.')[0] }})</small>
         {% endif %}
         </td>
-        <td>
+        <td class="cached">
         {% if run.state.fingerprint %}
             <a href="{{ run.state.cache }}"><tt>{{ run.state.fingerprint[:7] }}</tt></a>
+            <small>({{ run.state.cache_time.split('.')[0] }})</small>
         {% elif run.state.cache %}
             <a href="{{ run.state.cache }}">cache</a>
+            <small>({{ run.state.cache_time.split('.')[0] }})</small>
         {% endif %}
         </td>
-        <td>
+        <td class="source">
         <a href="https://github.com/openaddresses/openaddresses/blob/{{ run.commit_sha }}/{{ run.source_path }}"><tt>{{ run.source_id[:7] }}</tt></a>
         </td>
-        <td>
+        <td class="version">
         <a href="https://github.com/openaddresses/machine/releases/tag/{{ run.code_version }}"><tt>{{ run.code_version }}</tt></a>
         </td>
     </tr>
