@@ -27,6 +27,20 @@ from .sample import sample_geojson
 from osgeo import ogr, osr
 ogr.UseExceptions()
 
+
+def gdal_error_handler(err_class, err_num, err_msg):
+    errtype = {
+            gdal.CE_None:'None',
+            gdal.CE_Debug:'Debug',
+            gdal.CE_Warning:'Warning',
+            gdal.CE_Failure:'Failure',
+            gdal.CE_Fatal:'Fatal'
+    }
+    err_msg = err_msg.replace('\n',' ')
+    err_class = errtype.get(err_class, 'None')
+    _L.error("GDAL gave %s %s: %s", err_class, err_num, err_msg)
+
+
 # The canonical output schema for conform
 OPENADDR_CSV_SCHEMA = ['LON', 'LAT', 'NUMBER', 'STREET', 'UNIT', 'CITY',
                        'DISTRICT', 'REGION', 'POSTCODE', 'ID', 'HASH']
