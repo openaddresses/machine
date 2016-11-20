@@ -1,3 +1,6 @@
+2016-11-20: 3.7.7
+- Refactored internals of GeoJSON source parsing.
+
 2016-11-16: 3.7.6
 - Fixed error-handling in GDAL point transforms.
 
