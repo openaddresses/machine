@@ -65,7 +65,21 @@ def _build_map(data):
 def sample_geojson(stream, max_features):
     ''' Read a stream of input GeoJSON and return a string with a limited feature count.
     '''
-    data, features = ijson.parse(stream), list()
+    features = list()
+    
+    for feature in stream_geojson(stream):
+        if len(features) == max_features:
+            break
+
+        features.append(feature)
+    
+    geojson = dict(type='FeatureCollection', features=features)
+    return json.dumps(geojson)
+
+def stream_geojson(stream):
+    '''
+    '''
+    data = ijson.parse(stream)
 
     for (prefix1, event1, value1) in data:
         if event1 != 'start_map':
@@ -88,14 +102,10 @@ def sample_geojson(stream, max_features):
                     raise ValueError((prefix4, event4, value4))
             
                 for (prefix5, event5, value5) in data:
-                    if event5 == 'end_array' or len(features) == max_features:
+                    if event5 == 'end_array':
                         break
                 
                     # let _build_value() handle the feature.
                     _data = chain([(prefix5, event5, value5)], data)
-                    features.append(_build_value(_data))
-
-                geojson = dict(type='FeatureCollection', features=features)
-                return json.dumps(geojson)
-    
-    raise ValueError()
+                    feature = _build_value(_data)
+                    yield feature
