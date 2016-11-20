@@ -752,6 +752,8 @@ def geojson_source_to_csv(source_path, dest_path):
                 try:
                     row = feature['properties']
                     geom = ogr.CreateGeometryFromJson(json.dumps(feature['geometry']))
+                    if not geom:
+                        continue
                     center = geom.Centroid()
                 except Exception as e:
                     _L.error('Error in row {}: {}'.format(row_number, e))
