@@ -1,3 +1,6 @@
+2016-11-20: 3.7.8
+- Fixed null handling in GeoJSON source parsing.
+
 2016-11-20: 3.7.7
 - Refactored internals of GeoJSON source parsing.
 
