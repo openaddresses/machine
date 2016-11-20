@@ -19,7 +19,7 @@ from ..conform import (
     row_canonicalize_unit_and_number, conform_smash_case, conform_cli,
     csvopen, csvDictReader, convert_regexp_replace, conform_license,
     conform_attribution, conform_sharealike, normalize_ogr_filename_case,
-    OPENADDR_CSV_SCHEMA, is_in
+    OPENADDR_CSV_SCHEMA, is_in, geojson_source_to_csv
     )
 
 class TestConformTransforms (unittest.TestCase):
@@ -703,6 +703,19 @@ class TestConformMisc(unittest.TestCase):
         self.assertTrue(is_in('Foo/bar/baz', ['foo']), 'Should match a directory path case-insensitively')
         self.assertTrue(is_in('foo/Bar', ['foo/bar']), 'Should match a directory path case-insensitively')
         self.assertTrue(is_in('foo/Bar/baz', ['foo/bar']), 'Should match a directory path case-insensitively')
+    
+    def test_geojson_source_to_csv(self):
+        '''
+        '''
+        geojson_path = os.path.join(os.path.dirname(__file__), 'data/us-pa-bucks.geojson')
+        csv_path = os.path.join(self.testdir, 'us-tx-waco.csv')
+        geojson_source_to_csv(geojson_path, csv_path)
+        
+        with csvopen(csv_path, encoding='utf8') as file:
+            row = next(csvDictReader(file, encoding='utf8'))
+            self.assertAlmostEqual(float(row[X_FIELDNAME]), -74.98335721879076)
+            self.assertAlmostEqual(float(row[Y_FIELDNAME]), 40.054962450263616)
+            self.assertEqual(row['PARCEL_NUM'], '02-022-003')
 
 class TestConformCsv(unittest.TestCase):
     "Fixture to create real files to test csv_source_to_csv()"

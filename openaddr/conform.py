@@ -22,7 +22,7 @@ from hashlib import sha1
 from uuid import uuid4
 
 from .compat import csvopen, csvreader, csvDictReader, csvDictWriter
-from .sample import sample_geojson
+from .sample import sample_geojson, stream_geojson
 
 from osgeo import ogr, osr, gdal
 ogr.UseExceptions()
@@ -734,6 +734,32 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
                 else:
                     writer.writerow(out_row)
 
+def geojson_source_to_csv(source_path, dest_path):
+    '''
+    '''
+    # For every row in the source GeoJSON
+    with open(source_path) as file:
+        # Write the extracted CSV file
+        with csvopen(dest_path, 'w', encoding='utf-8') as dest_fp:
+            writer = None
+            for (row_number, feature) in enumerate(stream_geojson(file)):
+                if writer is None:
+                    out_fieldnames = list(feature['properties'].keys())
+                    out_fieldnames.extend((X_FIELDNAME, Y_FIELDNAME))
+                    writer = csvDictWriter(dest_fp, out_fieldnames)
+                    writer.writeheader()
+                
+                try:
+                    row = feature['properties']
+                    geom = ogr.CreateGeometryFromJson(json.dumps(feature['geometry']))
+                    center = geom.Centroid()
+                except Exception as e:
+                    _L.error('Error in row {}: {}'.format(row_number, e))
+                    raise
+                else:
+                    row.update({X_FIELDNAME: center.GetX(), Y_FIELDNAME: center.GetY()})
+                    writer.writerow(row)
+
 _transform_cache = {}
 def _transform_to_4326(srs):
     "Given a string like EPSG:2913, return an OGR transform object to turn it in to EPSG:4326"
@@ -1025,9 +1051,9 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
             _L.info("ESRI GeoJSON source found; treating it as CSV")
             csv_source_to_csv(source_definition, source_path, extract_path)
         else:
-            _L.info("Non-ESRI GeoJSON source found; this code is not well tested.")
-            ogr_source_path = normalize_ogr_filename_case(source_path)
-            ogr_source_to_csv(source_definition, ogr_source_path, extract_path)
+            _L.info("Non-ESRI GeoJSON source found; converting as a stream.")
+            geojson_source_path = normalize_ogr_filename_case(source_path)
+            geojson_source_to_csv(geojson_source_path, extract_path)
     else:
         raise Exception("Unsupported source type %s" % source_definition["conform"]["type"])
 
