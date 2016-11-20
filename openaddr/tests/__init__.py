@@ -922,14 +922,14 @@ class TestOA (unittest.TestCase):
         with csvopen(output_path, encoding='utf8') as input:
             rows = list(csvDictReader(input, encoding='utf8'))
             self.assertEqual(rows[1]['UNIT'], u'')
-            self.assertEqual(rows[11]['UNIT'], u'')
-            self.assertEqual(rows[21]['UNIT'], u'')
+            self.assertEqual(rows[10]['UNIT'], u'')
+            self.assertEqual(rows[20]['UNIT'], u'')
             self.assertEqual(rows[1]['NUMBER'], u'')
-            self.assertEqual(rows[11]['NUMBER'], u'')
-            self.assertEqual(rows[21]['NUMBER'], u'429')
+            self.assertEqual(rows[10]['NUMBER'], u'')
+            self.assertEqual(rows[20]['NUMBER'], u'429')
             self.assertEqual(rows[1]['STREET'], u'STATE RD')
-            self.assertEqual(rows[11]['STREET'], u'STATE RD')
-            self.assertEqual(rows[21]['STREET'], u'WALNUT AVE E')
+            self.assertEqual(rows[10]['STREET'], u'STATE RD')
+            self.assertEqual(rows[20]['STREET'], u'WALNUT AVE E')
 
     def test_single_nm_washington(self):
         ''' Test complete process_one.process on data without ESRI support for resultRecordCount.
