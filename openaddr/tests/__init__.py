@@ -117,6 +117,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('gis3.oit.ohio.gov', '/LBRS/_downloads/TRU_ADDS.zip'):
             local_path = join(data_dirname, 'TRU_ADDS-excerpt.zip')
         
+        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/cache/uploads/iandees/ed482f/bucks.geojson.zip'):
+            local_path = join(data_dirname, 'us-pa-bucks.geojson.zip')
+        
         if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1/query'):
             qs = parse_qs(query)
             body_data = parse_qs(request.body) if request.body else {}
@@ -884,6 +887,49 @@ class TestOA (unittest.TestCase):
             self.assertEqual(rows[1]['STREET'], u'W 28TH DIVISION HWY')
             self.assertEqual(rows[11]['STREET'], u'W 28TH DIVISION HWY')
             self.assertEqual(rows[21]['STREET'], u'W 28TH DIVISION HWY')
+
+    def test_single_pa_bucks(self):
+        ''' Test complete process_one.process on data with ESRI multiPolyline geometries.
+        '''
+        source = join(self.src_dir, 'us/pa/bucks.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir, False)
+
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+
+        self.assertIsNotNone(state['sample'])
+        self.assertIsNone(state['preview'])
+
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+            row1 = dict(zip(sample_data[0], sample_data[1]))
+            row2 = dict(zip(sample_data[0], sample_data[2]))
+
+        self.assertEqual(len(sample_data), 6)
+        self.assertIn('SITUS_ADDR_NUM', sample_data[0])
+        self.assertIn('MUNI', sample_data[0])
+        self.assertEqual('', row1['SITUS_ADDR_NUM'])
+        self.assertEqual('STATE', row1['SITUS_FNAME'])
+        self.assertEqual('RD', row1['SITUS_FTYPE'])
+        self.assertEqual('', row2['SITUS_ADDR_NUM'])
+        self.assertEqual('STATE', row2['SITUS_FNAME'])
+        self.assertEqual('RD', row2['SITUS_FTYPE'])
+        
+        output_path = join(dirname(state_path), state['processed'])
+        
+        with csvopen(output_path, encoding='utf8') as input:
+            rows = list(csvDictReader(input, encoding='utf8'))
+            self.assertEqual(rows[1]['UNIT'], u'')
+            self.assertEqual(rows[11]['UNIT'], u'')
+            self.assertEqual(rows[21]['UNIT'], u'')
+            self.assertEqual(rows[1]['NUMBER'], u'')
+            self.assertEqual(rows[11]['NUMBER'], u'')
+            self.assertEqual(rows[21]['NUMBER'], u'429')
+            self.assertEqual(rows[1]['STREET'], u'STATE RD')
+            self.assertEqual(rows[11]['STREET'], u'STATE RD')
+            self.assertEqual(rows[21]['STREET'], u'WALNUT AVE E')
 
     def test_single_nm_washington(self):
         ''' Test complete process_one.process on data without ESRI support for resultRecordCount.
