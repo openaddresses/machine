@@ -30,13 +30,11 @@ def render(filename_or_url, png_filename, width, resolution, mapzen_key):
     '''
     src_filename = get_local_filename(filename_or_url)
     _, points_filename = mkstemp(prefix='points-', suffix='.bin')
-    project = get_projection()
 
     try:
         _L.info('Writing from {} to {}...'.format(src_filename, points_filename))
-        file_points = iterate_file_points(src_filename)
-        xy_points = project_points(file_points, project)
-        write_points(xy_points, points_filename)
+        points = project_lonlats(iterate_file_lonlats(src_filename))
+        write_points(points, points_filename)
 
         xmin, ymin, xmax, ymax = calculate_bounds(points_filename)
     except:
@@ -110,8 +108,8 @@ def get_local_filename(filename_or_url):
     
     return filename
 
-def iterate_file_points(filename):
-    '''
+def iterate_file_lonlats(filename):
+    ''' Stream (lon, lat) coordinates from an input .csv or .zip file.
     '''
     suffix = os.path.splitext(filename)[1].lower()
     
@@ -188,10 +186,10 @@ def get_projection():
     sref_map = osr.SpatialReference(); sref_map.ImportFromProj4(EPSG900913)
     return osr.CoordinateTransformation(sref_geo, sref_map)
 
-def project_points(lonlats, project):
+def project_lonlats(lonlats):
+    ''' Stream Mercator (x, y) points from a stream of (lon, lat) coordinates.
     '''
-    '''
-    geom = ogr.Geometry(ogr.wkbPoint)
+    project, geom = get_projection(), ogr.Geometry(ogr.wkbPoint)
 
     for (lon, lat) in lonlats:
         geom.SetPoint(0, lon, lat)
@@ -202,7 +200,7 @@ def project_points(lonlats, project):
         else:
             yield (geom.GetX(), geom.GetY())
 
-    del geom
+    del project, geom
 
 def write_points(points, points_filename):
     ''' Write a stream of (x, y) points into a file of packed values.
