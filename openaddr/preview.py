@@ -17,6 +17,7 @@ from .compat import cairo
 
 TILE_URL = 'http://tile.mapzen.com/mapzen/vector/v1/all/{z}/{x}/{y}.json{?api_key}'
 EARTH_DIAMETER = 6378137 * 2 * pi
+FORMAT = 'ff'
 
 # WGS 84, http://spatialreference.org/ref/epsg/4326/
 EPSG4326 = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs'
@@ -29,14 +30,17 @@ def render(filename_or_url, png_filename, width, resolution, mapzen_key):
     '''
     src_filename = get_local_filename(filename_or_url)
     _, points_filename = mkstemp(prefix='points-', suffix='.bin')
-    print('points_filename:', points_filename)
-
     project = get_projection()
-    file_points = iterate_file_points(src_filename)
-    xy_points = project_points(file_points, project)
-    write_points(xy_points, points_filename)
 
-    xmin, ymin, xmax, ymax = calculate_bounds(points_filename)
+    try:
+        file_points = iterate_file_points(src_filename)
+        xy_points = project_points(file_points, project)
+        write_points(xy_points, points_filename)
+
+        xmin, ymin, xmax, ymax = calculate_bounds(points_filename)
+    except:
+        os.remove(points_filename)
+        raise
     
     surface, context, scale = make_context(xmin, ymin, xmax, ymax, width, resolution)
 
@@ -79,6 +83,7 @@ def render(filename_or_url, png_filename, width, resolution, mapzen_key):
         context.set_source_rgb(*black)
         context.stroke()
     
+    os.remove(points_filename)
     surface.write_to_png(png_filename)
 
 def get_local_filename(filename_or_url):
@@ -192,30 +197,29 @@ def project_points(lonlats, project):
         del geom
         yield xy
 
-def write_points(points, dest_filename):
+def write_points(points, points_filename):
+    ''' Write a stream of (x, y) points into a file of packed values.
     '''
-    '''
-    with open(dest_filename, mode='wb') as file:
-        for (x, y) in points:
-            file.write(struct.pack('ff', x, y))
+    count = 0
 
-def count_points(points_filename):
-    '''
-    '''
-    chunk_size = struct.calcsize('ff')
-    return os.stat(points_filename).st_size // chunk_size
+    with open(points_filename, mode='wb') as file:
+        for (x, y) in points:
+            file.write(struct.pack(FORMAT, x, y))
+            count += 1
+    
+    _L.info('Wrote {} points to {}'.format(count, points_filename))
 
 def read_points(points_filename):
-    '''
+    ''' Read a file of packed values into a stream of (x, y) points.
     '''
     _L.debug('Reading from {}'.format(points_filename))
-    chunk_size = struct.calcsize('ff')
+    chunk_size = struct.calcsize(FORMAT)
     
     with open(points_filename, mode='rb') as file:
         while True:
             chunk = file.read(chunk_size)
             if chunk:
-                yield struct.unpack('ff', chunk)
+                yield struct.unpack(FORMAT, chunk)
             else:
                 return
 
