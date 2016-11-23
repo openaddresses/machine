@@ -540,14 +540,20 @@ class TestObjects (unittest.TestCase):
         ''' Check behavior of objects.read_completed_source_runs()
         '''
         self.db.fetchall.return_value = (('abc', 'pl', 'jkl', b'', None, {}, True,
+                                          'def', '', '', 'mno', 123, 'abc', False),
+                                         ('def', 'pl', 'jkl', b'', None, {}, True,
+                                          None, '', '', 'mno', 123, 'abc', False),
+                                         ('ghi', 'pl', 'jkl', b'', None, {}, True,
                                           None, '', '', 'mno', 123, 'abc', False), )
         
         runs = read_completed_source_runs(self.db, 'pl')
+        self.assertEqual(len(runs), 2)
         self.assertEqual(runs[0].id, 'abc')
         self.assertEqual(runs[0].source_path, 'pl')
         self.assertEqual(runs[0].source_data, b'')
         self.assertEqual(runs[0].status, True)
         self.assertFalse(runs[0].is_merged)
+        self.assertEqual(runs[1].id, 'ghi')
 
         self.db.execute.assert_called_once_with(
                '''SELECT id, source_path, source_id, source_data, datetime_tz,
@@ -555,7 +561,7 @@ class TestObjects (unittest.TestCase):
                          job_id, set_id, commit_sha, is_merged FROM runs
                   WHERE source_path = %s AND status IS NOT NULL
                     AND (is_merged or is_merged is null)
-                    AND copy_of IS NULL''',
+                  ORDER BY id DESC''',
                   ('pl', ))
     
     def test_read_completed_runs_to_date_missing_set(self):

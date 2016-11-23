@@ -205,7 +205,7 @@
       {% endif %}
       <tr class="init">
         <td class="name">
-            <a href="{{ state.href }}" name="{% if first_processed %}first-processed{% endif %}">{{ state.shortname|breakstate|safe }}</a>
+            <a href="{{ url_for('webhooks.app_get_source_history', source=state.shortname) }}" name="{% if first_processed %}first-processed{% endif %}">{{ state.shortname|breakstate|safe }}</a>
         </td>
         <td class="type">
             {{ state.type }}
