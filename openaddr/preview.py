@@ -33,6 +33,7 @@ def render(filename_or_url, png_filename, width, resolution, mapzen_key):
     project = get_projection()
 
     try:
+        _L.info('Writing from {} to {}...'.format(src_filename, points_filename))
         file_points = iterate_file_points(src_filename)
         xy_points = project_points(file_points, project)
         write_points(xy_points, points_filename)
@@ -192,10 +193,14 @@ def project_points(lonlats, project):
     '''
     for (lon, lat) in lonlats:
         geom = ogr.CreateGeometryFromWkt('POINT({:.7f} {:.7f})'.format(lon, lat))
-        geom.Transform(project)
-        xy = geom.GetX(), geom.GetY()
-        del geom
-        yield xy
+        try:
+            geom.Transform(project)
+        except:
+            pass
+        else:
+            yield (geom.GetX(), geom.GetY())
+        finally:
+            del geom
 
 def write_points(points, points_filename):
     ''' Write a stream of (x, y) points into a file of packed values.
