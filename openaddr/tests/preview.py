@@ -7,6 +7,7 @@ import subprocess
 
 from os.path import join, dirname
 from zipfile import ZipFile
+from shutil import rmtree
 
 from httmock import HTTMock, response
 
@@ -14,16 +15,30 @@ from .. import preview
 
 class TestPreview (unittest.TestCase):
 
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp(prefix='TestPreview-')
+    
+    def tearDown(self):
+        rmtree(self.temp_dir)
+
     def test_stats(self):
-        values = range(-1000, 1001)
-        mean, stddev = preview.stats(values)
-        self.assertEqual(mean, 0)
-        self.assertAlmostEqual(stddev, 577.638872191)
+        points = [(n, n) for n in range(-1000, 1001)]
+        points_filename = join(self.temp_dir, 'points.bin')
+        preview.write_points(points, points_filename)
+        
+        xmean, xsdev, ymean, ysdev = preview.stats(points_filename)
+        self.assertAlmostEqual(xmean, 0)
+        self.assertAlmostEqual(xsdev, 577.783263863)
+        self.assertAlmostEqual(ymean, xmean)
+        self.assertAlmostEqual(ysdev, xsdev)
 
     def test_calculate_bounds(self):
         points = [(-10000, -10000), (10000, 10000)]
         points += [(-1, -1), (0, 0), (1, 1)] * 100
-        bbox = preview.calculate_bounds(points)
+        points_filename = join(self.temp_dir, 'points.bin')
+        preview.write_points(points, points_filename)
+        
+        bbox = preview.calculate_bounds(points_filename)
         self.assertEqual(bbox, (-1.04, -1.04, 1.04, 1.04), 'The two outliers are ignored')
     
     def test_render_zip(self):
