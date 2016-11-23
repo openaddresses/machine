@@ -28,7 +28,7 @@ class TestPreview (unittest.TestCase):
         
         xmean, xsdev, ymean, ysdev = preview.stats(points_filename)
         self.assertAlmostEqual(xmean, 0)
-        self.assertAlmostEqual(xsdev, 577.638872191)
+        self.assertAlmostEqual(xsdev, 577.783263863)
         self.assertAlmostEqual(ymean, xmean)
         self.assertAlmostEqual(ysdev, xsdev)
 

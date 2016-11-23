@@ -220,35 +220,30 @@ def read_points(points_filename):
                 return
 
 def stats(points_filename):
+    ''' Return means and standard deviations for points in file.
+        
+        Uses Welford's numerically stable algorithm from
+        https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Online_algorithm
     '''
-    '''
-    xmean, ymean, count = 0, 0, count_points(points_filename)
+    n, xmean, xM2, ymean, yM2 = 0, 0, 0, 0, 0
     
     for (x, y) in read_points(points_filename):
-        xmean += x / count
-        ymean += y / count
-    
-    print(xmean, ymean)
-    
-    xdev, ydev = 0, 0
-    
-    for (x, y) in read_points(points_filename):
-        xdev += pow(x - xmean, 2) / count
-        ydev += pow(y - ymean, 2) / count
-    
-    print(xdev, ydev)
-    
-    xsdev, ysdev = sqrt(xdev), sqrt(ydev)
-    
-    print(xsdev, ysdev)
-    
-    return xmean, xsdev, ymean, ysdev
+        n += 1
 
-    mean = sum(values) / len(values)
-    deviations = [pow(val - mean, 2) for val in values]
-    stddev = sqrt(sum(deviations) / len(values))
-
-    return mean, stddev
+        xdelta = x - xmean
+        xmean += xdelta / n
+        xM2 += xdelta * (x - xmean)
+        
+        ydelta = y - ymean
+        ymean += ydelta / n
+        yM2 += ydelta * (y - ymean)
+    
+    if n < 2:
+        raise ValueError()
+    
+    xstddev, ystddev = sqrt(xM2 / (n - 1)), sqrt(yM2 / (n - 1))
+    
+    return xmean, xstddev, ymean, ystddev
 
 def calculate_zoom(scale, resolution):
     ''' Calculate web map zoom based on scale.
