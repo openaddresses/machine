@@ -399,10 +399,22 @@ def read_completed_source_runs(db, source_path):
                          job_id, set_id, commit_sha, is_merged FROM runs
                   WHERE source_path = %s AND status IS NOT NULL
                     AND (is_merged or is_merged is null)
-                    AND copy_of IS NULL''',
+                  ORDER BY id DESC''',
                (source_path, ))
     
-    return [Run(*row[:5]+(RunState(row[5]),)+row[6:]) for row in db.fetchall()]
+    seen, runs = set(), list()
+    
+    for row in db.fetchall():
+        run = Run(*row[:5] + (RunState(row[5]),) + row[6:])
+        
+        if run.copy_of not in seen and run.id not in seen:
+            runs.append(run)
+        
+        seen.add(run.id)
+        if run.copy_of is not None:
+            seen.add(run.copy_of)
+    
+    return runs
 
 def read_completed_runs_to_date(db, starting_set_id):
     ''' Get only successful runs.
