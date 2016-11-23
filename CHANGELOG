@@ -1,3 +1,6 @@
+2016-11-23: 3.7.10
+- Fixed source history view to show merged, copied runs.
+
 2016-11-23: 3.7.9
 - Fixed handling of very large numbers of preview points.
 
