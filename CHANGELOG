@@ -1,3 +1,6 @@
+2016-11-23: 3.7.9
+- Fixed handling of very large numbers of preview points.
+
 2016-11-20: 3.7.8
 - Fixed null handling in GeoJSON source parsing.
 
