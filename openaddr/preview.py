@@ -191,16 +191,18 @@ def get_projection():
 def project_points(lonlats, project):
     '''
     '''
+    geom = ogr.Geometry(ogr.wkbPoint)
+
     for (lon, lat) in lonlats:
-        geom = ogr.CreateGeometryFromWkt('POINT({:.7f} {:.7f})'.format(lon, lat))
+        geom.SetPoint(0, lon, lat)
         try:
             geom.Transform(project)
         except:
             pass
         else:
             yield (geom.GetX(), geom.GetY())
-        finally:
-            del geom
+
+    del geom
 
 def write_points(points, points_filename):
     ''' Write a stream of (x, y) points into a file of packed values.
