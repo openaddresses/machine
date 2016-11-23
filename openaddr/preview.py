@@ -8,7 +8,7 @@ from tempfile import mkstemp
 from math import pow, sqrt, pi, log
 from argparse import ArgumentParser
 from urllib.parse import urlparse
-import json, itertools, os
+import json, itertools, os, struct
 
 import requests, uritemplate
 
@@ -28,8 +28,15 @@ def render(filename_or_url, png_filename, width, resolution, mapzen_key):
     '''
     '''
     src_filename = get_local_filename(filename_or_url)
-    points = project_points(iterate_file_points(src_filename))
-    xmin, ymin, xmax, ymax = calculate_bounds(points)
+    _, points_filename = mkstemp(prefix='points-', suffix='.bin')
+    print('points_filename:', points_filename)
+
+    project = get_projection()
+    file_points = iterate_file_points(src_filename)
+    xy_points = project_points(file_points, project)
+    write_points(xy_points, points_filename)
+
+    xmin, ymin, xmax, ymax = calculate_bounds(points_filename)
     
     surface, context, scale = make_context(xmin, ymin, xmax, ymax, width, resolution)
 
@@ -64,7 +71,7 @@ def render(filename_or_url, png_filename, width, resolution, mapzen_key):
     
     context.set_line_width(.25 * muppx)
 
-    for (x, y) in points:
+    for (x, y) in read_points(points_filename):
         context.arc(x, y, 15, 0, 2 * pi)
         context.set_source_rgb(*point_fill)
         context.fill()
@@ -175,22 +182,68 @@ def get_projection():
     sref_map = osr.SpatialReference(); sref_map.ImportFromProj4(EPSG900913)
     return osr.CoordinateTransformation(sref_geo, sref_map)
 
-def project_points(lonlats):
+def project_points(lonlats, project):
     '''
     '''
-    project = get_projection()
-    points = list()
-    
     for (lon, lat) in lonlats:
         geom = ogr.CreateGeometryFromWkt('POINT({:.7f} {:.7f})'.format(lon, lat))
         geom.Transform(project)
-        points.append((geom.GetX(), geom.GetY()))
-    
-    return points
+        xy = geom.GetX(), geom.GetY()
+        del geom
+        yield xy
 
-def stats(values):
+def write_points(points, dest_filename):
     '''
     '''
+    with open(dest_filename, mode='wb') as file:
+        for (x, y) in points:
+            file.write(struct.pack('ff', x, y))
+
+def count_points(points_filename):
+    '''
+    '''
+    chunk_size = struct.calcsize('ff')
+    return os.stat(points_filename).st_size // chunk_size
+
+def read_points(points_filename):
+    '''
+    '''
+    _L.debug('Reading from {}'.format(points_filename))
+    chunk_size = struct.calcsize('ff')
+    
+    with open(points_filename, mode='rb') as file:
+        while True:
+            chunk = file.read(chunk_size)
+            if chunk:
+                yield struct.unpack('ff', chunk)
+            else:
+                return
+
+def stats(points_filename):
+    '''
+    '''
+    xmean, ymean, count = 0, 0, count_points(points_filename)
+    
+    for (x, y) in read_points(points_filename):
+        xmean += x / count
+        ymean += y / count
+    
+    print(xmean, ymean)
+    
+    xdev, ydev = 0, 0
+    
+    for (x, y) in read_points(points_filename):
+        xdev += pow(x - xmean, 2) / count
+        ydev += pow(y - ymean, 2) / count
+    
+    print(xdev, ydev)
+    
+    xsdev, ysdev = sqrt(xdev), sqrt(ydev)
+    
+    print(xsdev, ysdev)
+    
+    return xmean, xsdev, ymean, ysdev
+
     mean = sum(values) / len(values)
     deviations = [pow(val - mean, 2) for val in values]
     stddev = sqrt(sum(deviations) / len(values))
@@ -205,22 +258,25 @@ def calculate_zoom(scale, resolution):
     
     return zoom
 
-def calculate_bounds(points):
+def calculate_bounds(points_filename):
     '''
     '''
-    xs, ys = zip(*points)
-
+    xmean, xsdev, ymean, ysdev = stats(points_filename)
+    
     # use standard deviation to avoid far-flung mistakes, and look further
     # horizontally to account for Github comment thread image appearance.
-    (xmean, xsdev), (ymean, ysdev) = stats(xs), stats(ys)
     xmin, xmax = xmean - 5 * xsdev, xmean + 5 * xsdev
     ymin, ymax = ymean - 3 * ysdev, ymean + 3 * ysdev
     
     # look at the actual points
-    okay_xs = [x for (x, y) in points if (xmin <= x <= xmax)]
-    okay_ys = [y for (x, y) in points if (ymin <= y <= ymax)]
-    left, bottom = min(okay_xs), min(okay_ys)
-    right, top = max(okay_xs), max(okay_ys)
+    left, right = xmax, xmin
+    bottom, top = ymax, ymin
+    
+    for (x, y) in read_points(points_filename):
+        if xmin <= x <= xmax:
+            left, right = min(left, x), max(right, x)
+        if ymin <= y <= ymax:
+            bottom, top = min(bottom, y), max(top, y)
     
     # pad by 2% on all sides
     width, height = right - left, top - bottom
