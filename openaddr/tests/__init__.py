@@ -253,6 +253,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('ftp02.portlandoregon.gov', '/CivicApps/address.zip'):
             local_path = join(data_dirname, 'us-or-portland.zip')
 
+        if (host, path) == ('ftp.skra.is', '/skra/STADFANG.dsv.zip'):
+            local_path = join(data_dirname, 'iceland.zip')
+
         if local_path:
             type, _ = guess_type(local_path)
             with open(local_path, 'rb') as file:
@@ -718,6 +721,34 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state['preview'])
         self.assertIsNone(state['website'])
         self.assertIsNone(state['license'])
+
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+
+        self.assertEqual(len(sample_data), 6)
+
+    def test_single_iceland(self):
+        ''' Test complete process_one.process.
+        '''
+        source = join(self.src_dir, 'iceland.json')
+
+        with mock.patch('openaddr.util.request_ftp_file', new=self.response_content_ftp):
+            state_path = process_one.process(source, self.testdir, False)
+
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+
+        with open(join(dirname(state_path), state['output'])) as file:
+            print('-' * 80)
+            print(file.read())
+            print('-' * 80)
+
+        self.assertIsNone(state['preview'])
+        self.assertIsNotNone(state['processed'])
+        self.assertIsNotNone(state['cache'])
+        self.assertIsNotNone(state['sample'])
+        self.assertIsNotNone(state['website'])
+        self.assertIsNotNone(state['license'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
