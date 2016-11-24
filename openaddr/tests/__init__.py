@@ -738,11 +738,6 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
-        with open(join(dirname(state_path), state['output'])) as file:
-            print('-' * 80)
-            print(file.read())
-            print('-' * 80)
-
         self.assertIsNone(state['preview'])
         self.assertIsNotNone(state['processed'])
         self.assertIsNotNone(state['cache'])
@@ -754,6 +749,22 @@ class TestOA (unittest.TestCase):
             sample_data = json.load(file)
 
         self.assertEqual(len(sample_data), 6)
+        row1 = dict(zip(sample_data[0], sample_data[1]))
+        row2 = dict(zip(sample_data[0], sample_data[2]))
+        row3 = dict(zip(sample_data[0], sample_data[3]))
+        row4 = dict(zip(sample_data[0], sample_data[4]))
+        self.assertEqual(row1['HEITI_NF'], u'2.Gata v/Rauðavatn')
+        self.assertEqual(row2['GAGNA_EIGN'], u'Þjóðskrá Íslands')
+        self.assertEqual(row3['LONG_WGS84'], '-21,76846217953')
+        self.assertEqual(row4['LAT_WGS84'], '64,110044369942')
+
+        with csvopen(join(dirname(state_path), state['processed']), encoding='utf8') as file:
+            rows = list(csvDictReader(file, encoding='utf8'))
+            
+        self.assertEqual(len(rows), 15)
+        self.assertEqual(rows[0]['STREET'], u'2.Gata v/Rauðavatn')
+        self.assertAlmostEqual(float(rows[2]['LON']), -21.76846217953)
+        self.assertAlmostEqual(float(rows[3]['LAT']), 64.110044369942)
 
     def test_single_fr_paris(self):
         ''' Test complete process_one.process on data that uses conform csvsplit (issue #124)

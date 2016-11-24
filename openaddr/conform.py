@@ -245,7 +245,7 @@ class ExcerptDataTask(object):
             else:
                 ds = None
         '''
-        encoding = conform.get('encoding', False)
+        encoding = conform.get('encoding')
         csvsplit = conform.get('csvsplit', ',')
         
         known_paths = ExcerptDataTask._get_known_paths(source_paths, workdir, conform, self.known_types)
@@ -261,8 +261,9 @@ class ExcerptDataTask(object):
         if data_ext in ('.geojson', '.json'):
             data_path = ExcerptDataTask._sample_geojson_file(data_path)
         
-        # GDAL has issues with non-".csv" input CSV data, so use Python instead.
-        if conform.get('type') == 'csv' and data_ext != '.csv':
+        # GDAL has issues with weird input CSV data, so use Python instead.
+        if conform.get('type') == 'csv':
+            _L.info(str((data_path, encoding, csvsplit)))
             return ExcerptDataTask._excerpt_csv_file(data_path, encoding, csvsplit)
 
         ogr_data_path = normalize_ogr_filename_case(data_path)
