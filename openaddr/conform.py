@@ -263,7 +263,6 @@ class ExcerptDataTask(object):
         
         # GDAL has issues with weird input CSV data, so use Python instead.
         if conform.get('type') == 'csv':
-            _L.info(str((data_path, encoding, csvsplit)))
             return ExcerptDataTask._excerpt_csv_file(data_path, encoding, csvsplit)
 
         ogr_data_path = normalize_ogr_filename_case(data_path)
