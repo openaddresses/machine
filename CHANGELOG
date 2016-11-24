@@ -1,3 +1,6 @@
+2016-11-23: 3.7.11
+- Fixed handling off odd delimited text data sources.
+
 2016-11-23: 3.7.10
 - Fixed source history view to show merged, copied runs.
 
