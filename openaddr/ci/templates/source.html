@@ -175,10 +175,16 @@
         {% endif %}
         </td>
         <td class="source">
-        <a href="https://github.com/openaddresses/openaddresses/blob/{{ run.commit_sha }}/{{ run.source_path }}"><tt>{{ run.source_id[:7] }}</tt></a>
+        {% if run.source_id %}
+            <a href="https://github.com/openaddresses/openaddresses/blob/{{ run.commit_sha }}/{{ run.source_path }}"><tt>{{ run.source_id[:7] }}</tt></a>
+        {% else %}
+            <a href="https://github.com/openaddresses/openaddresses/blob/{{ run.commit_sha }}/{{ run.source_path }}"><small>Github</small></a>
+        {% endif %}
         </td>
         <td class="version">
-        <a href="https://github.com/openaddresses/machine/releases/tag/{{ run.code_version }}"><tt>{{ run.code_version }}</tt></a>
+        {% if run.code_version %}
+            <a href="https://github.com/openaddresses/machine/releases/tag/{{ run.code_version }}"><tt>{{ run.code_version }}</tt></a>
+        {% endif %}
         </td>
     </tr>
 

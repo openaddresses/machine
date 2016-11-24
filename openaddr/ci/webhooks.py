@@ -272,6 +272,9 @@ def app_get_source_history(source):
             runs = read_completed_source_runs(db, source_path)
             runs.sort(key=attrgetter('datetime_tz'), reverse=True)
     
+    if run is None:
+        return Response('Source {} does not exist'.format(source), 404)
+    
     source_data = json.loads(base64.b64decode(run.source_data).decode('utf8'))
     return render_template('source.html', runs=runs, run=run, source_data=source_data)
 
