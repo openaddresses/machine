@@ -128,6 +128,9 @@ def get_log_handler(directory):
 def find_fail_reason(log_contents):
     '''
     '''
+    if 'INFO: Source says to skip' in log_contents:
+        return 'Source says to skip'
+    
     if 'WARNING: Unknown source conform type' in log_contents:
         return 'Unknown source conform type'
     

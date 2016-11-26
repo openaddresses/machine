@@ -528,13 +528,14 @@ class TestOA (unittest.TestCase):
             state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
+            state = RunState(dict(zip(*json.load(file))))
         
         # This test data says "skip": True
-        self.assertTrue(state['skipped'])
-        self.assertIsNone(state['cache'])
-        self.assertIsNone(state['processed'])
-        self.assertIsNone(state['preview'])
+        self.assertEqual(state.fail_reason, 'Source says to skip')
+        self.assertTrue(state.skipped)
+        self.assertIsNone(state.cache)
+        self.assertIsNone(state.processed)
+        self.assertIsNone(state.preview)
 
     def test_single_berk(self):
         ''' Test complete process_one.process on Berkeley sample data.
