@@ -692,16 +692,18 @@ class TestOA (unittest.TestCase):
             state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
+            state = RunState(dict(zip(*json.load(file))))
 
-        self.assertIsNotNone(state['sample'])
-        self.assertIsNone(state['preview'])
-        self.assertEqual(state['website'], 'http://nlftp.mlit.go.jp/isj/index.html')
-        self.assertEqual(state['license'], u'http://nlftp.mlit.go.jp/ksj/other/yakkan§.html')
-        self.assertEqual(state['attribution required'], 'true')
-        self.assertIn('Ministry of Land', state['attribution name'])
+        self.assertIsNotNone(state.sample)
+        self.assertEqual(state.fail_reason, 'Could not conform source data')
+        self.assertIsNone(state.processed)
+        self.assertIsNone(state.preview)
+        self.assertEqual(state.website, 'http://nlftp.mlit.go.jp/isj/index.html')
+        self.assertEqual(state.license, u'http://nlftp.mlit.go.jp/ksj/other/yakkan§.html')
+        self.assertEqual(state.attribution_required, 'true')
+        self.assertIn('Ministry of Land', state.attribution_name)
         
-        with open(join(dirname(state_path), state['sample'])) as file:
+        with open(join(dirname(state_path), state.sample)) as file:
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
@@ -1031,9 +1033,11 @@ class TestOA (unittest.TestCase):
             csv.field_size_limit(ofs)
 
         with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
+            state = RunState(dict(zip(*json.load(file))))
 
-        self.assertIsNone(state['sample'], 'Sample should be missing when csv.field_size_limit() is too short')
+        self.assertIsNone(state.sample, 'Sample should be missing when csv.field_size_limit() is too short')
+        self.assertEqual(state.fail_reason, 'Could not conform source data')
+        self.assertIsNone(state.processed)
 
         source = join(self.src_dir, 'us/tx/city_of_waco.json')
 
@@ -1044,12 +1048,14 @@ class TestOA (unittest.TestCase):
             csv.field_size_limit(ofs)
 
         with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
+            state = RunState(dict(zip(*json.load(file))))
 
-        self.assertIsNotNone(state['sample'], 'Sample should be present when csv.field_size_limit() is long enough')
-        self.assertIsNone(state['preview'])
+        self.assertIsNotNone(state.sample, 'Sample should be present when csv.field_size_limit() is long enough')
+        self.assertIsNone(state.fail_reason)
+        self.assertIsNotNone(state.processed)
+        self.assertIsNone(state.preview)
 
-        output_path = join(dirname(state_path), state['processed'])
+        output_path = join(dirname(state_path), state.processed)
         
         with csvopen(output_path, encoding='utf8') as input:
             rows = list(csvDictReader(input, encoding='utf8'))

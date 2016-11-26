@@ -145,6 +145,9 @@ def find_fail_reason(log_contents):
     if 'WARNING: Could not download source data' in log_contents:
         return 'Could not download source data'
     
+    if 'WARNING: Error doing conform; skipping' in log_contents:
+        return 'Could not conform source data'
+    
     return None
 
 def write_state(source, skipped, destination, log_handler, cache_result,
