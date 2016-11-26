@@ -102,6 +102,13 @@ class TestObjects (unittest.TestCase):
             attr = key.replace(' ', '_').replace('-', '_')
             self.assertEqual(getattr(state, attr), value)
 
+        # special case for fail reason
+        value = None
+        state = RunState({'fail reason': value})
+        self.assertEqual(state.get('fail reason'), value)
+        self.assertEqual(state.fail_reason, value)
+
+        # special case for code version
         value = str(uuid4())
         state = RunState({'version': value})
         self.assertEqual(state.get('version'), value)
