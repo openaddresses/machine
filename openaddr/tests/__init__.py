@@ -570,11 +570,12 @@ class TestOA (unittest.TestCase):
             state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
+            state = RunState(dict(zip(*json.load(file))))
         
-        self.assertIsNone(state['cache'])
-        self.assertIsNone(state['processed'])
-        self.assertIsNone(state['preview'])
+        self.assertEqual(state.fail_reason, 'Could not download source data')
+        self.assertIsNone(state.cache)
+        self.assertIsNone(state.processed)
+        self.assertIsNone(state.preview)
         
     def test_single_berk_apn(self):
         ''' Test complete process_one.process on Berkeley sample data.

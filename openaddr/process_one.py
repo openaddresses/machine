@@ -13,6 +13,7 @@ import tempfile, json, csv, sys
 
 from . import cache, conform, preview, CacheResult, ConformResult
 from .compat import csvopen, csvwriter, PY2
+from .cache import DownloadError
 
 class SourceSaysSkip(RuntimeError): pass
 
@@ -51,7 +52,11 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
                 raise SourceSaysSkip()
     
         # Cache source data.
-        cache_result = cache(temp_src, temp_dir, extras)
+        try:
+            cache_result = cache(temp_src, temp_dir, extras)
+        except DownloadError as e:
+            _L.warning('Could not download source data')
+            raise
     
         if not cache_result.cache:
             _L.warning('Nothing cached')
@@ -136,6 +141,9 @@ def find_fail_reason(log_contents):
     
     if 'WARNING: Unknown source conform type' in log_contents:
         return 'Unknown source conform type'
+    
+    if 'WARNING: Could not download source data' in log_contents:
+        return 'Could not download source data'
     
     return None
 
