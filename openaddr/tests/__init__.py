@@ -503,17 +503,18 @@ class TestOA (unittest.TestCase):
             state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
+            state = RunState(dict(zip(*json.load(file))))
         
-        self.assertFalse(state['skipped'])
-        self.assertIsNotNone(state['cache'])
+        self.assertFalse(state.skipped)
+        self.assertIsNotNone(state.cache)
         # This test data does not contain a working conform object
-        self.assertIsNone(state['processed'])
-        self.assertIsNone(state['preview'])
-        self.assertEqual(state['website'], 'http://data.openoakland.org/dataset/property-parcels/resource/df20b818-0d16-4da8-a9c1-a7b8b720ff49')
-        self.assertIsNone(state['license'])
+        self.assertEqual(state.fail_reason, 'Unknown source conform type')
+        self.assertIsNone(state.processed)
+        self.assertIsNone(state.preview)
+        self.assertEqual(state.website, 'http://data.openoakland.org/dataset/property-parcels/resource/df20b818-0d16-4da8-a9c1-a7b8b720ff49')
+        self.assertIsNone(state.license)
         
-        with open(join(dirname(state_path), state['sample'])) as file:
+        with open(join(dirname(state_path), state.sample)) as file:
             sample_data = json.load(file)
         
         self.assertTrue('FID_PARCEL' in sample_data[0])

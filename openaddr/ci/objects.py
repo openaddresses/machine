@@ -3,7 +3,8 @@ import logging; _L = logging.getLogger('openaddr.ci.objects')
 from .. import __version__
 import json, pickle
 
-FAIL_REASONS = {None}
+# Todo: make this a Python 3 enum
+FAIL_REASONS = {None, 'Unknown source conform type'}
 
 class Job:
     '''

@@ -493,7 +493,7 @@ def find_source_path(source_definition, source_paths):
             _L.warning("Could not find a .gml file")
             return None
     else:
-        _L.warning("Unknown source type %s", conform["type"])
+        _L.warning("Unknown source conform type %s", conform["type"])
         return None
 
 class ConvertToCsvTask(object):

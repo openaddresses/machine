@@ -125,6 +125,14 @@ def get_log_handler(directory):
     
     return handler
 
+def find_fail_reason(log_contents):
+    '''
+    '''
+    if 'WARNING: Unknown source conform type' in log_contents:
+        return 'Unknown source conform type'
+    
+    return None
+
 def write_state(source, skipped, destination, log_handler, cache_result,
                 conform_result, preview_path, temp_dir):
     '''
@@ -165,6 +173,9 @@ def write_state(source, skipped, destination, log_handler, cache_result,
     output_path = join(statedir, 'output.txt')
     copy(log_handler.stream.name, output_path)
 
+    with open(output_path) as file:
+        fail_reason = find_fail_reason(file.read())
+
     state = [
         ('source', basename(source)),
         ('skipped', bool(skipped)),
@@ -184,6 +195,7 @@ def write_state(source, skipped, destination, log_handler, cache_result,
         ('attribution required', boolstr(conform_result.attribution_flag)),
         ('attribution name', conform_result.attribution_name),
         ('share-alike', boolstr(conform_result.sharealike_flag)),
+        ('fail reason', fail_reason),
         ]
                
     with csvopen(join(statedir, 'index.txt'), 'w', encoding='utf8') as file:
