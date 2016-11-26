@@ -1380,7 +1380,6 @@ class TestState (unittest.TestCase):
         self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Could not download source data', {})}).source_problem, 'Could not download source data')
         self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Unknown source conform type', {})}).source_problem, 'Unknown source conform type')
         self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Source is missing a conform object', {})}).source_problem, 'Source is missing a conform object')
-        self.assertEqual(RunState({'source problem': find_source_problem('INFO: Source says to skip', {})}).source_problem, 'Source says to skip')
 
 class TestPackage (unittest.TestCase):
 

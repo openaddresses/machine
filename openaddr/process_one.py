@@ -133,9 +133,6 @@ def get_log_handler(directory):
 def find_source_problem(log_contents, source):
     '''
     '''
-    if 'INFO: Source says to skip' in log_contents:
-        return 'Source says to skip'
-    
     if 'WARNING: Source is missing a conform object' in log_contents:
         return 'Source is missing a conform object'
     
@@ -199,14 +196,17 @@ def write_state(source, skipped, destination, log_handler, cache_result,
     output_path = join(statedir, 'output.txt')
     copy(log_handler.stream.name, output_path)
 
-    with open(output_path) as file:
-        log_content = file.read()
-    if exists(source):
-        with open(source) as file:
-            source_data = json.load(file)
+    if skipped:
+        source_problem = 'Source says to skip'
     else:
-        source_data = {}
-    source_problem = find_source_problem(log_content, source_data)
+        with open(output_path) as file:
+            log_content = file.read()
+        if exists(source):
+            with open(source) as file:
+                source_data = json.load(file)
+        else:
+            source_data = {}
+        source_problem = find_source_problem(log_content, source_data)
 
     state = [
         ('source', basename(source)),
