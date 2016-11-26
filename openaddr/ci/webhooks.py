@@ -275,7 +275,11 @@ def app_get_source_history(source):
     if run is None:
         return Response('Source {} does not exist'.format(source), 404)
     
-    source_data = json.loads(base64.b64decode(run.source_data).decode('utf8'))
+    if run.source_data is None:
+        source_data = None
+    else:
+        source_data = json.loads(base64.b64decode(run.source_data).decode('utf8'))
+    
     return render_template('source.html', runs=runs, run=run, source_data=source_data)
 
 def nice_timedelta(delta):
