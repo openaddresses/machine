@@ -54,6 +54,7 @@ from ..util import package_output
 from ..ci.objects import Run, RunState
 from ..cache import CacheResult
 from ..conform import ConformResult
+from ..process_one import find_source_problem
 
 class TestOA (unittest.TestCase):
     
@@ -1366,6 +1367,20 @@ class TestState (unittest.TestCase):
         self.assertEqual(state2['source'], 'bar.json')
         self.assertEqual(state2['skipped'], True)
         self.assertEqual(state2['attribution required'], 'false')
+    
+    def test_find_source_problem(self):
+        '''
+        '''
+        self.assertIsNone(RunState({'source problem': find_source_problem('', {'coverage': {'US Census': None}})}).source_problem)
+        self.assertIsNone(RunState({'source problem': find_source_problem('', {'coverage': {'US Census': None}})}).source_problem)
+        self.assertIsNone(RunState({'source problem': find_source_problem('', {'coverage': {'ISO 3166': None}})}).source_problem)
+
+        self.assertEqual(RunState({'source problem': find_source_problem('', {})}).source_problem, 'Missing or incomplete coverage')
+        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Error doing conform; skipping', {})}).source_problem, 'Could not conform source data')
+        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Could not download source data', {})}).source_problem, 'Could not download source data')
+        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Unknown source conform type', {})}).source_problem, 'Unknown source conform type')
+        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Source is missing a conform object', {})}).source_problem, 'Source is missing a conform object')
+        self.assertEqual(RunState({'source problem': find_source_problem('INFO: Source says to skip', {})}).source_problem, 'Source says to skip')
 
 class TestPackage (unittest.TestCase):
 
