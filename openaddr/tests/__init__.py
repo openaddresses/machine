@@ -546,16 +546,17 @@ class TestOA (unittest.TestCase):
             state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
+            state = RunState(dict(zip(*json.load(file))))
         
-        self.assertIsNotNone(state['cache'])
+        self.assertIsNotNone(state.cache)
         # This test data does not contain a conform object at all
-        self.assertIsNone(state['processed'])
-        self.assertIsNone(state['preview'])
-        self.assertEqual(state['website'], 'http://www.ci.berkeley.ca.us/datacatalog/')
-        self.assertIsNone(state['license'])
+        self.assertEqual(state.fail_reason, 'Source is missing a conform object')
+        self.assertIsNone(state.processed)
+        self.assertIsNone(state.preview)
+        self.assertEqual(state.website, 'http://www.ci.berkeley.ca.us/datacatalog/')
+        self.assertIsNone(state.license)
         
-        with open(join(dirname(state_path), state['sample'])) as file:
+        with open(join(dirname(state_path), state.sample)) as file:
             sample_data = json.load(file)
         
         self.assertTrue('APN' in sample_data[0])

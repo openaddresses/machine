@@ -395,8 +395,14 @@ def guess_source_encoding(datasource, layer):
         or getpreferredencoding()
 
 def find_source_path(source_definition, source_paths):
-    "Figure out which of the possible paths is the actual source"
-    conform = source_definition["conform"]
+    ''' Figure out which of the possible paths is the actual source
+    '''
+    try:
+        conform = source_definition["conform"]
+    except KeyError:
+        _L.warning('Source is missing a conform object')
+        raise
+
     if conform["type"] in ("shapefile", "shapefile-polygon"):
         # TODO this code is too complicated; see XML variant below for simpler option
         # Shapefiles are named *.shp

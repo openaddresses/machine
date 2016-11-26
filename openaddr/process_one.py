@@ -131,6 +131,9 @@ def find_fail_reason(log_contents):
     if 'INFO: Source says to skip' in log_contents:
         return 'Source says to skip'
     
+    if 'WARNING: Source is missing a conform object' in log_contents:
+        return 'Source is missing a conform object'
+    
     if 'WARNING: Unknown source conform type' in log_contents:
         return 'Unknown source conform type'
     

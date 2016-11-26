@@ -4,7 +4,10 @@ from .. import __version__
 import json, pickle
 
 # Todo: make this a Python 3 enum
-FAIL_REASONS = {None, 'Source says to skip', 'Unknown source conform type'}
+FAIL_REASONS = {
+    None, 'Source says to skip', 'Source is missing a conform object',
+    'Unknown source conform type'
+    }
 
 class Job:
     '''
