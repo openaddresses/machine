@@ -130,7 +130,7 @@ def get_log_handler(directory):
     
     return handler
 
-def find_fail_reason(log_contents):
+def find_source_problem(log_contents):
     '''
     '''
     if 'INFO: Source says to skip' in log_contents:
@@ -191,7 +191,7 @@ def write_state(source, skipped, destination, log_handler, cache_result,
     copy(log_handler.stream.name, output_path)
 
     with open(output_path) as file:
-        fail_reason = find_fail_reason(file.read())
+        source_problem = find_source_problem(file.read())
 
     state = [
         ('source', basename(source)),
@@ -212,7 +212,7 @@ def write_state(source, skipped, destination, log_handler, cache_result,
         ('attribution required', boolstr(conform_result.attribution_flag)),
         ('attribution name', conform_result.attribution_name),
         ('share-alike', boolstr(conform_result.sharealike_flag)),
-        ('fail reason', fail_reason),
+        ('source problem', source_problem),
         ]
                
     with csvopen(join(statedir, 'index.txt'), 'w', encoding='utf8') as file:

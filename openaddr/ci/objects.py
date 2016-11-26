@@ -85,7 +85,7 @@ class RunState:
         'address count', 'version', 'fingerprint', 'cache time', 'processed',
         'output', 'process time', 'website', 'skipped', 'license',
         'share-alike', 'attribution required', 'attribution name',
-        'attribution flag', 'process hash', 'preview', 'fail reason')}
+        'attribution flag', 'process hash', 'preview', 'source problem')}
 
     def __init__(self, json_blob):
         blob_dict = dict(json_blob or {})
@@ -111,12 +111,12 @@ class RunState:
         self.attribution_required = blob_dict.get('attribution required')
         self.attribution_name = blob_dict.get('attribution name')
         self.attribution_flag = blob_dict.get('attribution flag')
-        self.fail_reason = blob_dict.get('fail reason')
+        self.source_problem = blob_dict.get('source problem')
 
         unexpected = ', '.join(set(self.keys) - set(RunState.key_attrs.keys()))
         assert len(unexpected) == 0, 'RunState should not have keys {}'.format(unexpected)
         
-        assert self.fail_reason in FAIL_REASONS, 'Uknown failure reason {}'.format(repr(self.fail_reason))
+        assert self.source_problem in FAIL_REASONS, 'Uknown failure reason {}'.format(repr(self.source_problem))
     
     def get(self, json_key):
         if json_key == 'code version':
