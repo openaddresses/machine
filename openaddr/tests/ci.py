@@ -1,8 +1,6 @@
 # coding=utf8
 from __future__ import print_function
 
-from .. import __version__
-
 from os import environ, remove, stat, close, utime
 from os.path import join, splitext
 from shutil import rmtree
@@ -395,7 +393,7 @@ class TestObjects (unittest.TestCase):
         ''' Check behavior of objects.read_run()
         '''
         self.db.fetchone.return_value = (123, '', '', b'', None, {}, True, None,
-                                         __version__, '', None, None, '', False)
+                                         'x.y.z', '', None, None, '', False)
         
         run = read_run(self.db, 123)
         self.assertEqual(run.id, 123)
@@ -412,7 +410,7 @@ class TestObjects (unittest.TestCase):
         ''' Check behavior of objects.read_run()
         '''
         self.db.fetchone.return_value = (123, '', '', None, None, {}, True, None,
-                                         __version__, '', None, None, '', False)
+                                         'x.y.z', '', None, None, '', False)
         
         run = read_run(self.db, 123)
         self.assertEqual(run.id, 123)
@@ -1962,9 +1960,9 @@ class TestHook (unittest.TestCase):
             got_state2 = json.loads(runs[1].state.to_json())
             got_state3 = json.loads(runs[2].state.to_json())
             
-            self.assertEqual(runs[0].code_version, __version__)
-            self.assertEqual(runs[1].code_version, __version__)
-            self.assertEqual(runs[2].code_version, __version__)
+            self.assertEqual(runs[0].code_version, 'i')
+            self.assertEqual(runs[1].code_version, 'i')
+            self.assertEqual(runs[2].code_version, 'i')
         
             for key in ('source', 'cache', 'sample', 'geometry type', 'address count',
                         'version', 'fingerprint', 'cache time', 'processed', 'output',
