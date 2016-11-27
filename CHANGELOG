@@ -1,3 +1,6 @@
+2016-11-26: 3.8.0
+- Added "source problem" field to run state for identifiable issues.
+
 2016-11-26: 3.7.13
 - Fixed old source display error in source history.
 
