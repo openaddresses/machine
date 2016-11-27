@@ -1,6 +1,5 @@
 import logging; _L = logging.getLogger('openaddr.ci.objects')
 
-from .. import __version__
 import json, pickle
 
 # Todo: make this a Python 3 enum
@@ -308,7 +307,7 @@ def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
                   WHERE id = %s''',
                (filename, content_b64, file_id,
                run_state.to_json(), run_status, worker_id,
-               __version__, job_id, commit_sha, is_merged,
+               run_state.version, job_id, commit_sha, is_merged,
                set_id, run_id))
 
 def copy_run(db, run_id, job_id, commit_sha, set_id):
