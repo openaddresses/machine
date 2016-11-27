@@ -18,6 +18,9 @@ parser.add_argument('-a', '--access-key', default=environ.get('AWS_ACCESS_KEY_ID
 parser.add_argument('-s', '--secret-key', default=environ.get('AWS_SECRET_ACCESS_KEY', None),
                     help='Optional AWS secret key name. Defaults to value of AWS_SECRET_ACCESS_KEY environment variable.')
 
+parser.add_argument('-b', '--bucket', default=environ.get('AWS_S3_BUCKET', None),
+                    help='S3 bucket name. Defaults to value of AWS_S3_BUCKET environment variable.')
+
 parser.add_argument('--sns-arn', default=environ.get('AWS_SNS_ARN', None),
                     help='Optional AWS Simple Notification Service (SNS) resource. Defaults to value of AWS_SNS_ARN environment variable.')
 
@@ -56,7 +59,7 @@ def main():
         autoscale = connect_autoscale(args.access_key, args.secret_key)
         instance = request_task_instance(ec2, autoscale, args.instance_type,
                                          args.role, lifespan, args.command,
-                                         args.slack_url)
+                                         args.bucket, args.slack_url)
 
         while True:
             instance.update()
