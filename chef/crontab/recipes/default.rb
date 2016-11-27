@@ -61,15 +61,15 @@ end
 file "/etc/cron.d/openaddr_crontab-collect-extracts" do
     content <<-CRONTAB
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-SLACK_URL=#{slack_url}
 LC_ALL=C.UTF-8
 # Archive collection, every other day at 11am UTC (4am PDT)
-0 11	*/2 * *	#{username}	( \
-  curl -X POST -d '{"text": "Starting new collection zips..."}' $SLACK_URL -s ; \
+0 11	*/2 * *	#{username}	\
   openaddr-run-ec2-command \
   -a "#{aws_access_id}" \
   -s "#{aws_secret_key}" \
+  -b "#{aws_s3_bucket}" \
   --sns-arn "#{aws_sns_arn}" \
+  --slack-url "#{slack_url}" \
   --verbose \
   -- \
     openaddr-collect-extracts \
@@ -79,8 +79,6 @@ LC_ALL=C.UTF-8
     -b "#{aws_s3_bucket}" \
     --sns-arn "#{aws_sns_arn}" \
     --verbose \
-  && curl -X POST -d '{"text": "Completed <https://#{cname}|new collection zips>."}' $SLACK_URL -s \
-  || curl -X POST -d '{"text": "Failed to complete new collection zips."}' $SLACK_URL -s ) \
   >> /var/log/openaddr_crontab/collect-extracts.log 2>&1
 CRONTAB
 end
@@ -88,16 +86,16 @@ end
 file "/etc/cron.d/openaddr_crontab-index-tiles" do
     content <<-CRONTAB
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-SLACK_URL=#{slack_url}
 LC_ALL=C.UTF-8
 # Index into tiles, every third day at 11am UTC (4am PDT)
-0 11	*/3 * *	#{username}	( \
-  curl -X POST -d '{"text": "Starting new spatial index..."}' $SLACK_URL -s ; \
+0 11	*/3 * *	#{username}	\
   openaddr-run-ec2-command \
   --hours 9 \
   -a "#{aws_access_id}" \
   -s "#{aws_secret_key}" \
+  -b "#{aws_s3_bucket}" \
   --sns-arn "#{aws_sns_arn}" \
+  --slack-url "#{slack_url}" \
   --verbose \
   -- \
     openaddr-index-tiles \
@@ -107,8 +105,6 @@ LC_ALL=C.UTF-8
     -b "#{aws_s3_bucket}" \
     --sns-arn "#{aws_sns_arn}" \
     --verbose \
-  && curl -X POST -d '{"text": "Completed <https://#{cname}|new spatial index>."}' $SLACK_URL -s \
-  || curl -X POST -d '{"text": "Failed to complete new spatial index."}' $SLACK_URL -s ) \
   >> /var/log/openaddr_crontab/index-tiles.log 2>&1
 CRONTAB
 end
@@ -116,18 +112,18 @@ end
 file "/etc/cron.d/openaddr_crontab-dotmap" do
     content <<-CRONTAB
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-SLACK_URL=#{slack_url}
 LC_ALL=C.UTF-8
 # Generate OpenAddresses dot map, every fifth day at 11am UTC (4am PDT)
-0 11	*/5 * *	#{username}	( \
-  curl -X POST -d '{"text": "Starting new dot map..."}' $SLACK_URL -s ; \
+0 11	*/5 * *	#{username}	\
   openaddr-run-ec2-command \
   --role dotmap \
   --hours 16 \
   --instance-type r3.large \
   -a "#{aws_access_id}" \
   -s "#{aws_secret_key}" \
+  -b "#{aws_s3_bucket}" \
   --sns-arn "#{aws_sns_arn}" \
+  --slack-url "#{slack_url}" \
   --verbose \
   -- \
     openaddr-update-dotmap \
@@ -136,8 +132,6 @@ LC_ALL=C.UTF-8
     -a "#{aws_access_id}" \
     -s "#{aws_secret_key}" \
     --sns-arn "#{aws_sns_arn}" \
-  && curl -X POST -d '{"text": "Completed <https://openaddresses.io|new dot map>."}' $SLACK_URL -s \
-  || curl -X POST -d '{"text": "Failed to complete new dot map."}' $SLACK_URL -s ) \
   >> /var/log/openaddr_crontab/dotmap.log 2>&1
 CRONTAB
 end
