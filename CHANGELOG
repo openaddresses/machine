@@ -1,3 +1,6 @@
+2016-11-26: 3.8.1
+- Fixed source of run state version number.
+
 2016-11-26: 3.8.0
 - Added "source problem" field to run state for identifiable issues.
 
