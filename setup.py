@@ -130,6 +130,9 @@ setup(
 
         # http://pythonhosted.org/itsdangerous/
         'itsdangerous == 0.24',
+        
+        # https://aws.amazon.com/cli/
+        'awscli == 1.11.21',
 
         ] + conditional_requirements
 )
