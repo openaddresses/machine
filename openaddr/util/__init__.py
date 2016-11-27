@@ -8,6 +8,7 @@ from tempfile import mkstemp
 from os import close
 import ftplib, httmock
 import io, zipfile
+import json
 
 from ..compat import quote
 
@@ -50,7 +51,18 @@ def set_autoscale_capacity(autoscale, cloudwatch, capacity):
     if measure['Maximum'] > .9:
         group.set_capacity(capacity)
 
-def request_task_instance(ec2, autoscale, instance_type, chef_role, command):
+def _command_messages(command):
+    '''
+    '''
+    strings = dict(
+        message_starting = 'Starting {}...'.format(command),
+        message_complete = 'Completed {}'.format(command),
+        message_failed = 'Failed {}'.format(command),
+        )
+    
+    return { k: quote(json.dumps(dict(text=v))) for (k, v) in strings.items() }
+
+def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, command, bucket, slack_url):
     '''
     '''
     group_name = 'CI Workers {0}.x'.format(*get_version().split('.'))
@@ -59,10 +71,22 @@ def request_task_instance(ec2, autoscale, instance_type, chef_role, command):
     (config, ) = autoscale.get_all_launch_configurations(names=[group.launch_config_name])
     (image, ) = ec2.get_all_images(image_ids=[config.image_id])
     keypair = ec2.get_all_key_pairs()[0]
+
+    yyyymmdd = datetime.now().strftime('%Y-%m-%d')
     
     with open(join(dirname(__file__), 'templates', 'task-instance-userdata.sh')) as file:
-        userdata_kwargs = dict(role=chef_role, command=' '.join(map(quote, command)))
-        userdata_kwargs.update(version=quote(get_version()))
+        userdata_kwargs = dict(
+            role = quote(chef_role),
+            command = ' '.join(map(quote, command)),
+            lifespan = quote(str(lifespan)),
+            version = quote(get_version()),
+            access_key = quote(ec2.aws_access_key_id),
+            secret_key = quote(ec2.aws_secret_access_key),
+            log_prefix = quote('logs/{}-{}'.format(yyyymmdd, command[0])),
+            bucket = quote(bucket or 'data.openaddresses.io'),
+            slack_url = quote(slack_url or ''),
+            **_command_messages(command[0])
+            )
     
         run_kwargs = dict(instance_type=instance_type, security_groups=['default'],
                           instance_initiated_shutdown_behavior='terminate',
@@ -71,7 +95,7 @@ def request_task_instance(ec2, autoscale, instance_type, chef_role, command):
 
     reservation = image.run(**run_kwargs)
     (instance, ) = reservation.instances
-    instance.add_tag('Name', 'Scheduled {} {}'.format(datetime.now().strftime('%Y-%m-%d'), command[0]))
+    instance.add_tag('Name', 'Scheduled {} {}'.format(yyyymmdd, command[0]))
     
     _L.info('Started EC2 instance {} from AMI {}'.format(instance, image))
     

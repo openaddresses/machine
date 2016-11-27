@@ -18,17 +18,23 @@ parser.add_argument('-a', '--access-key', default=environ.get('AWS_ACCESS_KEY_ID
 parser.add_argument('-s', '--secret-key', default=environ.get('AWS_SECRET_ACCESS_KEY', None),
                     help='Optional AWS secret key name. Defaults to value of AWS_SECRET_ACCESS_KEY environment variable.')
 
+parser.add_argument('-b', '--bucket', default=environ.get('AWS_S3_BUCKET', None),
+                    help='S3 bucket name. Defaults to value of AWS_S3_BUCKET environment variable.')
+
 parser.add_argument('--sns-arn', default=environ.get('AWS_SNS_ARN', None),
                     help='Optional AWS Simple Notification Service (SNS) resource. Defaults to value of AWS_SNS_ARN environment variable.')
 
 parser.add_argument('--role', default='openaddr',
                     help='Machine chef role to execute. Defaults to "openaddr".')
 
-parser.add_argument('--hours', default=12, type=int,
+parser.add_argument('--hours', default=12, type=float,
                     help='Number of hours to allow before giving up. Defaults to 12 hours.')
 
 parser.add_argument('--instance-type', default='m3.medium',
                     help='EC2 instance type. Defaults to "m3.medium".')
+
+parser.add_argument('--slack-url',
+                    help='Slack POST URL.')
 
 parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
                     action='store_const', dest='loglevel',
@@ -45,14 +51,15 @@ def main():
     ''' 
     '''
     args = parser.parse_args()
-    instance, deadline = False, time() + args.hours * 3600
+    instance, deadline, lifespan = False, time() + (args.hours + 1) * 3600, int(args.hours * 3600)
     setup_logger(args.access_key, args.secret_key, args.sns_arn, log_level=args.loglevel)
 
     try:
         ec2 = connect_ec2(args.access_key, args.secret_key)
         autoscale = connect_autoscale(args.access_key, args.secret_key)
         instance = request_task_instance(ec2, autoscale, args.instance_type,
-                                         args.role, args.command)
+                                         args.role, lifespan, args.command,
+                                         args.bucket, args.slack_url)
 
         while True:
             instance.update()
