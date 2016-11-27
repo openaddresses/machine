@@ -54,6 +54,7 @@ from ..util import package_output
 from ..ci.objects import Run, RunState
 from ..cache import CacheResult
 from ..conform import ConformResult
+from ..process_one import find_source_problem
 
 class TestOA (unittest.TestCase):
     
@@ -503,17 +504,18 @@ class TestOA (unittest.TestCase):
             state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
+            state = RunState(dict(zip(*json.load(file))))
         
-        self.assertFalse(state['skipped'])
-        self.assertIsNotNone(state['cache'])
+        self.assertFalse(state.skipped)
+        self.assertIsNotNone(state.cache)
         # This test data does not contain a working conform object
-        self.assertIsNone(state['processed'])
-        self.assertIsNone(state['preview'])
-        self.assertEqual(state['website'], 'http://data.openoakland.org/dataset/property-parcels/resource/df20b818-0d16-4da8-a9c1-a7b8b720ff49')
-        self.assertIsNone(state['license'])
+        self.assertEqual(state.source_problem, 'Unknown source conform type')
+        self.assertIsNone(state.processed)
+        self.assertIsNone(state.preview)
+        self.assertEqual(state.website, 'http://data.openoakland.org/dataset/property-parcels/resource/df20b818-0d16-4da8-a9c1-a7b8b720ff49')
+        self.assertIsNone(state.license)
         
-        with open(join(dirname(state_path), state['sample'])) as file:
+        with open(join(dirname(state_path), state.sample)) as file:
             sample_data = json.load(file)
         
         self.assertTrue('FID_PARCEL' in sample_data[0])
@@ -527,13 +529,14 @@ class TestOA (unittest.TestCase):
             state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
+            state = RunState(dict(zip(*json.load(file))))
         
         # This test data says "skip": True
-        self.assertTrue(state['skipped'])
-        self.assertIsNone(state['cache'])
-        self.assertIsNone(state['processed'])
-        self.assertIsNone(state['preview'])
+        self.assertEqual(state.source_problem, 'Source says to skip')
+        self.assertTrue(state.skipped)
+        self.assertIsNone(state.cache)
+        self.assertIsNone(state.processed)
+        self.assertIsNone(state.preview)
 
     def test_single_berk(self):
         ''' Test complete process_one.process on Berkeley sample data.
@@ -544,16 +547,17 @@ class TestOA (unittest.TestCase):
             state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
+            state = RunState(dict(zip(*json.load(file))))
         
-        self.assertIsNotNone(state['cache'])
+        self.assertIsNotNone(state.cache)
         # This test data does not contain a conform object at all
-        self.assertIsNone(state['processed'])
-        self.assertIsNone(state['preview'])
-        self.assertEqual(state['website'], 'http://www.ci.berkeley.ca.us/datacatalog/')
-        self.assertIsNone(state['license'])
+        self.assertEqual(state.source_problem, 'Source is missing a conform object')
+        self.assertIsNone(state.processed)
+        self.assertIsNone(state.preview)
+        self.assertEqual(state.website, 'http://www.ci.berkeley.ca.us/datacatalog/')
+        self.assertIsNone(state.license)
         
-        with open(join(dirname(state_path), state['sample'])) as file:
+        with open(join(dirname(state_path), state.sample)) as file:
             sample_data = json.load(file)
         
         self.assertTrue('APN' in sample_data[0])
@@ -567,11 +571,12 @@ class TestOA (unittest.TestCase):
             state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
+            state = RunState(dict(zip(*json.load(file))))
         
-        self.assertIsNone(state['cache'])
-        self.assertIsNone(state['processed'])
-        self.assertIsNone(state['preview'])
+        self.assertEqual(state.source_problem, 'Could not download source data')
+        self.assertIsNone(state.cache)
+        self.assertIsNone(state.processed)
+        self.assertIsNone(state.preview)
         
     def test_single_berk_apn(self):
         ''' Test complete process_one.process on Berkeley sample data.
@@ -688,16 +693,18 @@ class TestOA (unittest.TestCase):
             state_path = process_one.process(source, self.testdir, False)
         
         with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
+            state = RunState(dict(zip(*json.load(file))))
 
-        self.assertIsNotNone(state['sample'])
-        self.assertIsNone(state['preview'])
-        self.assertEqual(state['website'], 'http://nlftp.mlit.go.jp/isj/index.html')
-        self.assertEqual(state['license'], u'http://nlftp.mlit.go.jp/ksj/other/yakkan§.html')
-        self.assertEqual(state['attribution required'], 'true')
-        self.assertIn('Ministry of Land', state['attribution name'])
+        self.assertIsNotNone(state.sample)
+        self.assertEqual(state.source_problem, 'Could not conform source data')
+        self.assertIsNone(state.processed)
+        self.assertIsNone(state.preview)
+        self.assertEqual(state.website, 'http://nlftp.mlit.go.jp/isj/index.html')
+        self.assertEqual(state.license, u'http://nlftp.mlit.go.jp/ksj/other/yakkan§.html')
+        self.assertEqual(state.attribution_required, 'true')
+        self.assertIn('Ministry of Land', state.attribution_name)
         
-        with open(join(dirname(state_path), state['sample'])) as file:
+        with open(join(dirname(state_path), state.sample)) as file:
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
@@ -1027,9 +1034,11 @@ class TestOA (unittest.TestCase):
             csv.field_size_limit(ofs)
 
         with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
+            state = RunState(dict(zip(*json.load(file))))
 
-        self.assertIsNone(state['sample'], 'Sample should be missing when csv.field_size_limit() is too short')
+        self.assertIsNone(state.sample, 'Sample should be missing when csv.field_size_limit() is too short')
+        self.assertEqual(state.source_problem, 'Could not conform source data')
+        self.assertIsNone(state.processed)
 
         source = join(self.src_dir, 'us/tx/city_of_waco.json')
 
@@ -1040,12 +1049,14 @@ class TestOA (unittest.TestCase):
             csv.field_size_limit(ofs)
 
         with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
+            state = RunState(dict(zip(*json.load(file))))
 
-        self.assertIsNotNone(state['sample'], 'Sample should be present when csv.field_size_limit() is long enough')
-        self.assertIsNone(state['preview'])
+        self.assertIsNotNone(state.sample, 'Sample should be present when csv.field_size_limit() is long enough')
+        self.assertIsNone(state.source_problem)
+        self.assertIsNotNone(state.processed)
+        self.assertIsNone(state.preview)
 
-        output_path = join(dirname(state_path), state['processed'])
+        output_path = join(dirname(state_path), state.processed)
         
         with csvopen(output_path, encoding='utf8') as input:
             rows = list(csvDictReader(input, encoding='utf8'))
@@ -1356,6 +1367,19 @@ class TestState (unittest.TestCase):
         self.assertEqual(state2['source'], 'bar.json')
         self.assertEqual(state2['skipped'], True)
         self.assertEqual(state2['attribution required'], 'false')
+    
+    def test_find_source_problem(self):
+        '''
+        '''
+        self.assertIsNone(RunState({'source problem': find_source_problem('', {'coverage': {'US Census': None}})}).source_problem)
+        self.assertIsNone(RunState({'source problem': find_source_problem('', {'coverage': {'US Census': None}})}).source_problem)
+        self.assertIsNone(RunState({'source problem': find_source_problem('', {'coverage': {'ISO 3166': None}})}).source_problem)
+
+        self.assertEqual(RunState({'source problem': find_source_problem('', {})}).source_problem, 'Missing or incomplete coverage')
+        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Error doing conform; skipping', {})}).source_problem, 'Could not conform source data')
+        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Could not download source data', {})}).source_problem, 'Could not download source data')
+        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Unknown source conform type', {})}).source_problem, 'Unknown source conform type')
+        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Source is missing a conform object', {})}).source_problem, 'Source is missing a conform object')
 
 class TestPackage (unittest.TestCase):
 

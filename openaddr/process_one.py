@@ -13,6 +13,7 @@ import tempfile, json, csv, sys
 
 from . import cache, conform, preview, CacheResult, ConformResult
 from .compat import csvopen, csvwriter, PY2
+from .cache import DownloadError
 
 class SourceSaysSkip(RuntimeError): pass
 
@@ -51,7 +52,11 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
                 raise SourceSaysSkip()
     
         # Cache source data.
-        cache_result = cache(temp_src, temp_dir, extras)
+        try:
+            cache_result = cache(temp_src, temp_dir, extras)
+        except DownloadError as e:
+            _L.warning('Could not download source data')
+            raise
     
         if not cache_result.cache:
             _L.warning('Nothing cached')
@@ -125,6 +130,32 @@ def get_log_handler(directory):
     
     return handler
 
+def find_source_problem(log_contents, source):
+    '''
+    '''
+    if 'WARNING: Source is missing a conform object' in log_contents:
+        return 'Source is missing a conform object'
+    
+    if 'WARNING: Unknown source conform type' in log_contents:
+        return 'Unknown source conform type'
+    
+    if 'WARNING: Could not download source data' in log_contents:
+        return 'Could not download source data'
+    
+    if 'WARNING: Error doing conform; skipping' in log_contents:
+        return 'Could not conform source data'
+    
+    if 'coverage' in source:
+        coverage = source.get('coverage')
+        if 'US Census' in coverage or 'ISO 3166' in coverage or 'geometry' in coverage:
+            pass
+        else:
+            return 'Missing or incomplete coverage'
+    else:
+        return 'Missing or incomplete coverage'
+    
+    return None
+
 def write_state(source, skipped, destination, log_handler, cache_result,
                 conform_result, preview_path, temp_dir):
     '''
@@ -165,6 +196,18 @@ def write_state(source, skipped, destination, log_handler, cache_result,
     output_path = join(statedir, 'output.txt')
     copy(log_handler.stream.name, output_path)
 
+    if skipped:
+        source_problem = 'Source says to skip'
+    else:
+        with open(output_path) as file:
+            log_content = file.read()
+        if exists(source):
+            with open(source) as file:
+                source_data = json.load(file)
+        else:
+            source_data = {}
+        source_problem = find_source_problem(log_content, source_data)
+
     state = [
         ('source', basename(source)),
         ('skipped', bool(skipped)),
@@ -184,6 +227,7 @@ def write_state(source, skipped, destination, log_handler, cache_result,
         ('attribution required', boolstr(conform_result.attribution_flag)),
         ('attribution name', conform_result.attribution_name),
         ('share-alike', boolstr(conform_result.sharealike_flag)),
+        ('source problem', source_problem),
         ]
                
     with csvopen(join(statedir, 'index.txt'), 'w', encoding='utf8') as file:

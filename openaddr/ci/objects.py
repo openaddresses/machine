@@ -3,6 +3,13 @@ import logging; _L = logging.getLogger('openaddr.ci.objects')
 from .. import __version__
 import json, pickle
 
+# Todo: make this a Python 3 enum
+FAIL_REASONS = {
+    None, 'Source says to skip', 'Source is missing a conform object',
+    'Unknown source conform type', 'Could not download source data',
+    'Could not conform source data', 'Missing or incomplete coverage'
+    }
+
 class Job:
     '''
     '''
@@ -78,7 +85,7 @@ class RunState:
         'address count', 'version', 'fingerprint', 'cache time', 'processed',
         'output', 'process time', 'website', 'skipped', 'license',
         'share-alike', 'attribution required', 'attribution name',
-        'attribution flag', 'process hash', 'preview')}
+        'attribution flag', 'process hash', 'preview', 'source problem')}
 
     def __init__(self, json_blob):
         blob_dict = dict(json_blob or {})
@@ -104,9 +111,12 @@ class RunState:
         self.attribution_required = blob_dict.get('attribution required')
         self.attribution_name = blob_dict.get('attribution name')
         self.attribution_flag = blob_dict.get('attribution flag')
+        self.source_problem = blob_dict.get('source problem')
 
         unexpected = ', '.join(set(self.keys) - set(RunState.key_attrs.keys()))
         assert len(unexpected) == 0, 'RunState should not have keys {}'.format(unexpected)
+        
+        assert self.source_problem in FAIL_REASONS, 'Uknown failure reason {}'.format(repr(self.source_problem))
     
     def get(self, json_key):
         if json_key == 'code version':

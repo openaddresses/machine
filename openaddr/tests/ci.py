@@ -102,6 +102,13 @@ class TestObjects (unittest.TestCase):
             attr = key.replace(' ', '_').replace('-', '_')
             self.assertEqual(getattr(state, attr), value)
 
+        # special case for source problem
+        value = None
+        state = RunState({'source problem': value})
+        self.assertEqual(state.get('source problem'), value)
+        self.assertEqual(state.source_problem, value)
+
+        # special case for code version
         value = str(uuid4())
         state = RunState({'version': value})
         self.assertEqual(state.get('version'), value)
