@@ -357,7 +357,7 @@ class TestObjects (unittest.TestCase):
     def test_set_run(self):
         ''' Check behavior of objects.add_set()
         '''
-        set_run(self.db, 456, '', '', b'', RunState({}), True, 'xyz', '', '', False, 123)
+        set_run(self.db, 456, '', '', b'', RunState({'version': 'x.y.z'}), True, 'xyz', '', '', False, 123)
 
         self.db.execute.assert_called_once_with(
                '''UPDATE runs SET
@@ -367,8 +367,8 @@ class TestObjects (unittest.TestCase):
                   is_merged = %s, set_id = %s, datetime_tz = NOW()
                   WHERE id = %s''',
                   ('', b'', '',
-                   '{}', True, '',
-                   __version__, 'xyz', '', False,
+                   '{"version": "x.y.z"}', True, '',
+                   'x.y.z', 'xyz', '', False,
                    123, 456))
 
     def test_copy_run(self):
