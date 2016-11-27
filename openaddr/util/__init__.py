@@ -8,6 +8,7 @@ from tempfile import mkstemp
 from os import close
 import ftplib, httmock
 import io, zipfile
+import json
 
 from ..compat import quote
 
@@ -50,7 +51,18 @@ def set_autoscale_capacity(autoscale, cloudwatch, capacity):
     if measure['Maximum'] > .9:
         group.set_capacity(capacity)
 
-def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, command):
+def _command_messages(command):
+    '''
+    '''
+    strings = dict(
+        message_starting = 'Starting {}...'.format(command),
+        message_complete = 'Completed {}'.format(command),
+        message_failed = 'Failed {}'.format(command),
+        )
+    
+    return { k: quote(json.dumps(dict(text=v))) for (k, v) in strings.items() }
+
+def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, command, slack_url):
     '''
     '''
     group_name = 'CI Workers {0}.x'.format(*get_version().split('.'))
@@ -71,7 +83,9 @@ def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, co
             access_key = quote(ec2.aws_access_key_id),
             secret_key = quote(ec2.aws_secret_access_key),
             log_prefix = quote('logs/{}-{}'.format(yyyymmdd, command[0])),
-            bucket = quote('data-test.openaddresses.io')
+            bucket = quote('data-test.openaddresses.io'),
+            slack_url = quote(slack_url),
+            **_command_messages(command[0])
             )
     
         run_kwargs = dict(instance_type=instance_type, security_groups=['default'],

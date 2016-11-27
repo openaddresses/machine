@@ -30,6 +30,9 @@ parser.add_argument('--hours', default=12, type=float,
 parser.add_argument('--instance-type', default='m3.medium',
                     help='EC2 instance type. Defaults to "m3.medium".')
 
+parser.add_argument('--slack-url',
+                    help='Slack POST URL.')
+
 parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
                     action='store_const', dest='loglevel',
                     const=logging.DEBUG, default=logging.INFO)
@@ -52,7 +55,8 @@ def main():
         ec2 = connect_ec2(args.access_key, args.secret_key)
         autoscale = connect_autoscale(args.access_key, args.secret_key)
         instance = request_task_instance(ec2, autoscale, args.instance_type,
-                                         args.role, lifespan, args.command)
+                                         args.role, lifespan, args.command,
+                                         args.slack_url)
 
         while True:
             instance.update()

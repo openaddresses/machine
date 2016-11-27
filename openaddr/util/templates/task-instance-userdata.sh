@@ -1,8 +1,24 @@
 #!/bin/bash -ex
 
+# Tell Slack all about it
+function notify_slack
+{{
+    if [ {slack_url} ]; then
+        curl -s -o /dev/null -X POST -d $1 {slack_url} || true
+    fi
+}}
+
+notify_slack {message_starting}
+
 # Bail out with a log message
 function shutdown_with_log
 {{
+    if [ $1 = 0 ]; then
+        notify_slack {message_complete}
+    else
+        notify_slack {message_failed}
+    fi
+    
     mkdir /tmp/task
     gzip -c /var/log/cloud-init-output.log > /tmp/task/cloud-init-output.log.gz
     echo {command} > /tmp/task/command
@@ -15,7 +31,7 @@ function shutdown_with_log
 }}
 
 # Bail out when the timer reaches zero
-( sleep {lifespan}; shutdown_with_log 9 ) &
+( sleep {lifespan}; shutdown_with_log 2 ) &
 
 # (Re)install machine.
 cd /home/ubuntu/machine
@@ -26,5 +42,4 @@ apt-get update -y
 chef/run.sh {role}
 
 # Run the actual command
-LC_ALL="C.UTF-8" {command} 2>&1
-shutdown_with_log $?
+LC_ALL="C.UTF-8" {command} && shutdown_with_log 0 || shutdown_with_log 1 2>&1
