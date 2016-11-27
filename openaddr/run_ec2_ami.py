@@ -24,7 +24,7 @@ parser.add_argument('--sns-arn', default=environ.get('AWS_SNS_ARN', None),
 parser.add_argument('--role', default='openaddr',
                     help='Machine chef role to execute. Defaults to "openaddr".')
 
-parser.add_argument('--hours', default=12, type=int,
+parser.add_argument('--hours', default=12, type=float,
                     help='Number of hours to allow before giving up. Defaults to 12 hours.')
 
 parser.add_argument('--instance-type', default='m3.medium',
@@ -45,14 +45,14 @@ def main():
     ''' 
     '''
     args = parser.parse_args()
-    instance, deadline = False, time() + args.hours * 3600
+    instance, deadline, lifespan = False, time() + (args.hours + 1) * 3600, int(args.hours * 3600)
     setup_logger(args.access_key, args.secret_key, args.sns_arn, log_level=args.loglevel)
 
     try:
         ec2 = connect_ec2(args.access_key, args.secret_key)
         autoscale = connect_autoscale(args.access_key, args.secret_key)
         instance = request_task_instance(ec2, autoscale, args.instance_type,
-                                         args.role, args.command)
+                                         args.role, lifespan, args.command)
 
         while True:
             instance.update()

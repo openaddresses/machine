@@ -88,13 +88,14 @@ class TestUtilities (unittest.TestCase):
         
         autoscale.get_all_groups.return_value = [group]
         autoscale.get_all_launch_configurations.return_value = [config]
+        ec2.aws_access_key_id, ec2.aws_secret_access_key = 'this', 'that'
         ec2.get_all_images.return_value = [image]
         ec2.get_all_key_pairs.return_value = [keypair]
         
         image.run.return_value = reservation
         reservation.instances = [instance]
         
-        util.request_task_instance(ec2, autoscale, 'm3.medium', chef_role, command)
+        util.request_task_instance(ec2, autoscale, 'm3.medium', chef_role, 60, command)
         
         autoscale.get_all_groups.assert_called_once_with([expected_group_name])
         autoscale.get_all_launch_configurations.assert_called_once_with(names=[group.launch_config_name])
@@ -107,6 +108,8 @@ class TestUtilities (unittest.TestCase):
         self.assertEqual(image_run_kwargs['key_name'], keypair.name)
         
         self.assertIn('chef/run.sh {}'.format(quote(chef_role)), image_run_kwargs['user_data'])
+        self.assertIn('AWS_ACCESS_KEY_ID={}'.format(quote(ec2.aws_access_key_id)), image_run_kwargs['user_data'])
+        self.assertIn('AWS_SECRET_ACCESS_KEY={}'.format(quote(ec2.aws_secret_access_key)), image_run_kwargs['user_data'])
         for (arg1, arg2) in zip(command, command[1:]):
             self.assertIn(quote(arg1)+' '+quote(arg2), image_run_kwargs['user_data'])
 
