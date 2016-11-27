@@ -83,8 +83,8 @@ def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, co
             access_key = quote(ec2.aws_access_key_id),
             secret_key = quote(ec2.aws_secret_access_key),
             log_prefix = quote('logs/{}-{}'.format(yyyymmdd, command[0])),
-            bucket = quote(bucket),
-            slack_url = quote(slack_url),
+            bucket = quote(bucket or 'data.openaddresses.io'),
+            slack_url = quote(slack_url or ''),
             **_command_messages(command[0])
             )
     
