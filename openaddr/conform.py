@@ -82,6 +82,9 @@ geometry_types = {
     ogr.wkbUnknown: 'Unknown'
     }
 
+basic_number_pattern = re.compile("^\s*([0-9]+)\s+", False)
+basic_street_pattern = re.compile("^(?:\s*[0-9]+\s+)?(.*)", False)
+
 def mkdirsp(path):
     try:
         os.makedirs(path)
@@ -952,8 +955,7 @@ def row_fxn_basic_number(sd, row, key):
     "Extract '123' from '123 Maple St'"
     fxn = sd["conform"][key]
 
-    pattern = re.compile("^\s*([0-9]+)\s+", False)
-    match = pattern.search(row[fxn["field"]])
+    match = basic_number_pattern.search(row[fxn["field"]])
     row[attrib_types[key]] = ''.join(match.groups()) if match else '';
 
     return row
@@ -962,8 +964,7 @@ def row_fxn_basic_street(sd, row, key):
     "Extract 'Maple St' from '123 Maple St'"
     fxn = sd["conform"][key]
 
-    pattern = re.compile("^(?:\s*[0-9]+\s+)?(.*)", False)
-    match = pattern.search(row[fxn["field"]])
+    match = basic_street_pattern.search(row[fxn["field"]])
     row[attrib_types[key]] = ''.join(match.groups()) if match else '';
 
     return row
