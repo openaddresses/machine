@@ -1,3 +1,6 @@
+2016-11-29: 3.10.0
+- Added prefix_street and prefix_number conform functions for U.S.-style addresses.
+
 2016-11-27: 3.9.0
 - Added S3 bucket and Slack URL options to openaddr-run-ec2-command.
 
