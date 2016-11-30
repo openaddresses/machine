@@ -1,3 +1,6 @@
+2016-11-29: 3.10.2
+- Fixed out-of-date and uninstallable awscli/botocore dependencies.
+
 2016-11-29: 3.10.1
 - Fixed bash string/array confusion in openaddr-run-ec2-command user data.
 

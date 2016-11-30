@@ -132,7 +132,7 @@ setup(
         'itsdangerous == 0.24',
         
         # https://aws.amazon.com/cli/
-        'awscli == 1.11.21',
+        'awscli == 1.11.22',
 
         ] + conditional_requirements
 )
