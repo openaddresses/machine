@@ -4,7 +4,7 @@
 function notify_slack
 {{
     if [ {slack_url} ]; then
-        curl -s -o /dev/null -X POST -d $1 {slack_url} || true
+        echo $1 | curl -s -o /dev/null -X POST -d @- {slack_url} || true
     fi
 }}
 
