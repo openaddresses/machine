@@ -84,7 +84,8 @@ class RunState:
         'address count', 'version', 'fingerprint', 'cache time', 'processed',
         'output', 'process time', 'website', 'skipped', 'license',
         'share-alike', 'attribution required', 'attribution name',
-        'attribution flag', 'process hash', 'preview', 'source problem')}
+        'attribution flag', 'process hash', 'preview', 'source problem',
+        'code version')}
 
     def __init__(self, json_blob):
         blob_dict = dict(json_blob or {})
@@ -111,6 +112,7 @@ class RunState:
         self.attribution_name = blob_dict.get('attribution name')
         self.attribution_flag = blob_dict.get('attribution flag')
         self.source_problem = blob_dict.get('source problem')
+        self.code_version = blob_dict.get('code version')
 
         unexpected = ', '.join(set(self.keys) - set(RunState.key_attrs.keys()))
         assert len(unexpected) == 0, 'RunState should not have keys {}'.format(unexpected)
@@ -118,10 +120,6 @@ class RunState:
         assert self.source_problem in FAIL_REASONS, 'Uknown failure reason {}'.format(repr(self.source_problem))
     
     def get(self, json_key):
-        if json_key == 'code version':
-            # account for ci.webapi.CSV_HEADER mismatch
-            json_key = 'version'
-    
         return getattr(self, RunState.key_attrs[json_key])
         
     def to_json(self):
@@ -307,7 +305,7 @@ def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
                   WHERE id = %s''',
                (filename, content_b64, file_id,
                run_state.to_json(), run_status, worker_id,
-               run_state.version, job_id, commit_sha, is_merged,
+               run_state.code_version, job_id, commit_sha, is_merged,
                set_id, run_id))
 
 def copy_run(db, run_id, job_id, commit_sha, set_id):

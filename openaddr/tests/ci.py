@@ -108,9 +108,9 @@ class TestObjects (unittest.TestCase):
 
         # special case for code version
         value = str(uuid4())
-        state = RunState({'version': value})
-        self.assertEqual(state.get('version'), value)
-        self.assertEqual(state.version, value)
+        state = RunState({'code version': value})
+        self.assertEqual(state.get('code version'), value)
+        self.assertEqual(state.code_version, value)
 
     def test_add_job(self):
         ''' Check behavior of objects.add_job()
@@ -355,7 +355,7 @@ class TestObjects (unittest.TestCase):
     def test_set_run(self):
         ''' Check behavior of objects.add_set()
         '''
-        set_run(self.db, 456, '', '', b'', RunState({'version': 'x.y.z'}), True, 'xyz', '', '', False, 123)
+        set_run(self.db, 456, '', '', b'', RunState({'code version': 'x.y.z'}), True, 'xyz', '', '', False, 123)
 
         self.db.execute.assert_called_once_with(
                '''UPDATE runs SET
@@ -365,7 +365,7 @@ class TestObjects (unittest.TestCase):
                   is_merged = %s, set_id = %s, datetime_tz = NOW()
                   WHERE id = %s''',
                   ('', b'', '',
-                   '{"version": "x.y.z"}', True, '',
+                   '{"code version": "x.y.z"}', True, '',
                    'x.y.z', 'xyz', '', False,
                    123, 456))
 
@@ -1900,7 +1900,7 @@ class TestHook (unittest.TestCase):
             'website': 'e', 'license': 'f', 'geometry type': 'g',
             'address count': 'h', 'version': 'i', 'fingerprint': 'j',
             'cache time': 'k', 'processed': 'l', 'process time': 'm',
-            'output': 'n'
+            'output': 'n', 'code version': 'o'
             }
         run_state1 = RunState(_run_state1)
         
@@ -1960,9 +1960,9 @@ class TestHook (unittest.TestCase):
             got_state2 = json.loads(runs[1].state.to_json())
             got_state3 = json.loads(runs[2].state.to_json())
             
-            self.assertEqual(runs[0].code_version, 'i')
-            self.assertEqual(runs[1].code_version, 'i')
-            self.assertEqual(runs[2].code_version, 'i')
+            self.assertEqual(runs[0].code_version, 'o')
+            self.assertEqual(runs[1].code_version, 'o')
+            self.assertEqual(runs[2].code_version, 'o')
         
             for key in ('source', 'cache', 'sample', 'geometry type', 'address count',
                         'version', 'fingerprint', 'cache time', 'processed', 'output',
