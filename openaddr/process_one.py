@@ -11,7 +11,7 @@ from os import mkdir, rmdir, close, chmod
 from _thread import get_ident
 import tempfile, json, csv, sys
 
-from . import cache, conform, preview, CacheResult, ConformResult
+from . import cache, conform, preview, CacheResult, ConformResult, __version__
 from .compat import csvopen, csvwriter, PY2
 from .cache import DownloadError
 
@@ -228,6 +228,7 @@ def write_state(source, skipped, destination, log_handler, cache_result,
         ('attribution name', conform_result.attribution_name),
         ('share-alike', boolstr(conform_result.sharealike_flag)),
         ('source problem', source_problem),
+        ('code version', __version__),
         ]
                
     with csvopen(join(statedir, 'index.txt'), 'w', encoding='utf8') as file:
