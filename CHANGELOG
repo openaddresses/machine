@@ -1,3 +1,6 @@
+2016-12-01: 3.10.4
+- Fixed further awscli/botocore dependency wackiness.
+
 2016-11-30: 3.10.3
 - Fixed missing code version from mistake introduced in 3.8.1.
 
