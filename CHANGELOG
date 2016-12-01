@@ -1,3 +1,6 @@
+2016-11-30: 3.10.3
+- Fixed missing code version from mistake introduced in 3.8.1.
+
 2016-11-29: 3.10.2
 - Fixed out-of-date and uninstallable awscli/botocore dependencies.
 
