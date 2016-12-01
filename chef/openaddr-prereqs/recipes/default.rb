@@ -9,6 +9,7 @@ package 'python3-dev'
 package 'libpq-dev'
 package 'memcached'
 package 'libffi-dev'
+package 'awscli'
 
 package 'gdal-bin' do
   version '1.11.2+dfsg-1~exp2~trusty'
