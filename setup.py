@@ -133,6 +133,7 @@ setup(
         
         # https://aws.amazon.com/cli/
         'awscli == 1.11.22',
+        'botocore == 1.4.79',
 
         ] + conditional_requirements
 )
