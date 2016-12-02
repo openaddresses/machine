@@ -511,10 +511,7 @@ class TestOA (unittest.TestCase):
         
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
-        
-        with open(join(dirname(state_path), state.output)) as file:
-            print(file.read())
-        
+
         self.assertIsNone(state.cache)
         self.assertIsNone(state.processed)
         self.assertIsNone(state.preview)
@@ -1402,6 +1399,7 @@ class TestState (unittest.TestCase):
         self.assertIsNone(RunState({'source problem': find_source_problem('', {'coverage': {'ISO 3166': None}})}).source_problem)
 
         self.assertEqual(RunState({'source problem': find_source_problem('', {})}).source_problem, 'Missing or incomplete coverage')
+        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Could not download ESRI source data: Could not retrieve layer metadata: Token Required', {})}).source_problem, 'Missing required ESRI token')
         self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Error doing conform; skipping', {})}).source_problem, 'Could not conform source data')
         self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Could not download source data', {})}).source_problem, 'Could not download source data')
         self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Unknown source conform type', {})}).source_problem, 'Unknown source conform type')
