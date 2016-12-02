@@ -172,6 +172,12 @@ class TestOA (unittest.TestCase):
             if qs.get('f') == ['json']:
                 local_path = join(data_dirname, 'us-pa-lancaster-metadata.json')
 
+        if (host, path) == ('services.geoportalmaps.com', '/arcgis/rest/services/Runnels_Services/MapServer/1'):
+            qs = parse_qs(query)
+
+            if qs.get('f') == ['json']:
+                local_path = join(data_dirname, 'us-tx-runnels-metadata.json')
+
         if (host, path) == ('maps.co.washington.mn.us', '/arcgis/rest/services/Public/Public_Parcels/MapServer/0/query'):
             qs = parse_qs(query)
             body_data = parse_qs(request.body) if request.body else {}
@@ -494,6 +500,26 @@ class TestOA (unittest.TestCase):
         
         with open(join(dirname(state_path), state['processed'])) as file:
             self.assertTrue('555,CARSON ST' in file.read())
+
+    def test_single_tx_runnels(self):
+        ''' Test complete process_one.process on Oakland sample data.
+        '''
+        source = join(self.src_dir, 'us/tx/runnels.json')
+        
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir, False)
+        
+        with open(state_path) as file:
+            state = RunState(dict(zip(*json.load(file))))
+        
+        with open(join(dirname(state_path), state.output)) as file:
+            print(file.read())
+        
+        self.assertIsNone(state.cache)
+        self.assertIsNone(state.processed)
+        self.assertIsNone(state.preview)
+        # This test data does not contain a working conform object
+        self.assertEqual(state.source_problem, 'Missing required ESRI token')
 
     def test_single_oak(self):
         ''' Test complete process_one.process on Oakland sample data.
