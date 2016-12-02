@@ -6,7 +6,8 @@ import json, pickle
 FAIL_REASONS = {
     None, 'Source says to skip', 'Source is missing a conform object',
     'Unknown source conform type', 'Could not download source data',
-    'Could not conform source data', 'Missing or incomplete coverage'
+    'Could not conform source data', 'Missing or incomplete coverage',
+    'Missing required ESRI token'
     }
 
 class Job:

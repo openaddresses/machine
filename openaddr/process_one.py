@@ -15,6 +15,8 @@ from . import cache, conform, preview, CacheResult, ConformResult, __version__
 from .compat import csvopen, csvwriter, PY2
 from .cache import DownloadError
 
+from esridump.errors import EsriDownloadError
+
 class SourceSaysSkip(RuntimeError): pass
 
 def boolstr(value):
@@ -54,6 +56,9 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
         # Cache source data.
         try:
             cache_result = cache(temp_src, temp_dir, extras)
+        except EsriDownloadError as e:
+            _L.warning('Could not download ESRI source data: {}'.format(e))
+            raise
         except DownloadError as e:
             _L.warning('Could not download source data')
             raise
@@ -144,6 +149,9 @@ def find_source_problem(log_contents, source):
     
     if 'WARNING: Error doing conform; skipping' in log_contents:
         return 'Could not conform source data'
+    
+    if 'WARNING: Could not download ESRI source data: Could not retrieve layer metadata: Token Required' in log_contents:
+        return 'Missing required ESRI token'
     
     if 'coverage' in source:
         coverage = source.get('coverage')
