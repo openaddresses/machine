@@ -24,8 +24,7 @@ function shutdown_with_log
     echo {command} > /tmp/task/command
     echo $1 > /tmp/task/status
     
-    AWS_ACCESS_KEY_ID={access_key} AWS_SECRET_ACCESS_KEY={secret_key} \
-        aws s3 cp /tmp/task s3://{bucket}/{log_prefix}/ --recursive --acl private
+    aws s3 cp /tmp/task s3://{bucket}/{log_prefix}/ --recursive --acl private
     
     shutdown -h now
 }}

@@ -74,8 +74,6 @@ LC_ALL=C.UTF-8
   -- \
     openaddr-collect-extracts \
     -d "#{database_url}" \
-    -a "#{aws_access_id}" \
-    -s "#{aws_secret_key}" \
     -b "#{aws_s3_bucket}" \
     --sns-arn "#{aws_sns_arn}" \
     --verbose \
