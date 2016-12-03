@@ -89,11 +89,8 @@ parser.add_argument('-b', '--bucket', default=environ.get('AWS_S3_BUCKET', None)
 parser.add_argument('-d', '--database-url', default=environ.get('DATABASE_URL', None),
                     help='Optional connection string for database. Defaults to value of DATABASE_URL environment variable.')
 
-parser.add_argument('-a', '--access-key', default=environ.get('AWS_ACCESS_KEY_ID', None),
-                    help='Optional AWS access key name. Defaults to value of AWS_ACCESS_KEY_ID environment variable.')
-
-parser.add_argument('-s', '--secret-key', default=environ.get('AWS_SECRET_ACCESS_KEY', None),
-                    help='Optional AWS secret key name. Defaults to value of AWS_SECRET_ACCESS_KEY environment variable.')
+parser.add_argument('-a', '--access-key', help='Deprecated option provided for backwards compatibility.')
+parser.add_argument('-s', '--secret-key', help='Deprecated option provided for backwards compatibility.')
 
 parser.add_argument('--sns-arn', default=environ.get('AWS_SNS_ARN', None),
                     help='Optional AWS Simple Notification Service (SNS) resource. Defaults to value of AWS_SNS_ARN environment variable.')
@@ -111,8 +108,8 @@ def main():
     ''' Single threaded worker to serve the job queue.
     '''
     args = parser.parse_args()
-    setup_logger(args.access_key, args.secret_key, args.sns_arn, log_level=args.loglevel)
-    s3 = S3(args.access_key, args.secret_key, args.bucket)
+    setup_logger(None, None, args.sns_arn, log_level=args.loglevel)
+    s3 = S3(None, None, args.bucket)
     db_args = util.prepare_db_kwargs(args.database_url)
 
     with db_connect(**db_args) as conn:
