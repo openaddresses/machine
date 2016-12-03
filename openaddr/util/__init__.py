@@ -80,8 +80,6 @@ def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, co
             command = ' '.join(map(quote, command)),
             lifespan = quote(str(lifespan)),
             version = quote(get_version()),
-            access_key = quote(ec2.aws_access_key_id),
-            secret_key = quote(ec2.aws_secret_access_key),
             log_prefix = quote('logs/{}-{}'.format(yyyymmdd, command[0])),
             bucket = quote(bucket or 'data.openaddresses.io'),
             slack_url = quote(slack_url or ''),
@@ -91,6 +89,8 @@ def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, co
         run_kwargs = dict(instance_type=instance_type, security_groups=['default'],
                           instance_initiated_shutdown_behavior='terminate',
                           user_data=file.read().format(**userdata_kwargs),
+                          # TODO: use current role from http://169.254.169.254/latest/meta-data/iam/info
+                          instance_profile_name='machine-communication',
                           key_name=keypair.name)
 
     reservation = image.run(**run_kwargs)
