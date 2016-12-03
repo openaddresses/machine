@@ -117,16 +117,14 @@ def main():
             set = read_latest_set(db, args.owner, args.repository)
             runs = read_completed_runs_to_date(db, set and set.id)
 
-    print([r.source_path for r in runs])
     dir = mkdtemp(prefix='tileindex-')
     
-    print(dir)
     addresses = iterate_runs_points(runs)
     point_blocks = iterate_point_blocks(addresses)
     tiles = populate_tiles(dir, point_blocks)
     
     for tile in tiles.values():
-        print(tile.key, '-', len(tile.results), 'sources')
+        _L.debug('Publishing tile {} with {} sources'.format(tile.key, len(tile.results)))
         tile.publish(s3.bucket)
 
 def lonlat_key(lon, lat):
