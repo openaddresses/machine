@@ -1,3 +1,4 @@
+# coding=utf8
 # Test suite. This code could be in a separate file
 
 from shutil import rmtree
@@ -187,3 +188,11 @@ class TestUtilities (unittest.TestCase):
         key4 = Mock()
         key4.name, key4.bucket.name = '/key/4', 'bucket4'
         self.assertEqual(util.s3_key_url(key4), 'https://s3.amazonaws.com/bucket4/key/4')
+
+        key5 = Mock()
+        key5.name, key5.bucket.name = u'kéy5', 'bucket5'
+        self.assertEqual(util.s3_key_url(key5), u'https://s3.amazonaws.com/bucket5/kéy5')
+
+        key6 = Mock()
+        key6.name, key6.bucket.name = u'/kéy6', 'bucket6'
+        self.assertEqual(util.s3_key_url(key6), u'https://s3.amazonaws.com/bucket6/kéy6')
