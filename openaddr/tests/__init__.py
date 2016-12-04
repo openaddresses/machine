@@ -1594,18 +1594,21 @@ class FakeS3 (S3):
     def new_key(self, name):
         return FakeKey(name, self)
 
+class FakeBucket:
+    '''
+    '''
+    name = 'fake-bucket'
+
 class FakeKey:
     ''' Just enough S3 to work for tests.
     '''
     md5 = b'0xDEADBEEF'
     
     def __init__(self, name, fake_s3):
+        self.bucket = FakeBucket()
         self.name = name
         self.s3 = fake_s3
     
-    def generate_url(self, **kwargs):
-        return 'http://fake-s3.local' + self.name
-
     def set_contents_from_string(self, string, **kwargs):
         self.s3._write_fake_key(self.name, string)
         

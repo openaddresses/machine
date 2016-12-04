@@ -1,7 +1,7 @@
 import logging; _L = logging.getLogger('openaddr.ci')
 
 from ..compat import standard_library, expand_uri
-from .. import jobs, render
+from .. import jobs, render, util
 
 from .objects import (
     add_job, write_job, read_job, complete_set, update_set_renders,
@@ -672,8 +672,6 @@ def _render_and_upload_maps(s3, good_sources, s3_prefix, dirname):
     urls = dict()
     areas = (render.WORLD, 'world'), (render.USA, 'usa'), (render.EUROPE, 'europe')
     
-    # Safe to force_http=False because we set boto.s3.connection.OrdinaryCallingFormat
-    url_kwargs = dict(expires_in=0, query_auth=False, force_http=False)
     key_kwargs = dict(policy='public-read', headers={'Content-Type': 'image/png'})
 
     for (area, area_name) in areas:
@@ -686,7 +684,7 @@ def _render_and_upload_maps(s3, good_sources, s3_prefix, dirname):
             render_key = s3.new_key(join(s3_prefix, png_basename))
             render_key.set_contents_from_string(file.read(), **key_kwargs)
 
-        urls[area_name] = render_key.generate_url(**url_kwargs)
+        urls[area_name] = util.s3_key_url(render_key)
     
     return urls['world'], urls['usa'], urls['europe']
 

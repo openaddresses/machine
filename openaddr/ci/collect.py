@@ -166,7 +166,7 @@ class CollectorPublisher:
         zip_key = write_to_s3(self.s3.bucket, self.zip.filename, basename(self.zip.filename))
         _L.info(u'Uploaded {} to {}'.format(self.zip.filename, zip_key.name))
 
-        zip_url = zip_key.generate_url(expires_in=0, query_auth=False, force_http=True)
+        zip_url = util.s3_key_url(zip_key)
         length = stat(self.zip.filename).st_size if exists(self.zip.filename) else None
 
         db.execute('''DELETE FROM zips WHERE url = %s''', (zip_url, ))

@@ -1,6 +1,6 @@
 import logging; _L = logging.getLogger('openaddr.util')
 
-from urllib.parse import urlparse, parse_qsl
+from urllib.parse import urlparse, parse_qsl, urljoin
 from datetime import datetime, timedelta, date
 from os.path import join, basename, splitext, dirname
 from operator import attrgetter
@@ -10,7 +10,7 @@ import ftplib, httmock
 import io, zipfile
 import json
 
-from ..compat import quote
+from .. import compat
 
 def get_version():
     ''' Prevent circular imports.
@@ -60,7 +60,7 @@ def _command_messages(command):
         message_failed = 'Failed {}'.format(command),
         )
     
-    return { k: quote(json.dumps(dict(text=v))) for (k, v) in strings.items() }
+    return { k: compat.quote(json.dumps(dict(text=v))) for (k, v) in strings.items() }
 
 def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, command, bucket, slack_url):
     '''
@@ -76,13 +76,13 @@ def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, co
     
     with open(join(dirname(__file__), 'templates', 'task-instance-userdata.sh')) as file:
         userdata_kwargs = dict(
-            role = quote(chef_role),
-            command = ' '.join(map(quote, command)),
-            lifespan = quote(str(lifespan)),
-            version = quote(get_version()),
-            log_prefix = quote('logs/{}-{}'.format(yyyymmdd, command[0])),
-            bucket = quote(bucket or 'data.openaddresses.io'),
-            slack_url = quote(slack_url or ''),
+            role = compat.quote(chef_role),
+            command = ' '.join(map(compat.quote, command)),
+            lifespan = compat.quote(str(lifespan)),
+            version = compat.quote(get_version()),
+            log_prefix = compat.quote('logs/{}-{}'.format(yyyymmdd, command[0])),
+            bucket = compat.quote(bucket or 'data.openaddresses.io'),
+            slack_url = compat.quote(slack_url or ''),
             **_command_messages(command[0])
             )
     
@@ -176,3 +176,14 @@ def request_ftp_file(url):
 
     # Using mock response because HTTP responses are expected downstream
     return httmock.response(200, file.read(), headers={'Content-Type': 'application/octet-stream'})
+
+def s3_key_url(key):
+    '''
+    '''
+    base = u'https://s3.amazonaws.com'
+    path = join(key.bucket.name, key.name.lstrip('/'))
+    
+    if compat.PY2 and type(path) is not unicode:
+        path = path.decode('utf8')
+    
+    return urljoin(base, path)
