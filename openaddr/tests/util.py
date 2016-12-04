@@ -168,3 +168,22 @@ class TestUtilities (unittest.TestCase):
                 else:
                     self.assertEqual(resp.status_code, 200)
                     self.assertEqual(resp.content, zip_bytes, 'Expected number of bytes')
+        
+    def test_s3_key_url(self):
+        '''
+        '''
+        key1 = Mock()
+        key1.name, key1.bucket.name = 'key1', 'bucket1'
+        self.assertEqual(util.s3_key_url(key1), 'https://s3.amazonaws.com/bucket1/key1')
+
+        key2 = Mock()
+        key2.name, key2.bucket.name = '/key2', 'bucket2'
+        self.assertEqual(util.s3_key_url(key2), 'https://s3.amazonaws.com/bucket2/key2')
+
+        key3 = Mock()
+        key3.name, key3.bucket.name = 'key/3', 'bucket3'
+        self.assertEqual(util.s3_key_url(key3), 'https://s3.amazonaws.com/bucket3/key/3')
+
+        key4 = Mock()
+        key4.name, key4.bucket.name = '/key/4', 'bucket4'
+        self.assertEqual(util.s3_key_url(key4), 'https://s3.amazonaws.com/bucket4/key/4')

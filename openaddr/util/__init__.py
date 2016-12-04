@@ -176,3 +176,8 @@ def request_ftp_file(url):
 
     # Using mock response because HTTP responses are expected downstream
     return httmock.response(200, file.read(), headers={'Content-Type': 'application/octet-stream'})
+
+def s3_key_url(key):
+    '''
+    '''
+    return 'https://s3.amazonaws.com/{}/{}'.format(key.bucket.name, key.name.lstrip('/'))

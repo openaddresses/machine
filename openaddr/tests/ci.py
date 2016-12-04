@@ -2390,7 +2390,7 @@ class TestRuns (unittest.TestCase):
                 ((state, ), ) = db.fetchall()
             
             # Look for log file message in output.
-            self.assertIn(b'Took too long.', self.s3._read_fake_key(urlparse(state['output']).path))
+            self.assertIn(b'Took too long.', self.s3._read_fake_key(urlparse(state['output']).path[len('/fake-bucket'):]))
 
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
@@ -2716,6 +2716,8 @@ class TestWorker (unittest.TestCase):
         '''
         s3 = mock.Mock()
         s3.new_key.return_value.md5 = b'0xWHATEVER'
+        s3.new_key.return_value.name = 'a-key'
+        s3.new_key.return_value.bucket.name = 'a-bucket'
 
         input1 = {'cache': False, 'sample': False, 'processed': False, 'output': False, 'preview': False}
         state1 = RunState(assemble_output(s3, input1, 'xx/f', 1, 'dir'))
@@ -2729,23 +2731,23 @@ class TestWorker (unittest.TestCase):
         input2 = {'cache': 'cache.csv', 'sample': False, 'processed': False, 'output': False, 'preview': False}
         state2 = RunState(assemble_output(s3, input2, 'xx/f', 2, 'dir'))
 
-        self.assertEqual(state2.cache, s3.new_key.return_value.generate_url.return_value)
+        self.assertEqual(state2.cache, 'https://s3.amazonaws.com/a-bucket/a-key')
         self.assertEqual(state2.fingerprint, '0xWHATEVER')
         self.assertEqual(state2.sample, input2['sample'])
         self.assertEqual(state2.processed, input2['processed'])
         self.assertEqual(state2.output, input2['output'])
         self.assertEqual(state2.preview, input2['preview'])
-        self.assertEqual(s3.new_key.mock_calls[-3], mock.call('/runs/2/cache.csv'))
+        self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/2/cache.csv'))
 
         input3 = {'cache': False, 'sample': 'sample.json', 'processed': False, 'output': False, 'preview': False}
         state3 = RunState(assemble_output(s3, input3, 'xx/f', 3, 'dir'))
 
         self.assertEqual(state3.cache, input3['cache'])
-        self.assertEqual(state3.sample, s3.new_key.return_value.generate_url.return_value)
+        self.assertEqual(state3.sample, 'https://s3.amazonaws.com/a-bucket/a-key')
         self.assertEqual(state3.processed, input3['processed'])
         self.assertEqual(state3.output, input3['output'])
         self.assertEqual(state3.preview, input3['preview'])
-        self.assertEqual(s3.new_key.mock_calls[-3], mock.call('/runs/3/sample.json'))
+        self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/3/sample.json'))
 
         input4 = {'cache': False, 'sample': False, 'processed': False, 'output': 'out.txt', 'preview': False}
         state4 = RunState(assemble_output(s3, input4, 'xx/f', 4, 'dir'))
@@ -2753,9 +2755,9 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(state4.cache, input4['cache'])
         self.assertEqual(state4.sample, input4['sample'])
         self.assertEqual(state4.processed, input4['processed'])
-        self.assertEqual(state4.output, s3.new_key.return_value.generate_url.return_value)
+        self.assertEqual(state4.output, 'https://s3.amazonaws.com/a-bucket/a-key')
         self.assertEqual(state4.preview, input4['preview'])
-        self.assertEqual(s3.new_key.mock_calls[-3], mock.call('/runs/4/out.txt'))
+        self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/4/out.txt'))
 
         with patch('openaddr.util.package_output') as package_output:
             package_output.return_value = 'nothing.zip'
@@ -2764,11 +2766,11 @@ class TestWorker (unittest.TestCase):
 
         self.assertEqual(state5.cache, input5['cache'])
         self.assertEqual(state5.sample, input5['sample'])
-        self.assertEqual(state5.processed, s3.new_key.return_value.generate_url.return_value)
+        self.assertEqual(state5.processed, 'https://s3.amazonaws.com/a-bucket/a-key')
         self.assertEqual(state5.process_hash, '0xWHATEVER')
         self.assertEqual(state5.output, input5['output'])
         self.assertEqual(state5.preview, input5['preview'])
-        self.assertEqual(s3.new_key.mock_calls[-3], mock.call('/runs/5/xx/f.zip'))
+        self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/5/xx/f.zip'))
 
         input6 = {'cache': False, 'sample': False, 'processed': False, 'output': False, 'preview': 'preview.png'}
         state6 = RunState(assemble_output(s3, input6, 'xx/f', 4, 'dir'))
@@ -2777,8 +2779,8 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(state6.sample, input6['sample'])
         self.assertEqual(state6.processed, input6['processed'])
         self.assertEqual(state6.output, input6['output'])
-        self.assertEqual(state6.preview, s3.new_key.return_value.generate_url.return_value)
-        self.assertEqual(s3.new_key.mock_calls[-3], mock.call('/runs/4/preview.png'))
+        self.assertEqual(state6.preview, 'https://s3.amazonaws.com/a-bucket/a-key')
+        self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/4/preview.png'))
 
     @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')
@@ -2834,7 +2836,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(result['output']['license'], 'GPL')
         
         zip_path = urlparse(result['output']['processed']).path
-        zip_bytes = self.s3._read_fake_key(zip_path)
+        zip_bytes = self.s3._read_fake_key(zip_path[len('/fake-bucket'):])
         zip_file = ZipFile(BytesIO(zip_bytes), mode='r')
         self.assertTrue(u'README.txt' in zip_file.namelist())
         self.assertTrue(u'so/exalté.csv' in zip_file.namelist())
@@ -2974,6 +2976,9 @@ class TestBatch (unittest.TestCase):
         
         if url.hostname == 'fake-s3.local':
             return response(200, self.s3._read_fake_key(url.path))
+        
+        if url.hostname == 's3.amazonaws.com' and url.path.startswith('/fake-bucket/'):
+            return response(200, self.s3._read_fake_key(url.path[len('/fake-bucket'):]))
         
         if MHP == ('GET', GH, '/'):
             data = u'''{\r  "current_user_url": "https://api.github.com/user",\r  "current_user_authorizations_html_url": "https://github.com/settings/connections/applications{/client_id}",\r  "authorizations_url": "https://api.github.com/authorizations",\r  "code_search_url": "https://api.github.com/search/code?q={query}{&page,per_page,sort,order}",\r  "emails_url": "https://api.github.com/user/emails",\r  "emojis_url": "https://api.github.com/emojis",\r  "events_url": "https://api.github.com/events",\r  "feeds_url": "https://api.github.com/feeds",\r  "following_url": "https://api.github.com/user/following{/target}",\r  "gists_url": "https://api.github.com/gists{/gist_id}",\r  "hub_url": "https://api.github.com/hub",\r  "issue_search_url": "https://api.github.com/search/issues?q={query}{&page,per_page,sort,order}",\r  "issues_url": "https://api.github.com/issues",\r  "keys_url": "https://api.github.com/user/keys",\r  "notifications_url": "https://api.github.com/notifications",\r  "organization_repositories_url": "https://api.github.com/orgs/{org}/repos{?type,page,per_page,sort}",\r  "organization_url": "https://api.github.com/orgs/{org}",\r  "public_gists_url": "https://api.github.com/gists/public",\r  "rate_limit_url": "https://api.github.com/rate_limit",\r  "repository_url": "https://api.github.com/repos/{owner}/{repo}",\r  "repository_search_url": "https://api.github.com/search/repositories?q={query}{&page,per_page,sort,order}",\r  "current_user_repositories_url": "https://api.github.com/user/repos{?type,page,per_page,sort}",\r  "starred_url": "https://api.github.com/user/starred{/owner}{/repo}",\r  "starred_gists_url": "https://api.github.com/gists/starred",\r  "team_url": "https://api.github.com/teams",\r  "user_url": "https://api.github.com/users/{user}",\r  "user_organizations_url": "https://api.github.com/user/orgs",\r  "user_repositories_url": "https://api.github.com/users/{user}/repos{?type,page,per_page,sort}",\r  "user_search_url": "https://api.github.com/search/users?q={query}{&page,per_page,sort,order}"\r}'''
@@ -3391,7 +3396,8 @@ class TestCollect (unittest.TestCase):
 
             with patch('openaddr.ci.collect.write_to_s3') as write_to_s3:
                 s3_key_mock = mock.Mock()
-                s3_key_mock.generate_url.return_value = 'http://internet/collected-local.zip'
+                s3_key_mock.name = 'collected-local.zip'
+                s3_key_mock.bucket.name = 'a-bucket'
                 write_to_s3.return_value = s3_key_mock
 
                 with patch('openaddr.util.summarize_result_licenses') as summarize_result_licenses:
@@ -3417,11 +3423,11 @@ class TestCollect (unittest.TestCase):
 
         self.assertEqual(db.execute.mock_calls, [
             mock.call('DELETE FROM zips WHERE url = %s',
-                      ('http://internet/collected-local.zip',)),
+                      ('https://s3.amazonaws.com/a-bucket/collected-local.zip',)),
             mock.call('''INSERT INTO zips
                       (url, datetime, is_current, content_length, collection, license_attr)
                       VALUES (%s, NOW(), true, %s, %s, %s)''',
-                      ('http://internet/collected-local.zip', None, 'everywhere', 'yo'))])
+                      ('https://s3.amazonaws.com/a-bucket/collected-local.zip', None, 'everywhere', 'yo'))])
 
     def test_collector_publisher_multipart_s3_one_part(self):
         '''

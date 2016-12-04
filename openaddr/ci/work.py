@@ -15,7 +15,7 @@ def upload_file(s3, keyname, filename):
 
     kwargs = dict(policy='public-read', reduced_redundancy=True)
     key.set_contents_from_filename(filename, **kwargs)
-    url = key.generate_url(expires_in=0, query_auth=False, force_http=True)
+    url = util.s3_key_url(key)
     
     return url, key.md5.decode('ascii')
 
