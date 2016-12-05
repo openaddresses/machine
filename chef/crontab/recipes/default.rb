@@ -125,8 +125,6 @@ LC_ALL=C.UTF-8
     openaddr-update-dotmap \
     -d "#{database_url}" \
     -m "#{mapbox_key}" \
-    -a "#{aws_access_id}" \
-    -s "#{aws_secret_key}" \
     --sns-arn "#{aws_sns_arn}" \
   >> /var/log/openaddr_crontab/dotmap.log 2>&1
 CRONTAB
@@ -135,20 +133,26 @@ end
 file "/etc/cron.d/openaddr_crontab-enqueue-sources" do
     content <<-CRONTAB
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-SLACK_URL=#{slack_url}
 LC_ALL=C.UTF-8
 # Enqueue sources, Fridays 11pm UTC (4pm PDT)
 0 23	* * fri	#{username}	( \
-  curl -X POST -d '{"text": "Starting new batch run..."}' $SLACK_URL -s ; \
-  openaddr-enqueue-sources \
-  -d "#{database_url}" \
-  -t "#{github_token}" \
+  openaddr-run-ec2-command \
+  --hours 60 \
+  --instance-type t2.nano \
   -a "#{aws_access_id}" \
   -s "#{aws_secret_key}" \
   -b "#{aws_s3_bucket}" \
   --sns-arn "#{aws_sns_arn}" \
-  && curl -X POST -d '{"text": "Completed <https://#{cname}/latest/set|new batch run>."}' $SLACK_URL -s \
-  || curl -X POST -d '{"text": "Failed to complete new batch run."}' $SLACK_URL -s ) \
+  --slack-url "#{slack_url}" \
+  --verbose \
+  -- \
+    openaddr-enqueue-sources \
+    -d "#{database_url}" \
+    -t "#{github_token}" \
+    -a "#{aws_access_id}" \
+    -s "#{aws_secret_key}" \
+    -b "#{aws_s3_bucket}" \
+    --sns-arn "#{aws_sns_arn}" \
   >> /var/log/openaddr_crontab/enqueue-sources.log 2>&1
 CRONTAB
 end
