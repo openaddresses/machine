@@ -14,7 +14,7 @@ from .objects import (
     )
 
 from . import setup_logger, db_connect, db_cursor, tileindex
-from .webcommon import log_application_errors, nice_domain
+from .webcommon import log_application_errors, nice_domain, flask_log_level
 from ..compat import expand_uri, csvIO, csvDictWriter
 from .. import compat
 
@@ -175,4 +175,5 @@ def apply_webapi_blueprint(app):
     def app_prepare():
         setup_logger(os.environ.get('AWS_ACCESS_KEY_ID'),
                      os.environ.get('AWS_SECRET_ACCESS_KEY'),
-                     os.environ.get('AWS_SNS_ARN'), logging.WARNING)
+                     os.environ.get('AWS_SNS_ARN'),
+                     flask_log_level(app.config))

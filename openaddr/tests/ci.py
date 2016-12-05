@@ -15,7 +15,7 @@ from time import sleep
 from uuid import uuid4
 import hmac, hashlib, mock
 
-import unittest, json, os, sys, itertools
+import unittest, json, os, sys, itertools, logging
 
 from flask import Flask
 from requests import get, ConnectionError
@@ -31,7 +31,7 @@ from ..ci import (
     is_merged_to_master, get_commit_info, HEARTBEAT_QUEUE, flush_heartbeat_queue,
     get_recent_workers, PERMANENT_KIND, TEMPORARY_KIND, load_config,
     get_batch_run_times, webauth, process_github_payload, skip_payload,
-    is_rerun_payload, update_job_comments
+    is_rerun_payload, update_job_comments, reset_logger
     )
 
 from ..ci.objects import (
@@ -721,7 +721,7 @@ class TestAPI (unittest.TestCase):
         os.environ['AWS_SECRET_ACCESS_KEY'] = '67890'
 
         app = Flask(__name__)
-        app.config.update(load_config())
+        app.config.update(load_config(), MAX_LOGLEVEL=logging.CRITICAL)
         apply_webapi_blueprint(app)
         apply_webhooks_blueprint(app)
 
@@ -765,6 +765,8 @@ class TestAPI (unittest.TestCase):
         del os.environ['WEBHOOK_SECRETS']
         del os.environ['AWS_ACCESS_KEY_ID']
         del os.environ['AWS_SECRET_ACCESS_KEY']
+        
+        reset_logger()
 
     def test_data_index(self):
         '''
@@ -1080,7 +1082,7 @@ class TestHook (unittest.TestCase):
         os.environ['AWS_SECRET_ACCESS_KEY'] = '67890'
 
         app = Flask(__name__)
-        app.config.update(load_config())
+        app.config.update(load_config(), MAX_LOGLEVEL=logging.CRITICAL)
         apply_webhooks_blueprint(app)
 
         recreate_db.recreate(app.config['DATABASE_URL'])
@@ -1104,6 +1106,7 @@ class TestHook (unittest.TestCase):
 
         rmtree(self.output_dir)
         remove(self.s3._fake_keys)
+        reset_logger()
     
     def test_skip_payload(self):
         '''
