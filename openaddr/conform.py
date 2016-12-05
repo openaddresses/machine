@@ -608,7 +608,7 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
     elif "encoding" in source_definition["conform"]:
         shp_encoding = source_definition["conform"]["encoding"]
     else:
-        _L.warn("No encoding given and OGR couldn't guess. Trying ISO-8859-1, YOLO!")
+        _L.warning("No encoding given and OGR couldn't guess. Trying ISO-8859-1, YOLO!")
         shp_encoding = "iso-8859-1"
     _L.debug("Assuming shapefile data is encoded %s", shp_encoding)
 

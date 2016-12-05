@@ -83,8 +83,8 @@ def parse_statefile(state, header):
                 path = '{}/{}'.format(config.output_dir, re.sub(r'\/[^\/]*$', '', filename))
                 if not os.path.exists(path):
                     os.makedirs(path)
-                wkt_file = open("{}/{}".format(config.output_dir, filename), 'w')
-                writeout(wkt_file, data)
+                with open("{}/{}".format(config.output_dir, filename), 'w') as wkt_file:
+                    writeout(wkt_file, data)
                 ct += 1
         except Exception as e:
             _L.warning('error parsing source. {}'.format(e))
