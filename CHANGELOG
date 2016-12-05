@@ -1,3 +1,6 @@
+2016-12-05: 3.11.4
+- Changed openaddr-enqueue-sources and openaddr-update-dotmap to use IAM roles.
+
 2016-12-04: 3.11.3
 - Changed openaddr-index-tiles to use IAM role.
 - Fixed log output during testing.
