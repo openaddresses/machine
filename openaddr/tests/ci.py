@@ -2219,7 +2219,7 @@ class TestRuns (unittest.TestCase):
     def test_failing_run(self, check_output):
         ''' Test a run that fails.
         '''
-        def raises_unexpected_error(cmd, timeout=None):
+        def raises_unexpected_error(cmd, timeout, stderr):
             raise NotImplementedError('Everything is ruined.')
 
         check_output.side_effect = raises_unexpected_error
@@ -2359,7 +2359,7 @@ class TestRuns (unittest.TestCase):
     def test_timeout_logging_run(self, check_output):
         ''' Test a run that times out after producing logging output.
         '''
-        def takes_a_long_time(cmd, timeout):
+        def takes_a_long_time(cmd, timeout, stderr):
             with open(cmd[2], 'w') as file:
                 file.write('Took too long.\n')
             raise compat.TimeoutExpired(cmd, timeout, 'Took too long')
@@ -2402,7 +2402,7 @@ class TestRuns (unittest.TestCase):
     def test_timeout_nonlogging_run(self, check_output):
         ''' Test a run that times out without producing logging output.
         '''
-        def takes_a_long_time(cmd, timeout):
+        def takes_a_long_time(cmd, timeout, stderr):
             raise compat.TimeoutExpired(cmd, timeout, 'Took too long')
 
         check_output.side_effect = takes_a_long_time
@@ -2790,7 +2790,7 @@ class TestWorker (unittest.TestCase):
     def test_happy_worker(self, check_output, mkdtemp):
         '''
         '''
-        def does_what_its_told(cmd, timeout=None):
+        def does_what_its_told(cmd, timeout, stderr):
             index_path = '{id}/out/user_input/index.json'.format(**task_data)
             index_filename = os.path.join(self.output_dir, index_path)
             index_dirname = os.path.dirname(index_filename)
@@ -2816,15 +2816,17 @@ class TestWorker (unittest.TestCase):
         job_id, content = task_data['id'], task_data['content']
         result = work.do_work(self.s3, -1, u'so/exalté', content, True, self.output_dir, mapzen_key='mapzen-XXXX')
         
-        check_output.assert_called_with((
+        self.assertEqual(check_output.mock_calls[-1][1][0], (
             'openaddr-process-one', '-l',
             os.path.join(self.output_dir, 'work/logfile.txt'),
             os.path.join(self.output_dir, u'work/so--exalté.txt'),
             os.path.join(self.output_dir, 'work/out'),
             '--render-preview',
             '--mapzen-key', 'mapzen-XXXX'
-            ),
-            timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
+            ))
+        
+        self.assertEqual(check_output.mock_calls[-1][2]['timeout'],
+                         JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
         
         self.assertEqual(result['message'], MAGIC_OK_MESSAGE)
         self.assertEqual(result['result_code'], 0)
@@ -2858,7 +2860,7 @@ class TestWorker (unittest.TestCase):
     def test_angry_worker(self, check_output, mkdtemp):
         '''
         '''
-        def raises_called_process_error(cmd, timeout=None):
+        def raises_called_process_error(cmd, timeout, stderr):
             raise compat.CalledProcessError(1, cmd, 'Everything is ruined.\n')
         
         def same_tempdir_every_time(prefix, dir):
@@ -2872,14 +2874,16 @@ class TestWorker (unittest.TestCase):
         job_id, content = task_data['id'], task_data['content']
         result = work.do_work(self.s3, -1, 'angry', content, True, self.output_dir, mapzen_key=None)
         
-        check_output.assert_called_with((
+        self.assertEqual(check_output.mock_calls[-1][1][0], (
             'openaddr-process-one', '-l',
             os.path.join(self.output_dir, 'work/logfile.txt'),
             os.path.join(self.output_dir, 'work/angry.txt'),
             os.path.join(self.output_dir, 'work/out'),
             '--skip-preview'
-            ),
-            timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
+            ))
+        
+        self.assertEqual(check_output.mock_calls[-1][2]['timeout'],
+                         JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
         
         self.assertEqual(result['message'], 'Something went wrong in openaddr-process-one')
         self.assertEqual(result['result_stdout'], 'Everything is ruined.\n')
@@ -2890,7 +2894,7 @@ class TestWorker (unittest.TestCase):
     def test_skippy_worker(self, check_output, mkdtemp):
         '''
         '''
-        def does_what_its_told(cmd, timeout=None):
+        def does_what_its_told(cmd, timeout, stderr):
             index_path = '{id}/out/user_input/index.json'.format(**task_data)
             index_filename = os.path.join(self.output_dir, index_path)
             index_dirname = os.path.dirname(index_filename)
@@ -2915,15 +2919,17 @@ class TestWorker (unittest.TestCase):
         job_id, content = task_data['id'], task_data['content']
         result = work.do_work(self.s3, -1, u'so/exalté', content, True, self.output_dir, mapzen_key='mapzen-XXXX')
         
-        check_output.assert_called_with((
+        self.assertEqual(check_output.mock_calls[-1][1][0], (
             'openaddr-process-one', '-l',
             os.path.join(self.output_dir, 'work/logfile.txt'),
             os.path.join(self.output_dir, u'work/so--exalté.txt'),
             os.path.join(self.output_dir, 'work/out'),
             '--render-preview',
             '--mapzen-key', 'mapzen-XXXX'
-            ),
-            timeout=JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
+            ))
+        
+        self.assertEqual(check_output.mock_calls[-1][2]['timeout'],
+                         JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
         
         self.assertEqual(result['message'], MAGIC_OK_MESSAGE)
         self.assertEqual(result['result_code'], 0)
