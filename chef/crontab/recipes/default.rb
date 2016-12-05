@@ -125,8 +125,6 @@ LC_ALL=C.UTF-8
     openaddr-update-dotmap \
     -d "#{database_url}" \
     -m "#{mapbox_key}" \
-    -a "#{aws_access_id}" \
-    -s "#{aws_secret_key}" \
     --sns-arn "#{aws_sns_arn}" \
   >> /var/log/openaddr_crontab/dotmap.log 2>&1
 CRONTAB
