@@ -103,7 +103,8 @@ def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_di
     try:
         known_error, cmd_status = False, 0
         timeout_seconds = JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400
-        result_stdout = compat.check_output(cmd, timeout=timeout_seconds)
+        with open('/dev/null', 'a') as devnull:
+            result_stdout = compat.check_output(cmd, timeout=timeout_seconds, stderr=devnull)
     except compat.TimeoutExpired as e:
         known_error, cmd_status, result_stdout = True, None, e.output
     except compat.CalledProcessError as e:

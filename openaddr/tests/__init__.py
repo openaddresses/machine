@@ -23,6 +23,7 @@ import pickle
 import sys
 import os
 import csv
+import logging
 from os import close, environ, mkdir, remove
 from io import BytesIO
 from csv import DictReader

@@ -1114,20 +1114,36 @@ class SnsHandler(logging.Handler):
         
         self.sns.publish(self.arn, self.format(record), subject[:79])
 
-# Remember whether logger has been set up before.
-_logger_status = {'set up': False}
+# Remember whether logger has been set up before as a series of states.
+_logger_status = list()
+
+def reset_logger():
+    '''
+    '''
+    # Get a handle for the openaddr logger and its children
+    openaddr_logger = logging.getLogger('openaddr')
+    
+    if not _logger_status:
+        # Nothing to do here
+        return
+    
+    logger_state = _logger_status.pop()
+    openaddr_logger.setLevel(logger_state['previous loglevel'])
+    openaddr_logger.removeHandler(logger_state['stream handler'])
+
+    if 'aws sns handler' in logger_state:
+        openaddr_logger.removeHandler(logger_state['aws sns handler'])
 
 def setup_logger(aws_key, aws_secret, sns_arn, log_level=logging.DEBUG):
     ''' Set up logging for openaddr code.
     '''
-    if _logger_status['set up']:
+    if len(_logger_status):
         # Do this exactly once, so repeated handlers don't stack up.
         return
-    else:
-        _logger_status['set up'] = True
     
     # Get a handle for the openaddr logger and its children
     openaddr_logger = logging.getLogger('openaddr')
+    logger_state = {'previous loglevel': openaddr_logger.level}
 
     # Default logging format.
     log_format = '%(asctime)s %(levelname)07s: %(message)s'
@@ -1140,6 +1156,7 @@ def setup_logger(aws_key, aws_secret, sns_arn, log_level=logging.DEBUG):
     handler1.setLevel(log_level)
     handler1.setFormatter(logging.Formatter(log_format))
     openaddr_logger.addHandler(handler1)
+    logger_state['stream handler'] = handler1
     
     # Set up a second logger to SNS
     if sns_arn:
@@ -1151,6 +1168,9 @@ def setup_logger(aws_key, aws_secret, sns_arn, log_level=logging.DEBUG):
             handler2.setLevel(logging.ERROR)
             handler2.setFormatter(logging.Formatter(log_format))
             openaddr_logger.addHandler(handler2)
+            logger_state['aws sns handler'] = handler2
+    
+    _logger_status.append(logger_state)
 
 def log_function_errors(route_function):
     ''' Error-logging decorator for functions.

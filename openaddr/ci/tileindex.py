@@ -145,7 +145,6 @@ def iterate_runs_points(runs):
             continue
     
         _L.info('Indexing points from {}'.format(result.source_base))
-        print(result.run_state.processed)
         _L.debug('filename: {}'.format(result.filename))
         _L.debug('run_state: {}'.format(result.run_state))
         _L.debug('code_version: {}'.format(result.code_version))

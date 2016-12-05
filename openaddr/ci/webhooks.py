@@ -29,7 +29,7 @@ from .objects import (
     )
 
 from ..summarize import summarize_runs, GLASS_HALF_FULL, GLASS_HALF_EMPTY, nice_integer, break_state
-from .webcommon import log_application_errors, nice_domain
+from .webcommon import log_application_errors, nice_domain, flask_log_level
 
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
 
@@ -370,4 +370,5 @@ def apply_webhooks_blueprint(app):
 
         setup_logger(os.environ.get('AWS_ACCESS_KEY_ID'),
                      os.environ.get('AWS_SECRET_ACCESS_KEY'),
-                     os.environ.get('AWS_SNS_ARN'), logging.WARNING)
+                     os.environ.get('AWS_SNS_ARN'),
+                     flask_log_level(app.config))

@@ -17,7 +17,7 @@ import requests, uritemplate
 
 from .. import compat
 from . import setup_logger
-from .webcommon import log_application_errors
+from .webcommon import log_application_errors, flask_log_level
 
 github_authorize_url = 'https://github.com/login/oauth/authorize{?state,client_id,redirect_uri,response_type,scope}'
 github_exchange_url = 'https://github.com/login/oauth/access_token'
@@ -220,4 +220,5 @@ def apply_webauth_blueprint(app):
     def app_prepare():
         setup_logger(os.environ.get('AWS_ACCESS_KEY_ID'),
                      os.environ.get('AWS_SECRET_ACCESS_KEY'),
-                     os.environ.get('AWS_SNS_ARN'), logging.WARNING)
+                     os.environ.get('AWS_SNS_ARN'),
+                     flask_log_level(app.config))

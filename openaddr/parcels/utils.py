@@ -70,7 +70,8 @@ def scrape_fiona_metadata(obj, source):
     """
     Uses openaddress machine code to scrape metadata from a fiona object.
     """
-    source_json = json.loads(open('{}/sources/{}'.format(config.openaddr_dir, source)).read())
+    with open('{}/sources/{}'.format(config.openaddr_dir, source)) as file:
+        source_json = json.load(file)
     cleaned_json = conform_smash_case(source_json)
     cleaned_prop = {k: str(v or '') for (k, v) in  obj['properties'].items()}
 
@@ -85,7 +86,8 @@ def scrape_csv_metadata(row, header, source):
     """
     props = {}
 
-    source_json = json.loads(open('{}/sources/{}'.format(config.openaddr_dir, source)).read())
+    with open('{}/sources/{}'.format(config.openaddr_dir, source)) as file:
+        source_json = json.load(file)
     cleaned_json = conform_smash_case(source_json)
     for key in header:
         if key != 'OA:geom':
