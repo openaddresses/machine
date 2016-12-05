@@ -306,17 +306,17 @@ def add_source_to_zipfile(zip_out, result):
             add_csv_to_zipfile(zip_out, result.source_base + ext, file)
 
     elif ext == '.zip':
-        zip_in = ZipFile(result.filename, 'r')
-        for zipinfo in zip_in.infolist():
-            if zipinfo.filename == 'README.txt':
-                # Skip README files when building collection.
-                continue
-            elif splitext(zipinfo.filename)[1] == '.csv':
-                zipped_file = zip_in.open(zipinfo.filename)
-                add_csv_to_zipfile(zip_out, zipinfo.filename, zipped_file)
-            else:
-                zip_out.writestr(zipinfo, zip_in.read(zipinfo.filename))
-        zip_in.close()
+        with open(result.filename, 'rb') as file:
+            zip_in = ZipFile(file, 'r')
+            for zipinfo in zip_in.infolist():
+                if zipinfo.filename == 'README.txt':
+                    # Skip README files when building collection.
+                    continue
+                elif splitext(zipinfo.filename)[1] == '.csv':
+                    zipped_file = zip_in.open(zipinfo.filename)
+                    add_csv_to_zipfile(zip_out, zipinfo.filename, zipped_file)
+                else:
+                    zip_out.writestr(zipinfo, zip_in.read(zipinfo.filename))
 
 def _is_us_state(abbr, result):
     for sep in ('/', '-'):
