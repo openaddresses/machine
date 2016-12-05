@@ -24,7 +24,7 @@ def log_application_errors(route_function):
 def flask_log_level(config):
     '''
     '''
-    return config.get('MAX_LOGLEVEL', logging.WARNING)
+    return config.get('MINIMUM_LOGLEVEL', logging.WARNING)
 
 def nice_domain(url):
     '''

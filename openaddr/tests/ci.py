@@ -721,7 +721,7 @@ class TestAPI (unittest.TestCase):
         os.environ['AWS_SECRET_ACCESS_KEY'] = '67890'
 
         app = Flask(__name__)
-        app.config.update(load_config(), MAX_LOGLEVEL=logging.CRITICAL)
+        app.config.update(load_config(), MINIMUM_LOGLEVEL=logging.CRITICAL)
         apply_webapi_blueprint(app)
         apply_webhooks_blueprint(app)
 
@@ -1082,7 +1082,7 @@ class TestHook (unittest.TestCase):
         os.environ['AWS_SECRET_ACCESS_KEY'] = '67890'
 
         app = Flask(__name__)
-        app.config.update(load_config(), MAX_LOGLEVEL=logging.CRITICAL)
+        app.config.update(load_config(), MINIMUM_LOGLEVEL=logging.CRITICAL)
         apply_webhooks_blueprint(app)
 
         recreate_db.recreate(app.config['DATABASE_URL'])
