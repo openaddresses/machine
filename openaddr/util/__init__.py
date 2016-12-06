@@ -33,12 +33,12 @@ def prepare_db_kwargs(dsn):
     
     return kwargs
 
-def set_autoscale_capacity(autoscale, cloudwatch, capacity):
+def set_autoscale_capacity(autoscale, cloudwatch, cloudwatch_ns, capacity):
     '''
     '''
     span, now = 60 * 60 * 3, datetime.now()
     start, end = now - timedelta(seconds=span), now
-    args = 'tasks queue', 'openaddr.ci', 'Maximum'
+    args = 'tasks queue', cloudwatch_ns, 'Maximum'
 
     (measure, ) = cloudwatch.get_metric_statistics(span, start, end, *args)
 
