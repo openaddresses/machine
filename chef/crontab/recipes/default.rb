@@ -10,6 +10,7 @@ aws_access_id = local['aws_access_id']
 aws_secret_key = local['aws_secret_key']
 aws_s3_bucket = local['aws_s3_bucket']
 aws_sns_arn = local['aws_sns_arn']
+aws_cloudwatch_ns = local['aws_cloudwatch_ns']
 github_token = local['github_token']
 mapbox_key = local['mapbox_key']
 slack_url = local['slack_url']
@@ -153,6 +154,7 @@ LC_ALL=C.UTF-8
     -s "#{aws_secret_key}" \
     -b "#{aws_s3_bucket}" \
     --sns-arn "#{aws_sns_arn}" \
+    --cloudwatch-ns "#{aws_cloudwatch_ns}" \
   >> /var/log/openaddr_crontab/enqueue-sources.log 2>&1
 CRONTAB
 end

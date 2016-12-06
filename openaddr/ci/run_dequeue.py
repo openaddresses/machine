@@ -46,11 +46,12 @@ def main():
                 _L.info('{workers_n} active workers; queue lengths: {task_n} tasks, {done_n} done, {due_n} due'.format(**locals()))
                 
                 if cw:
-                    cw.put_metric_data('openaddr.ci', 'tasks queue', task_n, unit='Count')
-                    cw.put_metric_data('openaddr.ci', 'done queue', done_n, unit='Count')
-                    cw.put_metric_data('openaddr.ci', 'due queue', due_n, unit='Count')
-                    cw.put_metric_data('openaddr.ci', 'expected results', task_n + workers_n, unit='Count')
-                    cw.put_metric_data('openaddr.ci', 'active workers', workers_n, unit='Count')
+                    ns = environ.get('AWS_CLOUDWATCH_NS')
+                    cw.put_metric_data(ns, 'tasks queue', task_n, unit='Count')
+                    cw.put_metric_data(ns, 'done queue', done_n, unit='Count')
+                    cw.put_metric_data(ns, 'due queue', due_n, unit='Count')
+                    cw.put_metric_data(ns, 'expected results', task_n + workers_n, unit='Count')
+                    cw.put_metric_data(ns, 'active workers', workers_n, unit='Count')
 
                 checkin_time = time() + 30
 

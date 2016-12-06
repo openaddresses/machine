@@ -13,6 +13,7 @@
     "aws_secret_key": "{Amazon Secret Access Key}",
     "aws_sns_arn": "{Amazon SNS Subscription ID}",
     "aws_s3_bucket": "{Amazon S3 Bucket Name}",
+    "aws_cloudwatch_ns": "{Amazon Cloudwatch Namespace}",
 
     "github_token": "{Github Token}",
     "github_callback": "{Github Callback URL}",

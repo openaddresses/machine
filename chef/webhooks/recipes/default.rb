@@ -11,6 +11,7 @@ aws_access_id = local['aws_access_id']
 aws_secret_key = local['aws_secret_key']
 aws_s3_bucket = local['aws_s3_bucket']
 aws_sns_arn = local['aws_sns_arn']
+aws_cloudwatch_ns = local['aws_cloudwatch_ns']
 webhook_secrets = local['webhook_secrets']
 
 gag_github_status = local['gag_github_status']
@@ -40,6 +41,7 @@ GAG_GITHUB_STATUS=#{gag_github_status}
 AWS_ACCESS_KEY_ID=#{aws_access_id}
 AWS_SECRET_ACCESS_KEY=#{aws_secret_key}
 AWS_SNS_ARN=#{aws_sns_arn}
+AWS_CLOUDWATCH_NS=#{aws_cloudwatch_ns}
 AWS_S3_BUCKET=#{aws_s3_bucket}
 WEBHOOK_SECRETS=#{webhook_secrets}
 LC_ALL=C.UTF-8

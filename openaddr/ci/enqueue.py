@@ -40,6 +40,9 @@ parser.add_argument('-s', '--secret-key', help='Deprecated option provided for b
 parser.add_argument('--sns-arn', default=environ.get('AWS_SNS_ARN', None),
                     help='Optional AWS Simple Notification Service (SNS) resource. Defaults to value of AWS_SNS_ARN environment variable.')
 
+parser.add_argument('--cloudwatch-ns', default=environ.get('AWS_CLOUDWATCH_NS', None),
+                    help='Optional AWS CloudWatch namespace. Defaults to value of AWS_CLOUDWATCH_NS environment variable.')
+
 parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
                     action='store_const', dest='loglevel',
                     const=logging.DEBUG, default=logging.INFO)
@@ -84,7 +87,7 @@ def main():
                 try:
                     if time() >= next_autoscale_grow:
                         next_autoscale_grow = time() + next_autoscale_interval
-                        set_autoscale_capacity(autoscale, cloudwatch, next(minimum_capacity))
+                        set_autoscale_capacity(autoscale, cloudwatch, args.cloudwatch_ns, next(minimum_capacity))
                 except Exception as e:
                     _L.error('Problem during autoscale', exc_info=True)
                 if expected_count:

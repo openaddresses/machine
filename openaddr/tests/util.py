@@ -47,7 +47,7 @@ class TestUtilities (unittest.TestCase):
         autoscale.get_all_groups.return_value = [as_group]
         
         as_group.desired_capacity = 2
-        util.set_autoscale_capacity(autoscale, cloudwatch, 1)
+        util.set_autoscale_capacity(autoscale, cloudwatch, 'ns', 1)
         
         # The right group name was used.
         autoscale.get_all_groups.assert_called_once_with([group_name])
@@ -56,23 +56,28 @@ class TestUtilities (unittest.TestCase):
         as_group.set_capacity.assert_not_called()
 
         as_group.desired_capacity = 1
-        util.set_autoscale_capacity(autoscale, cloudwatch, 1)
+        util.set_autoscale_capacity(autoscale, cloudwatch, 'ns', 1)
         
         as_group.desired_capacity = 0
         cloudwatch.get_metric_statistics.return_value = [{'Maximum': 0}]
-        util.set_autoscale_capacity(autoscale, cloudwatch, 1)
+        util.set_autoscale_capacity(autoscale, cloudwatch, 'ns', 1)
         
         cloudwatch.get_metric_statistics.return_value = [{'Maximum': 1}]
-        util.set_autoscale_capacity(autoscale, cloudwatch, 1)
+        util.set_autoscale_capacity(autoscale, cloudwatch, 'ns', 1)
         
         # Capacity had to be increased to 1.
         as_group.set_capacity.assert_called_once_with(1)
 
         as_group.desired_capacity = 1
-        util.set_autoscale_capacity(autoscale, cloudwatch, 2)
+        util.set_autoscale_capacity(autoscale, cloudwatch, 'ns', 2)
         
         # Capacity had to be increased to 2.
         as_group.set_capacity.assert_called_with(2)
+
+        # The right namespace was used.
+        for mock_call in cloudwatch.mock_calls:
+            self.assertEqual(mock_call[1][:1], (10800, ))
+            self.assertEqual(mock_call[1][-3:], ('tasks queue', 'ns', 'Maximum'))
     
     def test_task_instance(self):
         '''
