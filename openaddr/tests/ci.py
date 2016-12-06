@@ -1069,6 +1069,70 @@ class TestAuth (unittest.TestCase):
         req6.headers = {'X-Forwarded-Proto': u'https'}
         url6 = webauth.callback_url(req6, u'/callback')
         self.assertEqual(url6, 'https://example.org/callback')
+    
+    def test_upload_cache(self):
+        '''
+        '''
+        os.environ['GITHUB_TOKEN'] = ''
+        os.environ['DATABASE_URL'] = DATABASE_URL
+        os.environ['WEBHOOK_SECRETS'] = 'hello,world'
+        os.environ['AWS_ACCESS_KEY_ID'] = '12345'
+        os.environ['AWS_SECRET_ACCESS_KEY'] = '67890'
+        os.environ['GITHUB_SECRET'] = 'whatever'
+
+        def response_content_nothing(url, request):
+            raise Exception()
+        
+        with HTTMock(response_content_nothing):
+            app = Flask('openaddr.ci.web')
+            app.config.update(load_config(), MINIMUM_LOGLEVEL=logging.CRITICAL)
+            apply_webhooks_blueprint(app)
+            webauth.apply_webauth_blueprint(app)
+        
+            client = app.test_client()
+        
+            got1 = client.get('/upload-cache')
+            self.assertEqual(got1.status_code, 200)
+            self.assertIn(b'<form action="/auth/login" method="post">', got1.data)
+        
+        posted = client.post('/auth/login', headers={'Referer': '/upload-cache'})
+        self.assertEqual(posted.status_code, 303)
+        self.assertIn('Location', posted.headers)
+        args = dict(parse_qsl(urlparse(posted.headers.get('Location')).query))
+        state = args['state']
+        
+        def response_content_okay(url, request):
+            if (request.method, url.hostname, url.path) == ('POST', 'github.com', '/login/oauth/access_token'):
+                return response(200, b'{"scope": "", "token_type": "bearer", "access_token": "nnnnggh"}', headers={'Content-Type': 'application/json'})
+            raise Exception()
+        
+        with HTTMock(response_content_okay):
+            got2 = client.get('/auth/callback?code=whatever&state={}'.format(state))
+            self.assertEqual(got2.status_code, 302)
+            self.assertIn('Location', got2.headers)
+        
+        def response_content_user(url, request):
+            if (request.method, url.hostname, url.path) == ('GET', 'api.github.com', '/user'):
+                return response(200, b'{"login": "migurski", "avatar_url": "http://example.com/cat.gif", "organizations_url": "https://api.github.com/users/migurski/orgs"}', headers={'Content-Type': 'application/json'})
+            if (request.method, url.hostname, url.path) == ('GET', 'api.github.com', '/users/migurski/orgs'):
+                return response(200, b'[{"login": "openaddresses", "id": 6895392}]', headers={'Content-Type': 'application/json'})
+            raise Exception()
+
+        with HTTMock(response_content_user):
+            got3 = client.get('/upload-cache')
+            self.assertEqual(got3.status_code, 200)
+            self.assertIn(b'<form action="/auth/logout" method="post">', got3.data)
+            self.assertIn(b'<img src="http://example.com/cat.gif">', got3.data)
+            self.assertIn(b'<button>LOG OUT migurski</button>', got3.data)
+            self.assertIn(b'<input type="hidden" name="AWSAccessKeyId" value="12345">', got3.data)
+
+        del os.environ['GITHUB_TOKEN']
+        del os.environ['DATABASE_URL']
+        del os.environ['WEBHOOK_SECRETS']
+        del os.environ['AWS_ACCESS_KEY_ID']
+        del os.environ['AWS_SECRET_ACCESS_KEY']
+        del os.environ['GITHUB_SECRET']
+        reset_logger()
 
 class TestHook (unittest.TestCase):
 
