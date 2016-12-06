@@ -373,7 +373,7 @@ def apply_webhooks_blueprint(app):
         app.jinja_env.filters['breakstate'] = break_state
         app.jinja_env.filters['nice_size'] = nice_size
 
-        setup_logger(os.environ.get('AWS_ACCESS_KEY_ID'),
-                     os.environ.get('AWS_SECRET_ACCESS_KEY'),
+        setup_logger(None,
+                     None,
                      os.environ.get('AWS_SNS_ARN'),
                      flask_log_level(app.config))

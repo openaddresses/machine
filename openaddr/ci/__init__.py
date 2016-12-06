@@ -42,7 +42,7 @@ def load_config():
     
     secrets_string = os.environ.get('WEBHOOK_SECRETS', u'').encode('utf8')
     webhook_secrets = secrets_string.split(b',') if secrets_string else []
-    aws = connect_sns()
+    aws = connect_sns() # Not for actual use, just needed for AWS key and secret
 
     return dict(GAG_GITHUB_STATUS=truthy(os.environ.get('GAG_GITHUB_STATUS', '')),
                 GITHUB_AUTH=(os.environ['GITHUB_TOKEN'], 'x-oauth-basic'),
