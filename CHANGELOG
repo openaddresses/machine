@@ -1,3 +1,6 @@
+2016-12-05: 3.12.0
+- Added AWS CloudWatch namespace configuration instead of hard-coded value.
+
 2016-12-05: 3.11.4
 - Changed openaddr-enqueue-sources and openaddr-update-dotmap to use IAM roles.
 
