@@ -35,9 +35,10 @@ function shutdown_with_log
 # (Re)install machine.
 cd /home/ubuntu/machine
 sudo -u ubuntu git fetch origin {version}
-sudo -u ubuntu git rebase FETCH_HEAD
+sudo -u ubuntu git checkout {version}
 
-apt-get update -y
+chef/run.sh prereqs
+aws s3 cp s3://{bucket}/config/databag-3.json chef/data/local.json
 chef/run.sh {role}
 
 # Run the actual command

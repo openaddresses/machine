@@ -83,12 +83,9 @@ CREATE TABLE zips
 CREATE INDEX runs_set_ids ON runs (set_id);
 CREATE INDEX runs_source_paths ON runs (source_path);
 
-CREATE TYPE heartbeat_kind AS ENUM ('permanent', 'temporary');
-
 CREATE TABLE heartbeats
 (
     worker_id       VARCHAR(32) NOT NULL,
-    worker_kind     heartbeat_kind,
     datetime        TIMESTAMP WITH TIME ZONE
 );
 
