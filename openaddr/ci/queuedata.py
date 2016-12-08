@@ -57,8 +57,8 @@ class Done:
 
 class Heartbeat:
 
-    def __init__(self, worker_id, worker_kind):
-        self.worker_id, self.worker_kind = worker_id, worker_kind
+    def __init__(self, worker_id):
+        self.worker_id = worker_id
     
     def asdata(self):
-        return dict(worker_id=self.worker_id, worker_kind=self.worker_kind)
+        return dict(worker_id=self.worker_id)

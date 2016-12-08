@@ -72,9 +72,6 @@ GITHUB_RETRY_DELAY = timedelta(seconds=5)
 # Time to wait between heartbeat pings from workers.
 HEARTBEAT_INTERVAL = timedelta(minutes=5)
 
-# Valid worker kinds for heartbeats table.
-PERMANENT_KIND, TEMPORARY_KIND = 'permanent', 'temporary'
-
 # Regexp for a PR comment that requests a re-run.
 RETEST_COMMENT_PAT = re.compile(r'^re-?run this,? please\b', re.IGNORECASE|re.MULTILINE)
 
@@ -881,7 +878,7 @@ def is_merged_to_master(db, set_id, job_id, commit_sha, github_auth):
 def _worker_id():
     return hex(getnode()).rstrip('L')
 
-def _wait_for_work_lock(lock, heartbeat_queue, worker_kind):
+def _wait_for_work_lock(lock, heartbeat_queue):
     ''' Wait around for worker while sending heartbeat pings.
     '''
     next_put = time()
@@ -895,12 +892,12 @@ def _wait_for_work_lock(lock, heartbeat_queue, worker_kind):
         
         if time() > next_put:
             # Keep this .enqueue() outside the lock, so threads don't confuse Postgres.
-            beatdata = queuedata.Heartbeat(_worker_id(), worker_kind)
+            beatdata = queuedata.Heartbeat(_worker_id())
             heartbeat_queue.put(beatdata.asdata())
             next_put += HEARTBEAT_INTERVAL.seconds + HEARTBEAT_INTERVAL.days * 86400
 
 def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue,
-                            output_dir, worker_kind, mapzen_key):
+                            output_dir, mapzen_key):
     '''
     '''
     with task_queue as db:
@@ -948,11 +945,11 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
     else:
         # Run the task.
         work_lock = threading.Lock()
-        work_args = work_lock, heartbeat_queue, worker_kind
+        work_args = work_lock, heartbeat_queue
         work_wait = threading.Thread(target=_wait_for_work_lock, args=work_args)
 
         with work_lock:
-            beatdata = queuedata.Heartbeat(_worker_id(), worker_kind)
+            beatdata = queuedata.Heartbeat(_worker_id())
             heartbeat_queue.put(beatdata.asdata())
             work_wait.start()
 
@@ -1056,30 +1053,27 @@ def flush_heartbeat_queue(queue):
                 break
 
             beatdata = queuedata.Heartbeat(**task.data)
-            w_id, w_kind = beatdata.worker_id, beatdata.worker_kind
-            _L.info('Got heartbeat {}: {} ({})'.format(task.id, w_id, w_kind))
+            _L.info('Got heartbeat {}: {}'.format(task.id, beatdata.worker_id))
             
             db.execute('''DELETE FROM heartbeats
-                          WHERE worker_id = %s
-                            AND ((worker_kind IS NULL AND %s IS NULL)
-                                 OR worker_kind = %s)''',
-                       (w_id, w_kind, w_kind))
+                          WHERE worker_id = %s''',
+                       (beatdata.worker_id, ))
             
-            db.execute('''INSERT INTO heartbeats (worker_id, worker_kind, datetime)
-                          VALUES (%s, %s, NOW())''',
-                       (w_id, w_kind))
+            db.execute('''INSERT INTO heartbeats (worker_id, datetime)
+                          VALUES (%s, NOW())''',
+                       (beatdata.worker_id, ))
 
 def get_recent_workers(db):
     '''
     '''
-    recent_workers = {PERMANENT_KIND: [], TEMPORARY_KIND: [], None: []}
+    recent_workers = list()
     
-    db.execute('''SELECT worker_kind, worker_id
+    db.execute('''SELECT worker_id
                   FROM heartbeats WHERE datetime >= NOW() - INTERVAL %s''',
                (HEARTBEAT_INTERVAL * 3, ))
 
-    for (kind, id) in db.fetchall():
-        recent_workers[kind].append(id)
+    for (id, ) in db.fetchall():
+        recent_workers.append(id)
     
     return recent_workers
 

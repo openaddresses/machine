@@ -39,8 +39,7 @@ def main():
 
                 # Report basic information about current status.
                 with beat_Q as db:
-                    recent_workers = get_recent_workers(db)
-                    workers_n = sum(map(len, recent_workers.values()))
+                    workers_n = len(get_recent_workers(db))
                 
                 task_n, done_n, due_n = map(len, (task_Q, done_Q, due_Q))
                 _L.info('{workers_n} active workers; queue lengths: {task_n} tasks, {done_n} done, {due_n} due'.format(**locals()))

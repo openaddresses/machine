@@ -11,7 +11,6 @@ aws_secret_key = local['aws_secret_key']
 aws_s3_bucket = local['aws_s3_bucket']
 aws_sns_arn = local['aws_sns_arn']
 
-worker_kind = local['worker_kind']
 gag_github_status = local['gag_github_status']
 database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=require"
 web_docroot = local['web_docroot']
@@ -78,7 +77,6 @@ AWS_SECRET_ACCESS_KEY=#{aws_secret_key}
 AWS_SNS_ARN=#{aws_sns_arn}
 AWS_S3_BUCKET=#{aws_s3_bucket}
 MAPZEN_KEY=#{mapzen_key}
-WORKER_KIND=#{worker_kind}
 LC_ALL=C.UTF-8
 CONF
 end
