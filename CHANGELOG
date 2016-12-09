@@ -1,3 +1,6 @@
+2016-12-09: 3.13.1
+- Fixed openaddr-enqueue-sources crontab entry.
+
 2016-12-09: 3.13.0
 - Renamed pre-release U.S. street number/name expansion functions.
 

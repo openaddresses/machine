@@ -136,7 +136,7 @@ file "/etc/cron.d/openaddr_crontab-enqueue-sources" do
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 LC_ALL=C.UTF-8
 # Enqueue sources, Fridays 11pm UTC (4pm PDT)
-0 23	* * fri	#{username}	( \
+0 23	* * fri	#{username}	\
   openaddr-run-ec2-command \
   --hours 60 \
   --instance-type t2.nano \
