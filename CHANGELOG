@@ -1,3 +1,6 @@
+2016-12-09: 3.12.3
+- Fixed EC2 task user data git checkout.
+
 2016-12-08: 3.12.2
 - Moved openaddr /tmp cleanup cron to account role.
 
