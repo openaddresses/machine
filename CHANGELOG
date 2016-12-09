@@ -1,3 +1,6 @@
+2016-12-08: 3.12.2
+- Moved openaddr /tmp cleanup cron to account role.
+
 2016-12-08: 3.12.1
 - Switched to S3 data bag for task instances.
 - Removed queuedata.Heartbeat.worker_kind.

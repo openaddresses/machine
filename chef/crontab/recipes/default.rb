@@ -158,12 +158,3 @@ LC_ALL=C.UTF-8
   >> /var/log/openaddr_crontab/enqueue-sources.log 2>&1
 CRONTAB
 end
-
-file "/etc/cron.d/openaddr_crontab-cleanup-tempdir" do
-    content <<-CRONTAB
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-
-# Clean up week-old contents of /tmp
-0 0	* * *	#{username}	find /tmp -depth -user #{username} -mtime +7 -delete
-CRONTAB
-end
