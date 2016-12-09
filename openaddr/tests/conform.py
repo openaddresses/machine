@@ -16,7 +16,7 @@ from ..conform import (
     csv_source_to_csv, find_source_path, row_transform_and_convert,
     row_fxn_regexp, row_smash_case, row_round_lat_lon, row_merge,
     row_extract_and_reproject, row_convert_to_out, row_fxn_join, row_fxn_format,
-    row_fxn_prefix_number, row_fxn_prefix_street,
+    row_fxn_prefixed_number, row_fxn_postfixed_street,
     row_canonicalize_unit_and_number, conform_smash_case, conform_cli,
     csvopen, csvDictReader, convert_regexp_replace, conform_license,
     conform_attribution, conform_sharealike, normalize_ogr_filename_case,
@@ -275,15 +275,15 @@ class TestConformTransforms (unittest.TestCase):
         r = row_extract_and_reproject(d, {"LONG_WGS84": "-21,77", "LAT_WGS84": "64,11"})
         self.assertEqual({Y_FIELDNAME: "64.11", X_FIELDNAME: "-21.77"}, r)
 
-    def test_row_fxn_prefix_number_and_street(self):
-        "Regex prefix_number and prefix_street - both fields present"
+    def test_row_fxn_prefixed_number_and_postfixed_street(self):
+        "Regex prefixed_number and postfix_street - both fields present"
         c = { "conform": {
             "number": {
-                "function": "prefix_number",
+                "function": "prefixed_number",
                 "field": "ADDRESS"
             },
             "street": {
-                "function": "prefix_street",
+                "function": "postfixed_street",
                 "field": "ADDRESS"
             }
         } }
@@ -291,18 +291,18 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123", "OA:street": "MAPLE ST" })
 
-        d = row_fxn_prefix_number(c, d, "number")
-        d = row_fxn_prefix_street(c, d, "street")
+        d = row_fxn_prefixed_number(c, d, "number")
+        d = row_fxn_postfixed_street(c, d, "street")
         self.assertEqual(e, d)
 
-        "Regex prefix_number and prefix_street - no number"
+        "Regex prefixed_number and postfixed_street - no number"
         c = { "conform": {
             "number": {
-                "function": "prefix_number",
+                "function": "prefixed_number",
                 "field": "ADDRESS"
             },
             "street": {
-                "function": "prefix_street",
+                "function": "postfixed_street",
                 "field": "ADDRESS"
             }
         } }
@@ -310,18 +310,18 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "", "OA:street": "MAPLE ST" })
 
-        d = row_fxn_prefix_number(c, d, "number")
-        d = row_fxn_prefix_street(c, d, "street")
+        d = row_fxn_prefixed_number(c, d, "number")
+        d = row_fxn_postfixed_street(c, d, "street")
         self.assertEqual(e, d)
 
-        "Regex prefix_number and prefix_street - empty input"
+        "Regex prefixed_number and postfixed_street - empty input"
         c = { "conform": {
             "number": {
-                "function": "prefix_number",
+                "function": "prefixed_number",
                 "field": "ADDRESS"
             },
             "street": {
-                "function": "prefix_street",
+                "function": "postfixed_street",
                 "field": "ADDRESS"
             }
         } }
@@ -329,18 +329,18 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "", "OA:street": "" })
 
-        d = row_fxn_prefix_number(c, d, "number")
-        d = row_fxn_prefix_street(c, d, "street")
+        d = row_fxn_prefixed_number(c, d, "number")
+        d = row_fxn_postfixed_street(c, d, "street")
         self.assertEqual(e, d)
 
-        "Regex prefix_number and prefix_street - no spaces after number"
+        "Regex prefixed_number and postfixed_street - no spaces after number"
         c = { "conform": {
             "number": {
-                "function": "prefix_number",
+                "function": "prefixed_number",
                 "field": "ADDRESS"
             },
             "street": {
-                "function": "prefix_street",
+                "function": "postfixed_street",
                 "field": "ADDRESS"
             }
         } }
@@ -348,18 +348,18 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "", "OA:street": "123MAPLE ST" })
 
-        d = row_fxn_prefix_number(c, d, "number")
-        d = row_fxn_prefix_street(c, d, "street")
+        d = row_fxn_prefixed_number(c, d, "number")
+        d = row_fxn_postfixed_street(c, d, "street")
         self.assertEqual(e, d)
 
-        "Regex prefix_number and prefix_street - excess whitespace"
+        "Regex prefixed_number and postfixed_street - excess whitespace"
         c = { "conform": {
             "number": {
-                "function": "prefix_number",
+                "function": "prefixed_number",
                 "field": "ADDRESS"
             },
             "street": {
-                "function": "prefix_street",
+                "function": "postfixed_street",
                 "field": "ADDRESS"
             }
         } }
@@ -367,8 +367,8 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123", "OA:street": "MAPLE ST" })
 
-        d = row_fxn_prefix_number(c, d, "number")
-        d = row_fxn_prefix_street(c, d, "street")
+        d = row_fxn_prefixed_number(c, d, "number")
+        d = row_fxn_postfixed_street(c, d, "street")
         self.assertEqual(e, d)
 
 class TestConformCli (unittest.TestCase):

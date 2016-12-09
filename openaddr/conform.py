@@ -82,8 +82,8 @@ geometry_types = {
     ogr.wkbUnknown: 'Unknown'
     }
 
-prefix_number_pattern = re.compile("^\s*([0-9]+)\s+", False)
-prefix_street_pattern = re.compile("^(?:\s*[0-9]+\s+)?(.*)", False)
+prefixed_number_pattern = re.compile("^\s*([0-9]+)\s+", False)
+postfixed_street_pattern = re.compile("^(?:\s*[0-9]+\s+)?(.*)", False)
 
 def mkdirsp(path):
     try:
@@ -878,10 +878,10 @@ def row_transform_and_convert(sd, row):
                 row = row_fxn_regexp(sd, row, k)
             elif c[k]["function"] == "format":
                 row = row_fxn_format(sd, row, k)
-            elif c[k]["function"] == "prefix_number":
-                row = row_fxn_prefix_number(sd, row, k)
-            elif c[k]["function"] == "prefix_street":
-                row = row_fxn_prefix_street(sd, row, k)
+            elif c[k]["function"] == "prefixed_number":
+                row = row_fxn_prefixed_number(sd, row, k)
+            elif c[k]["function"] == "postfixed_street":
+                row = row_fxn_postfixed_street(sd, row, k)
 
     if "advanced_merge" in c:
         raise ValueError('Found unsupported "advanced_merge" option in conform')
@@ -951,20 +951,20 @@ def row_fxn_regexp(sd, row, key):
         row[attrib_types[key]] = ''.join(match.groups()) if match else '';
     return row
 
-def row_fxn_prefix_number(sd, row, key):
+def row_fxn_prefixed_number(sd, row, key):
     "Extract '123' from '123 Maple St'"
     fxn = sd["conform"][key]
 
-    match = prefix_number_pattern.search(row[fxn["field"]])
+    match = prefixed_number_pattern.search(row[fxn["field"]])
     row[attrib_types[key]] = ''.join(match.groups()) if match else '';
 
     return row
 
-def row_fxn_prefix_street(sd, row, key):
+def row_fxn_postfixed_street(sd, row, key):
     "Extract 'Maple St' from '123 Maple St'"
     fxn = sd["conform"][key]
 
-    match = prefix_street_pattern.search(row[fxn["field"]])
+    match = postfixed_street_pattern.search(row[fxn["field"]])
     row[attrib_types[key]] = ''.join(match.groups()) if match else '';
 
     return row
