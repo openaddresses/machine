@@ -1,0 +1,235 @@
+<html lang='en'>
+<head>
+<script src='https://d3js.org/d3.v3.min.js' charset='utf-8'></script>
+<link rel="stylesheet" href="/static/writ.css">
+<style>
+
+/* SVG styles for graph */
+.axis path, .axis line { fill: none; stroke: #000; shape-rendering: crispEdges; }
+.line { fill: none; stroke: #000; stroke-width: 2.5px; }
+.bar rect { fill: #000; shape-rendering: crispEdges; }
+.bar text { fill: #fff; font-size: 10px; }
+
+/* Inline HTML styles */
+
+td, th { border: none }
+
+/* Inline style lifted from http://results.openaddresses.io/index.html */
+body
+{
+    margin-bottom: 2em;
+    font-size: 1em;
+}
+
+body>*, main>*, footer>*
+{
+    margin: 1em auto;
+    width: 960px;
+}
+
+body>p, main>p, footer>p { line-height: 1.5em }
+
+tr:nth-child(2n+1) td { background-color: #f8f8f8 }
+tr:nth-child(2n+2) td { background-color: #ffffff }
+
+</style> </head>
+<body>
+
+<h1>Summary Statistics</h1>
+
+<h2>Address Count</h2>
+<div id='addresses'></div>
+
+<h2>Successful Sources</h2>
+<div id='sources'></div>
+
+<h2>Average Cache Time</h2>
+<div id='cache'></div>
+
+<h2>Average Process Time</h2>
+<div id='process'></div>
+
+<h1>Details for last run on <span id="lastRun"></span></h1>
+
+<h2>Address counts per source</h2>
+<div id='addressesHistogram'></div>
+
+<h2>Cache time per source</h2>
+<div id='cacheHistogram'></div>
+
+<h2>Process time per source</h2>
+<div id='processHistogram'></div>
+
+<h2>Lost sources</h2>
+<div id='lostStats'></div>
+<div id='lostTable'></div>
+
+
+<script>
+var dateFormatter = d3.time.format.utc('%Y-%m-%d');
+// var dateFormatter = d3.time.format.utc('%A, %b %d, %Y');
+
+/* Create a D3 time series graph.
+ * elem: the D3/DOM container for the graph. An SVG element will be added.
+ * data: an array. Each element is an object with a property "ts" (millseconds-since-epoch) and other data
+ * accessor: a function that given a data element, returns the value to be graphed
+ * xRange: [minX, maxX]
+ * yRange: [minY, maxY]
+ */
+function graphTimeSeries(elem, data, accessor, xRange, yRange) {
+    var margin = {top: 20, right: 20, bottom: 30, left: 100},
+        width = 960 - margin.left - margin.right,
+        height = 300 - margin.top - margin.bottom;
+
+    var x = d3.time.scale().range([0, width]);
+    var y = d3.scale.linear().range([height, 0]);
+    var xAxis = d3.svg.axis().scale(x).orient("bottom").ticks(5);
+    var yAxis = d3.svg.axis().scale(y).orient("left").ticks(5);
+    var line = d3.svg.line()
+                   .x(function(d) { return x(d.ts); })
+                   .y(function(d) { return y(accessor(d)); });
+
+    var svg = elem.append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    x.domain(xRange);
+    y.domain(yRange);
+
+    svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis);
+
+    svg.append("g")
+        .attr("class", "y axis")
+        .call(yAxis);
+
+    svg.append("path")
+        .datum(data)
+        .attr("class", "line")
+        .attr("d", line);
+}
+
+/* Create a D3 histogram bar chart.
+ * elem: the D3/DOM container for the graph. An SVG element will be added.
+ * data: an array of numbers
+ * valueExtent: histogram will be clamped to this range.
+ */
+function graphHistogram(elem, values, valueExtent) {
+    var numBins = 21;
+    var formatCount = d3.format(",.0f");
+
+    if (valueExtent == null) {
+        valueExtent = d3.extent(values);
+    }
+
+    var margin = {top: 10, right: 30, bottom: 30, left: 30},
+        width = 960 - margin.left - margin.right,
+        height = 300 - margin.top - margin.bottom;
+
+    // values = values.map(function(d) { return d > 0 ? Math.log10(d) : 0 });
+    var x = d3.scale.linear().domain(valueExtent).range([0, width]).clamp(true);
+    var barData = d3.layout.histogram().bins(x.ticks(numBins))(values);
+    var maxY = d3.max(barData, function(d) { return d.y; });
+    var y = d3.scale.linear().domain([0, maxY]).range([height, 0]);
+
+    var xAxis = d3.svg.axis().scale(x).orient("bottom").ticks(7);
+
+    var svg = elem.append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    var bar = svg.selectAll(".bar")
+        .data(barData)
+      .enter().append("g")
+        .attr("class", "bar")
+        .attr("transform", function(d) { return "translate(" + x(d.x) + "," + y(d.y) + ")"; });
+
+    bar.append("rect")
+        .attr("x", 1)
+        .attr("width", x(barData[0].dx) - 1)
+        .attr("height", function(d) { return height - y(d.y); });
+
+    bar.append("text")
+        .attr("dy", ".75em")
+        .attr("y", 6)
+        .attr("x", x(barData[0].dx) / 2)
+        .attr("text-anchor", "middle")
+        .text(function(d) { return (height-y(d.y)) > 20 ? formatCount(d.y) : "" });
+
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis);
+}
+
+/* Create some textual stats about lost sources */
+function addLostStats(data) {
+    var div = d3.select('#lostStats');
+    var sourceCount = data.rows.length;
+    var addressCount = d3.sum(data.rows, function(d) { return d[1]; });
+    addressCount = addressCount.toLocaleString();
+    div.html('' + sourceCount + ' previously working sources failed to process on the last run.<br>' +
+             addressCount + ' addresses in total were lost.');
+}
+
+/* Create a table display for a CSV-like data structure
+ * dataTable: object containing two fields: 'headers' and 'rows'
+ */
+function addLostTable(data) {
+    elem = d3.select('#lostTable');
+
+    var headers = data.headers;
+    var rows = data.rows.map(function(row) {
+                 return [row[0].replace('.json', ''),
+                         row[1].toLocaleString(),
+                         dateFormatter(new Date(row[2]*1000))
+                        ];});
+
+    var table = elem.append('table');
+
+    // Table headers
+    table.append('thead').append('tr').selectAll('th')
+      .data(headers).enter()
+        .append('th').text(Object)
+                     .style('text-align', function(d, i) { return i == 0 ? 'left' : 'right' });
+
+    // Table data rows
+    var tr = table.append('tbody').selectAll('tr')
+      .data(rows).enter()
+        .append('tr');
+
+    // Table data values
+    tr.selectAll('td')
+      .data(Object).enter()
+        .append('td').text(Object)
+                     .style('text-align', function(d, i) { return i == 0 ? 'left' : 'right' });
+}
+
+// Main script. Load the data and graph it.
+
+d3.json('https://s3.amazonaws.com/data.openaddresses.io/machine-stats.json', function(error, data) {
+    var timeseries = data['timeseries'];
+    var dateRange = d3.extent(timeseries, function(d) { return d.ts; });
+
+    graphTimeSeries(d3.select("#addresses"), timeseries, function(d) { return d.addresses; }, dateRange, [60000000, 300000000]);
+    graphTimeSeries(d3.select('#sources'), timeseries, function(d) { return d.successful_sources; }, dateRange, [400, 1500]);
+    graphTimeSeries(d3.select('#cache'), timeseries, function(d) { return d.average_cache_time; }, dateRange, [0, 200]);
+    graphTimeSeries(d3.select('#process'), timeseries, function(d) { return d.average_process_time; }, dateRange, [0, 400]);
+
+    graphHistogram(d3.select('#addressesHistogram'), data['last_address_counts'], [0, 200000])
+    graphHistogram(d3.select('#cacheHistogram'), data['last_cache_times'], [0, 600])
+    graphHistogram(d3.select('#processHistogram'), data['last_process_times'], [0, 600])
+
+    d3.select('#lastRun').text(dateFormatter(new Date(dateRange[1])));
+    addLostStats(data['lost_sources']);
+    addLostTable(data['lost_sources']);
+});
+</script>
+</body>
+</html>
