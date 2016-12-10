@@ -2,12 +2,10 @@
 
 "Python script to pull stats about OpenAddresses runs from the database and convert to JSON"
 
-import psycopg2, json, os, sys
+import json, os, sys
 
-def make_stats(db_connect_string):
+def make_stats(cur):
     "Connect to the database and extract stats data, transforming into a JSON-friendly object"
-    db = psycopg2.connect(db_connect_string)
-    cur = db.cursor()
 
     ### JSON output data object
     data = {
