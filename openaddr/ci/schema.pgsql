@@ -8,7 +8,6 @@ DROP TABLE IF EXISTS jobs;
 DROP TABLE IF EXISTS heartbeats;
 DROP TYPE IF EXISTS zip_collection;
 DROP TYPE IF EXISTS zip_licensing;
-DROP TYPE IF EXISTS heartbeat_kind;
 DROP SEQUENCE IF EXISTS ints;
 
 CREATE SEQUENCE ints;
