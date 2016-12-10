@@ -282,6 +282,11 @@ def app_get_source_history(source):
     
     return render_template('source.html', runs=runs, run=run, source_data=source_data)
 
+@webhooks.route('/dashboard', methods=['GET'])
+@log_application_errors
+def app_get_dashboard():
+    return render_template('dashboard.html')
+
 def nice_timedelta(delta):
     '''
     >>> nice_timedelta(timedelta(days=2))
