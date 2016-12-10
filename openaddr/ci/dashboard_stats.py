@@ -2,12 +2,11 @@
 
 "Python script to pull stats about OpenAddresses runs from the database and convert to JSON"
 
-import psycopg2, json, os, sys
+import json, os, sys
+from .. import util
 
-def make_stats(db_connect_string):
+def make_stats(cur):
     "Connect to the database and extract stats data, transforming into a JSON-friendly object"
-    db = psycopg2.connect(db_connect_string)
-    cur = db.cursor()
 
     ### JSON output data object
     data = {
@@ -86,6 +85,13 @@ def make_stats(db_connect_string):
         data['lost_sources']['rows'].append((source, address_count, ts))
 
     return data
+
+def upload_stats(s3, data):
+    stats_key = s3.new_key('machine-stats.json')
+    stats_key.set_contents_from_string(json.dumps(data),
+        policy='public-read', headers={'Content-Type': 'application/json'})
+
+    return util.s3_key_url(stats_key)
 
 if __name__ == '__main__':
     data = make_stats(sys.argv[1])
