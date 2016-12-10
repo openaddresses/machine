@@ -1,3 +1,6 @@
+2016-12-10: 3.13.2
+- Started adding static dashboard code.
+
 2016-12-09: 3.13.1
 - Fixed openaddr-enqueue-sources crontab entry.
 
