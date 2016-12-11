@@ -50,8 +50,6 @@ def load_config():
                 GITHUB_OAUTH_CALLBACK=os.environ.get('GITHUB_CALLBACK'),
                 MEMCACHE_SERVER=os.environ.get('MEMCACHE_SERVER'),
                 DATABASE_URL=os.environ['DATABASE_URL'],
-                AWS_ACCESS_KEY_ID=os.environ['AWS_ACCESS_KEY_ID'],
-                AWS_SECRET_ACCESS_KEY=os.environ['AWS_SECRET_ACCESS_KEY'],
                 AWS_S3_BUCKET=os.environ.get('AWS_S3_BUCKET', 'data.openaddresses.io'),
                 WEBHOOK_SECRETS=webhook_secrets)
 

@@ -6,8 +6,6 @@ db_user = local['db_user']
 db_pass = local['db_pass']
 db_host = local['db_host']
 db_name = local['db_name']
-aws_access_id = local['aws_access_id']
-aws_secret_key = local['aws_secret_key']
 aws_s3_bucket = local['aws_s3_bucket']
 aws_sns_arn = local['aws_sns_arn']
 aws_cloudwatch_ns = local['aws_cloudwatch_ns']
@@ -66,8 +64,6 @@ LC_ALL=C.UTF-8
 # Archive collection, every other day at 11am UTC (4am PDT)
 0 11	*/2 * *	#{username}	\
   openaddr-run-ec2-command \
-  -a "#{aws_access_id}" \
-  -s "#{aws_secret_key}" \
   -b "#{aws_s3_bucket}" \
   --sns-arn "#{aws_sns_arn}" \
   --slack-url "#{slack_url}" \
@@ -90,8 +86,6 @@ LC_ALL=C.UTF-8
 0 11	*/3 * *	#{username}	\
   openaddr-run-ec2-command \
   --hours 9 \
-  -a "#{aws_access_id}" \
-  -s "#{aws_secret_key}" \
   -b "#{aws_s3_bucket}" \
   --sns-arn "#{aws_sns_arn}" \
   --slack-url "#{slack_url}" \
@@ -116,8 +110,6 @@ LC_ALL=C.UTF-8
   --role dotmap \
   --hours 16 \
   --instance-type r3.large \
-  -a "#{aws_access_id}" \
-  -s "#{aws_secret_key}" \
   -b "#{aws_s3_bucket}" \
   --sns-arn "#{aws_sns_arn}" \
   --slack-url "#{slack_url}" \
@@ -140,8 +132,6 @@ LC_ALL=C.UTF-8
   openaddr-run-ec2-command \
   --hours 60 \
   --instance-type t2.nano \
-  -a "#{aws_access_id}" \
-  -s "#{aws_secret_key}" \
   -b "#{aws_s3_bucket}" \
   --sns-arn "#{aws_sns_arn}" \
   --slack-url "#{slack_url}" \
@@ -150,8 +140,6 @@ LC_ALL=C.UTF-8
     openaddr-enqueue-sources \
     -d "#{database_url}" \
     -t "#{github_token}" \
-    -a "#{aws_access_id}" \
-    -s "#{aws_secret_key}" \
     -b "#{aws_s3_bucket}" \
     --sns-arn "#{aws_sns_arn}" \
     --cloudwatch-ns "#{aws_cloudwatch_ns}" \

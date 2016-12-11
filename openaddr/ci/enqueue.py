@@ -82,8 +82,7 @@ def main():
             for expected_count in enqueue_sources(task_Q, new_set, sources):
                 if time() >= next_queue_report:
                     next_queue_report, n = time() + next_queue_interval, len(task_Q)
-                    args = n, 's' if n != 1 else '', expected_count
-                    _L.debug('Task queue has {} item{}, {} sources expected'.format(*args))
+                    _L.debug('Task queue has {} item{}, {} sources expected'.format(n, 's' if n != 1 else '', expected_count))
                 try:
                     if time() >= next_autoscale_grow:
                         next_autoscale_grow = time() + next_autoscale_interval

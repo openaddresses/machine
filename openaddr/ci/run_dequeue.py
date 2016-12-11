@@ -13,11 +13,11 @@ from . import (
 def main():
     '''
     '''
-    setup_logger(environ.get('AWS_ACCESS_KEY_ID'), environ.get('AWS_SECRET_ACCESS_KEY'), environ.get('AWS_SNS_ARN'))
+    setup_logger(None, None, environ.get('AWS_SNS_ARN'))
     config = load_config()
     checkin_time = time()
     try:
-        # Rely on boto AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY variables.
+        # Rely on boto environment.
         cw = connect_cloudwatch()
     except:
         cw = False

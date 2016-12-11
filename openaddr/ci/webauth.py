@@ -13,7 +13,7 @@ from flask import (
     )
 
 from itsdangerous import URLSafeSerializer
-import requests, uritemplate
+import requests, uritemplate, boto
 
 from .. import compat
 from . import setup_logger
@@ -113,7 +113,7 @@ def update_authentication(untouched_route):
     
     return wrapper
 
-def s3_upload_form_fields(expires, bucketname, subdir, redirect_url, aws_secret):
+def s3_upload_form_fields(expires, bucketname, subdir, redirect_url, s3):
     '''
     '''
     policy = {
@@ -127,16 +127,25 @@ def s3_upload_form_fields(expires, bucketname, subdir, redirect_url, aws_secret)
         ]
         }
     
+    if s3.provider.security_token:
+        policy['conditions'].append({'x-amz-security-token': s3.provider.security_token})
+    
     policy_b64 = b64encode(json.dumps(policy).encode('utf8'))
-    signature = hmac.new(aws_secret.encode('utf8'), policy_b64, hashlib.sha1)
+    signature = hmac.new(s3.secret_key.encode('utf8'), policy_b64, hashlib.sha1)
     signature_b64 = b64encode(signature.digest())
     
-    return dict(
+    fields = dict(
         key=policy['conditions'][1][2] + '${filename}',
         acl=policy['conditions'][2]['acl'],
         policy=policy_b64.decode('utf8'),
-        signature=signature_b64.decode('utf8')
+        signature=signature_b64.decode('utf8'),
+        access_key=s3.access_key
         )
+    
+    if s3.provider.security_token:
+        fields['security_token'] = s3.provider.security_token
+    
+    return fields
 
 @webauth.route('/auth')
 @update_authentication
@@ -195,12 +204,11 @@ def app_upload_cache_data():
     expires = datetime.now(tz=tzutc()) + timedelta(minutes=5)
 
     redirect_url = callback_url(request, url_for('webauth.app_upload_cache_data'))
-    bucketname, s3_secret = current_app.config['AWS_S3_BUCKET'], current_app.config['AWS_SECRET_ACCESS_KEY']
-    fields = s3_upload_form_fields(expires, bucketname, subdir, redirect_url, s3_secret)
+    bucketname, s3 = current_app.config['AWS_S3_BUCKET'], boto.connect_s3()
+    fields = s3_upload_form_fields(expires, bucketname, subdir, redirect_url, s3)
     
     fields.update(
         bucket=current_app.config['AWS_S3_BUCKET'],
-        access_key=current_app.config['AWS_ACCESS_KEY_ID'],
         redirect=redirect_url,
         callback=request.args
         )
@@ -218,7 +226,7 @@ def apply_webauth_blueprint(app):
 
     @app.before_first_request
     def app_prepare():
-        setup_logger(os.environ.get('AWS_ACCESS_KEY_ID'),
-                     os.environ.get('AWS_SECRET_ACCESS_KEY'),
+        setup_logger(None,
+                     None,
                      os.environ.get('AWS_SNS_ARN'),
                      flask_log_level(app.config))

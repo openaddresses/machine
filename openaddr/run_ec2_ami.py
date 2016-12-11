@@ -12,11 +12,8 @@ from boto import connect_autoscale, connect_ec2
 
 parser = ArgumentParser(description='Run a process on a remote EC2 instance.')
 
-parser.add_argument('-a', '--access-key', default=environ.get('AWS_ACCESS_KEY_ID', None),
-                    help='Optional AWS access key name. Defaults to value of AWS_ACCESS_KEY_ID environment variable.')
-
-parser.add_argument('-s', '--secret-key', default=environ.get('AWS_SECRET_ACCESS_KEY', None),
-                    help='Optional AWS secret key name. Defaults to value of AWS_SECRET_ACCESS_KEY environment variable.')
+parser.add_argument('-a', '--access-key', help='Deprecated option provided for backwards compatibility.')
+parser.add_argument('-s', '--secret-key', help='Deprecated option provided for backwards compatibility.')
 
 parser.add_argument('-b', '--bucket', default=environ.get('AWS_S3_BUCKET', None),
                     help='S3 bucket name. Defaults to value of AWS_S3_BUCKET environment variable.')
@@ -55,8 +52,8 @@ def main():
     setup_logger(args.access_key, args.secret_key, args.sns_arn, log_level=args.loglevel)
 
     try:
-        ec2 = connect_ec2(args.access_key, args.secret_key)
-        autoscale = connect_autoscale(args.access_key, args.secret_key)
+        ec2 = connect_ec2(None, None)
+        autoscale = connect_autoscale(None, None)
         instance = request_task_instance(ec2, autoscale, args.instance_type,
                                          args.role, lifespan, args.command,
                                          args.bucket, args.slack_url)

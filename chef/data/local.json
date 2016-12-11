@@ -9,8 +9,6 @@
 
     "memcache_server": "127.0.0.1:11211",
 
-    "aws_access_id": "{Amazon Access Key ID}",
-    "aws_secret_key": "{Amazon Secret Access Key}",
     "aws_sns_arn": "{Amazon SNS Subscription ID}",
     "aws_s3_bucket": "{Amazon S3 Bucket Name}",
     "aws_cloudwatch_ns": "{Amazon Cloudwatch Namespace}",
