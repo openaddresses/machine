@@ -13,14 +13,57 @@ You can edit a local copy of OpenAddresses code with working tests by installing
 5.  Clone [OpenAddresses Machine code](https://github.com/openaddresses/machine) from Github.
 6.  From inside the new `machine` directory, install the code for local development. This might take a few minutes the first time. `chef/run.sh` is safe to run multiple times:
     
-        sudo add-apt-repository -y ppa:openaddresses/ci
-        sudo apt-get update -y
         sudo chef/run.sh localdev
+    
 7.  Run the complete test suite to verify that it works:
     
         python3 test.py
 
 You should now be able to make changes and test them. Be sure to use `pip3` and `python3` when running, or [set up an optional quick local virtual environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/) with Python 3.
+
+Running A First Set
+-------------------
+
+After installing the `localdev` chef role and running tests, a new local
+`openaddr` Postgres database will exist with this connection string:
+
+    postgres://openaddr:openaddr@localhost/openaddr
+
+AWS creds http://boto.cloudhackers.com/en/latest/boto_config_tut.html
+bucket http://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html
+github token https://help.github.com/articles/creating-an-access-token-for-command-line-use/
+
+    openaddr-enqueue-sources --verbose \
+        --owner openaddresses --repository minimal-test-sources \
+        --database-url {Connection String} \
+        --github-token {Github Token} \
+        --bucket {Amazon S3 Bucket Name}
+
+in another window
+
+    openaddr-ci-worker --verbose \
+        --database-url {Connection String} \
+        --bucket {Amazon S3 Bucket Name}
+
+    env \
+        DATABASE_URL={Connection String} \
+        GITHUB_TOKEN={Github Token} \
+        openaddr-ci-run-dequeue
+
+github oauth client and secret https://developer.github.com/guides/basics-of-authentication/#registering-your-app
+
+    env \
+        DATABASE_URL={Connection String} \
+        GITHUB_CLIENT_ID={Github Client ID} \
+        GITHUB_SECRET={Github Secret} \
+        GITHUB_TOKEN={Github Token} \
+        AWS_S3_BUCKET={Amazon S3 Bucket Name} \
+        python3 run-debug-webhooks.py
+
+    openaddr-collect-extracts --verbose \
+        --owner openaddresses --repository minimal-test-sources \
+        --database-url {Connection String} \
+        --bucket {Amazon S3 Bucket Name}
 
 Production
 ----------
