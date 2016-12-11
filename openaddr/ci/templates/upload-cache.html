@@ -9,6 +9,7 @@
     <input type="hidden" name="success_action_redirect" value="{{ redirect }}">
     <input type="hidden" name="policy" value="{{ policy }}">
     <input type="hidden" name="signature" value="{{ signature }}">
+    {% if security_token %}<input type="hidden" name="x-amz-security-token" value="{{ security_token }}">{% endif %}
     Choose file:
     <input name="file" type="file"> 
     <input type="submit" value="Upload"> 
