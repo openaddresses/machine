@@ -209,7 +209,6 @@ def app_upload_cache_data():
     
     fields.update(
         bucket=current_app.config['AWS_S3_BUCKET'],
-        access_key=current_app.config['AWS_ACCESS_KEY_ID'],
         redirect=redirect_url,
         callback=request.args
         )

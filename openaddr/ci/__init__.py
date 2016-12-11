@@ -42,7 +42,6 @@ def load_config():
     
     secrets_string = os.environ.get('WEBHOOK_SECRETS', u'').encode('utf8')
     webhook_secrets = secrets_string.split(b',') if secrets_string else []
-    aws = connect_sns() # Not for actual use, just needed for AWS key and secret
 
     return dict(GAG_GITHUB_STATUS=truthy(os.environ.get('GAG_GITHUB_STATUS', '')),
                 GITHUB_AUTH=(os.environ['GITHUB_TOKEN'], 'x-oauth-basic'),
@@ -51,8 +50,6 @@ def load_config():
                 GITHUB_OAUTH_CALLBACK=os.environ.get('GITHUB_CALLBACK'),
                 MEMCACHE_SERVER=os.environ.get('MEMCACHE_SERVER'),
                 DATABASE_URL=os.environ['DATABASE_URL'],
-                AWS_ACCESS_KEY_ID=aws.access_key,
-                AWS_SECRET_ACCESS_KEY=aws.secret_key,
                 AWS_S3_BUCKET=os.environ.get('AWS_S3_BUCKET', 'data.openaddresses.io'),
                 WEBHOOK_SECRETS=webhook_secrets)
 
