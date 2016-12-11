@@ -1,3 +1,8 @@
+2016-12-11: 3.15.0
+- Added support for IAM Role AWS credentials everywhere.
+- Fixed openaddr-enqueue-sources --cloudwatch-ns arg.
+- Improved installation documentation.
+
 2016-12-10: 3.14.0
 - Added dashboard stats output at s3://bucket/machine-stats.json.
 
