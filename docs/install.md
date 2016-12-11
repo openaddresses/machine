@@ -5,9 +5,11 @@ Local Development
 -----------------
 
 You can edit a local copy of OpenAddresses code with working tests by installing
-everything onto a Virtualbox virtual Ubuntu Linux machine. This process should
-take about 20 minutes depending on download speed, or you can skip the first
-four steps by using a pre-built Ubuntu 14.04 image on Amazon EC2.
+everything onto an Ubuntu Linux virtual machine. We recommend using a dedicated
+virtual machine for development; our Chef script installs servers, packages, and
+other configuration that may disrupt other uses of an Ubuntu machine. This
+process should take about 20 minutes depending on download speed, or you can
+skip the first four steps by using a pre-built Ubuntu 14.04 image on Amazon EC2.
 
 1.  Download and install [VirtualBox](https://www.virtualbox.org/wiki/Downloads) on your development machine.
     
