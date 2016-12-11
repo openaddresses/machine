@@ -4,13 +4,21 @@ Install
 Local Development
 -----------------
 
-You can edit a local copy of OpenAddresses code with working tests by installing everything onto a Virtualbox virtual Ubuntu Linux machine.
+You can edit a local copy of OpenAddresses code with working tests by installing
+everything onto a Virtualbox virtual Ubuntu Linux machine. This process should
+take about 20 minutes depending on download speed, or you can skip the first
+four steps by using a pre-built Ubuntu 14.04 image on Amazon EC2.
 
 1.  Download and install [VirtualBox](https://www.virtualbox.org/wiki/Downloads) on your development machine.
+    
 2.  Download an [Ubuntu 14.04 Trusty server install image](http://releases.ubuntu.com/14.04/). A good choice might be `ubuntu-14.04.4-server-amd64.iso`.
+    
 3.  Create a new virtual machine, and configure its NAT network adapter so you can SSH into the machine [as described in this guide](http://stackoverflow.com/questions/5906441/how-to-ssh-to-a-virtualbox-guest-externally-through-a-host#10532299). Note that you’ll be SSHing into `127.0.0.1`, not the VM’s address.
+    
 4.  Install Ubuntu 14.04 on the new machine, and log in.
+    
 5.  Clone [OpenAddresses Machine code](https://github.com/openaddresses/machine) from Github.
+    
 6.  From inside the new `machine` directory, install the code for local development. This might take a few minutes the first time. `chef/run.sh` is safe to run multiple times:
     
         sudo chef/run.sh localdev
@@ -19,54 +27,70 @@ You can edit a local copy of OpenAddresses code with working tests by installing
     
         python3 test.py
 
-You should now be able to make changes and test them. Be sure to use `pip3` and `python3` when running, or [set up an optional quick local virtual environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/) with Python 3.
+You should now be able to make changes and test them. Be sure to use `pip3` and
+`python3` when running, or [set up an optional quick local virtual environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/)
+with Python 3.
 
 Running A First Set
 -------------------
 
-After installing the `localdev` chef role and running tests, a new local
-`openaddr` Postgres database will exist with this connection string:
+Run a [batch set](processes.md#batch-set) of address data to populate machine
+with sample data. These instruction show how to run a set of small-scale testing
+data from [the repository `openaddresses/minimal-test-sources`](https://github.com/openaddresses/minimal-test-sources).
+This process should take less than 10 minutes.
 
-    postgres://openaddr:openaddr@localhost/openaddr
-
-AWS creds http://boto.cloudhackers.com/en/latest/boto_config_tut.html
-bucket http://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html
-github token https://help.github.com/articles/creating-an-access-token-for-command-line-use/
-
-    openaddr-enqueue-sources --verbose \
-        --owner openaddresses --repository minimal-test-sources \
-        --database-url {Connection String} \
-        --github-token {Github Token} \
-        --bucket {Amazon S3 Bucket Name}
-
-in another window
-
-    openaddr-ci-worker --verbose \
-        --database-url {Connection String} \
-        --bucket {Amazon S3 Bucket Name}
-
-    env \
-        DATABASE_URL={Connection String} \
-        GITHUB_TOKEN={Github Token} \
-        openaddr-ci-run-dequeue
-
-github oauth client and secret https://developer.github.com/guides/basics-of-authentication/#registering-your-app
-
-    env \
-        DATABASE_URL={Connection String} \
-        GITHUB_CLIENT_ID={Github Client ID} \
-        GITHUB_SECRET={Github Secret} \
-        GITHUB_TOKEN={Github Token} \
-        AWS_S3_BUCKET={Amazon S3 Bucket Name} \
-        python3 run-debug-webhooks.py
-
-    openaddr-collect-extracts --verbose \
-        --owner openaddresses --repository minimal-test-sources \
-        --database-url {Connection String} \
-        --bucket {Amazon S3 Bucket Name}
+1.  After installing the `localdev` chef role and running tests, a new local
+    `openaddr` Postgres database will exist with this connection string:
+    
+        postgres://openaddr:openaddr@localhost/openaddr
+    
+    Three other pieces of information are needed:
+    
+    - An empty [Amazon S3 bucket](http://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html) to store data.
+    - Amazon Web Services credentials [stored where `boto` can find them](http://boto.cloudhackers.com/en/latest/boto_config_tut.html).
+    - A [personal access token](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) to access Github’s API.
+    
+2.  In a terminal window, [run `openaddr-enqueue-sources`](components.md#enqueue)
+    with the information above and leave it open and running:
+    
+        openaddr-enqueue-sources --verbose \
+            --owner openaddresses --repository minimal-test-sources \
+            --database-url {Connection String} \
+            --github-token {Github Token} \
+            --bucket {Amazon S3 Bucket Name}
+    
+3.  In a second terminal window, [run a single worker](components.md#worker) to
+    processed the queued sources one after another, then [run the dequeuer](components.md#dequeuer)
+    to pass them back:
+    
+        openaddr-ci-worker --verbose \
+            --database-url {Connection String} \
+            --bucket {Amazon S3 Bucket Name}
+    
+        env DATABASE_URL={Connection String} \
+            GITHUB_TOKEN={Github Token} \
+            openaddr-ci-run-dequeue
+    
+4.  Back in the first terminal window, you should have seen `openaddr-enqueue-sources`
+    complete and exit. You can now run the [Webhooks web application](components.md#webhook)
+    and leave it running to see the results of the batch set in a web browser:
+    
+        env DATABASE_URL={Connection String} \
+            GITHUB_TOKEN={Github Token} \
+            AWS_S3_BUCKET={Amazon S3 Bucket Name} \
+            python3 run-debug-webhooks.py
+    
+5.  In the second terminal window, try [collecting address data into downloadable archives](components.md#collect):
+    
+        openaddr-collect-extracts --verbose \
+            --owner openaddresses --repository minimal-test-sources \
+            --database-url {Connection String} \
+            --bucket {Amazon S3 Bucket Name}
 
 Production
 ----------
+
+🚧 This information is currently out-of-date 🚧
 
 You may need to install machine from scratch when deploying a new version in parallel with an old one.
 
