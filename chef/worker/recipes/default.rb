@@ -6,8 +6,6 @@ db_user = local['db_user']
 db_pass = local['db_pass']
 db_host = local['db_host']
 db_name = local['db_name']
-aws_access_id = local['aws_access_id']
-aws_secret_key = local['aws_secret_key']
 aws_s3_bucket = local['aws_s3_bucket']
 aws_sns_arn = local['aws_sns_arn']
 
@@ -72,8 +70,6 @@ file env_file do
 WEB_DOCROOT=#{web_docroot}
 DATABASE_URL=#{database_url}
 GAG_GITHUB_STATUS=#{gag_github_status}
-AWS_ACCESS_KEY_ID=#{aws_access_id}
-AWS_SECRET_ACCESS_KEY=#{aws_secret_key}
 AWS_SNS_ARN=#{aws_sns_arn}
 AWS_S3_BUCKET=#{aws_s3_bucket}
 MAPZEN_KEY=#{mapzen_key}
