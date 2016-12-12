@@ -371,6 +371,120 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_postfixed_street(c, d, "street")
         self.assertEqual(e, d)
 
+        "Regex prefixed_number and postfixed_number - ordinal street w/house number"
+        c = { "conform": {
+            "number": {
+                "function": "prefixed_number",
+                "field": "ADDRESS"
+            },
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "12 3RD ST" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "12", "OA:street": "3RD ST" })
+
+        d = row_fxn_prefixed_number(c, d, "number")
+        d = row_fxn_postfixed_street(c, d, "street")
+        self.assertEqual(e, d)
+
+        "Regex prefixed_number and postfixed_number - ordinal street w/o house number"
+        c = { "conform": {
+            "number": {
+                "function": "prefixed_number",
+                "field": "ADDRESS"
+            },
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "3RD ST" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "", "OA:street": "3RD ST" })
+
+        d = row_fxn_prefixed_number(c, d, "number")
+        d = row_fxn_postfixed_street(c, d, "street")
+        self.assertEqual(e, d)
+
+        "Regex prefixed_number and postfixed_number - combined house number and suffix"
+        c = { "conform": {
+            "number": {
+                "function": "prefixed_number",
+                "field": "ADDRESS"
+            },
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "123A 3RD ST" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123A", "OA:street": "3RD ST" })
+
+        d = row_fxn_prefixed_number(c, d, "number")
+        d = row_fxn_postfixed_street(c, d, "street")
+        self.assertEqual(e, d)
+
+        "Regex prefixed_number and postfixed_number - hyphenated house number and suffix"
+        c = { "conform": {
+            "number": {
+                "function": "prefixed_number",
+                "field": "ADDRESS"
+            },
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "123-A 3RD ST" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123-A", "OA:street": "3RD ST" })
+
+        d = row_fxn_prefixed_number(c, d, "number")
+        d = row_fxn_postfixed_street(c, d, "street")
+        self.assertEqual(e, d)
+
+        "Regex prefixed_number and postfixed_number - queens-style house number"
+        c = { "conform": {
+            "number": {
+                "function": "prefixed_number",
+                "field": "ADDRESS"
+            },
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "123-45 3RD ST" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123-45", "OA:street": "3RD ST" })
+
+        d = row_fxn_prefixed_number(c, d, "number")
+        d = row_fxn_postfixed_street(c, d, "street")
+        self.assertEqual(e, d)
+
+        "Regex prefixed_number and postfixed_number - should be case-insenstive"
+        c = { "conform": {
+            "number": {
+                "function": "prefixed_number",
+                "field": "ADDRESS"
+            },
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "123-a 3rD St" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123-a", "OA:street": "3rD St" })
+
+        d = row_fxn_prefixed_number(c, d, "number")
+        d = row_fxn_postfixed_street(c, d, "street")
+        self.assertEqual(e, d)
+
 class TestConformCli (unittest.TestCase):
     "Test the command line interface creates valid output files from test input"
     def setUp(self):
