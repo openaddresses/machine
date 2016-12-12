@@ -127,6 +127,13 @@ def app_hook():
 
     return jsonify(response)
 
+@webhooks.route('/health')
+@log_application_errors
+def app_health():
+    '''
+    '''
+    return 'OK'
+
 @webhooks.route('/jobs/', methods=['GET'])
 @log_application_errors
 def app_get_jobs():

@@ -1,3 +1,6 @@
+2016-12-12: 3.15.1
+- Fixed health check to stop connecting to RDS.
+
 2016-12-11: 3.15.0
 - Added support for IAM Role AWS credentials everywhere.
 - Fixed openaddr-enqueue-sources --cloudwatch-ns arg.
