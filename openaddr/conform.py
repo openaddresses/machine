@@ -974,7 +974,7 @@ def row_fxn_postfixed_street(sd, row, key):
     return row
 
 def row_fxn_remove_prefix(sd, row, key):
-    "Remove a 'field_to_remove' from the beginning of 'field', if it is a prefix"
+    "Remove a 'field_to_remove' from the beginning of 'field' if it is a prefix"
     fxn = sd["conform"][key]
 
     if row[fxn["field"]].startswith(row[fxn["field_to_remove"]]):
@@ -982,14 +982,18 @@ def row_fxn_remove_prefix(sd, row, key):
     else:
         row[attrib_types[key]] = row[fxn["field"]]
 
+    return row
+
 def row_fxn_remove_postfix(sd, row, key):
-    "Remove a 'field_to_remove' from the end of 'field', if it is a postfix"
+    "Remove a 'field_to_remove' from the end of 'field' if it is a postfix"
     fxn = sd["conform"][key]
 
     if row[fxn["field"]].endswith(row[fxn["field_to_remove"]]):
-        row[attrib_types[key]] = row[fxn["field"]][0:len(row[fxn["field_to_remove"]])].rstrip(' ')
+        row[attrib_types[key]] = row[fxn["field"]][0:len(row[fxn["field_to_remove"]])*-1].rstrip(' ')
     else:
         row[attrib_types[key]] = row[fxn["field"]]
+
+    return row
 
 def row_fxn_format(sd, row, key):
     "Format multiple fields using a user-specified format string"

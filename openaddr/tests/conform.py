@@ -372,8 +372,8 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_postfixed_street(c, d, "street")
         self.assertEqual(e, d)
     
-    def test_row_fxn_prefixed_number_and_postfixed_street(self):
-        #"remove_prefix - field_to_remove is a prefix"
+    def test_row_fxn_remove_prefix(self):
+        "remove_prefix - field_to_remove is a prefix"
         c = { "conform": {
             "street": {
                 "function": "remove_prefix",
@@ -383,7 +383,7 @@ class TestConformTransforms (unittest.TestCase):
         } }
         d = { "ADDRESS": "123 MAPLE ST", "PREFIX": "123" }
         e = copy.deepcopy(d)
-        e.update({ "OA:street": " MAPLE ST" })
+        e.update({ "OA:street": "MAPLE ST" })
 
         d = row_fxn_remove_prefix(c, d, "street")
         self.assertEqual(e, d)
@@ -401,6 +401,37 @@ class TestConformTransforms (unittest.TestCase):
         e.update({ "OA:street": "123 MAPLE ST" })
 
         d = row_fxn_remove_prefix(c, d, "street")
+        self.assertEqual(e, d)
+
+    def test_row_fxn_remove_postfix(self):
+        "remove_postfix - field_to_remove is a postfix"
+        c = { "conform": {
+            "street": {
+                "function": "remove_postfix",
+                "field": "ADDRESS",
+                "field_to_remove": "POSTFIX"
+            }
+        } }
+        d = { "ADDRESS": "MAPLE ST UNIT 5", "POSTFIX": "UNIT 5" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "MAPLE ST" })
+
+        d = row_fxn_remove_postfix(c, d, "street")
+        self.assertEqual(e, d)
+
+        "remove_postfix - field_to_remove is not a postfix"
+        c = { "conform": {
+            "street": {
+                "function": "remove_postfix",
+                "field": "ADDRESS",
+                "field_to_remove": "POSTFIX"
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST", "POSTFIX": "NOT THE POSTFIX VALUE" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "123 MAPLE ST" })
+
+        d = row_fxn_remove_postfix(c, d, "street")
         self.assertEqual(e, d)
 
 class TestConformCli (unittest.TestCase):
