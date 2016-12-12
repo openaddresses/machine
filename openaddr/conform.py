@@ -882,6 +882,10 @@ def row_transform_and_convert(sd, row):
                 row = row_fxn_prefixed_number(sd, row, k)
             elif c[k]["function"] == "postfixed_street":
                 row = row_fxn_postfixed_street(sd, row, k)
+            elif c[k]["function"] == "remove_prefix":
+                row = row_fxn_remove_prefix(sd, row, k)
+            elif c[k]["function"] == "remove_postfix":
+                row = row_fxn_remove_postfix(sd, row, k)
 
     if "advanced_merge" in c:
         raise ValueError('Found unsupported "advanced_merge" option in conform')
@@ -968,6 +972,24 @@ def row_fxn_postfixed_street(sd, row, key):
     row[attrib_types[key]] = ''.join(match.groups()) if match else '';
 
     return row
+
+def row_fxn_remove_prefix(sd, row, key):
+    "Remove a 'field_to_remove' from the beginning of 'field', if it is a prefix"
+    fxn = sd["conform"][key]
+
+    if row[fxn["field"]].startswith(row[fxn["field_to_remove"]]):
+        row[attrib_types[key]] = row[fxn["field"]][len(row[fxn["field_to_remove"]]):].lstrip(' ')
+    else:
+        row[attrib_types[key]] = row[fxn["field"]]
+
+def row_fxn_remove_postfix(sd, row, key):
+    "Remove a 'field_to_remove' from the end of 'field', if it is a postfix"
+    fxn = sd["conform"][key]
+
+    if row[fxn["field"]].endswith(row[fxn["field_to_remove"]]):
+        row[attrib_types[key]] = row[fxn["field"]][0:len(row[fxn["field_to_remove"]])].rstrip(' ')
+    else:
+        row[attrib_types[key]] = row[fxn["field"]]
 
 def row_fxn_format(sd, row, key):
     "Format multiple fields using a user-specified format string"

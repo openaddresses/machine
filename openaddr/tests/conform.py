@@ -17,6 +17,7 @@ from ..conform import (
     row_fxn_regexp, row_smash_case, row_round_lat_lon, row_merge,
     row_extract_and_reproject, row_convert_to_out, row_fxn_join, row_fxn_format,
     row_fxn_prefixed_number, row_fxn_postfixed_street,
+    row_fxn_remove_prefix, row_fxn_remove_postfix,
     row_canonicalize_unit_and_number, conform_smash_case, conform_cli,
     csvopen, csvDictReader, convert_regexp_replace, conform_license,
     conform_attribution, conform_sharealike, normalize_ogr_filename_case,
@@ -369,6 +370,37 @@ class TestConformTransforms (unittest.TestCase):
 
         d = row_fxn_prefixed_number(c, d, "number")
         d = row_fxn_postfixed_street(c, d, "street")
+        self.assertEqual(e, d)
+    
+    def test_row_fxn_prefixed_number_and_postfixed_street(self):
+        #"remove_prefix - field_to_remove is a prefix"
+        c = { "conform": {
+            "street": {
+                "function": "remove_prefix",
+                "field": "ADDRESS",
+                "field_to_remove": "PREFIX"
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST", "PREFIX": "123" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": " MAPLE ST" })
+
+        d = row_fxn_remove_prefix(c, d, "street")
+        self.assertEqual(e, d)
+
+        "remove_prefix - field_to_remove is not a prefix"
+        c = { "conform": {
+            "street": {
+                "function": "remove_prefix",
+                "field": "ADDRESS",
+                "field_to_remove": "PREFIX"
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST", "PREFIX": "NOT THE PREFIX VALUE" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "123 MAPLE ST" })
+
+        d = row_fxn_remove_prefix(c, d, "street")
         self.assertEqual(e, d)
 
 class TestConformCli (unittest.TestCase):
