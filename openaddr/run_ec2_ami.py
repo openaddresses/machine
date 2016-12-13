@@ -49,45 +49,15 @@ def main():
     '''
     args = parser.parse_args()
     instance, deadline, lifespan = False, time() + (args.hours + 1) * 3600, int(args.hours * 3600)
-    setup_logger(args.access_key, args.secret_key, args.sns_arn, log_level=args.loglevel)
+    setup_logger(None, None, args.sns_arn, log_level=args.loglevel)
 
-    try:
-        ec2 = connect_ec2(None, None)
-        autoscale = connect_autoscale(None, None)
-        instance = request_task_instance(ec2, autoscale, args.instance_type,
-                                         args.role, lifespan, args.command,
-                                         args.bucket, args.slack_url)
-
-        while True:
-            instance.update()
-            _L.debug('{:.0f} seconds to go, instance is {}...'.format(deadline - time(), instance.state))
-
-            if instance.state == 'terminated':
-                break
-
-            if time() > deadline:
-                log_instance_log(instance)
-                _L.warning('Stopping instance {} at deadline'.format(instance))
-                raise RuntimeError('Out of time')
-
-            sleep(60)
-
-        log_instance_log(instance)
-        
-    except:
-        _L.error('Error in worker main()', exc_info=True)
-        if instance:
-            instance.terminate()
-        return 1
-
-    else:
-        return 0
-
-def log_instance_log(instance):
-    '''
-    '''
-    log_output = instance.get_console_output().output.decode('utf8')
-    _L.info('Cloud-init log from EC2 instance:\n\n{}\n\n'.format(log_output))
+    ec2 = connect_ec2(None, None)
+    autoscale = connect_autoscale(None, None)
+    instance = request_task_instance(ec2, autoscale, args.instance_type,
+                                     args.role, lifespan, args.command,
+                                     args.bucket, args.slack_url)
+    
+    _L.info('instance {} is off to the races.'.format(instance))
 
 if __name__ == '__main__':
     exit(main())
