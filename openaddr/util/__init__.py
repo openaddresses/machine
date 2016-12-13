@@ -8,9 +8,10 @@ from tempfile import mkstemp
 from os import close
 import ftplib, httmock
 import io, zipfile
-import json
+import json, time
 
 from .. import compat
+from boto.exception import EC2ResponseError
 
 def get_version():
     ''' Prevent circular imports.
@@ -95,7 +96,16 @@ def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, co
 
     reservation = image.run(**run_kwargs)
     (instance, ) = reservation.instances
-    instance.add_tag('Name', 'Scheduled {} {}'.format(yyyymmdd, command[0]))
+    
+    try:
+        instance.add_tag('Name', 'Scheduled {} {}'.format(yyyymmdd, command[0]))
+    except EC2ResponseError:
+        time.sleep(10)
+        try:
+            instance.add_tag('Name', 'Scheduled {} {}'.format(yyyymmdd, command[0]))
+        except EC2ResponseError:
+            time.sleep(10)
+            instance.add_tag('Name', 'Scheduled {} {}'.format(yyyymmdd, command[0]))
     
     _L.info('Started EC2 instance {} from AMI {}'.format(instance, image))
     
