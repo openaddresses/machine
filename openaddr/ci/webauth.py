@@ -21,6 +21,7 @@ from .webcommon import log_application_errors, flask_log_level
 
 github_authorize_url = 'https://github.com/login/oauth/authorize{?state,client_id,redirect_uri,response_type,scope}'
 github_exchange_url = 'https://github.com/login/oauth/access_token'
+github_membership_url = 'https://api.github.com/orgs/{org}/members/{username}'
 github_user_url = 'https://api.github.com/user'
 
 USER_KEY = 'github user'
@@ -69,7 +70,7 @@ def exchange_tokens(code, client_id, secret):
     
     return auth
 
-def user_information(token, org_id=6895392):
+def user_information(token, org_name='openaddresses'):
     '''
     '''
     header = {'Authorization': 'token {}'.format(token)}
@@ -80,11 +81,11 @@ def user_information(token, org_id=6895392):
 
     login, avatar_url = resp1.json().get('login'), resp1.json().get('avatar_url')
     
-    orgs_url = resp1.json().get('organizations_url')
-    resp2 = requests.get(orgs_url, headers=header)
-    org_ids = [org['id'] for org in resp2.json()]
-    
-    return login, avatar_url, bool(org_id in org_ids)
+    membership_args = dict(org=org_name, username=login)
+    membership_url = uritemplate.expand(github_membership_url, membership_args)
+    resp2 = requests.get(membership_url, headers=header)
+
+    return login, avatar_url, bool(resp2.status_code in range(200, 299))
 
 def update_authentication(untouched_route):
     '''

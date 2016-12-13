@@ -1019,8 +1019,9 @@ class TestAuth (unittest.TestCase):
             if (request.method, url.hostname, url.path) == ('GET', 'api.github.com', '/user'):
                 return response(200, b'{"login": "migurski", "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3", "organizations_url": "https://api.github.com/users/migurski/orgs"}', headers={'Content-Type': 'application/json'})
 
-            if (request.method, url.hostname, url.path) == ('GET', 'api.github.com', '/users/migurski/orgs'):
-                return response(200, b'[{"id": -9999}]', headers={'Content-Type': 'application/json'})
+            if (request.method, url.hostname, url.path) == ('GET', 'api.github.com', '/orgs/openaddresses/members/migurski'):
+                return response(404, b'')
+
             raise Exception()
         
         with HTTMock(response_content_unorged):
@@ -1033,8 +1034,9 @@ class TestAuth (unittest.TestCase):
             if (request.method, url.hostname, url.path) == ('GET', 'api.github.com', '/user'):
                 return response(200, b'{"login": "migurski", "avatar_url": "https://avatars.githubusercontent.com/u/58730?v=3", "organizations_url": "https://api.github.com/users/migurski/orgs"}', headers={'Content-Type': 'application/json'})
 
-            if (request.method, url.hostname, url.path) == ('GET', 'api.github.com', '/users/migurski/orgs'):
-                return response(200, b'[{"id": 6895392}]', headers={'Content-Type': 'application/json'})
+            if (request.method, url.hostname, url.path) == ('GET', 'api.github.com', '/orgs/openaddresses/members/migurski'):
+                return response(204, b'')
+
             raise Exception()
         
         with HTTMock(response_content_orged):
@@ -1130,8 +1132,8 @@ class TestAuth (unittest.TestCase):
         def response_content_user(url, request):
             if (request.method, url.hostname, url.path) == ('GET', 'api.github.com', '/user'):
                 return response(200, b'{"login": "migurski", "avatar_url": "http://example.com/cat.gif", "organizations_url": "https://api.github.com/users/migurski/orgs"}', headers={'Content-Type': 'application/json'})
-            if (request.method, url.hostname, url.path) == ('GET', 'api.github.com', '/users/migurski/orgs'):
-                return response(200, b'[{"login": "openaddresses", "id": 6895392}]', headers={'Content-Type': 'application/json'})
+            if (request.method, url.hostname, url.path) == ('GET', 'api.github.com', '/orgs/openaddresses/members/migurski'):
+                return response(204, b'{}')
             raise Exception()
 
         with HTTMock(response_content_user):
