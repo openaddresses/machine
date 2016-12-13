@@ -1,3 +1,7 @@
+2016-12-12: 3.15.2
+- Fixed EC2 instance tag availability.
+- Modified EC2 script to not wait on instances.
+
 2016-12-12: 3.15.1
 - Fixed health check to stop connecting to RDS.
 
