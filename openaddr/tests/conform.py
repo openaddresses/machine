@@ -517,6 +517,21 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_remove_prefix(c, d, "street")
         self.assertEqual(e, d)
 
+        "remove_prefix - field_to_remove value is empty string"
+        c = { "conform": {
+            "street": {
+                "function": "remove_prefix",
+                "field": "ADDRESS",
+                "field_to_remove": "PREFIX"
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST", "PREFIX": "" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "123 MAPLE ST" })
+
+        d = row_fxn_remove_prefix(c, d, "street")
+        self.assertEqual(e, d)
+
     def test_row_fxn_remove_postfix(self):
         "remove_postfix - field_to_remove is a postfix"
         c = { "conform": {
@@ -542,6 +557,21 @@ class TestConformTransforms (unittest.TestCase):
             }
         } }
         d = { "ADDRESS": "123 MAPLE ST", "POSTFIX": "NOT THE POSTFIX VALUE" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "123 MAPLE ST" })
+
+        d = row_fxn_remove_postfix(c, d, "street")
+        self.assertEqual(e, d)
+
+        "remove_postfix - field_to_remove value is empty string"
+        c = { "conform": {
+            "street": {
+                "function": "remove_postfix",
+                "field": "ADDRESS",
+                "field_to_remove": "POSTFIX"
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST", "POSTFIX": "" }
         e = copy.deepcopy(d)
         e.update({ "OA:street": "123 MAPLE ST" })
 
