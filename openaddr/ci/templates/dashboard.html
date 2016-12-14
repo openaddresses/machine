@@ -1,7 +1,14 @@
-<html lang='en'>
-<head>
+{#
+    This dashboard template doesn't pull data from the live database;
+    instead it uses a JSON file loaded via XHR to get data.
+#}
+
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block head %}
 <script src='https://d3js.org/d3.v3.min.js' charset='utf-8'></script>
-<link rel="stylesheet" href="/static/writ.css">
 <style>
 
 /* SVG styles for graph */
@@ -11,29 +18,16 @@
 .bar text { fill: #fff; font-size: 10px; }
 
 /* Inline HTML styles */
-
 td, th { border: none }
-
-/* Inline style lifted from http://results.openaddresses.io/index.html */
-body
-{
-    margin-bottom: 2em;
-    font-size: 1em;
-}
-
-body>*, main>*, footer>*
-{
-    margin: 1em auto;
-    width: 960px;
-}
-
-body>p, main>p, footer>p { line-height: 1.5em }
-
 tr:nth-child(2n+1) td { background-color: #f8f8f8 }
 tr:nth-child(2n+2) td { background-color: #ffffff }
 
-</style> </head>
-<body>
+</style> 
+{% endblock head %}
+
+{% block main %}
+
+<p>This page is a developer's dashboard view of OpenAddresses runs. It summarizes the history of our dataset and other things of operational interest.</p>
 
 <h1>Summary Statistics</h1>
 
@@ -66,6 +60,7 @@ tr:nth-child(2n+2) td { background-color: #ffffff }
 
 
 <script>
+var graphWidth=960;
 var dateFormatter = d3.time.format.utc('%Y-%m-%d');
 // var dateFormatter = d3.time.format.utc('%A, %b %d, %Y');
 
@@ -78,7 +73,7 @@ var dateFormatter = d3.time.format.utc('%Y-%m-%d');
  */
 function graphTimeSeries(elem, data, accessor, xRange, yRange) {
     var margin = {top: 20, right: 20, bottom: 30, left: 100},
-        width = 960 - margin.left - margin.right,
+        width = graphWidth - margin.left - margin.right,
         height = 300 - margin.top - margin.bottom;
 
     var x = d3.time.scale().range([0, width]);
@@ -127,7 +122,7 @@ function graphHistogram(elem, values, valueExtent) {
     }
 
     var margin = {top: 10, right: 30, bottom: 30, left: 30},
-        width = 960 - margin.left - margin.right,
+        width = graphWidth - margin.left - margin.right,
         height = 300 - margin.top - margin.bottom;
 
     // values = values.map(function(d) { return d > 0 ? Math.log10(d) : 0 });
@@ -231,5 +226,4 @@ d3.json('https://s3.amazonaws.com/data.openaddresses.io/machine-stats.json', fun
     addLostTable(data['lost_sources']);
 });
 </script>
-</body>
-</html>
+{% endblock main %}
