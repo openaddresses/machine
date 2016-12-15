@@ -13,15 +13,15 @@ skip the first four steps by using a pre-built Ubuntu 14.04 image on Amazon EC2.
 
 1.  Download and install [VirtualBox](https://www.virtualbox.org/wiki/Downloads) on your development machine.
     
-2.  Download an [Ubuntu 14.04 Trusty server install image](http://releases.ubuntu.com/14.04/). A good choice might be `ubuntu-14.04.4-server-amd64.iso`.
+2.  Download an [Ubuntu 14.04 Trusty server install image](http://releases.ubuntu.com/14.04/). A good choice might be `ubuntu-14.04.5-server-amd64.iso`.
     
 3.  Create a new virtual machine, and configure its NAT network adapter so you can SSH into the machine [as described in this guide](http://stackoverflow.com/questions/5906441/how-to-ssh-to-a-virtualbox-guest-externally-through-a-host#10532299). Note that you’ll be SSHing into `127.0.0.1`, not the VM’s address.
     
-4.  Install Ubuntu 14.04 on the new machine, and log in.
+4.  Install Ubuntu 14.04 on the new machine, and log in. Configure a minimal install with just ssh; Chef will install all the needed servers like Postgres.
     
 5.  Clone [OpenAddresses Machine code](https://github.com/openaddresses/machine) from Github.
     
-6.  From inside the new `machine` directory, install the code for local development. This might take a few minutes the first time. `chef/run.sh` is safe to run multiple times:
+6.  From inside the new `machine` directory, install the code for local development. This might take a few minutes the first time. It will print some error messages from the C compiler; this is normal and harmless. To verify Chef worked correctly run it a second time and manually inspect the output. `chef/run.sh` is safe to run multiple times:
     
         sudo chef/run.sh localdev
     
@@ -48,7 +48,7 @@ This process should take less than 10 minutes.
     
     Three other pieces of information are needed:
     
-    - An empty [Amazon S3 bucket](http://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html) to store data.
+    - An empty [Amazon S3 bucket](http://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html) in the US Standard region to store data.
     - Amazon Web Services credentials [stored where `boto` can find them](http://boto.cloudhackers.com/en/latest/boto_config_tut.html).
     - A [personal access token](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) to access Github’s API.
     
@@ -63,7 +63,7 @@ This process should take less than 10 minutes.
     
 3.  In a second terminal window, [run a single worker](components.md#worker) to
     processed the queued sources one after another, then [run the dequeuer](components.md#dequeuer)
-    to pass them back:
+    to pass them back. Note both of these programs do not exit, they merely block waiting for work. You can manually abort them with `Ctrl-C` once the work is completed.
     
         openaddr-ci-worker --verbose \
             --database-url {Connection String} \
