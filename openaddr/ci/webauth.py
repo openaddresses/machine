@@ -47,6 +47,9 @@ def callback_url(request, callback_url):
     else:
         base_url = request.url
     
+    if compat.PY2 and hasattr(base_url, 'encode'):
+        base_url = base_url.encode('utf8')
+
     if compat.PY2 and hasattr(callback_url, 'encode'):
         callback_url = callback_url.encode('utf8')
 

@@ -1,3 +1,6 @@
+2016-12-16: 3.16.1
+- Fixed mysterious new Python 2.7 encoding bug.
+
 2016-12-16: 3.16.0
 - Added new remove_prefix and remove_postfix conform functions.
 - Fixed other prefix/postfix regexes to include subaddresses.
