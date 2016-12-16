@@ -13,7 +13,7 @@ from httmock import HTTMock, response
 
 class TestRender (unittest.TestCase):
 
-    def test_render(self):
+    def test_render_png(self):
         sources = join(dirname(__file__), 'sources')
         handle, filename = tempfile.mkstemp(prefix='render-', suffix='.png')
         os.close(handle)
@@ -22,9 +22,25 @@ class TestRender (unittest.TestCase):
             render.render(sources, set(), 512, 1, filename)
             info = str(subprocess.check_output(('file', filename)))
 
-            self.assertTrue('PNG image data' in info)
-            self.assertTrue('512 x 294' in info)
-            self.assertTrue('8-bit/color RGBA' in info)
+            self.assertIn('PNG image data', info)
+            self.assertIn('512 x 294', info)
+            self.assertIn('8-bit/color RGBA', info)
+        finally:
+            os.remove(filename)
+    
+    def test_render_geojson(self):
+        sources = join(dirname(__file__), 'sources')
+        handle, filename = tempfile.mkstemp(prefix='render-', suffix='.geojson')
+        os.close(handle)
+        
+        try:
+            render.render(sources, set(), 512, 1, filename)
+            with open(filename) as file:
+                content = file.read()
+
+            self.assertIn('"type": "FeatureCollection"', content)
+            self.assertIn('"status": "bad"', content)
+            self.assertNotIn('"status": "good"', content, "They're all bad")
         finally:
             os.remove(filename)
     

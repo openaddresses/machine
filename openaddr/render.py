@@ -6,7 +6,7 @@ from .compat import standard_library
 from glob import glob
 from unicodedata import normalize
 from argparse import ArgumentParser
-from itertools import combinations
+from itertools import combinations, chain, cycle
 from os.path import join, dirname, basename, splitext, relpath
 from urllib.parse import urljoin
 import json, csv, io, os
@@ -278,9 +278,6 @@ def first_layer_list(datasource):
 def render(sources_dir, good_sources, width, resolution, filename, area=WORLD):
     ''' Resolution: 1 for 100%, 2 for 200%, etc.
     '''
-    # Prepare output surface
-    surface, context, scale = make_context(width, resolution, area)
-    
     # Load data
     good_geoids, bad_geoids = load_geoids(sources_dir, good_sources)
     good_iso3166s, bad_iso3166s = load_iso3166s(sources_dir, good_sources)
@@ -328,6 +325,17 @@ def render(sources_dir, good_sources, width, resolution, filename, area=WORLD):
     good_data_admin1s = [f for f in admin1s_features if f.GetFieldAsString('iso_3166_2') in good_iso3166s]
     bad_data_countries = [f for f in countries_features if f.GetFieldAsString('iso_a2') in bad_iso3166s]
     bad_data_admin1s = [f for f in admin1s_features if f.GetFieldAsString('iso_3166_2') in bad_iso3166s]
+    
+    _, ext = splitext(filename.lower())
+    
+    if ext == '.geojson':
+        # Render to GeoJSON instead
+        return _render_geojson(filename, good_geometries, bad_geometries,
+                               chain(good_data_countries, good_data_admin1s, good_data_states, good_data_counties),
+                               chain(bad_data_countries, bad_data_admin1s, bad_data_states, bad_data_counties))
+    
+    # Prepare output surface
+    surface, context, scale = make_context(width, resolution, area)
     
     # Draw each border between neighboring states exactly once.
     state_borders = [s1.GetGeometryRef().Intersection(s2.GetGeometryRef())
@@ -383,6 +391,36 @@ def render(sources_dir, good_sources, width, resolution, filename, area=WORLD):
 
     # Output
     surface.write_to_png(filename)
+
+def _render_geojson(filename, good_geometries, bad_geometries, good_features, bad_features):
+    '''
+    '''
+    wgs84 = osr.SpatialReference(osr.SRS_WKT_WGS84)
+    feature_strings = []
+    
+    collection_str = json.dumps(dict(type='FeatureCollection', features=['XoXoX']))
+    good_feature_str = json.dumps(dict(type='Feature', geometry='XoXoX', properties={'status': 'good'}))
+    bad_feature_str = json.dumps(dict(type='Feature', geometry='XoXoX', properties={'status': 'bad'}))
+    
+    geometries = chain(zip(good_geometries, cycle([good_feature_str])),
+                       zip(bad_geometries, cycle([bad_feature_str])))
+    
+    features = chain(zip(good_features, cycle([good_feature_str])),
+                     zip(bad_features, cycle([bad_feature_str])))
+    
+    for (geom, feature_str) in geometries:
+        geom.TransformTo(wgs84)
+        geom_str = geom.ExportToJson(options=['COORDINATE_PRECISION=4'])
+        feature_strings.append(feature_str.replace('"XoXoX"', geom_str))
+
+    for (feat, feature_str) in features:
+        geom = feat.GetGeometryRef()
+        geom.TransformTo(wgs84)
+        geom_str = geom.ExportToJson(options=['COORDINATE_PRECISION=4'])
+        feature_strings.append(feature_str.replace('"XoXoX"', geom_str))
+    
+    with open(filename, 'w') as file:
+        file.write(collection_str.replace('"XoXoX"', ',\n'.join(feature_strings)))
 
 if __name__ == '__main__':
     exit(main())
