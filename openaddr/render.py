@@ -8,7 +8,7 @@ from argparse import ArgumentParser
 from itertools import combinations
 from os.path import join, dirname, basename
 from urllib.parse import urljoin
-import json
+import json, csv, io
 
 from .compat import cairo
 from . import SOURCES_DIR
@@ -75,12 +75,9 @@ def make_context(width=960, resolution=1, area=WORLD):
 def load_live_state():
     '''
     '''
-    got = requests.get('http://data.openaddresses.io/state.json')
-    got = requests.get(urljoin(got.url, got.json()))
-
-    columns, rows = got.json()[0], got.json()[1:]
-    state = [dict(zip(columns, row)) for row in rows]
-
+    got = requests.get('https://results.openaddresses.io/state.txt')
+    state = csv.DictReader(io.StringIO(got.text), dialect='excel-tab')
+    
     good_sources = [s['source'] for s in state if (s['cache'] and s['processed'])]
     return set(good_sources)
 
@@ -243,7 +240,7 @@ parser.add_argument('--width', dest='width', type=int,
                     help='Width in pixels.')
 
 parser.add_argument('--use-state', dest='use_state', action='store_const',
-                    const=True, default=False, help='Use live state from http://data.openaddresses.io/state.json.')
+                    const=True, default=False, help='Use live state from https://results.openaddresses.io/state.txt.')
 
 parser.add_argument('filename', help='Output PNG filename.')
 
