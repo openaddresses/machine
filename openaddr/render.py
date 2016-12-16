@@ -4,16 +4,19 @@ import logging; _L = logging.getLogger('openaddr.render')
 from .compat import standard_library
 
 from glob import glob
+from unicodedata import normalize
 from argparse import ArgumentParser
 from itertools import combinations
-from os.path import join, dirname, basename
+from os.path import join, dirname, basename, splitext, relpath
 from urllib.parse import urljoin
-import json, csv, io
+import json, csv, io, os
 
 from .compat import cairo
-from . import SOURCES_DIR
 from osgeo import ogr, osr
 import requests
+
+# Deprecated location for sources from old batch mode.
+SOURCES_DIR = '/var/opt/openaddresses'
 
 # Areas
 WORLD, USA, EUROPE = 54029, 2163, 'Europe'
@@ -81,27 +84,32 @@ def load_live_state():
     good_sources = [s['source'] for s in state if (s['cache'] and s['processed'])]
     return set(good_sources)
 
+def iterate_sources_dir(sources_dir):
+    '''
+    '''
+    for (dirname, _, filenames) in os.walk(sources_dir):
+        for filename in filenames:
+            _, ext = splitext(filename.lower())
+            if ext == '.json':
+                path = relpath(join(dirname, filename), sources_dir)
+                yield normalize('NFC', path)
+
 def load_fake_state(sources_dir):
     '''
     '''
-    fake_sources = set()
-
-    for path in glob(join(sources_dir, '*.json')):
-        fake_sources.add(basename(path))
-    
-    return fake_sources
+    return set(iterate_sources_dir(sources_dir))
 
 def load_geoids(directory, good_sources):
     ''' Load a set of U.S. Census GEOIDs that should be rendered.
     '''
     good_geoids, bad_geoids = set(), set()
 
-    for path in glob(join(directory, '*.json')):
-        with open(path) as file:
+    for path in iterate_sources_dir(directory):
+        with open(join(directory, path)) as file:
             data = json.load(file)
     
         if 'geoid' in data.get('coverage', {}).get('US Census', {}):
-            if basename(path) in good_sources:
+            if path in good_sources:
                 good_geoids.add(data['coverage']['US Census']['geoid'])
             else:
                 bad_geoids.add(data['coverage']['US Census']['geoid'])
@@ -113,18 +121,18 @@ def load_iso3166s(directory, good_sources):
     '''
     good_iso3166s, bad_iso3166s = set(), set()
 
-    for path in glob(join(directory, '*.json')):
-        with open(path) as file:
+    for path in iterate_sources_dir(directory):
+        with open(join(directory, path)) as file:
             data = json.load(file)
     
         if 'code' in data.get('coverage', {}).get('ISO 3166', {}):
-            if basename(path) in good_sources:
+            if path in good_sources:
                 good_iso3166s.add(data['coverage']['ISO 3166']['code'])
             else:
                 bad_iso3166s.add(data['coverage']['ISO 3166']['code'])
     
         elif 'alpha2' in data.get('coverage', {}).get('ISO 3166', {}):
-            if basename(path) in good_sources:
+            if path in good_sources:
                 good_iso3166s.add(data['coverage']['ISO 3166']['alpha2'])
             else:
                 bad_iso3166s.add(data['coverage']['ISO 3166']['alpha2'])
@@ -141,8 +149,8 @@ def load_geometries(directory, good_sources, area):
     sref_map = osr.SpatialReference(); sref_map.ImportFromProj4(EPSG2163 if area == USA else ESRI54029)
     project = osr.CoordinateTransformation(sref_geo, sref_map)
 
-    for path in glob(join(directory, '*.json')):
-        with open(path) as file:
+    for path in iterate_sources_dir(directory):
+        with open(join(directory, path)) as file:
             data = json.load(file)
     
         if 'geometry' in data.get('coverage', {}):
@@ -154,7 +162,7 @@ def load_geometries(directory, good_sources, area):
 
             geometry.Transform(project)
 
-            if basename(path) in good_sources:
+            if path in good_sources:
                 good_geometries.append(geometry)
             else:
                 bad_geometries.append(geometry)
@@ -242,6 +250,9 @@ parser.add_argument('--width', dest='width', type=int,
 parser.add_argument('--use-state', dest='use_state', action='store_const',
                     const=True, default=False, help='Use live state from https://results.openaddresses.io/state.txt.')
 
+parser.add_argument('--sources-dir', dest='sources_dir',
+                    default=SOURCES_DIR, help='Directory of sources.')
+
 parser.add_argument('filename', help='Output PNG filename.')
 
 parser.add_argument('--world', dest='area', action='store_const', const=WORLD,
@@ -255,8 +266,8 @@ parser.add_argument('--europe', dest='area', action='store_const', const=EUROPE,
 
 def main():
     args = parser.parse_args()
-    good_sources = load_live_state() if args.use_state else load_fake_state(SOURCES_DIR)
-    return render(SOURCES_DIR, good_sources, args.width, args.resolution,
+    good_sources = load_live_state() if args.use_state else load_fake_state(args.sources_dir)
+    return render(args.sources_dir, good_sources, args.width, args.resolution,
                   args.filename, args.area)
 
 def first_layer_list(datasource):

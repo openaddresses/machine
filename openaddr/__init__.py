@@ -39,9 +39,6 @@ from .conform import (
 with open(join(dirname(__file__), 'VERSION')) as file:
     __version__ = file.read().strip()
 
-# Deprecated location for sources from old batch mode.
-SOURCES_DIR = '/var/opt/openaddresses'
-
 class S3:
     _bucket = None
 
