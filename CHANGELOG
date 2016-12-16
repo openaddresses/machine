@@ -1,3 +1,9 @@
+2016-12-16: 3.16.0
+- Added new remove_prefix and remove_postfix conform functions.
+- Fixed other prefix/postfix regexes to include subaddresses.
+- Improved appearance of stats dashboard.
+- Improved installation docs.
+
 2016-12-12: 3.15.3
 - Fixed public/private Github org membership check on login.
 
