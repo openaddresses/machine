@@ -53,6 +53,7 @@ setup(
             'openaddr-index-tiles = openaddr.ci.tileindex:main',
             'openaddr-run-ec2-command = openaddr.run_ec2_ami:main',
             'openaddr-update-dotmap = openaddr.dotmap:main',
+            'openaddr-sum-up-data = openaddr.ci.sum_up:main',
         ]
     ),
     package_data = {

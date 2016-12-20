@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import logging; _L = logging.getLogger('openaddr.ci.dashboard_stats')
 
 "Python script to pull stats about OpenAddresses runs from the database and convert to JSON"
 
@@ -7,6 +8,7 @@ from .. import util
 
 def make_stats(cur):
     "Connect to the database and extract stats data, transforming into a JSON-friendly object"
+    _L.info('Making dashboard stats')
 
     ### JSON output data object
     data = {
@@ -87,6 +89,7 @@ def make_stats(cur):
     return data
 
 def upload_stats(s3, data):
+    _L.info('Uploading dashboard stats')
     stats_key = s3.new_key('machine-stats.json')
     stats_key.set_contents_from_string(json.dumps(data),
         policy='public-read', headers={'Content-Type': 'application/json'})

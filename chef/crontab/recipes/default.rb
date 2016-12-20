@@ -47,6 +47,10 @@ file "/etc/logrotate.d/openaddr_crontab-enqueue-sources" do
     content "/var/log/openaddr_crontab/enqueue-sources.log\n#{rotation}\n"
 end
 
+file "/etc/logrotate.d/openaddr_crontab-sum-up-data" do
+    content "/var/log/openaddr_crontab/sum-up-data.log\n#{rotation}\n"
+end
+
 #
 # Place crontab scripts.
 #
@@ -144,5 +148,28 @@ LC_ALL=C.UTF-8
     --sns-arn "#{aws_sns_arn}" \
     --cloudwatch-ns "#{aws_cloudwatch_ns}" \
   >> /var/log/openaddr_crontab/enqueue-sources.log 2>&1
+CRONTAB
+end
+
+file "/etc/cron.d/openaddr_crontab-sum-up-data" do
+    content <<-CRONTAB
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+LC_ALL=C.UTF-8
+# Archive collection, every day at 5am and 5pm UTC (9pm and 9am PDT)
+0 5,17	* * *	#{username}	\
+  openaddr-run-ec2-command \
+  --hours 0.5 \
+  --instance-type t2.nano \
+  -b "#{aws_s3_bucket}" \
+  --sns-arn "#{aws_sns_arn}" \
+  --slack-url "#{slack_url}" \
+  --verbose \
+  -- \
+    openaddr-sum-up-data \
+    -d "#{database_url}" \
+    -b "#{aws_s3_bucket}" \
+    --sns-arn "#{aws_sns_arn}" \
+    --verbose \
+  >> /var/log/openaddr_crontab/sum-up-data.log 2>&1
 CRONTAB
 end
