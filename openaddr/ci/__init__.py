@@ -638,6 +638,7 @@ def _update_expected_paths(db, expected_paths, the_set):
 def render_index_maps(s3, runs):
     ''' Render index maps and upload them to S3.
     '''
+    _L.info('Rendering index maps')
     dirname = mkdtemp(prefix='index-maps-')
 
     try:
