@@ -18,7 +18,7 @@ from shutil import rmtree
 from math import ceil, floor, sqrt
 
 from .objects import read_latest_set, read_completed_runs_to_date
-from . import db_connect, db_cursor, setup_logger, render_index_maps, log_function_errors, dashboard_stats
+from . import db_connect, db_cursor, setup_logger, log_function_errors
 from .. import S3, iterate_local_processed_files, util
 from ..conform import OPENADDR_CSV_SCHEMA
 from ..compat import PY2
@@ -66,10 +66,6 @@ def main():
         with db_cursor(conn) as db:
             set = read_latest_set(db, args.owner, args.repository)
             runs = read_completed_runs_to_date(db, set.id)
-            stats = dashboard_stats.make_stats(db)
-
-    render_index_maps(s3, runs)
-    dashboard_stats.upload_stats(s3, stats)
 
     dir = mkdtemp(prefix='collected-')
 
