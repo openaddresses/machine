@@ -999,7 +999,7 @@ def row_fxn_remove_postfix(sd, row, key):
     "Remove a 'field_to_remove' from the end of 'field' if it is a postfix"
     fxn = sd["conform"][key]
 
-    if row[fxn["field"]].endswith(row[fxn["field_to_remove"]]):
+    if row[fxn["field_to_remove"]] != "" and row[fxn["field"]].endswith(row[fxn["field_to_remove"]]):
         row[attrib_types[key]] = row[fxn["field"]][0:len(row[fxn["field_to_remove"]])*-1].rstrip(' ')
     else:
         row[attrib_types[key]] = row[fxn["field"]]
