@@ -326,8 +326,7 @@ class EsriRestDownloadTask(DownloadTask):
                             fields.add(v.get('field'))
                 elif isinstance(v, list):
                     # It's a list of field names
-                    for f in v:
-                        fields.add(f)
+                    fields |= set(v)
                 else:
                     fields.add(v)
 
