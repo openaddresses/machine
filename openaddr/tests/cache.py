@@ -92,3 +92,38 @@ class TestCacheEsriDownload (unittest.TestCase):
 
                     # This is the expected exception at this point
                     self.assertEqual(e.message, "Could not find object ID field name for deduplication")
+
+    def test_field_names_to_request(self):
+        '''
+        '''
+        conform1 = dict(number='Number', street='Street')
+        fields1 = EsriRestDownloadTask.field_names_to_request(conform1)
+        self.assertEqual(fields1, ['Number', 'Street'])
+
+        conform2 = dict(number='Number', street=dict(function='regexp', field='Street'))
+        fields2 = EsriRestDownloadTask.field_names_to_request(conform2)
+        self.assertEqual(fields2, ['Number', 'Street'])
+
+        conform3 = dict(number='Number', street=dict(function='prefixed_number', field='Street'))
+        fields3 = EsriRestDownloadTask.field_names_to_request(conform3)
+        self.assertEqual(fields3, ['Number', 'Street'])
+
+        conform4 = dict(number='Number', street=dict(function='postfixed_street', field='Street'))
+        fields4 = EsriRestDownloadTask.field_names_to_request(conform4)
+        self.assertEqual(fields4, ['Number', 'Street'])
+
+        conform5 = dict(number='Number', street=dict(function='remove_prefix', field='Street'))
+        fields5 = EsriRestDownloadTask.field_names_to_request(conform5)
+        self.assertEqual(fields5, ['Number', 'Street'])
+
+        conform6 = dict(number='Number', street=dict(function='remove_postfix', field='Street'))
+        fields6 = EsriRestDownloadTask.field_names_to_request(conform6)
+        self.assertEqual(fields6, ['Number', 'Street'])
+
+        conform7 = dict(street=dict(function='join', fields=['Number', 'Street']))
+        fields7 = EsriRestDownloadTask.field_names_to_request(conform7)
+        self.assertEqual(fields7, ['Number', 'Street'])
+
+        conform8 = dict(street=dict(function='format', fields=['Number', 'Street']))
+        fields8 = EsriRestDownloadTask.field_names_to_request(conform8)
+        self.assertEqual(fields8, ['Number', 'Street'])

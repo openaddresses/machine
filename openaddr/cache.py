@@ -307,7 +307,8 @@ class EsriRestDownloadTask(DownloadTask):
 
         return os.path.join(dir_path, name_base + path_ext)
 
-    def field_names_to_request(self, conform):
+    @staticmethod
+    def field_names_to_request(conform):
         ''' Return list of fieldnames to request based on conform, or None.
         '''
         if not conform:
@@ -336,7 +337,7 @@ class EsriRestDownloadTask(DownloadTask):
         download_path = os.path.join(workdir, 'esri')
         mkdirsp(download_path)
 
-        query_fields = self.field_names_to_request(conform)
+        query_fields = EsriRestDownloadTask.field_names_to_request(conform)
 
         for source_url in source_urls:
             size = 0
