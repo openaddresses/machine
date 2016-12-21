@@ -211,6 +211,23 @@ class TestOA (unittest.TestCase):
             if qs.get('f') == ['json']:
                 local_path = join(data_dirname, 'us-tx-waco-metadata.json')
 
+        if (host, path) == ('cdr.citynet.kharkov.ua', '/arcgis/rest/services/gis_ort_stat_general/MapServer/1/query'):
+            qs = parse_qs(query)
+            body_data = parse_qs(request.body) if request.body else {}
+
+            if qs.get('returnCountOnly') == ['true']:
+                local_path = join(data_dirname, 'ua-kharkiv-count-only.json')
+            elif 'outStatistics' in qs:
+                local_path = join(data_dirname, 'ua-kharkiv-statistics.json')
+            elif body_data.get('outSR') == ['4326']:
+                local_path = join(data_dirname, 'ua-kharkiv-0.json')
+
+        if (host, path) == ('cdr.citynet.kharkov.ua', '/arcgis/rest/services/gis_ort_stat_general/MapServer/1'):
+            qs = parse_qs(query)
+
+            if qs.get('f') == ['json']:
+                local_path = join(data_dirname, 'ua-kharkiv-metadata.json')
+
         if (host, path) == ('data.openaddresses.io', '/20000101/us-ca-carson-cached.json'):
             local_path = join(data_dirname, 'us-ca-carson-cache.geojson')
         
@@ -972,39 +989,16 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
-        with open(join(dirname(state_path), state['output'])) as file:
-            print(file.read())
-
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
 
-        self.assertEqual(len(sample_data), 6)
+        self.assertEqual(len(sample_data), 2)
         self.assertIn('OA:geom', sample_data[0])
-        self.assertIn('UNITNUM', sample_data[0])
-        self.assertEqual('423', sample_data[1][0])
-        self.assertEqual(['W', ' ', '28TH DIVISION', 'HWY'], sample_data[1][1:5])
-        self.assertEqual('1', sample_data[1][6])
-        self.assertEqual('2', sample_data[2][6])
-        self.assertEqual('3', sample_data[3][6])
-        self.assertEqual('4', sample_data[4][6])
-        self.assertEqual('5', sample_data[5][6])
-        
-        output_path = join(dirname(state_path), state['processed'])
-        
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
-            self.assertEqual(rows[1]['UNIT'], u'2')
-            self.assertEqual(rows[11]['UNIT'], u'11')
-            self.assertEqual(rows[21]['UNIT'], u'')
-            self.assertEqual(rows[1]['NUMBER'], u'423')
-            self.assertEqual(rows[11]['NUMBER'], u'423')
-            self.assertEqual(rows[21]['NUMBER'], u'7')
-            self.assertEqual(rows[1]['STREET'], u'W 28TH DIVISION HWY')
-            self.assertEqual(rows[11]['STREET'], u'W 28TH DIVISION HWY')
-            self.assertEqual(rows[21]['STREET'], u'W 28TH DIVISION HWY')
+        self.assertIn('FULLADDRU', sample_data[0])
+        self.assertIn('SUFIXRU', sample_data[0])
 
     def test_single_pa_bucks(self):
         ''' Test complete process_one.process on data with ESRI multiPolyline geometries.
