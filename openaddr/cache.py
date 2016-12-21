@@ -318,8 +318,12 @@ class EsriRestDownloadTask(DownloadTask):
         for k, v in conform.items():
             if k in attrib_types:
                 if isinstance(v, dict):
-                    # It's a function of some sort
-                    fields.add(v.get('field'))
+                    # It's a function of some sort?
+                    if 'function' in v:
+                        if v['function'] in ('join', 'format'):
+                            fields |= set(v['fields'])
+                        else:
+                            fields.add(v.get('field'))
                 elif isinstance(v, list):
                     # It's a list of field names
                     for f in v:
