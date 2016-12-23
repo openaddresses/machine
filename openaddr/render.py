@@ -335,6 +335,14 @@ def render(sources_dir, good_sources, width, resolution, filename, area=WORLD):
     good_iso3166s, bad_iso3166s = load_iso3166s(sources_dir, good_sources)
     good_geometries, bad_geometries = load_geometries(sources_dir, good_sources, area)
 
+    _, ext = splitext(filename.lower())
+    
+    if ext == '.geojson':
+        # Render to GeoJSON instead
+        return _render_geojson(filename, area,
+                               good_geoids, good_iso3166s, good_geometries,
+                               bad_geoids, bad_iso3166s, bad_geometries)
+    
     # Open datasources
     _datasources, landarea_features, coastline_features, lakes_features, \
         countries_features, countries_borders_features, admin1s_features, \
@@ -349,14 +357,6 @@ def render(sources_dir, good_sources, width, resolution, filename, area=WORLD):
     good_data_admin1s = [f for f in admin1s_features if f.GetFieldAsString('iso_3166_2') in good_iso3166s]
     bad_data_countries = [f for f in countries_features if f.GetFieldAsString('iso_a2') in bad_iso3166s]
     bad_data_admin1s = [f for f in admin1s_features if f.GetFieldAsString('iso_3166_2') in bad_iso3166s]
-    
-    _, ext = splitext(filename.lower())
-    
-    if ext == '.geojson':
-        # Render to GeoJSON instead
-        return _render_geojson(filename, good_geometries.values(), bad_geometries.values(),
-                               chain(good_data_countries, good_data_admin1s, good_data_states, good_data_counties),
-                               chain(bad_data_countries, bad_data_admin1s, bad_data_states, bad_data_counties))
     
     # Prepare output surface
     surface, context, scale = make_context(width, resolution, area)
@@ -416,34 +416,72 @@ def render(sources_dir, good_sources, width, resolution, filename, area=WORLD):
     # Output
     surface.write_to_png(filename)
 
-def _render_geojson(filename, good_geometries, bad_geometries, good_features, bad_features):
+def _render_geojson(filename, area, good_geoids, good_iso3166s, good_geometries,
+                    bad_geoids, bad_iso3166s, bad_geometries):
     '''
     '''
+    # Open datasources
+    _datasources, landarea_features, coastline_features, lakes_features, \
+        countries_features, countries_borders_features, admin1s_features, \
+        us_state_features, us_county_features = open_datasources(area)
+
     wgs84 = osr.SpatialReference(osr.SRS_WKT_WGS84)
     feature_strings = []
     
-    collection_str = json.dumps(dict(type='FeatureCollection', features=['XoXoX']))
-    good_feature_str = json.dumps(dict(type='Feature', geometry='XoXoX', properties={'status': 'good'}))
-    bad_feature_str = json.dumps(dict(type='Feature', geometry='XoXoX', properties={'status': 'bad'}))
-    
-    geometries = chain(zip(good_geometries, cycle([good_feature_str])),
-                       zip(bad_geometries, cycle([bad_feature_str])))
-    
-    features = chain(zip(good_features, cycle([good_feature_str])),
-                     zip(bad_features, cycle([bad_feature_str])))
-    
-    for (geom, feature_str) in geometries:
+    def append_feature_string(geom, properties):
         geom.TransformTo(wgs84)
         geom_str = geom.ExportToJson(options=['COORDINATE_PRECISION=4'])
-        feature_strings.append(feature_str.replace('"XoXoX"', geom_str))
+        feature_obj = dict(type='Feature', properties=properties, geometry='XoXoX')
+        feature_str = json.dumps(feature_obj).replace('"XoXoX"', geom_str)
+        feature_strings.append(feature_str)
+    
+    for feature in countries_features:
+        iso_a2 = feature.GetFieldAsString('iso_a2')
+        if iso_a2 in good_iso3166s:
+            geom, status = feature.GetGeometryRef(), 'good'
+            paths = ', '.join(good_iso3166s[iso_a2])
+        elif iso_a2 in bad_iso3166s:
+            geom, status = feature.GetGeometryRef(), 'bad'
+            paths = ', '.join(bad_iso3166s[iso_a2])
+        else:
+            continue
 
-    for (feat, feature_str) in features:
-        geom = feat.GetGeometryRef()
-        geom.TransformTo(wgs84)
-        geom_str = geom.ExportToJson(options=['COORDINATE_PRECISION=4'])
-        feature_strings.append(feature_str.replace('"XoXoX"', geom_str))
+        append_feature_string(geom, {'status': status, 'sources': paths, 'ISO 3166': iso_a2})
+    
+    for feature in admin1s_features:
+        iso_3166_2 = feature.GetFieldAsString('iso_3166_2')
+        if iso_3166_2 in good_iso3166s:
+            geom, status = feature.GetGeometryRef(), 'good'
+            paths = ', '.join(good_iso3166s[iso_3166_2])
+        elif iso_3166_2 in bad_iso3166s:
+            geom, status = feature.GetGeometryRef(), 'bad'
+            paths = ', '.join(bad_iso3166s[iso_3166_2])
+        else:
+            continue
+
+        append_feature_string(geom, {'status': status, 'sources': paths, 'ISO 3166-2': iso_3166_2})
+    
+    for feature in chain(us_state_features, us_county_features):
+        geoid = feature.GetFieldAsString('GEOID')
+        if geoid in good_geoids:
+            geom, status = feature.GetGeometryRef(), 'good'
+            paths = ', '.join(good_geoids[geoid])
+        elif geoid in bad_geoids:
+            geom, status = feature.GetGeometryRef(), 'bad'
+            paths = ', '.join(bad_geoids[geoid])
+        else:
+            continue
+
+        append_feature_string(geom, {'status': status, 'sources': paths, 'US Census GEOID': geoid})
+    
+    for (path, geom) in good_geometries.items():
+        append_feature_string(geom, {'status': 'good', 'sources': path})
+
+    for (path, geom) in bad_geometries.items():
+        append_feature_string(geom, {'status': 'bad', 'sources': path})
     
     with open(filename, 'w') as file:
+        collection_str = json.dumps(dict(type='FeatureCollection', features=['XoXoX']))
         file.write(collection_str.replace('"XoXoX"', ',\n'.join(feature_strings)))
 
 if __name__ == '__main__':
