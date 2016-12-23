@@ -3357,6 +3357,9 @@ class TestBatch (unittest.TestCase):
             self.assertEqual(get('http://fake-s3.local/render-usa.png').status_code, 200)
             self.assertEqual(get('http://fake-s3.local/render-europe.png').status_code, 200)
             self.assertEqual(get('http://fake-s3.local/render-world.png').status_code, 200)
+            self.assertEqual(get('http://fake-s3.local/render-usa.geojson').status_code, 200)
+            self.assertEqual(get('http://fake-s3.local/render-europe.geojson').status_code, 200)
+            self.assertEqual(get('http://fake-s3.local/render-world.geojson').status_code, 200)
 
 class TestQueue (unittest.TestCase):
     

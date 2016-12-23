@@ -8,10 +8,27 @@ import subprocess
 from os.path import join, dirname
 
 from .. import render
+from mock import patch, Mock
 
 from httmock import HTTMock, response
 
 class TestRender (unittest.TestCase):
+
+    def test_render(self):
+        sources_dir, good_sources, width, resolution, area \
+            = Mock(), Mock(), Mock(), Mock(), Mock()
+
+        with patch('openaddr.render.render_png') as render_png:
+            render.render(sources_dir, good_sources, width, resolution, 'output.png', area)
+            
+        with patch('openaddr.render.render_geojson') as render_geojson:
+            render.render(sources_dir, good_sources, width, resolution, 'output.geojson', area)
+            
+        with self.assertRaises(ValueError):
+            render.render(sources_dir, good_sources, width, resolution, 'output.gif', area)
+            
+        render_png.assert_called_once_with(sources_dir, good_sources, width, resolution, 'output.png', area)
+        render_geojson.assert_called_once_with(sources_dir, good_sources, 'output.geojson', area)
 
     def test_render_png(self):
         sources = join(dirname(__file__), 'sources')
@@ -19,7 +36,7 @@ class TestRender (unittest.TestCase):
         os.close(handle)
         
         try:
-            render.render(sources, set(), 512, 1, filename)
+            render.render_png(sources, set(), 512, 1, filename, render.WORLD)
             info = str(subprocess.check_output(('file', filename)))
 
             self.assertIn('PNG image data', info)
@@ -34,7 +51,7 @@ class TestRender (unittest.TestCase):
         os.close(handle)
         
         try:
-            render.render(sources, set(), 512, 1, filename)
+            render.render_geojson(sources, set(), filename, render.WORLD)
             with open(filename) as file:
                 content = file.read()
 

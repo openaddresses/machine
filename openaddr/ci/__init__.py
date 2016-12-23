@@ -663,7 +663,7 @@ def render_set_maps(s3, db, the_set):
         rmtree(dirname)
 
 def _render_and_upload_maps(s3, good_sources, s3_prefix, dirname):
-    ''' Render set maps, upload them to S3 and return their URLs.
+    ''' Render set maps, upload them to S3 and return URLs of PNGs only.
     '''
     urls = dict()
     areas = (render.WORLD, 'world'), (render.USA, 'usa'), (render.EUROPE, 'europe')
@@ -671,16 +671,23 @@ def _render_and_upload_maps(s3, good_sources, s3_prefix, dirname):
     key_kwargs = dict(policy='public-read', headers={'Content-Type': 'image/png'})
 
     for (area, area_name) in areas:
+        geojson_basename = 'render-{}.geojson'.format(area_name)
+        geojson_filename = join(dirname, geojson_basename)
+        render.render_geojson(dirname, good_sources, geojson_filename, area)
+
         png_basename = 'render-{}.png'.format(area_name)
         png_filename = join(dirname, png_basename)
-        render.render(dirname, good_sources, 960, 2, png_filename, area)
+        render.render_png(dirname, good_sources, 960, 2, png_filename, area)
+
+        with open(geojson_filename, 'rb') as file:
+            render_geojson_key = s3.new_key(join(s3_prefix, geojson_basename))
+            render_geojson_key.set_contents_from_string(file.read(), **key_kwargs)
 
         with open(png_filename, 'rb') as file:
-            render_path = 'render-{}.png'.format(area_name)
-            render_key = s3.new_key(join(s3_prefix, png_basename))
-            render_key.set_contents_from_string(file.read(), **key_kwargs)
+            render_png_key = s3.new_key(join(s3_prefix, png_basename))
+            render_png_key.set_contents_from_string(file.read(), **key_kwargs)
 
-        urls[area_name] = util.s3_key_url(render_key)
+        urls[area_name] = util.s3_key_url(render_png_key)
     
     return urls['world'], urls['usa'], urls['europe']
 

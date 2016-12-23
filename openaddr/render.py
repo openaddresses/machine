@@ -274,8 +274,17 @@ parser.add_argument('--europe', dest='area', action='store_const', const=EUROPE,
 def main():
     args = parser.parse_args()
     good_sources = load_live_state() if args.use_state else load_fake_state(args.sources_dir)
-    return render(args.sources_dir, good_sources, args.width, args.resolution,
-                  args.filename, args.area)
+
+    _, ext = splitext(args.filename.lower())
+    
+    if ext == '.png':
+        return render_png(args.sources_dir, good_sources, args.width,
+                          args.resolution, args.filename, args.area)
+    elif ext == '.geojson':
+        return render_geojson(args.sources_dir, good_sources,
+                              args.filename, args.area)
+    else:
+        raise ValueError('Unknown rendered filename extension {}'.format(repr(ext)))
 
 def first_layer_list(datasource):
     ''' Return features as a list, or an empty list.
@@ -328,6 +337,18 @@ def open_datasources(area):
         )
 
 def render(sources_dir, good_sources, width, resolution, filename, area=WORLD):
+    ''' Deprecated wrapper for render_png and render_geojson.
+    '''
+    _, ext = splitext(filename.lower())
+    
+    if ext == '.png':
+        return render_png(sources_dir, good_sources, width, resolution, filename, area)
+    elif ext == '.geojson':
+        return render_geojson(sources_dir, good_sources, filename, area)
+    else:
+        raise ValueError('Unknown rendered filename extension {}'.format(repr(ext)))
+
+def render_png(sources_dir, good_sources, width, resolution, filename, area):
     ''' Resolution: 1 for 100%, 2 for 200%, etc.
     '''
     # Load data
@@ -335,14 +356,6 @@ def render(sources_dir, good_sources, width, resolution, filename, area=WORLD):
     good_iso3166s, bad_iso3166s = load_iso3166s(sources_dir, good_sources)
     good_geometries, bad_geometries = load_geometries(sources_dir, good_sources, area)
 
-    _, ext = splitext(filename.lower())
-    
-    if ext == '.geojson':
-        # Render to GeoJSON instead
-        return _render_geojson(filename, area,
-                               good_geoids, good_iso3166s, good_geometries,
-                               bad_geoids, bad_iso3166s, bad_geometries)
-    
     # Open datasources
     _datasources, landarea_features, coastline_features, lakes_features, \
         countries_features, countries_borders_features, admin1s_features, \
@@ -416,10 +429,14 @@ def render(sources_dir, good_sources, width, resolution, filename, area=WORLD):
     # Output
     surface.write_to_png(filename)
 
-def _render_geojson(filename, area, good_geoids, good_iso3166s, good_geometries,
-                    bad_geoids, bad_iso3166s, bad_geometries):
+def render_geojson(sources_dir, good_sources, filename, area):
     '''
     '''
+    # Load data
+    good_geoids, bad_geoids = load_geoids(sources_dir, good_sources)
+    good_iso3166s, bad_iso3166s = load_iso3166s(sources_dir, good_sources)
+    good_geometries, bad_geometries = load_geometries(sources_dir, good_sources, area)
+
     # Open datasources
     _datasources, landarea_features, coastline_features, lakes_features, \
         countries_features, countries_borders_features, admin1s_features, \
@@ -431,8 +448,8 @@ def _render_geojson(filename, area, good_geoids, good_iso3166s, good_geometries,
     def append_feature_string(geom, properties):
         geom.TransformTo(wgs84)
         geom_str = geom.ExportToJson(options=['COORDINATE_PRECISION=4'])
-        feature_obj = dict(type='Feature', properties=properties, geometry='XoXoX')
-        feature_str = json.dumps(feature_obj).replace('"XoXoX"', geom_str)
+        feature_obj = dict(type='Feature', properties=properties, geometry='<placeholder>')
+        feature_str = json.dumps(feature_obj).replace('"<placeholder>"', geom_str)
         feature_strings.append(feature_str)
     
     for feature in countries_features:
@@ -481,8 +498,8 @@ def _render_geojson(filename, area, good_geoids, good_iso3166s, good_geometries,
         append_feature_string(geom, {'status': 'bad', 'sources': path})
     
     with open(filename, 'w') as file:
-        collection_str = json.dumps(dict(type='FeatureCollection', features=['XoXoX']))
-        file.write(collection_str.replace('"XoXoX"', ',\n'.join(feature_strings)))
+        collection_str = json.dumps(dict(type='FeatureCollection', features=['<placeholder>']))
+        file.write(collection_str.replace('"<placeholder>"', ',\n'.join(feature_strings)))
 
 if __name__ == '__main__':
     exit(main())
