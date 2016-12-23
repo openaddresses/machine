@@ -1,3 +1,7 @@
+2016-12-23: 3.18.0
+- Added GeoJSON data summary output at bucket root. (#502)
+- Changed openaddr-sum-up-data crontab call to hourly.
+
 2016-12-22: 3.17.1
 - Fixed Esri cacher when processing a source that used the "join" function in its conform. (#481)
 - Adding tests and fixing a bug in the new remove_prefix and remove_postfix functions. (#498)
