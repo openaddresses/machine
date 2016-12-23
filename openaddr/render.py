@@ -7,11 +7,12 @@ from glob import glob
 from unicodedata import normalize
 from collections import defaultdict
 from argparse import ArgumentParser
-from itertools import combinations, chain, cycle
-from os.path import join, dirname, basename, splitext, relpath
+from itertools import combinations, chain
+from os.path import join, dirname, splitext, relpath
 from urllib.parse import urljoin
 import json, csv, io, os
 
+from . import compat
 from .compat import cairo
 from osgeo import ogr, osr
 import requests
@@ -80,7 +81,10 @@ def load_live_state():
     '''
     '''
     got = requests.get('https://results.openaddresses.io/state.txt')
-    state = csv.DictReader(io.StringIO(got.text), dialect='excel-tab')
+    if compat.PY2:
+        state = compat.csvDictReader(io.BytesIO(got.content), dialect='excel-tab', encoding='utf8')
+    else:
+        state = csv.DictReader(io.StringIO(got.text), dialect='excel-tab')
     
     good_sources = [s['source'] for s in state if (s['cache'] and s['processed'])]
     return set(good_sources)
@@ -93,6 +97,8 @@ def iterate_sources_dir(sources_dir):
             _, ext = splitext(filename.lower())
             if ext == '.json':
                 path = relpath(join(dirname, filename), sources_dir)
+                if compat.PY2 and hasattr(path, 'decode'):
+                    path = path.decode('utf8')
                 yield normalize('NFC', path)
 
 def load_fake_state(sources_dir):
