@@ -155,17 +155,9 @@ file "/etc/cron.d/openaddr_crontab-sum-up-data" do
     content <<-CRONTAB
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 LC_ALL=C.UTF-8
-# Archive collection, every day at 5am and 5pm UTC (9pm and 9am PDT)
-0 5,17	* * *	#{username}	\
-  openaddr-run-ec2-command \
-  --hours 0.5 \
-  --instance-type t2.nano \
-  -b "#{aws_s3_bucket}" \
-  --sns-arn "#{aws_sns_arn}" \
-  --slack-url "#{slack_url}" \
-  --verbose \
-  -- \
-    openaddr-sum-up-data \
+# Sum up current data, hourly
+0 *	* * *	#{username}	\
+  openaddr-sum-up-data \
     -d "#{database_url}" \
     -b "#{aws_s3_bucket}" \
     --sns-arn "#{aws_sns_arn}" \
