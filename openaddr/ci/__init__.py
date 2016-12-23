@@ -670,18 +670,17 @@ def _render_and_upload_maps(s3, good_sources, s3_prefix, dirname):
     
     key_kwargs = dict(policy='public-read', headers={'Content-Type': 'image/png'})
 
-    for (area, area_name) in areas:
-        geojson_basename = 'render-{}.geojson'.format(area_name)
-        geojson_filename = join(dirname, geojson_basename)
-        render.render_geojson(dirname, good_sources, geojson_filename, area)
+    geojson_filename = join(dirname, 'render-world.geojson')
+    render.render_geojson(dirname, good_sources, geojson_filename, render.WORLD)
 
+    with open(geojson_filename, 'rb') as file:
+        render_geojson_key = s3.new_key(join(s3_prefix, 'render-world.geojson'))
+        render_geojson_key.set_contents_from_string(file.read(), **key_kwargs)
+
+    for (area, area_name) in areas:
         png_basename = 'render-{}.png'.format(area_name)
         png_filename = join(dirname, png_basename)
         render.render_png(dirname, good_sources, 960, 2, png_filename, area)
-
-        with open(geojson_filename, 'rb') as file:
-            render_geojson_key = s3.new_key(join(s3_prefix, geojson_basename))
-            render_geojson_key.set_contents_from_string(file.read(), **key_kwargs)
 
         with open(png_filename, 'rb') as file:
             render_png_key = s3.new_key(join(s3_prefix, png_basename))
