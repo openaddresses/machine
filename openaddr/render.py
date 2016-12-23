@@ -5,6 +5,7 @@ from .compat import standard_library
 
 from glob import glob
 from unicodedata import normalize
+from collections import defaultdict
 from argparse import ArgumentParser
 from itertools import combinations, chain, cycle
 from os.path import join, dirname, basename, splitext, relpath
@@ -100,9 +101,11 @@ def load_fake_state(sources_dir):
     return set(iterate_sources_dir(sources_dir))
 
 def load_geoids(directory, good_sources):
-    ''' Load a set of U.S. Census GEOIDs that should be rendered.
+    ''' Load two dictionaries of U.S. Census GEOIDs that should be rendered.
+    
+        Dictionary keys are FIPS GEOIDs, values are sets of source paths.
     '''
-    good_geoids, bad_geoids = set(), set()
+    good_geoids, bad_geoids = defaultdict(set), defaultdict(set)
 
     for path in iterate_sources_dir(directory):
         with open(join(directory, path)) as file:
@@ -110,16 +113,18 @@ def load_geoids(directory, good_sources):
     
         if 'geoid' in data.get('coverage', {}).get('US Census', {}):
             if path in good_sources:
-                good_geoids.add(data['coverage']['US Census']['geoid'])
+                good_geoids[data['coverage']['US Census']['geoid']].add(path)
             else:
-                bad_geoids.add(data['coverage']['US Census']['geoid'])
+                bad_geoids[data['coverage']['US Census']['geoid']].add(path)
     
     return good_geoids, bad_geoids
 
 def load_iso3166s(directory, good_sources):
-    ''' Load a set of ISO 3166 codes that should be rendered.
+    ''' Load two dictionaries of ISO 3166 codes that should be rendered.
+    
+        Dictionary keys are ISO 3166 codes, values are sets of source paths.
     '''
-    good_iso3166s, bad_iso3166s = set(), set()
+    good_iso3166s, bad_iso3166s = defaultdict(set), defaultdict(set)
 
     for path in iterate_sources_dir(directory):
         with open(join(directory, path)) as file:
@@ -127,22 +132,24 @@ def load_iso3166s(directory, good_sources):
     
         if 'code' in data.get('coverage', {}).get('ISO 3166', {}):
             if path in good_sources:
-                good_iso3166s.add(data['coverage']['ISO 3166']['code'])
+                good_iso3166s[data['coverage']['ISO 3166']['code']].add(path)
             else:
-                bad_iso3166s.add(data['coverage']['ISO 3166']['code'])
+                bad_iso3166s[data['coverage']['ISO 3166']['code']].add(path)
     
         elif 'alpha2' in data.get('coverage', {}).get('ISO 3166', {}):
             if path in good_sources:
-                good_iso3166s.add(data['coverage']['ISO 3166']['alpha2'])
+                good_iso3166s[data['coverage']['ISO 3166']['alpha2']].add(path)
             else:
-                bad_iso3166s.add(data['coverage']['ISO 3166']['alpha2'])
+                bad_iso3166s[data['coverage']['ISO 3166']['alpha2']].add(path)
     
     return good_iso3166s, bad_iso3166s
 
 def load_geometries(directory, good_sources, area):
-    ''' Load a set of GeoJSON geometries should be rendered.
+    ''' Load two dictionaries of GeoJSON geometries should be rendered.
+    
+        Dictionary keys are source paths, values are geometries
     '''
-    good_geometries, bad_geometries = list(), list()
+    good_geometries, bad_geometries = dict(), dict()
 
     osr.UseExceptions()
     sref_geo = osr.SpatialReference(); sref_geo.ImportFromProj4(EPSG4326)
@@ -163,9 +170,9 @@ def load_geometries(directory, good_sources, area):
             geometry.Transform(project)
 
             if path in good_sources:
-                good_geometries.append(geometry)
+                good_geometries[path] = geometry
             else:
-                bad_geometries.append(geometry)
+                bad_geometries[path] = geometry
     
     return good_geometries, bad_geometries
 
@@ -275,14 +282,9 @@ def first_layer_list(datasource):
     '''
     return list(datasource.GetLayer(0) if hasattr(datasource, 'GetLayer') else [])
 
-def render(sources_dir, good_sources, width, resolution, filename, area=WORLD):
-    ''' Resolution: 1 for 100%, 2 for 200%, etc.
+def open_datasources(area):
     '''
-    # Load data
-    good_geoids, bad_geoids = load_geoids(sources_dir, good_sources)
-    good_iso3166s, bad_iso3166s = load_iso3166s(sources_dir, good_sources)
-    good_geometries, bad_geometries = load_geometries(sources_dir, good_sources, area)
-
+    '''
     geodata = join(dirname(__file__), 'geodata')
 
     if area in (WORLD, EUROPE):
@@ -315,6 +317,28 @@ def render(sources_dir, good_sources, width, resolution, filename, area=WORLD):
     admin1s_features = first_layer_list(admin1s_ds)
     us_state_features = first_layer_list(us_state_ds)
     us_county_features = first_layer_list(us_county_ds)
+    
+    _datasources = landarea_ds, coastline_ds, lakes_ds, countries_ds, \
+        countries_borders_ds, admin1s_ds, us_state_ds, us_county_ds
+    
+    return (
+        _datasources, landarea_features, coastline_features,
+        lakes_features, countries_features, countries_borders_features,
+        admin1s_features, us_state_features, us_county_features
+        )
+
+def render(sources_dir, good_sources, width, resolution, filename, area=WORLD):
+    ''' Resolution: 1 for 100%, 2 for 200%, etc.
+    '''
+    # Load data
+    good_geoids, bad_geoids = load_geoids(sources_dir, good_sources)
+    good_iso3166s, bad_iso3166s = load_iso3166s(sources_dir, good_sources)
+    good_geometries, bad_geometries = load_geometries(sources_dir, good_sources, area)
+
+    # Open datasources
+    _datasources, landarea_features, coastline_features, lakes_features, \
+        countries_features, countries_borders_features, admin1s_features, \
+        us_state_features, us_county_features = open_datasources(area)
 
     # Assign features to good or bad lists
     good_data_states = [f for f in us_state_features if f.GetFieldAsString('GEOID') in good_geoids]
@@ -330,7 +354,7 @@ def render(sources_dir, good_sources, width, resolution, filename, area=WORLD):
     
     if ext == '.geojson':
         # Render to GeoJSON instead
-        return _render_geojson(filename, good_geometries, bad_geometries,
+        return _render_geojson(filename, good_geometries.values(), bad_geometries.values(),
                                chain(good_data_countries, good_data_admin1s, good_data_states, good_data_counties),
                                chain(bad_data_countries, bad_data_admin1s, bad_data_states, bad_data_counties))
     
@@ -374,8 +398,8 @@ def render(sources_dir, good_sources, width, resolution, filename, area=WORLD):
     fill_features(context, good_data_counties, muppx, dark_green)
 
     # Fill other given geometries
-    fill_geometries(context, bad_geometries, muppx, dark_red)
-    fill_geometries(context, good_geometries, muppx, dark_green)
+    fill_geometries(context, bad_geometries.values(), muppx, dark_red)
+    fill_geometries(context, good_geometries.values(), muppx, dark_green)
 
     # Outline countries and boundaries, fill lakes
     context.set_source_rgb(*black)
