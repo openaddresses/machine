@@ -59,7 +59,7 @@ class TestSummarizeFunctions (unittest.TestCase):
         '''
         '''
         _ = None
-        make_run = lambda state: Run(_, _, _, b'', _, RunState(state), _, _, _, _, _, _, _, _)
+        make_run = lambda state: Run(_, 'sources/whatever.json', _, b'', _, RunState(state), _, _, _, _, _, _, _, _)
         
         runs = [
             make_run({}),
