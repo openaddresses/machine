@@ -451,9 +451,13 @@ def render_geojson(sources_dir, good_sources, filename, area):
     wgs84 = osr.SpatialReference(osr.SRS_WKT_WGS84)
     feature_strings = []
     
-    def append_feature_string(geom, properties):
+    def append_feature_string(geom, status, paths, etc):
         geom.TransformTo(wgs84)
         geom_str = geom.ExportToJson(options=['COORDINATE_PRECISION=4'])
+        
+        properties = {'status': status, 'source paths': ' '.join(paths), 'source count': len(paths)}
+        properties.update(etc)
+        
         feature_obj = dict(type='Feature', properties=properties, geometry='<placeholder>')
         feature_str = json.dumps(feature_obj).replace('"<placeholder>"', geom_str)
         feature_strings.append(feature_str)
@@ -461,47 +465,41 @@ def render_geojson(sources_dir, good_sources, filename, area):
     for feature in countries_features:
         iso_a2 = feature.GetFieldAsString('iso_a2')
         if iso_a2 in good_iso3166s:
-            geom, status = feature.GetGeometryRef(), 'good'
-            paths = ', '.join(good_iso3166s[iso_a2])
+            geom, status, paths = feature.GetGeometryRef(), 'good', good_iso3166s[iso_a2]
         elif iso_a2 in bad_iso3166s:
-            geom, status = feature.GetGeometryRef(), 'bad'
-            paths = ', '.join(bad_iso3166s[iso_a2])
+            geom, status, paths = feature.GetGeometryRef(), 'bad', bad_iso3166s[iso_a2]
         else:
             continue
 
-        append_feature_string(geom, {'status': status, 'sources': paths, 'ISO 3166': iso_a2})
+        append_feature_string(geom, status, paths, {'ISO 3166': iso_a2})
     
     for feature in admin1s_features:
         iso_3166_2 = feature.GetFieldAsString('iso_3166_2')
         if iso_3166_2 in good_iso3166s:
-            geom, status = feature.GetGeometryRef(), 'good'
-            paths = ', '.join(good_iso3166s[iso_3166_2])
+            geom, status, paths = feature.GetGeometryRef(), 'good', good_iso3166s[iso_3166_2]
         elif iso_3166_2 in bad_iso3166s:
-            geom, status = feature.GetGeometryRef(), 'bad'
-            paths = ', '.join(bad_iso3166s[iso_3166_2])
+            geom, status, paths = feature.GetGeometryRef(), 'bad', bad_iso3166s[iso_3166_2]
         else:
             continue
 
-        append_feature_string(geom, {'status': status, 'sources': paths, 'ISO 3166-2': iso_3166_2})
+        append_feature_string(geom, status, paths, {'ISO 3166-2': iso_3166_2})
     
     for feature in chain(us_state_features, us_county_features):
         geoid = feature.GetFieldAsString('GEOID')
         if geoid in good_geoids:
-            geom, status = feature.GetGeometryRef(), 'good'
-            paths = ', '.join(good_geoids[geoid])
+            geom, status, paths = feature.GetGeometryRef(), 'good', good_geoids[geoid]
         elif geoid in bad_geoids:
-            geom, status = feature.GetGeometryRef(), 'bad'
-            paths = ', '.join(bad_geoids[geoid])
+            geom, status, paths = feature.GetGeometryRef(), 'bad', bad_geoids[geoid]
         else:
             continue
 
-        append_feature_string(geom, {'status': status, 'sources': paths, 'US Census GEOID': geoid})
+        append_feature_string(geom, status, paths, {'US Census GEOID': geoid})
     
     for (path, geom) in good_geometries.items():
-        append_feature_string(geom, {'status': 'good', 'sources': path})
+        append_feature_string(geom, 'good', [path], {})
 
     for (path, geom) in bad_geometries.items():
-        append_feature_string(geom, {'status': 'bad', 'sources': path})
+        append_feature_string(geom, 'bad', [path], {})
     
     with open(filename, 'w') as file:
         collection_str = json.dumps(dict(type='FeatureCollection', features=['<placeholder>']))
