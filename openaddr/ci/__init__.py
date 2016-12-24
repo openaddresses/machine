@@ -671,23 +671,24 @@ def _render_and_upload_maps(s3, good_sources, s3_prefix, dirname):
     key_kwargs = dict(policy='public-read', headers={'Content-Type': 'image/png'})
 
     for (area, area_name) in areas:
-        geojson_basename = 'render-{}.geojson'.format(area_name)
-        geojson_filename = join(dirname, geojson_basename)
-        render.render_geojson(dirname, good_sources, geojson_filename, area)
-
         png_basename = 'render-{}.png'.format(area_name)
         png_filename = join(dirname, png_basename)
         render.render_png(dirname, good_sources, 960, 2, png_filename, area)
-
-        with open(geojson_filename, 'rb') as file:
-            render_geojson_key = s3.new_key(join(s3_prefix, geojson_basename))
-            render_geojson_key.set_contents_from_string(file.read(), **key_kwargs)
 
         with open(png_filename, 'rb') as file:
             render_png_key = s3.new_key(join(s3_prefix, png_basename))
             render_png_key.set_contents_from_string(file.read(), **key_kwargs)
 
         urls[area_name] = util.s3_key_url(render_png_key)
+
+    key_kwargs.update(headers={'Content-Type': 'application/vnd.geo+json'})
+
+    geojson_filename = join(dirname, 'render-world.geojson')
+    render.render_geojson(dirname, good_sources, geojson_filename, render.WORLD)
+
+    with open(geojson_filename, 'rb') as file:
+        render_geojson_key = s3.new_key(join(s3_prefix, 'render-world.geojson'))
+        render_geojson_key.set_contents_from_string(file.read(), **key_kwargs)
     
     return urls['world'], urls['usa'], urls['europe']
 
@@ -697,13 +698,18 @@ def _prepare_render_sources(runs, dirname):
     good_sources = set()
     
     for run in runs:
-        filename = '{source_id}.json'.format(**run.__dict__)
-        with open(join(dirname, filename), 'w+b') as file:
+        filepath = join(dirname, run.source_path)
+        dirpath = os.path.dirname(filepath)
+        
+        if not os.path.exists(dirpath):
+            os.makedirs(dirpath)
+        
+        with open(filepath, 'w+b') as file:
             content = b64decode(run.source_data)
             file.write(content)
         
         if run.status is True:
-            good_sources.add(filename)
+            good_sources.add(run.source_path)
     
     return good_sources
 

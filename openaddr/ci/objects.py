@@ -58,6 +58,8 @@ class Run:
         '''
         '''
         assert hasattr(state, 'to_json'), 'Run state should have to_json() method'
+        assert source_path.startswith('sources/'), '{} should start with "sources"'.format(repr(source_path))
+        assert source_path.endswith('.json'), '{} should end with ".json"'.format(repr(source_path))
         
         self.id = id
         self.source_path = source_path

@@ -392,8 +392,8 @@ class TestObjects (unittest.TestCase):
     def test_read_run_yes(self):
         ''' Check behavior of objects.read_run()
         '''
-        self.db.fetchone.return_value = (123, '', '', b'', None, {}, True, None,
-                                         'x.y.z', '', None, None, '', False)
+        self.db.fetchone.return_value = (123, 'sources/whatever.json', '', b'',
+            None, {}, True, None, 'x.y.z', '', None, None, '', False)
         
         run = read_run(self.db, 123)
         self.assertEqual(run.id, 123)
@@ -409,8 +409,8 @@ class TestObjects (unittest.TestCase):
     def test_read_run_yes_without_source_data(self):
         ''' Check behavior of objects.read_run()
         '''
-        self.db.fetchone.return_value = (123, '', '', None, None, {}, True, None,
-                                         'x.y.z', '', None, None, '', False)
+        self.db.fetchone.return_value = (123, 'sources/whatever.json', '', None,
+            None, {}, True, None, 'x.y.z', '', None, None, '', False)
         
         run = read_run(self.db, 123)
         self.assertEqual(run.id, 123)
@@ -524,12 +524,12 @@ class TestObjects (unittest.TestCase):
     def test_new_read_completed_set_runs(self):
         ''' Check behavior of objects.new_read_completed_set_runs()
         '''
-        self.db.fetchall.return_value = (('abc', 'pl', 'jkl', b'', None, {}, True,
-                                          None, '', '', 'mno', 123, 'abc', False), )
+        self.db.fetchall.return_value = (('abc', 'sources/whatever.json', 'jkl',
+            b'', None, {}, True, None, '', '', 'mno', 123, 'abc', False), )
         
         runs = new_read_completed_set_runs(self.db, 123)
         self.assertEqual(runs[0].id, 'abc')
-        self.assertEqual(runs[0].source_path, 'pl')
+        self.assertEqual(runs[0].source_path, 'sources/whatever.json')
         self.assertEqual(runs[0].source_data, b'')
         self.assertEqual(runs[0].status, True)
         self.assertFalse(runs[0].is_merged)
@@ -544,17 +544,19 @@ class TestObjects (unittest.TestCase):
     def test_read_completed_source_runs(self):
         ''' Check behavior of objects.read_completed_source_runs()
         '''
-        self.db.fetchall.return_value = (('abc', 'pl', 'jkl', b'', None, {}, True,
-                                          'def', '', '', 'mno', 123, 'abc', False),
-                                         ('def', 'pl', 'jkl', b'', None, {}, True,
-                                          None, '', '', 'mno', 123, 'abc', False),
-                                         ('ghi', 'pl', 'jkl', b'', None, {}, True,
-                                          None, '', '', 'mno', 123, 'abc', False), )
+        self.db.fetchall.return_value = (
+            ('abc', 'sources/whatever.json', 'jkl', b'', None, {}, True,
+             'def', '', '', 'mno', 123, 'abc', False),
+            ('def', 'sources/whatever.json', 'jkl', b'', None, {}, True,
+             None, '', '', 'mno', 123, 'abc', False),
+            ('ghi', 'sources/whatever.json', 'jkl', b'', None, {}, True,
+             None, '', '', 'mno', 123, 'abc', False),
+            )
         
-        runs = read_completed_source_runs(self.db, 'pl')
+        runs = read_completed_source_runs(self.db, 'sources/whatever.json')
         self.assertEqual(len(runs), 2)
         self.assertEqual(runs[0].id, 'abc')
-        self.assertEqual(runs[0].source_path, 'pl')
+        self.assertEqual(runs[0].source_path, 'sources/whatever.json')
         self.assertEqual(runs[0].source_data, b'')
         self.assertEqual(runs[0].status, True)
         self.assertFalse(runs[0].is_merged)
@@ -567,7 +569,7 @@ class TestObjects (unittest.TestCase):
                   WHERE source_path = %s AND status IS NOT NULL
                     AND (is_merged or is_merged is null)
                   ORDER BY id DESC''',
-                  ('pl', ))
+                  ('sources/whatever.json', ))
     
     def test_read_completed_runs_to_date_missing_set(self):
         ''' Check when read_completed_runs_to_date() called with missing set.
@@ -1901,8 +1903,8 @@ class TestHook (unittest.TestCase):
             None, None)
 
         run_state = RunState({'preview': 'http://s3.amazonaws.com/data-testpreviews.openaddresses.io/runs/10/preview.png'})
-        read_run.return_value = Run(-2, None, None, None, None, run_state, None,
-                                    None, None, None, None, None, None, None)
+        read_run.return_value = Run(-2, 'sources/whatever.json', None, None,
+            None, run_state, None, None, None, None, None, None, None, None)
 
         
         with HTTMock(self.response_content):
@@ -1918,8 +1920,8 @@ class TestHook (unittest.TestCase):
             None, None, None)
 
         run_state = RunState({'preview': 'http://s3.amazonaws.com/data-testpreviews.openaddresses.io/runs/10/preview.png'})
-        read_run.return_value = Run(-2, None, None, None, None, run_state, None,
-                                    None, None, None, None, None, None, None)
+        read_run.return_value = Run(-2, 'sources/whatever.json', None, None,
+            None, run_state, None, None, None, None, None, None, None, None)
 
         
         with HTTMock(self.response_content):
@@ -1936,8 +1938,8 @@ class TestHook (unittest.TestCase):
             None, None)
 
         run_state = RunState({'preview': 'http://s3.amazonaws.com/data-testpreviews.openaddresses.io/runs/10/preview.png'})
-        read_run.return_value = Run(-2, None, None, None, None, run_state, None,
-                                    None, None, None, None, None, None, None)
+        read_run.return_value = Run(-2, 'sources/whatever.json', None, None,
+            None, run_state, None, None, None, None, None, None, None, None)
 
         
         with HTTMock(self.response_content):
@@ -3357,8 +3359,6 @@ class TestBatch (unittest.TestCase):
             self.assertEqual(get('http://fake-s3.local/render-usa.png').status_code, 200)
             self.assertEqual(get('http://fake-s3.local/render-europe.png').status_code, 200)
             self.assertEqual(get('http://fake-s3.local/render-world.png').status_code, 200)
-            self.assertEqual(get('http://fake-s3.local/render-usa.geojson').status_code, 200)
-            self.assertEqual(get('http://fake-s3.local/render-europe.geojson').status_code, 200)
             self.assertEqual(get('http://fake-s3.local/render-world.geojson').status_code, 200)
 
 class TestQueue (unittest.TestCase):
