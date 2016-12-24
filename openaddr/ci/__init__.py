@@ -698,7 +698,12 @@ def _prepare_render_sources(runs, dirname):
     good_sources = set()
     
     for run in runs:
-        filename = '{source_id}.json'.format(**run.__dict__)
+        filename = os.path.relpath(run.source_path, 'sources')
+        dirpath = os.path.dirname(join(dirname, filename))
+        
+        if not os.path.exists(dirpath):
+            os.makedirs(dirpath)
+        
         with open(join(dirname, filename), 'w+b') as file:
             content = b64decode(run.source_data)
             file.write(content)
