@@ -1,3 +1,6 @@
+2016-12-24: 3.18.1
+- Fixed a few bugs and oddities in GeoJSON render output.
+
 2016-12-23: 3.18.0
 - Added GeoJSON data summary output at bucket root. (#502)
 - Changed openaddr-sum-up-data crontab call to hourly.
