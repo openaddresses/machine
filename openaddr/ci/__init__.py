@@ -670,13 +670,6 @@ def _render_and_upload_maps(s3, good_sources, s3_prefix, dirname):
     
     key_kwargs = dict(policy='public-read', headers={'Content-Type': 'image/png'})
 
-    geojson_filename = join(dirname, 'render-world.geojson')
-    render.render_geojson(dirname, good_sources, geojson_filename, render.WORLD)
-
-    with open(geojson_filename, 'rb') as file:
-        render_geojson_key = s3.new_key(join(s3_prefix, 'render-world.geojson'))
-        render_geojson_key.set_contents_from_string(file.read(), **key_kwargs)
-
     for (area, area_name) in areas:
         png_basename = 'render-{}.png'.format(area_name)
         png_filename = join(dirname, png_basename)
@@ -687,6 +680,15 @@ def _render_and_upload_maps(s3, good_sources, s3_prefix, dirname):
             render_png_key.set_contents_from_string(file.read(), **key_kwargs)
 
         urls[area_name] = util.s3_key_url(render_png_key)
+
+    key_kwargs.update(headers={'Content-Type': 'application/vnd.geo+json'})
+
+    geojson_filename = join(dirname, 'render-world.geojson')
+    render.render_geojson(dirname, good_sources, geojson_filename, render.WORLD)
+
+    with open(geojson_filename, 'rb') as file:
+        render_geojson_key = s3.new_key(join(s3_prefix, 'render-world.geojson'))
+        render_geojson_key.set_contents_from_string(file.read(), **key_kwargs)
     
     return urls['world'], urls['usa'], urls['europe']
 
