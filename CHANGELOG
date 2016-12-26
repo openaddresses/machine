@@ -1,3 +1,7 @@
+2016-12-26: 3.19.0
+- Added sets.render_geojson database column.
+- Added names and dates to rendered GeoJSON.
+
 2016-12-24: 3.18.1
 - Fixed a few bugs and oddities in GeoJSON render output.
 
