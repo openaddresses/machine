@@ -41,7 +41,8 @@ CREATE TABLE sets
     
     render_world        TEXT,
     render_europe       TEXT,
-    render_usa          TEXT
+    render_usa          TEXT,
+    render_geojson      TEXT
 );
 
 CREATE TABLE runs

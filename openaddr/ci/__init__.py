@@ -694,8 +694,10 @@ def _render_and_upload_maps(s3, good_sources, s3_prefix, dirname):
 
 def _prepare_render_sources(runs, dirname):
     ''' Dump all non-null set runs into a directory for rendering.
+    
+        Return a dictionary of paths to Run objects.
     '''
-    good_sources = set()
+    good_sources = dict()
     
     for run in runs:
         filepath = join(dirname, run.source_path)
@@ -709,7 +711,7 @@ def _prepare_render_sources(runs, dirname):
             file.write(content)
         
         if run.status is True:
-            good_sources.add(run.source_path)
+            good_sources[run.source_path] = run
     
     return good_sources
 

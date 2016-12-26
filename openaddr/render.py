@@ -86,8 +86,7 @@ def load_live_state():
     else:
         state = csv.DictReader(io.StringIO(got.text), dialect='excel-tab')
     
-    good_sources = [s['source'] for s in state if (s['cache'] and s['processed'])]
-    return set(good_sources)
+    return {s['source']: None for s in state if (s['cache'] and s['processed'])}
 
 def iterate_sources_dir(sources_dir):
     '''
@@ -104,7 +103,7 @@ def iterate_sources_dir(sources_dir):
 def load_fake_state(sources_dir):
     '''
     '''
-    return set(iterate_sources_dir(sources_dir))
+    return {path: None for path in iterate_sources_dir(sources_dir)}
 
 def load_geoids(directory, good_sources):
     ''' Load two dictionaries of U.S. Census GEOIDs that should be rendered.
@@ -451,12 +450,17 @@ def render_geojson(sources_dir, good_sources, filename, area):
     wgs84 = osr.SpatialReference(osr.SRS_WKT_WGS84)
     feature_strings = []
     
-    def append_feature_string(geom, status, paths, etc):
+    def append_feature_string(geom, name, status, paths, etc):
+        source_dates = [str(run.datetime_tz if run else 'null')
+                        for (path, run) in good_sources.items()
+                        if path in paths]
+
         geom.TransformTo(wgs84)
         geom_str = geom.ExportToJson(options=['COORDINATE_PRECISION=4'])
         
-        properties = {'status': status, 'source paths': ' '.join(paths), 'source count': len(paths)}
-        properties.update(etc)
+        properties = dict(name=name, status=status, **etc)
+        properties.update({'source paths': ' '.join(paths), 'source count': len(paths)})
+        properties.update({'source dates': ' '.join(source_dates)})
         
         feature_obj = dict(type='Feature', properties=properties, geometry='<placeholder>')
         feature_str = json.dumps(feature_obj).replace('"<placeholder>"', geom_str)
@@ -464,6 +468,7 @@ def render_geojson(sources_dir, good_sources, filename, area):
     
     for feature in countries_features:
         iso_a2 = feature.GetFieldAsString('iso_a2')
+        name = feature.GetFieldAsString('name')
         if iso_a2 in good_iso3166s:
             geom, status, paths = feature.GetGeometryRef(), 'good', good_iso3166s[iso_a2]
         elif iso_a2 in bad_iso3166s:
@@ -471,10 +476,11 @@ def render_geojson(sources_dir, good_sources, filename, area):
         else:
             continue
 
-        append_feature_string(geom, status, paths, {'ISO 3166': iso_a2})
+        append_feature_string(geom, name, status, paths, {'ISO 3166': iso_a2})
     
     for feature in admin1s_features:
         iso_3166_2 = feature.GetFieldAsString('iso_3166_2')
+        name = feature.GetFieldAsString('name')
         if iso_3166_2 in good_iso3166s:
             geom, status, paths = feature.GetGeometryRef(), 'good', good_iso3166s[iso_3166_2]
         elif iso_3166_2 in bad_iso3166s:
@@ -482,10 +488,11 @@ def render_geojson(sources_dir, good_sources, filename, area):
         else:
             continue
 
-        append_feature_string(geom, status, paths, {'ISO 3166-2': iso_3166_2})
+        append_feature_string(geom, name, status, paths, {'ISO 3166-2': iso_3166_2})
     
     for feature in chain(us_state_features, us_county_features):
         geoid = feature.GetFieldAsString('GEOID')
+        name = feature.GetFieldAsString('NAME')
         if geoid in good_geoids:
             geom, status, paths = feature.GetGeometryRef(), 'good', good_geoids[geoid]
         elif geoid in bad_geoids:
@@ -493,13 +500,13 @@ def render_geojson(sources_dir, good_sources, filename, area):
         else:
             continue
 
-        append_feature_string(geom, status, paths, {'US Census GEOID': geoid})
+        append_feature_string(geom, name, status, paths, {'US Census GEOID': geoid})
     
     for (path, geom) in good_geometries.items():
-        append_feature_string(geom, 'good', [path], {})
+        append_feature_string(geom, None, 'good', [path], {})
 
     for (path, geom) in bad_geometries.items():
-        append_feature_string(geom, 'bad', [path], {})
+        append_feature_string(geom, None, 'bad', [path], {})
     
     with open(filename, 'w') as file:
         collection_str = json.dumps(dict(type='FeatureCollection', features=['<placeholder>']))
