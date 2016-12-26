@@ -459,8 +459,8 @@ def render_geojson(sources_dir, good_sources, filename, area):
         geom_str = geom.ExportToJson(options=['COORDINATE_PRECISION=4'])
         
         properties = dict(name=name, status=status, **etc)
-        properties.update({'source paths': ' '.join(paths), 'source count': len(paths)})
-        properties.update({'source dates': ' '.join(source_dates)})
+        properties.update({'source paths': ', '.join(paths), 'source count': len(paths)})
+        properties.update({'source dates': ', '.join(source_dates)})
         
         feature_obj = dict(type='Feature', properties=properties, geometry='<placeholder>')
         feature_str = json.dumps(feature_obj).replace('"<placeholder>"', geom_str)
