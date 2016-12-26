@@ -57,17 +57,23 @@ def app_index_json():
     tileindex_url = url_for('webapi.app_get_tileindex_zip', lon='xxx', lat='yyy').replace('xxx', '{lon}').replace('yyy', '{lat}')
     licenses_url = url_for('webapi.app_licenses_json')
     latest_set_url = url_for('webapi.app_get_set_data', set_id=set.id)
+    
+    render_world_url = 'https://s3.amazonaws.com/{}/render-world.png'.format(current_app.config['AWS_S3_BUCKET'])
+    render_europe_url = 'https://s3.amazonaws.com/{}/render-europe.png'.format(current_app.config['AWS_S3_BUCKET'])
+    render_usa_url = 'https://s3.amazonaws.com/{}/render-usa.png'.format(current_app.config['AWS_S3_BUCKET'])
+    render_geojson_url = 'https://s3.amazonaws.com/{}/render-world.geojson'.format(current_app.config['AWS_S3_BUCKET'])
 
     if compat.PY2:
         run_states_url = run_states_url.decode('utf8')
         latest_run_processed_url = latest_run_processed_url.decode('utf8')
         tileindex_url = tileindex_url.decode('utf8')
         licenses_url = licenses_url.decode('utf8')
-    
-    render_world_url = 'https://s3.amazonaws.com/{}/render-world.png'.format(current_app.config['AWS_S3_BUCKET'])
-    render_europe_url = 'https://s3.amazonaws.com/{}/render-europe.png'.format(current_app.config['AWS_S3_BUCKET'])
-    render_usa_url = 'https://s3.amazonaws.com/{}/render-usa.png'.format(current_app.config['AWS_S3_BUCKET'])
-    render_geojson_url = 'https://s3.amazonaws.com/{}/render-world.geojson'.format(current_app.config['AWS_S3_BUCKET'])
+        latest_set_url = latest_set_url.decode('utf8')
+
+        render_world_url = render_world_url.decode('utf8')
+        render_europe_url = render_europe_url.decode('utf8')
+        render_usa_url = render_usa_url.decode('utf8')
+        render_geojson_url = render_geojson_url.decode('utf8')
     
     return jsonify({
         'run_states_url': urljoin(request.url, run_states_url),
