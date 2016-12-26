@@ -744,7 +744,7 @@ class TestAPI (unittest.TestCase):
                               (id, owner, repository, commit_sha, datetime_start, datetime_end, render_world, render_europe, render_usa, render_geojson)
                               VALUES
                               (1, 'openaddresses', 'openaddresses', NULL, '2016-03-05 19:31:21.030958-08', NULL, NULL, NULL, NULL, NULL),
-                              (2, 'openaddresses', 'openaddresses', NULL, '2016-03-04 19:31:21.030958-08', '2016-03-05 19:31:21.030958-08', NULL, NULL, NULL, NULL),
+                              (2, 'openaddresses', 'openaddresses', 'zz', '2016-03-04 19:31:21.030958-08', '2016-03-05 19:31:21.030958-08', 'http://s3.amazonaws.com/data.openaddresses.io/--/world.png', 'http://s3.amazonaws.com/data.openaddresses.io/--/europe.png', 'http://s3.amazonaws.com/data.openaddresses.io/--/usa.png', 'http://s3.amazonaws.com/data.openaddresses.io/--/world.geojson'),
                               (3, 'openaddresses', 'openaddresses', NULL, '2016-02-27 19:31:21.030958-08', '2016-03-05 19:31:21.030958-08', NULL, NULL, NULL, NULL)
                               ''')
                 
@@ -890,6 +890,22 @@ class TestAPI (unittest.TestCase):
             for (key, value) in got_state3.items():
                 if key in run_state3:
                     self.assertEqual(value, run_state3[key])
+    
+    def test_set_data(self):
+        '''
+        '''
+        got = self.client.get('/sets/2.json')
+        data = json.loads(got.data.decode('utf8'))
+        
+        self.assertEqual(data['id'], 2)
+        self.assertEqual(data['commit_sha'], 'zz')
+        self.assertIn('datetime_start', data)
+        self.assertIn('datetime_end', data)
+
+        self.assertEqual(data['render_world_url'], 'http://data.openaddresses.io/--/world.png')
+        self.assertEqual(data['render_europe_url'], 'http://data.openaddresses.io/--/europe.png')
+        self.assertEqual(data['render_usa_url'], 'http://data.openaddresses.io/--/usa.png')
+        self.assertEqual(data['render_geojson_url'], 'http://data.openaddresses.io/--/world.geojson')
     
     def test_tile_redirects(self):
         '''
