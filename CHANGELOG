@@ -1,3 +1,7 @@
+2016-12-26: 3.20.0
+- Added Set.render_geojson property.
+- Added latest set URL and render URLs to /index.json.
+
 2016-12-26: 3.19.0
 - Added sets.render_geojson database column.
 - Added names and dates to rendered GeoJSON.
