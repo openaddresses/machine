@@ -721,6 +721,7 @@ class TestAPI (unittest.TestCase):
         os.environ['WEBHOOK_SECRETS'] = 'hello,world'
         os.environ['AWS_ACCESS_KEY_ID'] = '12345'
         os.environ['AWS_SECRET_ACCESS_KEY'] = '67890'
+        os.environ['AWS_S3_BUCKET'] = 'data.openaddresses.io'
 
         app = Flask(__name__)
         app.config.update(load_config(), MINIMUM_LOGLEVEL=logging.CRITICAL)
@@ -767,6 +768,7 @@ class TestAPI (unittest.TestCase):
         del os.environ['WEBHOOK_SECRETS']
         del os.environ['AWS_ACCESS_KEY_ID']
         del os.environ['AWS_SECRET_ACCESS_KEY']
+        del os.environ['AWS_S3_BUCKET']
         
         reset_logger()
 
@@ -783,6 +785,7 @@ class TestAPI (unittest.TestCase):
         self.assertEqual(index['latest_run_processed_url'], 'http://localhost/latest/run/{source}.zip')
         self.assertEqual(index['licenses_url'], 'http://localhost/latest/licenses.json')
         self.assertEqual(index['tileindex_url'], 'http://localhost/tiles/{lon}/{lat}.zip')
+        self.assertEqual(index['latest_set_url'], 'http://localhost/sets/2.json')
         
         self.assertEqual(colls['global']['']['url'], 'http://data.openaddresses.io/openaddr-collected-global.zip')
         self.assertEqual(colls['global']['sa']['url'], 'http://data.openaddresses.io/openaddr-collected-global-sa.zip')
@@ -795,6 +798,11 @@ class TestAPI (unittest.TestCase):
         self.assertEqual(colls['us_west']['']['license'], 'Freely Shareable')
         self.assertNotIn('sa', colls['us_west'])
         self.assertNotIn('europe', colls)
+        
+        self.assertEqual(index['render_world_url'], 'http://data.openaddresses.io/render-world.png')
+        self.assertEqual(index['render_europe_url'], 'http://data.openaddresses.io/render-europe.png')
+        self.assertEqual(index['render_usa_url'], 'http://data.openaddresses.io/render-usa.png')
+        self.assertEqual(index['render_geojson_url'], 'http://data.openaddresses.io/render-world.geojson')
     
     def test_latest_licenses(self):
         '''
