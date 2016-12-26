@@ -52,7 +52,7 @@ class TestRender (unittest.TestCase):
         os.close(handle)
         
         try:
-            render.render_geojson(sources, set(), filename, render.WORLD)
+            render.render_geojson(sources, dict(), filename, render.WORLD)
             with open(filename) as file:
                 content = file.read()
 
@@ -73,4 +73,4 @@ class TestRender (unittest.TestCase):
         with HTTMock(response_state_txt):
             state = render.load_live_state()
         
-        self.assertEqual(state, set(['ar/ba/buenos_aires.json', 'at/31255.json', 'at/31254.json']))
+        self.assertEqual(state, {'ar/ba/buenos_aires.json': None, 'at/31255.json': None, 'at/31254.json': None})

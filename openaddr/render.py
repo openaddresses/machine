@@ -86,8 +86,7 @@ def load_live_state():
     else:
         state = csv.DictReader(io.StringIO(got.text), dialect='excel-tab')
     
-    good_sources = [s['source'] for s in state if (s['cache'] and s['processed'])]
-    return set(good_sources)
+    return {s['source']: None for s in state if (s['cache'] and s['processed'])}
 
 def iterate_sources_dir(sources_dir):
     '''
@@ -104,7 +103,7 @@ def iterate_sources_dir(sources_dir):
 def load_fake_state(sources_dir):
     '''
     '''
-    return set(iterate_sources_dir(sources_dir))
+    return {path: None for path in iterate_sources_dir(sources_dir)}
 
 def load_geoids(directory, good_sources):
     ''' Load two dictionaries of U.S. Census GEOIDs that should be rendered.
@@ -452,11 +451,16 @@ def render_geojson(sources_dir, good_sources, filename, area):
     feature_strings = []
     
     def append_feature_string(geom, name, status, paths, etc):
+        source_dates = [str(run.datetime_tz if run else 'null')
+                        for (path, run) in good_sources.items()
+                        if path in paths]
+
         geom.TransformTo(wgs84)
         geom_str = geom.ExportToJson(options=['COORDINATE_PRECISION=4'])
         
         properties = dict(name=name, status=status, **etc)
         properties.update({'source paths': ' '.join(paths), 'source count': len(paths)})
+        properties.update({'source dates': ' '.join(source_dates)})
         
         feature_obj = dict(type='Feature', properties=properties, geometry='<placeholder>')
         feature_str = json.dumps(feature_obj).replace('"<placeholder>"', geom_str)
