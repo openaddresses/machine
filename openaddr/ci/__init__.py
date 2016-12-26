@@ -663,7 +663,7 @@ def render_set_maps(s3, db, the_set):
         rmtree(dirname)
 
 def _render_and_upload_maps(s3, good_sources, s3_prefix, dirname):
-    ''' Render set maps, upload them to S3 and return URLs of PNGs only.
+    ''' Render set maps, upload them to S3 and return URLs of rendered files.
     '''
     urls = dict()
     areas = (render.WORLD, 'world'), (render.USA, 'usa'), (render.EUROPE, 'europe')
@@ -689,8 +689,9 @@ def _render_and_upload_maps(s3, good_sources, s3_prefix, dirname):
     with open(geojson_filename, 'rb') as file:
         render_geojson_key = s3.new_key(join(s3_prefix, 'render-world.geojson'))
         render_geojson_key.set_contents_from_string(file.read(), **key_kwargs)
+        render_geojson_url = util.s3_key_url(render_geojson_key)
     
-    return urls['world'], urls['usa'], urls['europe']
+    return urls['world'], urls['usa'], urls['europe'], render_geojson_url
 
 def _prepare_render_sources(runs, dirname):
     ''' Dump all non-null set runs into a directory for rendering.

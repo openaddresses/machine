@@ -34,7 +34,8 @@ class Set:
     '''
     '''
     def __init__(self, id, commit_sha, datetime_start, datetime_end,
-                 render_world, render_europe, render_usa, owner, repository):
+                 render_world, render_europe, render_usa, render_geojson,
+                 owner, repository):
         '''
         '''
         self.id = id
@@ -45,6 +46,7 @@ class Set:
         self.render_world = render_world
         self.render_europe = render_europe
         self.render_usa = render_usa
+        self.render_geojson = render_geojson
 
         self.owner = owner
         self.repository = repository
@@ -228,29 +230,29 @@ def complete_set(db, set_id, commit_sha):
                   WHERE id = %s''',
                (commit_sha, set_id))
 
-def update_set_renders(db, set_id, render_world, render_usa, render_europe):
+def update_set_renders(db, set_id, render_world, render_usa, render_europe, render_geojson):
     '''
     '''
     db.execute('''UPDATE sets
-                  SET render_world = %s, render_usa = %s, render_europe = %s
+                  SET render_world = %s, render_usa = %s, render_europe = %s, render_geojson = %s
                   WHERE id = %s''',
-               (render_world, render_usa, render_europe, set_id))
+               (render_world, render_usa, render_europe, render_geojson, set_id))
 
 def read_set(db, set_id):
     '''
     '''
     db.execute('''SELECT id, commit_sha, datetime_start, datetime_end,
-                         render_world, render_europe, render_usa,
+                         render_world, render_europe, render_usa, render_geojson,
                          owner, repository
                   FROM sets WHERE id = %s
                   LIMIT 1''', (set_id, ))
     
     try:
-        id, sha, start, end, world, europe, usa, own, repo = db.fetchone()
+        id, sha, start, end, world, europe, usa, json, own, repo = db.fetchone()
     except TypeError:
         return None
     else:
-        return Set(id, sha, start, end, world, europe, usa, own, repo)
+        return Set(id, sha, start, end, world, europe, usa, json, own, repo)
     
 def read_sets(db, past_id):
     ''' Read information about recent sets.
@@ -258,7 +260,7 @@ def read_sets(db, past_id):
         Returns list of Sets.
     '''
     db.execute('''SELECT id, commit_sha, datetime_start, datetime_end,
-                         render_world, render_europe, render_usa,
+                         render_world, render_europe, render_usa, render_geojson,
                          owner, repository
                   FROM sets WHERE id < COALESCE(%s, 2^64)
                   ORDER BY id DESC LIMIT 25''',
@@ -270,7 +272,7 @@ def read_latest_set(db, owner, repository):
     ''' Read latest completed set with given owner and repository.
     '''
     db.execute('''SELECT id, commit_sha, datetime_start, datetime_end,
-                         render_world, render_europe, render_usa,
+                         render_world, render_europe, render_usa, render_geojson,
                          owner, repository
                   FROM sets
                   WHERE owner = %s AND repository = %s
@@ -280,11 +282,11 @@ def read_latest_set(db, owner, repository):
                (owner, repository, ))
     
     try:
-        id, sha, start, end, world, europe, usa, own, repo = db.fetchone()
+        id, sha, start, end, world, europe, usa, json, own, repo = db.fetchone()
     except TypeError:
         return None
     else:
-        return Set(id, sha, start, end, world, europe, usa, own, repo)
+        return Set(id, sha, start, end, world, europe, usa, json, own, repo)
 
 def add_run(db):
     ''' Reserve a row in the runs table and return its new ID.
