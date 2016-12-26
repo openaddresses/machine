@@ -15,7 +15,7 @@ import memcache, requests
 from jinja2 import Environment, FileSystemLoader
 from flask import (
     Flask, Blueprint, request, Response, current_app, jsonify, render_template,
-    redirect
+    redirect, url_for
     )
 
 from . import (
@@ -212,7 +212,7 @@ def app_get_latest_set():
     if set is None:
         return Response('No latest set found', 404)
     
-    return redirect('/sets/{id}'.format(id=set.id), 302)
+    return redirect(url_for('webhooks.app_get_set', set_id=set.id), 302)
 
 @webhooks.route('/latest/run/<path:source>.zip', methods=['GET'])
 @log_application_errors

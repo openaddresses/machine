@@ -10,7 +10,7 @@ from flask_cors import CORS
 
 from .objects import (
     load_collection_zips_dict, read_latest_set, read_completed_runs_to_date,
-    new_read_completed_set_runs
+    new_read_completed_set_runs, read_set
     )
 
 from . import setup_logger, db_connect, db_cursor, tileindex
@@ -32,6 +32,7 @@ def app_index_json():
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
             zips = load_collection_zips_dict(db)
+            set = read_latest_set(db, 'openaddresses', 'openaddresses')
     
     collections = {}
     licenses = {'': 'Freely Shareable', 'sa': 'Share-Alike Required'}
@@ -55,18 +56,35 @@ def app_index_json():
     latest_run_processed_url = url_for('webhooks.app_get_latest_run', source='____').replace('____', '{source}')
     tileindex_url = url_for('webapi.app_get_tileindex_zip', lon='xxx', lat='yyy').replace('xxx', '{lon}').replace('yyy', '{lat}')
     licenses_url = url_for('webapi.app_licenses_json')
+    latest_set_url = url_for('webapi.app_get_set_data', set_id=set.id)
+    
+    render_world_url = 'https://s3.amazonaws.com/{}/render-world.png'.format(current_app.config['AWS_S3_BUCKET'])
+    render_europe_url = 'https://s3.amazonaws.com/{}/render-europe.png'.format(current_app.config['AWS_S3_BUCKET'])
+    render_usa_url = 'https://s3.amazonaws.com/{}/render-usa.png'.format(current_app.config['AWS_S3_BUCKET'])
+    render_geojson_url = 'https://s3.amazonaws.com/{}/render-world.geojson'.format(current_app.config['AWS_S3_BUCKET'])
 
     if compat.PY2:
         run_states_url = run_states_url.decode('utf8')
         latest_run_processed_url = latest_run_processed_url.decode('utf8')
         tileindex_url = tileindex_url.decode('utf8')
         licenses_url = licenses_url.decode('utf8')
+        latest_set_url = latest_set_url.decode('utf8')
 
+        render_world_url = render_world_url.decode('utf8')
+        render_europe_url = render_europe_url.decode('utf8')
+        render_usa_url = render_usa_url.decode('utf8')
+        render_geojson_url = render_geojson_url.decode('utf8')
+    
     return jsonify({
         'run_states_url': urljoin(request.url, run_states_url),
         'latest_run_processed_url': urljoin(request.url, latest_run_processed_url),
         'tileindex_url': urljoin(request.url, tileindex_url),
         'licenses_url': urljoin(request.url, licenses_url),
+        'latest_set_url': urljoin(request.url, latest_set_url),
+        'render_world_url': nice_domain(render_world_url),
+        'render_europe_url': nice_domain(render_europe_url),
+        'render_usa_url': nice_domain(render_usa_url),
+        'render_geojson_url': nice_domain(render_geojson_url),
         'collections': collections
         })
 
@@ -148,6 +166,27 @@ def app_get_set_state_txt(set_id):
 
     return Response(buffer.getvalue(),
                     headers={'Content-Type': 'text/plain; charset=utf8'})
+
+@webapi.route('/sets/<set_id>.json', methods=['GET'])
+@log_application_errors
+def app_get_set_data(set_id):
+    '''
+    '''
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            set = read_set(db, set_id)
+    
+    return jsonify({
+        'id': set.id,
+        'commit_sha': set.commit_sha,
+        'datetime_start': str(set.datetime_start),
+        'datetime_end': str(set.datetime_end),
+
+        'render_world_url': nice_domain(set.render_world),
+        'render_europe_url': nice_domain(set.render_europe),
+        'render_usa_url': nice_domain(set.render_usa),
+        'render_geojson_url': nice_domain(set.render_geojson),
+        })
 
 @webapi.route('/tiles/<lon>/<lat>.zip', methods=['GET'])
 @log_application_errors

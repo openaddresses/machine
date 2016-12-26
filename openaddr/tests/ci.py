@@ -232,7 +232,7 @@ class TestObjects (unittest.TestCase):
         ''' Check behavior of objects.add_set()
         '''
         self.db.fetchone.return_value = (123, )
-        read_set.return_value = Set(123, None, None, None, None, None, None, None, None)
+        read_set.return_value = Set(123, None, None, None, None, None, None, None, None, None)
 
         set = add_set(self.db, 'oa', 'openaddresses')
         self.assertEqual(set.id, 123)
@@ -261,18 +261,18 @@ class TestObjects (unittest.TestCase):
     def test_update_set_renders(self):
         ''' Check behavior of objects.update_set_renders()
         '''
-        update_set_renders(self.db, 123, 'http://w', 'http://usa', 'http://eu')
+        update_set_renders(self.db, 123, 'http://w', 'http://usa', 'http://eu', 'http://json')
 
         self.db.execute.assert_called_once_with(
                '''UPDATE sets
-                  SET render_world = %s, render_usa = %s, render_europe = %s
+                  SET render_world = %s, render_usa = %s, render_europe = %s, render_geojson = %s
                   WHERE id = %s''',
-                  ('http://w', 'http://usa', 'http://eu', 123))
+                  ('http://w', 'http://usa', 'http://eu', 'http://json', 123))
 
     def test_get_latest_set(self):
         ''' 
         '''
-        self.db.fetchone.return_value = 123, '', None, None, '', '', '', 'oa', 'openaddresses'
+        self.db.fetchone.return_value = 123, '', None, None, '', '', '', '', 'oa', 'openaddresses'
         
         set = read_latest_set(self.db, 'oa', 'oa')
         self.assertEqual(set.id, 123)
@@ -280,7 +280,7 @@ class TestObjects (unittest.TestCase):
 
         self.db.execute.assert_called_once_with(
                '''SELECT id, commit_sha, datetime_start, datetime_end,
-                         render_world, render_europe, render_usa,
+                         render_world, render_europe, render_usa, render_geojson,
                          owner, repository
                   FROM sets
                   WHERE owner = %s AND repository = %s
@@ -292,7 +292,7 @@ class TestObjects (unittest.TestCase):
     def test_read_set_yes(self):
         ''' Check behavior of objects.read_set()
         '''
-        self.db.fetchone.return_value = 123, '', None, None, '', '', '', 'oa', 'openaddresses'
+        self.db.fetchone.return_value = 123, '', None, None, '', '', '', '', 'oa', 'openaddresses'
         
         set = read_set(self.db, 123)
         self.assertEqual(set.id, 123)
@@ -300,7 +300,7 @@ class TestObjects (unittest.TestCase):
 
         self.db.execute.assert_called_once_with(
                '''SELECT id, commit_sha, datetime_start, datetime_end,
-                         render_world, render_europe, render_usa,
+                         render_world, render_europe, render_usa, render_geojson,
                          owner, repository
                   FROM sets WHERE id = %s
                   LIMIT 1''',
@@ -316,7 +316,7 @@ class TestObjects (unittest.TestCase):
 
         self.db.execute.assert_called_once_with(
                '''SELECT id, commit_sha, datetime_start, datetime_end,
-                         render_world, render_europe, render_usa,
+                         render_world, render_europe, render_usa, render_geojson,
                          owner, repository
                   FROM sets WHERE id = %s
                   LIMIT 1''',
@@ -325,7 +325,7 @@ class TestObjects (unittest.TestCase):
     def test_read_sets(self):
         ''' Check behavior of objects.read_sets()
         '''
-        self.db.fetchall.return_value = ((123, '', None, None, None, None, None, 'oa', None), )
+        self.db.fetchall.return_value = ((123, '', None, None, None, None, None, None, 'oa', None), )
         
         (set, ) = read_sets(self.db, None)
         self.assertEqual(set.id, 123)
@@ -333,7 +333,7 @@ class TestObjects (unittest.TestCase):
 
         self.db.execute.assert_called_once_with(
                '''SELECT id, commit_sha, datetime_start, datetime_end,
-                         render_world, render_europe, render_usa,
+                         render_world, render_europe, render_usa, render_geojson,
                          owner, repository
                   FROM sets WHERE id < COALESCE(%s, 2^64)
                   ORDER BY id DESC LIMIT 25''',
@@ -585,7 +585,7 @@ class TestObjects (unittest.TestCase):
         '''
         with patch('openaddr.ci.objects.read_set') as read_set:
             read_set.return_value = Set(123, '', datetime.now(), None,
-                                        None, None, None, None, None)
+                                        None, None, None, None, None, None)
 
             runs = read_completed_runs_to_date(self.db, 123)
             self.assertIsNone(runs)
@@ -624,7 +624,7 @@ class TestObjects (unittest.TestCase):
         
         with patch('openaddr.ci.objects.read_set') as read_set:
             read_set.return_value = Set(123, '', datetime.now(), datetime.now(),
-                                        None, None, None, None, None)
+                                        None, None, None, None, None, None)
             
             self.db.execute.side_effect = fake_execute
             self.db.fetchall.side_effect = fake_fetchall
@@ -721,6 +721,7 @@ class TestAPI (unittest.TestCase):
         os.environ['WEBHOOK_SECRETS'] = 'hello,world'
         os.environ['AWS_ACCESS_KEY_ID'] = '12345'
         os.environ['AWS_SECRET_ACCESS_KEY'] = '67890'
+        os.environ['AWS_S3_BUCKET'] = 'data.openaddresses.io'
 
         app = Flask(__name__)
         app.config.update(load_config(), MINIMUM_LOGLEVEL=logging.CRITICAL)
@@ -741,11 +742,11 @@ class TestAPI (unittest.TestCase):
                                 (False, 5678, 'europe', '', 'http://s3.amazonaws.com/data.openaddresses.io/openaddr-collected-europe-sa.zip')])
                 
                 db.execute('''INSERT INTO sets
-                              (id, owner, repository, commit_sha, datetime_start, datetime_end, render_world, render_europe, render_usa)
+                              (id, owner, repository, commit_sha, datetime_start, datetime_end, render_world, render_europe, render_usa, render_geojson)
                               VALUES
-                              (1, 'openaddresses', 'openaddresses', NULL, '2016-03-05 19:31:21.030958-08', NULL, NULL, NULL, NULL),
-                              (2, 'openaddresses', 'openaddresses', NULL, '2016-03-04 19:31:21.030958-08', '2016-03-05 19:31:21.030958-08', NULL, NULL, NULL),
-                              (3, 'openaddresses', 'openaddresses', NULL, '2016-02-27 19:31:21.030958-08', '2016-03-05 19:31:21.030958-08', NULL, NULL, NULL)
+                              (1, 'openaddresses', 'openaddresses', NULL, '2016-03-05 19:31:21.030958-08', NULL, NULL, NULL, NULL, NULL),
+                              (2, 'openaddresses', 'openaddresses', 'zz', '2016-03-04 19:31:21.030958-08', '2016-03-05 19:31:21.030958-08', 'http://s3.amazonaws.com/data.openaddresses.io/--/world.png', 'http://s3.amazonaws.com/data.openaddresses.io/--/europe.png', 'http://s3.amazonaws.com/data.openaddresses.io/--/usa.png', 'http://s3.amazonaws.com/data.openaddresses.io/--/world.geojson'),
+                              (3, 'openaddresses', 'openaddresses', NULL, '2016-02-27 19:31:21.030958-08', '2016-03-05 19:31:21.030958-08', NULL, NULL, NULL, NULL)
                               ''')
                 
                 db.execute('''INSERT INTO runs
@@ -767,6 +768,7 @@ class TestAPI (unittest.TestCase):
         del os.environ['WEBHOOK_SECRETS']
         del os.environ['AWS_ACCESS_KEY_ID']
         del os.environ['AWS_SECRET_ACCESS_KEY']
+        del os.environ['AWS_S3_BUCKET']
         
         reset_logger()
 
@@ -783,6 +785,7 @@ class TestAPI (unittest.TestCase):
         self.assertEqual(index['latest_run_processed_url'], 'http://localhost/latest/run/{source}.zip')
         self.assertEqual(index['licenses_url'], 'http://localhost/latest/licenses.json')
         self.assertEqual(index['tileindex_url'], 'http://localhost/tiles/{lon}/{lat}.zip')
+        self.assertEqual(index['latest_set_url'], 'http://localhost/sets/2.json')
         
         self.assertEqual(colls['global']['']['url'], 'http://data.openaddresses.io/openaddr-collected-global.zip')
         self.assertEqual(colls['global']['sa']['url'], 'http://data.openaddresses.io/openaddr-collected-global-sa.zip')
@@ -795,6 +798,11 @@ class TestAPI (unittest.TestCase):
         self.assertEqual(colls['us_west']['']['license'], 'Freely Shareable')
         self.assertNotIn('sa', colls['us_west'])
         self.assertNotIn('europe', colls)
+        
+        self.assertEqual(index['render_world_url'], 'http://data.openaddresses.io/render-world.png')
+        self.assertEqual(index['render_europe_url'], 'http://data.openaddresses.io/render-europe.png')
+        self.assertEqual(index['render_usa_url'], 'http://data.openaddresses.io/render-usa.png')
+        self.assertEqual(index['render_geojson_url'], 'http://data.openaddresses.io/render-world.geojson')
     
     def test_latest_licenses(self):
         '''
@@ -890,6 +898,22 @@ class TestAPI (unittest.TestCase):
             for (key, value) in got_state3.items():
                 if key in run_state3:
                     self.assertEqual(value, run_state3[key])
+    
+    def test_set_data(self):
+        '''
+        '''
+        got = self.client.get('/sets/2.json')
+        data = json.loads(got.data.decode('utf8'))
+        
+        self.assertEqual(data['id'], 2)
+        self.assertEqual(data['commit_sha'], 'zz')
+        self.assertIn('datetime_start', data)
+        self.assertIn('datetime_end', data)
+
+        self.assertEqual(data['render_world_url'], 'http://data.openaddresses.io/--/world.png')
+        self.assertEqual(data['render_europe_url'], 'http://data.openaddresses.io/--/europe.png')
+        self.assertEqual(data['render_usa_url'], 'http://data.openaddresses.io/--/usa.png')
+        self.assertEqual(data['render_geojson_url'], 'http://data.openaddresses.io/--/world.geojson')
     
     def test_tile_redirects(self):
         '''
@@ -3349,6 +3373,7 @@ class TestBatch (unittest.TestCase):
             self.assertEqual(get(the_set.render_usa).status_code, 200)
             self.assertEqual(get(the_set.render_europe).status_code, 200)
             self.assertEqual(get(the_set.render_world).status_code, 200)
+            self.assertEqual(get(the_set.render_geojson).status_code, 200)
     
     def test_render_index_maps(self):
         ''' Show that front page maps get rendered correctly.
