@@ -228,21 +228,21 @@
         </td>
         <td class="problems">
           {% set suggest_conform = False %}
-          {% if not state.processed %}
-            {% if state.skip %}
-            <a href="{{ state.href }}">source</a> says to skip
-            {% elif not state.cache %}
-            cache failed {% if state.output %}( <a href="{{ state.output }}">log</a> ){% endif %}
-            {% elif not state.conform %}
-            <a href="{{ state.href }}">source</a> is
+          {% if state['source problem'] == 'Source says to skip' %}
+            <a href="{{ state.href }}">Source</a> says to skip
+          {% elif state['source problem'] == 'Source is missing a conform object' %}
+            <a href="{{ state.href }}">Source</a> is
             <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#conform-object">missing conform</a>
             {% set suggest_conform = True %}
-            {% else %}
-            unknown {% if state.output %}( <a href="{{ state.output }}">log</a> ){% endif %}
-            {% endif %}
-          {% elif not state['coverage complete'] %}
-            <a href="{{ state.href }}">source</a> has
+          {% elif state['source problem'] == 'Missing or incomplete coverage' %}
+            <a href="{{ state.href }}">Source</a> has
             <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#coverage-object">incomplete coverage</a>
+          {% elif state['source problem'] %}
+            {{ state['source problem'] }} ( <a href="{{ state.output }}">log</a> )
+          {% elif not (state.conform and state.cache and state.sample) %}
+            Unknown problem ( <a href="{{ state.output }}">log</a> )
+          {% else %}
+            &nbsp;
           {% endif %}
         </td>
         <td class="sample">

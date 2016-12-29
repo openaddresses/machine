@@ -115,7 +115,8 @@ def convert_run(memcache, run, url_template):
         'skip': bool(source.get('skip', False)),
         'source': relpath(run.source_path, 'sources'),
         'type': source.get('type', '').lower(),
-        'version': run_state.version
+        'version': run_state.version,
+        'source problem': run_state.source_problem
         }
 
     _set_cached(memcache, cache_key, converted_run)
