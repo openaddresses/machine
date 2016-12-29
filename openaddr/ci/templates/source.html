@@ -74,16 +74,24 @@
 
     #source tr th.status,
     #source tr th.addresses,
+    #source tr th.datetimelog,
     #source tr td.status,
-    #source tr td.addresses
+    #source tr td.addresses,
+    #source tr td.datetimelog
     {
         display: table-cell
     }
 
+    #source tr th.datetimelog,
+    #source tr td.datetimelog
+    {
+        white-space: nowrap
+    }
+
     @media (min-width: 400px)
     {
-        #source tr th.datetimelog,
-        #source tr td.datetimelog
+        #source tr th.processed,
+        #source tr td.processed
         {
             display: table-cell
         }
@@ -91,9 +99,7 @@
     
     @media (min-width: 640px)
     {
-        #source tr th.processed,
         #source tr th.cached,
-        #source tr td.processed,
         #source tr td.cached
         {
             display: table-cell
@@ -151,7 +157,15 @@
         {% endif %}
         </td>
         <td class="addresses">
-        {{ run.state.address_count|nice_integer }}
+          {% if run.state.address_count %}
+            {{ run.state.address_count|nice_integer }}
+          {% elif run.state.source_problem %}
+            <small>{{ run.state.source_problem }}
+            ( <a href="{{ run.state.output }}">log</a> )</small>
+          {% else %}
+            <small>Unknown problem
+            ( <a href="{{ run.state.output }}">log</a> )</small>
+          {% endif %}
         </td>
         <td class="datetimelog">
         <a href="{{ run.state.output }}">{{ run.datetime_tz.strftime('%Y-%m-%d') }}</a>
