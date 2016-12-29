@@ -1,3 +1,6 @@
+2016-12-28: 3.20.1
+- Changed display of RunState.source_problem values on set and source pages.
+
 2016-12-26: 3.20.0
 - Added Set.render_geojson property.
 - Added latest set URL and render URLs to /index.json.
