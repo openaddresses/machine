@@ -1,3 +1,6 @@
+2016-12-30: 3.20.2
+- Fixed OGR sources to respect source-defined overriding SRS.
+
 2016-12-28: 3.20.1
 - Changed display of RunState.source_problem values on set and source pages.
 
