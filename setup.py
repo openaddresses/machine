@@ -67,7 +67,7 @@ setup(
         'openaddr.tests': [
             'data/*.*', 'outputs/*.*', 'sources/*.*', 'sources/fr/*.*',
             'sources/us/*/*.*', 'sources/de/*.*', 'sources/nl/*.*',
-            'conforms/lake-man-gdb.gdb/*',
+            'sources/be/*/*.json', 'conforms/lake-man-gdb.gdb/*',
             'conforms/*.csv', 'conforms/*.dbf', 'conforms/*.zip', 'conforms/*.gfs',
             'conforms/*.gml', 'conforms/*.json', 'conforms/*.prj', 'conforms/*.shp',
             'conforms/*.shx', 'conforms/*.vrt',

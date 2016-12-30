@@ -599,17 +599,19 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
     _L.info("Converting a layer to CSV: %s", in_layer.GetName())
 
     # Determine the appropriate SRS
-    if inSpatialRef is None:
-        # OGR couldn't find the projection, let's hope there's an SRS tag.
-        _L.info("No projection file found for source %s", source_path)
-        srs = source_definition["conform"].get("srs", None)
-        if srs is not None and srs.startswith(u"EPSG:"):
+    srs = source_definition["conform"].get("srs", None)
+    
+    if srs is not None:
+        # OGR may have a projection, but use the explicit SRS instead
+        if srs.startswith(u"EPSG:"):
             _L.debug("SRS tag found specifying %s", srs)
             inSpatialRef = osr.SpatialReference()
             inSpatialRef.ImportFromEPSG(int(srs[5:]))
         else:
             # OGR is capable of doing more than EPSG, but so far we don't need it.
             raise Exception("Bad SRS. Can only handle EPSG, the SRS tag is %s", srs)
+    elif inSpatialRef is None:
+        raise Exception("No projection found for source {}".format(source_path))
 
     # Determine the appropriate text encoding. This is complicated in OGR, see
     # https://github.com/openaddresses/machine/issues/42
