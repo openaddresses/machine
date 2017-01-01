@@ -198,8 +198,9 @@ class ZipDecompressTask(DecompressionTask):
         # Collect names of directories and files in expand_path directory.
         for (dirpath, dirnames, filenames) in os.walk(expand_path):
             for dirname in dirnames:
-                output_files.append(os.path.join(dirpath, dirname))
-                _L.debug("Expanded directory {}".format(output_files[-1]))
+                if os.path.splitext(dirname)[-1].lower() == '.gdb':
+                    output_files.append(os.path.join(dirpath, dirname))
+                    _L.debug("Expanded directory {}".format(output_files[-1]))
             for filename in filenames:
                 output_files.append(os.path.join(dirpath, filename))
                 _L.debug("Expanded file {}".format(output_files[-1]))
