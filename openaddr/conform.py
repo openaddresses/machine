@@ -21,6 +21,7 @@ from os.path import splitext
 from hashlib import sha1
 from uuid import uuid4
 
+from . import compat
 from .compat import csvopen, csvreader, csvDictReader, csvDictWriter
 from .sample import sample_geojson, stream_geojson
 
@@ -599,6 +600,8 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
         in_layer = in_datasource.GetLayerByIndex(layer_id)
         _L.info("Converting layer %s (%s) to CSV", layer_id, repr(in_layer.GetName()))
     else:
+        if compat.PY2:
+            layer_id = layer_id.encode('utf8')
         in_layer = in_datasource.GetLayerByName(layer_id)
         _L.info("Converting layer %s to CSV", repr(in_layer.GetName()))
 
