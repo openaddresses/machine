@@ -1,3 +1,6 @@
+2016-12-31: 3.21.0
+- Added layer selection source conform attribute for OGR sources.
+
 2016-12-30: 3.20.2
 - Fixed OGR sources to respect source-defined overriding SRS.
 
