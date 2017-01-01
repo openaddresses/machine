@@ -246,6 +246,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('s.irisnet.be', '/v1/AUTH_b4e6bcc3-db61-442e-8b59-e0ce9142d182/Region/UrbAdm_SHP.zip'):
             local_path = join(data_dirname, 'be-wa-brussels.zip')
         
+        if (host, path) == ('njgin.state.nj.us', '/download2/Address/ADDR_POINT_NJ_fgdb.zip'):
+            local_path = join(data_dirname, 'nj-statewide.gdb.zip')
+        
         if (host, path) == ('fake-web', '/lake-man.gdb.zip'):
             local_path = join(data_dirname, 'lake-man.gdb.zip')
         
@@ -1262,6 +1265,35 @@ class TestOA (unittest.TestCase):
             self.assertAlmostEqual(float(rows[2]['LAT']), 50.8334312, places=5)
             self.assertAlmostEqual(float(rows[3]['LON']),  4.3421635, places=5)
             self.assertAlmostEqual(float(rows[3]['LAT']), 50.8322198, places=5)
+
+    def test_single_us_nj_statewide(self):
+        ''' Test complete process_one.process on data.
+        '''
+        source = join(self.src_dir, 'us/nj/statewide.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir, False)
+
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+        
+        output_path = join(dirname(state_path), state['processed'])
+        
+        with csvopen(output_path, encoding='utf8') as input:
+            rows = list(csvDictReader(input, encoding='utf8'))
+            self.assertEqual(len(rows), 1045)
+            self.assertEqual(rows[0]['NUMBER'], u'7')
+            self.assertEqual(rows[0]['STREET'], u'Sagamore Avenue')
+            self.assertEqual(rows[1]['NUMBER'], u'29')
+            self.assertEqual(rows[1]['STREET'], u'Sagamore Avenue')
+            self.assertEqual(rows[2]['NUMBER'], u'47')
+            self.assertEqual(rows[2]['STREET'], u'Seneca Place')
+            self.assertAlmostEqual(float(rows[0]['LON']), -74.0012016, places=5)
+            self.assertAlmostEqual(float(rows[0]['LAT']),  40.3201199, places=5)
+            self.assertAlmostEqual(float(rows[1]['LON']), -74.0027904, places=5)
+            self.assertAlmostEqual(float(rows[1]['LAT']),  40.3203365, places=5)
+            self.assertAlmostEqual(float(rows[2]['LON']), -74.0011386, places=5)
+            self.assertAlmostEqual(float(rows[2]['LAT']),  40.3166497, places=5)
 
     def test_single_lake_man_gdb(self):
         ''' Test complete process_one.process on data.

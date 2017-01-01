@@ -21,6 +21,7 @@ from os.path import splitext
 from hashlib import sha1
 from uuid import uuid4
 
+from . import compat
 from .compat import csvopen, csvreader, csvDictReader, csvDictWriter
 from .sample import sample_geojson, stream_geojson
 
@@ -591,14 +592,21 @@ def normalize_ogr_filename_case(source_path):
     return normal_path
 
 def ogr_source_to_csv(source_definition, source_path, dest_path):
-    "Convert a single shapefile or GeoJSON in source_path and put it in dest_path"
+    ''' Convert a single shapefile or GeoJSON in source_path and put it in dest_path
+    '''
     in_datasource = ogr.Open(source_path, 0)
-    in_layer = in_datasource.GetLayer()
-    inSpatialRef = in_layer.GetSpatialRef()
-
-    _L.info("Converting a layer to CSV: %s", in_layer.GetName())
+    layer_id = source_definition['conform'].get('layer', 0)
+    if isinstance(layer_id, int):
+        in_layer = in_datasource.GetLayerByIndex(layer_id)
+        _L.info("Converting layer %s (%s) to CSV", layer_id, repr(in_layer.GetName()))
+    else:
+        if compat.PY2:
+            layer_id = layer_id.encode('utf8')
+        in_layer = in_datasource.GetLayerByName(layer_id)
+        _L.info("Converting layer %s to CSV", repr(in_layer.GetName()))
 
     # Determine the appropriate SRS
+    inSpatialRef = in_layer.GetSpatialRef()
     srs = source_definition["conform"].get("srs", None)
     
     if srs is not None:
