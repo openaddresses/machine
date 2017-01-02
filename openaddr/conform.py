@@ -472,8 +472,12 @@ def find_source_path(source_definition, source_paths):
                     return fn
             _L.warning("Conform named %s as file but we could not find it." % conform["file"])
             return None
-        else:
-            return source_paths[0]
+        # See if a file has a CSV extension
+        for fn in source_paths:
+            if os.path.splitext(fn)[1].lower() == '.csv':
+                return fn
+        # Nothing else worked so just return the first one.
+        return source_paths[0]
     elif conform["type"] == "gdb":
         candidates = []
         for fn in source_paths:
