@@ -1,22 +1,25 @@
+2016-12-31: 3.21.1
+- Fixed subdirectory handling for Japanese sources. (#511)
+
 2016-12-31: 3.21.0
-- Added layer selection source conform attribute for OGR sources.
+- Added layer selection source conform attribute for OGR sources. (#510)
 
 2016-12-30: 3.20.2
-- Fixed OGR sources to respect source-defined overriding SRS.
+- Fixed OGR sources to respect source-defined overriding SRS. (#508)
 
 2016-12-28: 3.20.1
-- Changed display of RunState.source_problem values on set and source pages.
+- Changed display of RunState.source_problem values on set and source pages. (#507)
 
 2016-12-26: 3.20.0
-- Added Set.render_geojson property.
-- Added latest set URL and render URLs to /index.json.
+- Added Set.render_geojson property. (#505)
+- Added latest set URL and render URLs to /index.json. (#505)
 
 2016-12-26: 3.19.0
-- Added sets.render_geojson database column.
-- Added names and dates to rendered GeoJSON.
+- Added sets.render_geojson database column. (#504)
+- Added names and dates to rendered GeoJSON. (#504)
 
 2016-12-24: 3.18.1
-- Fixed a few bugs and oddities in GeoJSON render output.
+- Fixed a few bugs and oddities in GeoJSON render output. (#503)
 
 2016-12-23: 3.18.0
 - Added GeoJSON data summary output at bucket root. (#502)
