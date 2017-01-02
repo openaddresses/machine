@@ -731,10 +731,10 @@ class TestOA (unittest.TestCase):
             self.assertEqual(rows[10]['UNIT'], u'')
             self.assertEqual(rows[100]['UNIT'], u'')
 
-    def test_single_jp_f(self):
+    def test_single_jp_fukushima1(self):
         ''' Test complete process_one.process on Japanese sample data.
         '''
-        source = join(self.src_dir, 'jp-fukushima.json')
+        source = join(self.src_dir, 'jp-fukushima1.json')
         
         with HTTMock(self.response_content):
             state_path = process_one.process(source, self.testdir, False)
@@ -759,6 +759,52 @@ class TestOA (unittest.TestCase):
         self.assertTrue(u'田沢字姥懐' in sample_data[1])
         self.assertTrue('37.706391' in sample_data[1])
         self.assertTrue('140.480007' in sample_data[1])
+
+    def test_single_jp_fukushima2(self):
+        ''' Test complete process_one.process on Japanese sample data.
+        '''
+        source = join(self.src_dir, 'jp-fukushima2.json')
+        
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir, False)
+        
+        with open(state_path) as file:
+            state = RunState(dict(zip(*json.load(file))))
+
+        self.assertIsNotNone(state.sample)
+        self.assertIsNone(state.source_problem)
+        self.assertIsNotNone(state.processed)
+        self.assertIsNone(state.preview)
+        self.assertEqual(state.website, 'http://nlftp.mlit.go.jp/isj/index.html')
+        self.assertEqual(state.license, u'http://nlftp.mlit.go.jp/ksj/other/yakkan.html')
+        self.assertEqual(state.attribution_required, 'true')
+        self.assertIn('Ministry of Land', state.attribution_name)
+        
+        with open(join(dirname(state_path), state.sample)) as file:
+            sample_data = json.load(file)
+        
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue(u'大字・町丁目名' in sample_data[0])
+        self.assertTrue(u'田沢字姥懐' in sample_data[1])
+        self.assertTrue('37.706391' in sample_data[1])
+        self.assertTrue('140.480007' in sample_data[1])
+        
+        with csvopen(join(dirname(state_path), state.processed), encoding='utf8') as file:
+            rows = list(csvDictReader(file, encoding='utf8'))
+            
+        self.assertEqual(len(rows), 6)
+        self.assertEqual(rows[0]['NUMBER'], u'24-9')
+        self.assertEqual(rows[0]['STREET'], u'田沢字姥懐')
+        self.assertEqual(rows[1]['NUMBER'], u'16-9')
+        self.assertEqual(rows[1]['STREET'], u'田沢字躑躅ケ森')
+        self.assertEqual(rows[2]['NUMBER'], u'22-9')
+        self.assertEqual(rows[2]['STREET'], u'小田字正夫田')
+        self.assertAlmostEqual(float(rows[0]['LON']), 140.480007, places=5)
+        self.assertAlmostEqual(float(rows[0]['LAT']),  37.706391, places=5)
+        self.assertAlmostEqual(float(rows[1]['LON']), 140.486267, places=5)
+        self.assertAlmostEqual(float(rows[1]['LAT']),  37.707664, places=5)
+        self.assertAlmostEqual(float(rows[2]['LON']), 140.418750, places=5)
+        self.assertAlmostEqual(float(rows[2]['LAT']),  37.710239, places=5)
 
     def test_single_utah(self):
         ''' Test complete process_one.process on data that uses file selection with mixed case (issue #104)

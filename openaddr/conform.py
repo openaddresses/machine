@@ -198,8 +198,9 @@ class ZipDecompressTask(DecompressionTask):
         # Collect names of directories and files in expand_path directory.
         for (dirpath, dirnames, filenames) in os.walk(expand_path):
             for dirname in dirnames:
-                output_files.append(os.path.join(dirpath, dirname))
-                _L.debug("Expanded directory {}".format(output_files[-1]))
+                if os.path.splitext(dirname)[-1].lower() == '.gdb':
+                    output_files.append(os.path.join(dirpath, dirname))
+                    _L.debug("Expanded directory {}".format(output_files[-1]))
             for filename in filenames:
                 output_files.append(os.path.join(dirpath, filename))
                 _L.debug("Expanded file {}".format(output_files[-1]))
@@ -471,8 +472,12 @@ def find_source_path(source_definition, source_paths):
                     return fn
             _L.warning("Conform named %s as file but we could not find it." % conform["file"])
             return None
-        else:
-            return source_paths[0]
+        # See if a file has a CSV extension
+        for fn in source_paths:
+            if os.path.splitext(fn)[1].lower() == '.csv':
+                return fn
+        # Nothing else worked so just return the first one.
+        return source_paths[0]
     elif conform["type"] == "gdb":
         candidates = []
         for fn in source_paths:
