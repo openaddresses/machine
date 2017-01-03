@@ -1,4 +1,4 @@
-execute 'add-apt-repository -y ppa:openaddresses/ci'
+execute 'add-apt-repository -y ppa:openaddresses/gdal2'
 execute 'apt-get update -y'
 
 package 'python3-pip'
