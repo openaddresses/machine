@@ -857,7 +857,9 @@ def conform_smash_case(source_definition):
                 conform[k]["field"] = conform[k]["field"].lower()
             elif "fields" in conform[k]:
                 conform[k]["fields"] = [s.lower() for s in conform[k]["fields"]]
-    
+            elif "field_to_remove" in conform[k]:
+                conform[k]["field_to_remove"] = conform[k]["field_to_remove"].lower()
+
     if "advanced_merge" in conform:
         for new_col, spec in conform["advanced_merge"].items():
             spec["fields"] = [s.lower() for s in spec["fields"]]
