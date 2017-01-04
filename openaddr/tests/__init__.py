@@ -1329,14 +1329,23 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
 
-        with open(join(dirname(state_path), state['output'])) as file:
-            print(file.read())
-        
         output_path = join(dirname(state_path), state['processed'])
         
         with csvopen(output_path, encoding='utf8') as input:
             rows = list(csvDictReader(input, encoding='utf8'))
             self.assertEqual(len(rows), 19)
+            self.assertEqual(rows[0]['NUMBER'], u'33')
+            self.assertEqual(rows[0]['STREET'], u'VIA CARLO CARRÀ')
+            self.assertEqual(rows[1]['NUMBER'], u'23')
+            self.assertEqual(rows[1]['STREET'], u'VIA CARLO CARRÀ')
+            self.assertEqual(rows[2]['NUMBER'], u'2')
+            self.assertEqual(rows[2]['STREET'], u'VIA MARINO MARINI')
+            self.assertAlmostEqual(float(rows[0]['LON']), 10.1866102, places=5)
+            self.assertAlmostEqual(float(rows[0]['LAT']), 43.9556084, places=5)
+            self.assertAlmostEqual(float(rows[1]['LON']), 10.1858962, places=5)
+            self.assertAlmostEqual(float(rows[1]['LAT']), 43.9551594, places=5)
+            self.assertAlmostEqual(float(rows[2]['LON']), 10.1863462, places=5)
+            self.assertAlmostEqual(float(rows[2]['LAT']), 43.9547064, places=5)
 
     def test_single_it_52_statewide_utf8(self):
         ''' Test complete process_one.process on data.
