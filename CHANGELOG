@@ -1,3 +1,6 @@
+2017-01-04: 4.0.0
+- Upgraded GDAL dependency to 2.10.0. (#514)
+
 2016-12-31: 3.21.1
 - Fixed subdirectory handling for Japanese sources. (#511)
 
