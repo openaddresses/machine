@@ -7,10 +7,8 @@ machine:
 
 dependencies:
   override:
-    # Add Ubuntu GIS PPA for various geospatial dependencies.
-    - sudo add-apt-repository -y ppa:openaddresses/ci
-    - sudo apt-get update -y
     # Install Machine globally via Chef recipe, to pick up complete dependencies.
+    - sudo chef/run.sh prereqs
     - sudo chef/run.sh testing
     # Determine GDAL library version and install a compatible python binding.
     #   http://gis.stackexchange.com/questions/28966/python-gdal-package-missing-header-file-when-installing-via-pip

@@ -664,7 +664,7 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
             for i in range(0, in_layer_defn.GetFieldCount()):
                 field_defn = in_layer_defn.GetFieldDefn(i)
                 field_value = in_feature.GetField(i)
-                if isinstance(field_value, str):
+                if isinstance(field_value, bytes):
                     # Convert OGR's byte sequence strings to Python Unicode strings
                     field_value = field_value.decode(shp_encoding) \
                         if hasattr(field_value, 'decode') else field_value
