@@ -38,7 +38,7 @@ sudo -u ubuntu git fetch origin {version}
 sudo -u ubuntu git checkout FETCH_HEAD
 
 chef/run.sh prereqs
-aws s3 cp s3://{bucket}/config/databag-3.json chef/data/local.json
+aws s3 cp s3://{bucket}/config/databag-4.json chef/data/local.json
 chef/run.sh {role}
 
 # Run the actual command
