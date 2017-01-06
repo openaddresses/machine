@@ -1,3 +1,7 @@
+2017-01-05: 4.0.1
+- Bumped databag URL to v4. (#515)
+- Committed some useful admin scripts.
+
 2017-01-04: 4.0.0
 - Upgraded GDAL dependency to 2.10.0. (#514)
 - Stopped supporting Python 2.x.
