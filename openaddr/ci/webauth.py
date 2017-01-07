@@ -26,6 +26,7 @@ github_user_url = 'https://api.github.com/user'
 
 USER_KEY = 'github user'
 TOKEN_KEY = 'github token'
+MAX_UPLOAD_SIZE = 256 * 1024 * 1024
 
 webauth = Blueprint('webauth', __name__)
 
@@ -127,7 +128,7 @@ def s3_upload_form_fields(expires, bucketname, subdir, redirect_url, s3):
             ["starts-with", "$key", "cache/uploads/{}/".format(subdir)],
             {"acl": "public-read"},
             {"success_action_redirect": redirect_url},
-            ["content-length-range", 16, 100 * 1024 * 1024]
+            ["content-length-range", 16, MAX_UPLOAD_SIZE]
         ]
         }
     

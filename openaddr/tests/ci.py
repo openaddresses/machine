@@ -981,7 +981,7 @@ class TestAuth (unittest.TestCase):
                     ['starts-with', '$key', 'cache/uploads/jrandom/123/'],
                     {'acl': 'public-read'},
                     {'success_action_redirect': redirect},
-                    ['content-length-range', 16, 104857600]
+                    ['content-length-range', 16, webauth.MAX_UPLOAD_SIZE]
                 ]
             })
 
