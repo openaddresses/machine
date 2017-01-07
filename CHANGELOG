@@ -1,3 +1,6 @@
+2017-01-07: 4.0.2
+- Adjusted cache upload size limit to 256MB. (#517)
+
 2017-01-05: 4.0.1
 - Bumped databag URL to v4. (#515)
 - Committed some useful admin scripts.
