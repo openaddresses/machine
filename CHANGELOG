@@ -1,3 +1,6 @@
+2017-01-12: 4.0.3
+- Increased enqueue autoscale frequency from 12 to 8 hours. (#518)
+
 2017-01-07: 4.0.2
 - Adjusted cache upload size limit to 256MB. (#517)
 
