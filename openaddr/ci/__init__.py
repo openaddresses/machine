@@ -597,12 +597,14 @@ def enqueue_sources(queue, the_set, sources):
     commit_sha = None
     
     #
-    # Enqueue each source if there is nothing else in the queue.
+    # Enqueue each source while watching the queue length.
     #
     for source in sources:
+        # Don't enqueue a new source until the queue is empty.
         while len(queue) >= 1:
             yield len(expected_paths)
         
+        # Enqueue the new source, because there's nothing else in the queue.
         with queue as db:
             _L.info(u'Sending {path} to task queue, {remain} more to go'.format(**source))
             
@@ -617,12 +619,18 @@ def enqueue_sources(queue, the_set, sources):
             expected_paths.add(source['path'])
             commit_sha = source['commit_sha']
     
+    #
+    # Wait for all the sources to drain from the queue.
+    #
     while len(expected_paths):
         with queue as db:
             _update_expected_paths(db, expected_paths, the_set)
 
         yield len(expected_paths)
 
+    #
+    # All done.
+    #
     with queue as db:
         complete_set(db, the_set.id, commit_sha)
 
