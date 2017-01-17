@@ -65,7 +65,8 @@ CREATE TABLE runs
     is_merged           BOOLEAN
 );
 
-CREATE TYPE zip_collection AS ENUM ('global', 'us_northeast', 'us_midwest', 'us_south', 'us_west', 'europe', 'asia');
+CREATE TYPE zip_collection AS ENUM ('global', 'us_northeast', 'us_midwest',
+    'us_south', 'us_west', 'europe', 'asia', 'south_america');
 CREATE TYPE zip_licensing AS ENUM ('', 'sa');
 
 CREATE TABLE zips
