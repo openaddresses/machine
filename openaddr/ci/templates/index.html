@@ -137,6 +137,12 @@
         <td>{% set key = ('asia', '') %}{% include "index-zip.html" %}</td>
         <td>{% set key = ('asia', 'sa') %}{% include "index-zip.html" %}</td>
     </tr>
+    <tr>
+        <td>South America</td>
+        <td><a href="https://www.countries-ofthe-world.com/countries-of-south-america.html">List of countries in South America</a></td>
+        <td>{% set key = ('south_america', '') %}{% include "index-zip.html" %}</td>
+        <td>{% set key = ('south_america', 'sa') %}{% include "index-zip.html" %}</td>
+    </tr>
 </table>
 <p>
     <button onclick="choosemap('https://s3.amazonaws.com/{{ s3_bucket }}/render-world.png')">Show World</button>

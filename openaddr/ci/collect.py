@@ -73,7 +73,8 @@ def main():
     area_tests = {
         'global': (lambda result: True), 'us_northeast': is_us_northeast,
         'us_midwest': is_us_midwest, 'us_south': is_us_south,
-        'us_west': is_us_west, 'europe': is_europe, 'asia': is_asia
+        'us_west': is_us_west, 'europe': is_europe, 'asia': is_asia,
+        'south_america': is_south_america
         }
     sa_tests = {
         '': (lambda result: result.run_state.share_alike != 'true'),
@@ -391,6 +392,13 @@ def is_asia(result):
                 'as', 'au', 'nz', 'ck', 'fj', 'pf', 'gu', 'ki', 'mp', 'mh',
                 'fm', 'um', 'nr', 'nc', 'nz', 'nu', 'nf', 'pw', 'pg', 'mp',
                 'sb', 'tk', 'to', 'tv', 'vu', 'um', 'wf', 'ws', 'is'):
+        if _is_country(iso, result):
+            return True
+
+    return False
+
+def is_south_america(result):
+    for iso in ('ar', 'bo', 'br', 'cl', 'co', 'ec', 'gf', 'gy', 'pe', 'py', 'sr', 'uy', 've'):
         if _is_country(iso, result):
             return True
 
