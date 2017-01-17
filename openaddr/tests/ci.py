@@ -45,8 +45,8 @@ from ..ci.objects import (
 
 from ..ci.collect import (
     is_us_northeast, is_us_midwest, is_us_south, is_us_west, is_europe, is_asia,
-    add_source_to_zipfile, CollectorPublisher, prepare_collections,
-    add_csv_to_zipfile, write_to_s3, MULTIPART_CHUNK_SIZE
+    is_south_america, add_source_to_zipfile, CollectorPublisher,
+    prepare_collections, add_csv_to_zipfile, write_to_s3, MULTIPART_CHUNK_SIZE
     )
 
 from ..ci.tileindex import (
@@ -3605,7 +3605,7 @@ class TestCollect (unittest.TestCase):
         '''
         '''
         _ = None
-        test_funcs = is_us_northeast, is_us_midwest, is_us_south, is_us_west, is_europe, is_asia
+        test_funcs = is_us_northeast, is_us_midwest, is_us_south, is_us_west, is_europe, is_asia, is_south_america
         
         for abbr in ('ct', 'me', 'ma', 'nh', 'ri', 'vt', 'nj', 'ny', 'pa'):
             for source_base in ('us/{}'.format(abbr), 'us/{}.---'.format(abbr), 'us/{}/---'.format(abbr)):
@@ -3671,6 +3671,15 @@ class TestCollect (unittest.TestCase):
             
                 for test_func in test_funcs:
                     if test_func is not is_asia:
+                        self.assertFalse(test_func(result), '{}("{}") should be false'.format(test_func.__name__, source_base))
+
+        for iso in ('ar', 'bo', 'br', 'cl', 'co', 'ec', 'gf', 'gy', 'pe', 'py', 'sr', 'uy', 've'):
+            for source_base in (iso, '{}.---'.format(iso), '{}/---'.format(iso)):
+                result = LocalProcessedResult(source_base, None, RunState(None), None)
+                self.assertTrue(is_south_america(result), 'is_south_america("{}") should be true'.format(source_base))
+            
+                for test_func in test_funcs:
+                    if test_func is not is_south_america:
                         self.assertFalse(test_func(result), '{}("{}") should be false'.format(test_func.__name__, source_base))
 
     def test_add_source_to_zipfile(self):
