@@ -404,5 +404,16 @@ def is_south_america(result):
 
     return False
 
+def is_north_america(result):
+    for iso in ('ai', 'ag', 'aw', 'bs', 'bb', 'bz', 'bm', 'bq', 'vg', 'ca',
+                'ky', 'cr', 'cu', 'cw', 'dm', 'do', 'sv', 'gl', 'gd', 'gp',
+                'gt', 'ht', 'hn', 'jm', 'mq', 'mx', 'pm', 'ms', 'cw', 'kn',
+                'ni', 'pa', 'pr', 'bq', 'bq', 'sx', 'kn', 'lc', 'pm', 'vc',
+                'tt', 'tc', 'vi'):
+        if _is_country(iso, result):
+            return True
+
+    return False
+
 if __name__ == '__main__':
     exit(main())
