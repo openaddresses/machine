@@ -117,10 +117,14 @@ def render_preview(csv_filename, temp_dir, mapzen_key):
 def render_slippymap(csv_filename, temp_dir):
     '''
     '''
-    mbtiles_filename = join(temp_dir, 'slippymap.mbtiles')
-    slippymap.generate(csv_filename, mbtiles_filename)
-
-    return mbtiles_filename
+    try:
+        mbtiles_filename = join(temp_dir, 'slippymap.mbtiles')
+        slippymap.generate(csv_filename, mbtiles_filename)
+    except Exception as e:
+        _L.error('%s in render_slippymap: %s', type(e), e)
+        return None
+    else:
+        return mbtiles_filename
 
 class LogFilter:
     ''' Logging filter object to match only record in the current thread.
