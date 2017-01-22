@@ -1,3 +1,6 @@
+2017-01-21: 4.1.0
+- Added Tippecanoe 1.15.1 dependency to Worker role. (#529)
+
 2017-01-21: 4.0.5
 - Expanded zipped collections to cover North America. (#525)
 
