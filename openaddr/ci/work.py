@@ -72,6 +72,13 @@ def assemble_output(s3, input, source_name, run_id, index_dirname):
         url, _ = upload_file(s3, key_name, preview_path)
         output['preview'] = url
     
+    if input['slippymap']:
+        # e.g. /runs/0/slippymap.mbtiles
+        slippymap_path = os.path.join(index_dirname, input['slippymap'])
+        key_name = '/runs/{run}/{slippymap}'.format(run=run_id, **input)
+        url, _ = upload_file(s3, key_name, slippymap_path)
+        output['slippymap'] = url
+    
     return output
 
 def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_dir, mapzen_key=None):
