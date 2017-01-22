@@ -1,3 +1,6 @@
+2017-01-22: 4.1.1
+- Started rendering Tippecanoe MBTiles without exposing the results. (#530)
+
 2017-01-21: 4.1.0
 - Added Tippecanoe 1.15.1 dependency to Worker role. (#529)
 
