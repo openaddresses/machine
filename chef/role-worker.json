@@ -3,6 +3,7 @@
     [
         "openaddr-prereqs",
         "openaddr",
+        "tippecanoe",
         "account",
         "ec2-hostname",
         "worker"
