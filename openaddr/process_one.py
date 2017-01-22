@@ -46,7 +46,7 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
     logging.getLogger('openaddr').addHandler(log_handler)
     
     cache_result, conform_result = CacheResult.empty(), ConformResult.empty()
-    preview_path, skipped_source = None, False
+    preview_path, slippymap_path, skipped_source = None, None, False
 
     try:
         with open(temp_src) as file:
@@ -80,7 +80,7 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
                     preview_path = render_preview(conform_result.path, temp_dir, mapzen_key)
                 
                 if do_preview:
-                    render_slippymap(conform_result.path, temp_dir)
+                    slippymap_path = render_slippymap(conform_result.path, temp_dir)
 
                 if not preview_path:
                     _L.warning('Nothing previewed')
@@ -100,7 +100,7 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
 
     # Write output
     state_path = write_state(source, skipped_source, destination, log_handler,
-                             cache_result, conform_result, preview_path, temp_dir)
+        cache_result, conform_result, preview_path, slippymap_path, temp_dir)
 
     log_handler.close()
     rmtree(temp_dir)
@@ -176,7 +176,7 @@ def find_source_problem(log_contents, source):
     return None
 
 def write_state(source, skipped, destination, log_handler, cache_result,
-                conform_result, preview_path, temp_dir):
+                conform_result, preview_path, slippymap_path, temp_dir):
     '''
     '''
     source_id, _ = splitext(basename(source))
@@ -211,6 +211,10 @@ def write_state(source, skipped, destination, log_handler, cache_result,
         preview_path2 = join(statedir, 'preview.png')
         copy(preview_path, preview_path2)
     
+    if slippymap_path:
+        slippymap_path2 = join(statedir, 'slippymap.mbtiles')
+        copy(slippymap_path, slippymap_path2)
+    
     log_handler.flush()
     output_path = join(statedir, 'output.txt')
     copy(log_handler.stream.name, output_path)
@@ -243,6 +247,7 @@ def write_state(source, skipped, destination, log_handler, cache_result,
         ('process time', conform_result.elapsed and str(conform_result.elapsed)),
         ('output', relpath(output_path, statedir)),
         ('preview', preview_path and relpath(preview_path2, statedir)),
+        ('slippymap', slippymap_path and relpath(slippymap_path2, statedir)),
         ('attribution required', boolstr(conform_result.attribution_flag)),
         ('attribution name', conform_result.attribution_name),
         ('share-alike', boolstr(conform_result.sharealike_flag)),
