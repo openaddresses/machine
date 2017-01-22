@@ -2905,7 +2905,7 @@ class TestWorker (unittest.TestCase):
             os.makedirs(index_dirname)
             
             with open(index_filename, 'w') as file:
-                file.write('''[ ["skipped", "source", "cache", "sample", "website", "license", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "process hash", "output", "preview"], [false, "user_input.txt", "cache.zip", "sample.json", "http://example.com", "GPL", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "dd9af289289fb70f6c4852b8c7b0f1c7", "output.txt", "preview.png"] ]''')
+                file.write('''[ ["skipped", "source", "cache", "sample", "website", "license", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "process hash", "output", "preview", "slippymap"], [false, "user_input.txt", "cache.zip", "sample.json", "http://example.com", "GPL", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "dd9af289289fb70f6c4852b8c7b0f1c7", "output.txt", "preview.png", "slippymap.mbtiles"] ]''')
             
             for name in ('cache.zip', 'sample.json', 'out.csv', 'output.txt', 'preview.png'):
                 with open(os.path.join(index_dirname, name), 'w') as file:
@@ -3009,7 +3009,7 @@ class TestWorker (unittest.TestCase):
             os.makedirs(index_dirname)
             
             with open(index_filename, 'w') as file:
-                file.write('''[ ["skipped", "source", "cache", "sample", "website", "license", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "process hash", "output", "preview"], [true, "user_input.txt", null, null, null, null, null, null, null, null, null, null, null, null, "output.txt", null] ]''')
+                file.write('''[ ["skipped", "source", "cache", "sample", "website", "license", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "process hash", "output", "preview", "slippymap"], [true, "user_input.txt", null, null, null, null, null, null, null, null, null, null, null, null, "output.txt", null, null] ]''')
             
             with open(os.path.join(index_dirname, 'output.txt'), 'w') as file:
                 file.write('Yo')

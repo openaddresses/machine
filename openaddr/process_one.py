@@ -11,7 +11,7 @@ from os import mkdir, rmdir, close, chmod
 from _thread import get_ident
 import tempfile, json, csv, sys
 
-from . import cache, conform, preview, CacheResult, ConformResult, __version__
+from . import cache, conform, preview, slippymap, CacheResult, ConformResult, __version__
 from .compat import csvopen, csvwriter, PY2
 from .cache import DownloadError
 
@@ -78,6 +78,9 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
                 
                 if do_preview and mapzen_key:
                     preview_path = render_preview(conform_result.path, temp_dir, mapzen_key)
+                
+                if do_preview:
+                    render_slippymap(conform_result.path, temp_dir)
 
                 if not preview_path:
                     _L.warning('Nothing previewed')
@@ -110,6 +113,14 @@ def render_preview(csv_filename, temp_dir, mapzen_key):
     preview.render(csv_filename, png_filename, 668, 2, mapzen_key)
 
     return png_filename
+
+def render_slippymap(csv_filename, temp_dir):
+    '''
+    '''
+    mbtiles_filename = join(temp_dir, 'slippymap.mbtiles')
+    slippymap.generate(csv_filename, mbtiles_filename)
+
+    return mbtiles_filename
 
 class LogFilter:
     ''' Logging filter object to match only record in the current thread.

@@ -57,6 +57,12 @@ from ..cache import CacheResult
 from ..conform import ConformResult
 from ..process_one import find_source_problem
 
+def touch_second_arg_file(_, path, *args, **kwargs):
+    ''' Write a short dummy file for the second argument.
+    '''
+    with open(path, 'w') as file:
+        file.write('yo')
+
 class TestOA (unittest.TestCase):
     
     def setUp(self):
@@ -302,7 +308,11 @@ class TestOA (unittest.TestCase):
         '''
         source = join(self.src_dir, 'us-ca-alameda_county.json')
         
-        with HTTMock(self.response_content):
+        with HTTMock(self.response_content), \
+             mock.patch('openaddr.preview.render') as preview_ren, \
+             mock.patch('openaddr.slippymap.generate') as slippymap_gen:
+            preview_ren.side_effect = touch_second_arg_file
+            slippymap_gen.side_effect = touch_second_arg_file
             state_path = process_one.process(source, self.testdir, True, mapzen_key='mapzen-XXXX')
         
         with open(state_path) as file:
@@ -312,6 +322,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state['processed'])
         self.assertIsNotNone(state['sample'])
         self.assertIsNotNone(state['preview'])
+        self.assertIsNotNone(state['slippymap'])
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'], 'http://www.acgov.org/acdata/terms.htm')
@@ -350,7 +361,11 @@ class TestOA (unittest.TestCase):
         '''
         source = join(self.src_dir, 'us-ca-alameda_county-mixedcase.json')
         
-        with HTTMock(self.response_content):
+        with HTTMock(self.response_content), \
+             mock.patch('openaddr.preview.render') as preview_ren, \
+             mock.patch('openaddr.slippymap.generate') as slippymap_gen:
+            preview_ren.side_effect = touch_second_arg_file
+            slippymap_gen.side_effect = touch_second_arg_file
             state_path = process_one.process(source, self.testdir, True, mapzen_key='mapzen-XXXX')
         
         with open(state_path) as file:
@@ -360,6 +375,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state['processed'])
         self.assertIsNotNone(state['sample'])
         self.assertIsNotNone(state['preview'])
+        self.assertIsNotNone(state['slippymap'])
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'], 'http://www.acgov.org/acdata/terms.htm')
@@ -394,7 +410,11 @@ class TestOA (unittest.TestCase):
         '''
         source = join(self.src_dir, 'us-ca-san_francisco.json')
         
-        with HTTMock(self.response_content):
+        with HTTMock(self.response_content), \
+             mock.patch('openaddr.preview.render') as preview_ren, \
+             mock.patch('openaddr.slippymap.generate') as slippymap_gen:
+            preview_ren.side_effect = touch_second_arg_file
+            slippymap_gen.side_effect = touch_second_arg_file
             state_path = process_one.process(source, self.testdir, True, mapzen_key='mapzen-XXXX')
         
         with open(state_path) as file:
@@ -404,6 +424,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state['processed'])
         self.assertIsNotNone(state['sample'])
         self.assertIsNotNone(state['preview'])
+        self.assertIsNotNone(state['slippymap'])
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'], '')
@@ -441,7 +462,11 @@ class TestOA (unittest.TestCase):
         '''
         source = join(self.src_dir, 'us-ca-carson.json')
         
-        with HTTMock(self.response_content):
+        with HTTMock(self.response_content), \
+             mock.patch('openaddr.preview.render') as preview_ren, \
+             mock.patch('openaddr.slippymap.generate') as slippymap_gen:
+            preview_ren.side_effect = touch_second_arg_file
+            slippymap_gen.side_effect = touch_second_arg_file
             state_path = process_one.process(source, self.testdir, True, mapzen_key='mapzen-XXXX')
         
         with open(state_path) as file:
@@ -452,6 +477,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state['processed'])
         self.assertIsNotNone(state['sample'])
         self.assertIsNotNone(state['preview'])
+        self.assertIsNotNone(state['slippymap'])
         self.assertEqual(state['geometry type'], 'Point')
         self.assertEqual(state['website'], 'http://ci.carson.ca.us/')
         self.assertIsNone(state['license'])
@@ -490,6 +516,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state['processed'])
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
         self.assertEqual(state['geometry type'], 'Point')
 
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -517,6 +544,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state['processed'])
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
         self.assertEqual(state['geometry type'], 'Point')
 
         with open(join(dirname(state_path), state['sample'])) as file:
@@ -542,6 +570,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state.cache)
         self.assertIsNone(state.processed)
         self.assertIsNone(state.preview)
+        self.assertIsNone(state.slippymap)
         # This test data does not contain a working conform object
         self.assertEqual(state.source_problem, 'Missing required ESRI token')
 
@@ -562,6 +591,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state.source_problem, 'Unknown source conform type')
         self.assertIsNone(state.processed)
         self.assertIsNone(state.preview)
+        self.assertIsNone(state.slippymap)
         self.assertEqual(state.website, 'http://data.openoakland.org/dataset/property-parcels/resource/df20b818-0d16-4da8-a9c1-a7b8b720ff49')
         self.assertIsNone(state.license)
         
@@ -587,6 +617,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state.cache)
         self.assertIsNone(state.processed)
         self.assertIsNone(state.preview)
+        self.assertIsNone(state.slippymap)
 
     def test_single_berk(self):
         ''' Test complete process_one.process on Berkeley sample data.
@@ -604,6 +635,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state.source_problem, 'Source is missing a conform object')
         self.assertIsNone(state.processed)
         self.assertIsNone(state.preview)
+        self.assertIsNone(state.slippymap)
         self.assertEqual(state.website, 'http://www.ci.berkeley.ca.us/datacatalog/')
         self.assertIsNone(state.license)
         
@@ -627,6 +659,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state.cache)
         self.assertIsNone(state.processed)
         self.assertIsNone(state.preview)
+        self.assertIsNone(state.slippymap)
         
     def test_single_berk_apn(self):
         ''' Test complete process_one.process on Berkeley sample data.
@@ -642,6 +675,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state['cache'])
         self.assertIsNotNone(state['processed'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
         self.assertEqual(state['website'], 'http://www.ci.berkeley.ca.us/datacatalog/')
         self.assertIsNone(state['license'])
         
@@ -677,6 +711,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state['processed'])
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'][:21], 'Polish Law on Geodesy')
@@ -706,6 +741,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state['processed'])
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'][:21], 'Polish Law on Geodesy')
@@ -749,6 +785,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state.source_problem, 'Could not conform source data')
         self.assertIsNone(state.processed)
         self.assertIsNone(state.preview)
+        self.assertIsNone(state.slippymap)
         self.assertEqual(state.website, 'http://nlftp.mlit.go.jp/isj/index.html')
         self.assertEqual(state.license, u'http://nlftp.mlit.go.jp/ksj/other/yakkan§.html')
         self.assertEqual(state.attribution_required, 'true')
@@ -778,6 +815,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state.source_problem)
         self.assertIsNotNone(state.processed)
         self.assertIsNone(state.preview)
+        self.assertIsNone(state.slippymap)
         self.assertEqual(state.website, 'http://nlftp.mlit.go.jp/isj/index.html')
         self.assertEqual(state.license, u'http://nlftp.mlit.go.jp/ksj/other/yakkan.html')
         self.assertEqual(state.attribution_required, 'true')
@@ -822,6 +860,7 @@ class TestOA (unittest.TestCase):
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
         self.assertIsNone(state['website'])
         self.assertIsNone(state['license'])
 
@@ -842,6 +881,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
 
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
         self.assertIsNotNone(state['processed'])
         self.assertIsNotNone(state['cache'])
         self.assertIsNotNone(state['sample'])
@@ -882,6 +922,7 @@ class TestOA (unittest.TestCase):
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
         self.assertEqual(state['website'], 'http://adresse.data.gouv.fr/download/')
         self.assertIsNone(state['license'])
         self.assertEqual(state['attribution required'], 'true')
@@ -910,6 +951,7 @@ class TestOA (unittest.TestCase):
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
         self.assertEqual(state['website'], 'http://adresse.data.gouv.fr/download/')
         self.assertIsNone(state['license'])
         self.assertEqual(state['attribution required'], 'true')
@@ -938,6 +980,7 @@ class TestOA (unittest.TestCase):
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -961,6 +1004,7 @@ class TestOA (unittest.TestCase):
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -984,6 +1028,7 @@ class TestOA (unittest.TestCase):
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -1004,6 +1049,7 @@ class TestOA (unittest.TestCase):
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -1046,6 +1092,7 @@ class TestOA (unittest.TestCase):
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -1068,6 +1115,7 @@ class TestOA (unittest.TestCase):
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -1111,6 +1159,7 @@ class TestOA (unittest.TestCase):
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -1173,6 +1222,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state.source_problem)
         self.assertIsNotNone(state.processed)
         self.assertIsNone(state.preview)
+        self.assertIsNone(state.slippymap)
 
         output_path = join(dirname(state_path), state.processed)
         
@@ -1214,6 +1264,7 @@ class TestOA (unittest.TestCase):
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
 
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -1386,6 +1437,7 @@ class TestOA (unittest.TestCase):
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -1426,6 +1478,7 @@ class TestOA (unittest.TestCase):
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -1466,6 +1519,7 @@ class TestOA (unittest.TestCase):
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
+        self.assertIsNone(state['slippymap'])
         
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
@@ -1519,6 +1573,9 @@ class TestState (unittest.TestCase):
         with open(join(self.output_dir, 'preview.png'), 'w') as file:
             preview_path = file.name
 
+        with open(join(self.output_dir, 'slippymap.mbtiles'), 'w') as file:
+            slippymap_path = file.name
+
         conform_result = ConformResult(processed=None, sample='/tmp/sample.json',
                                        website='http://example.com', license='ODbL',
                                        geometry_type='Point', address_count=999,
@@ -1536,7 +1593,8 @@ class TestState (unittest.TestCase):
         args = dict(source='sources/foo.json', skipped=False,
                     destination=self.output_dir, log_handler=log_handler,
                     cache_result=cache_result, conform_result=conform_result,
-                    temp_dir=self.output_dir, preview_path=preview_path)
+                    temp_dir=self.output_dir, preview_path=preview_path,
+                    slippymap_path=slippymap_path)
 
         path1 = process_one.write_state(**args)
         
@@ -1558,6 +1616,7 @@ class TestState (unittest.TestCase):
         self.assertEqual(state1['process time'], '0:00:01')
         self.assertEqual(state1['output'], 'output.txt')
         self.assertEqual(state1['preview'], 'preview.png')
+        self.assertEqual(state1['slippymap'], 'slippymap.mbtiles')
         self.assertEqual(state1['share-alike'], 'true')
         self.assertEqual(state1['attribution required'], 'true')
         self.assertEqual(state1['attribution name'], 'Example')
