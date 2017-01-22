@@ -2830,7 +2830,7 @@ class TestWorker (unittest.TestCase):
         s3.new_key.return_value.name = 'a-key'
         s3.new_key.return_value.bucket.name = 'a-bucket'
 
-        input1 = {'cache': False, 'sample': False, 'processed': False, 'output': False, 'preview': False}
+        input1 = {'cache': False, 'sample': False, 'processed': False, 'output': False, 'preview': False, 'slippymap': False}
         state1 = RunState(assemble_output(s3, input1, 'xx/f', 1, 'dir'))
 
         self.assertEqual(state1.cache, input1['cache'])
@@ -2838,8 +2838,9 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(state1.processed, input1['processed'])
         self.assertEqual(state1.output, input1['output'])
         self.assertEqual(state1.preview, input1['preview'])
+        self.assertEqual(state1.slippymap, input1['slippymap'])
 
-        input2 = {'cache': 'cache.csv', 'sample': False, 'processed': False, 'output': False, 'preview': False}
+        input2 = {'cache': 'cache.csv', 'sample': False, 'processed': False, 'output': False, 'preview': False, 'slippymap': False}
         state2 = RunState(assemble_output(s3, input2, 'xx/f', 2, 'dir'))
 
         self.assertEqual(state2.cache, 'https://s3.amazonaws.com/a-bucket/a-key')
@@ -2848,9 +2849,10 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(state2.processed, input2['processed'])
         self.assertEqual(state2.output, input2['output'])
         self.assertEqual(state2.preview, input2['preview'])
+        self.assertEqual(state2.slippymap, input2['slippymap'])
         self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/2/cache.csv'))
 
-        input3 = {'cache': False, 'sample': 'sample.json', 'processed': False, 'output': False, 'preview': False}
+        input3 = {'cache': False, 'sample': 'sample.json', 'processed': False, 'output': False, 'preview': False, 'slippymap': False}
         state3 = RunState(assemble_output(s3, input3, 'xx/f', 3, 'dir'))
 
         self.assertEqual(state3.cache, input3['cache'])
@@ -2858,9 +2860,10 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(state3.processed, input3['processed'])
         self.assertEqual(state3.output, input3['output'])
         self.assertEqual(state3.preview, input3['preview'])
+        self.assertEqual(state3.slippymap, input3['slippymap'])
         self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/3/sample.json'))
 
-        input4 = {'cache': False, 'sample': False, 'processed': False, 'output': 'out.txt', 'preview': False}
+        input4 = {'cache': False, 'sample': False, 'processed': False, 'output': 'out.txt', 'preview': False, 'slippymap': False}
         state4 = RunState(assemble_output(s3, input4, 'xx/f', 4, 'dir'))
 
         self.assertEqual(state4.cache, input4['cache'])
@@ -2868,11 +2871,12 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(state4.processed, input4['processed'])
         self.assertEqual(state4.output, 'https://s3.amazonaws.com/a-bucket/a-key')
         self.assertEqual(state4.preview, input4['preview'])
+        self.assertEqual(state4.slippymap, input4['slippymap'])
         self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/4/out.txt'))
 
         with patch('openaddr.util.package_output') as package_output:
             package_output.return_value = 'nothing.zip'
-            input5 = {'cache': False, 'sample': False, 'processed': 'data.zip', 'output': False, 'preview': False}
+            input5 = {'cache': False, 'sample': False, 'processed': 'data.zip', 'output': False, 'preview': False, 'slippymap': False}
             state5 = RunState(assemble_output(s3, input5, 'xx/f', 5, 'dir'))
 
         self.assertEqual(state5.cache, input5['cache'])
@@ -2881,17 +2885,30 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(state5.process_hash, '0xWHATEVER')
         self.assertEqual(state5.output, input5['output'])
         self.assertEqual(state5.preview, input5['preview'])
+        self.assertEqual(state5.slippymap, input5['slippymap'])
         self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/5/xx/f.zip'))
 
-        input6 = {'cache': False, 'sample': False, 'processed': False, 'output': False, 'preview': 'preview.png'}
-        state6 = RunState(assemble_output(s3, input6, 'xx/f', 4, 'dir'))
+        input6 = {'cache': False, 'sample': False, 'processed': False, 'output': False, 'preview': 'preview.png', 'slippymap': False}
+        state6 = RunState(assemble_output(s3, input6, 'xx/f', 6, 'dir'))
 
         self.assertEqual(state6.cache, input6['cache'])
         self.assertEqual(state6.sample, input6['sample'])
         self.assertEqual(state6.processed, input6['processed'])
         self.assertEqual(state6.output, input6['output'])
         self.assertEqual(state6.preview, 'https://s3.amazonaws.com/a-bucket/a-key')
-        self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/4/preview.png'))
+        self.assertEqual(state6.slippymap, input6['slippymap'])
+        self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/6/preview.png'))
+
+        input7 = {'cache': False, 'sample': False, 'processed': False, 'output': False, 'preview': False, 'slippymap': 'slippymap.mbtiles'}
+        state7 = RunState(assemble_output(s3, input7, 'xx/f', 7, 'dir'))
+
+        self.assertEqual(state7.cache, input7['cache'])
+        self.assertEqual(state7.sample, input7['sample'])
+        self.assertEqual(state7.processed, input7['processed'])
+        self.assertEqual(state7.output, input7['output'])
+        self.assertEqual(state7.preview, input7['preview'])
+        self.assertEqual(state7.slippymap, 'https://s3.amazonaws.com/a-bucket/a-key')
+        self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/7/slippymap.mbtiles'))
 
     @patch('tempfile.mkdtemp')
     @patch('openaddr.compat.check_output')
@@ -2907,7 +2924,7 @@ class TestWorker (unittest.TestCase):
             with open(index_filename, 'w') as file:
                 file.write('''[ ["skipped", "source", "cache", "sample", "website", "license", "geometry type", "address count", "version", "fingerprint", "cache time", "processed", "process time", "process hash", "output", "preview", "slippymap"], [false, "user_input.txt", "cache.zip", "sample.json", "http://example.com", "GPL", "Point", 62384, null, "6c4852b8c7b0f1c7dd9af289289fb70f", "0:00:01.345149", "out.csv", "0:00:33.808682", "dd9af289289fb70f6c4852b8c7b0f1c7", "output.txt", "preview.png", "slippymap.mbtiles"] ]''')
             
-            for name in ('cache.zip', 'sample.json', 'out.csv', 'output.txt', 'preview.png'):
+            for name in ('cache.zip', 'sample.json', 'out.csv', 'output.txt', 'preview.png', 'slippymap.mbtiles'):
                 with open(os.path.join(index_dirname, name), 'w') as file:
                     file.write('Yo')
             
