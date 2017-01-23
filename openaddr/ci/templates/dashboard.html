@@ -212,7 +212,7 @@ d3.json('https://s3.amazonaws.com/data.openaddresses.io/machine-stats.json', fun
     var timeseries = data['timeseries'];
     var dateRange = d3.extent(timeseries, function(d) { return d.ts; });
 
-    graphTimeSeries(d3.select("#addresses"), timeseries, function(d) { return d.addresses; }, dateRange, [60000000, 350000000]);
+    graphTimeSeries(d3.select("#addresses"), timeseries, function(d) { return d.addresses; }, dateRange, [60000000, 450000000]);
     graphTimeSeries(d3.select('#sources'), timeseries, function(d) { return d.successful_sources; }, dateRange, [400, 1500]);
     graphTimeSeries(d3.select('#cache'), timeseries, function(d) { return d.average_cache_time; }, dateRange, [0, 200]);
     graphTimeSeries(d3.select('#process'), timeseries, function(d) { return d.average_process_time; }, dateRange, [0, 400]);
