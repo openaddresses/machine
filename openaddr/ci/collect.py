@@ -74,7 +74,7 @@ def main():
         'global': (lambda result: True), 'us_northeast': is_us_northeast,
         'us_midwest': is_us_midwest, 'us_south': is_us_south,
         'us_west': is_us_west, 'europe': is_europe, 'asia': is_asia,
-        'south_america': is_south_america
+        'south_america': is_south_america, 'north_america': is_north_america
         }
     sa_tests = {
         '': (lambda result: result.run_state.share_alike != 'true'),

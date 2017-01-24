@@ -351,7 +351,7 @@ class EsriRestDownloadTask(DownloadTask):
                 _L.debug("File exists %s", file_path)
                 continue
 
-            downloader = EsriDumper(source_url, parent_logger=_L)
+            downloader = EsriDumper(source_url, parent_logger=_L, timeout=300)
 
             metadata = downloader.get_metadata()
 
