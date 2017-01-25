@@ -5,13 +5,10 @@ import io
 PY2 = (sys.version_info[0] == 2)
 
 if PY2:
-    from pipes import quote
-    
     from future import standard_library
     standard_library.install_aliases()
 
 else:
-    from shlex import quote
     import csv, subprocess
     standard_library = None
 
