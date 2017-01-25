@@ -11,7 +11,6 @@ import io, zipfile
 import json, time
 import shlex
 
-from .. import compat
 from boto.exception import EC2ResponseError
 
 def get_version():
@@ -193,8 +192,5 @@ def s3_key_url(key):
     '''
     base = u'https://s3.amazonaws.com'
     path = join(key.bucket.name, key.name.lstrip('/'))
-    
-    if compat.PY2 and type(path) is not unicode:
-        path = path.decode('utf8')
     
     return urljoin(base, path)

@@ -10,7 +10,6 @@ from _thread import get_ident
 import tempfile, json, csv, sys
 
 from . import cache, conform, preview, slippymap, CacheResult, ConformResult, __version__
-from .compat import PY2
 from .cache import DownloadError
 
 from esridump.errors import EsriDownloadError
@@ -302,24 +301,16 @@ def main():
     args = parser.parse_args()
     setup_logger(logfile=args.logfile, log_level=args.loglevel)
     
-    if PY2:
-        source, destination = args.source.decode('utf8'), args.destination.decode('utf8')
-    else:
-        source, destination = args.source, args.destination
-
     # Allow CSV files with very long fields
     csv.field_size_limit(sys.maxsize)
     
     try:
-        file_path = process(source, destination, args.render_preview, mapzen_key=args.mapzen_key)
+        file_path = process(args.source, args.destination, args.render_preview, mapzen_key=args.mapzen_key)
     except Exception as e:
         _L.error(e, exc_info=True)
         return 1
     else:
-        if PY2:
-            print(file_path.encode('utf8'))
-        else:
-            print(file_path)
+        print(file_path)
         return 0
 
 if __name__ == '__main__':

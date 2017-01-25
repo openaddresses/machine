@@ -15,7 +15,6 @@ from .objects import (
 
 from . import setup_logger, db_connect, db_cursor, tileindex
 from .webcommon import log_application_errors, nice_domain, flask_log_level
-from .. import compat
 
 CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
              'version', 'fingerprint', 'cache time', 'processed', 'process time', \
@@ -62,18 +61,6 @@ def app_index_json():
     render_usa_url = 'https://s3.amazonaws.com/{}/render-usa.png'.format(current_app.config['AWS_S3_BUCKET'])
     render_geojson_url = 'https://s3.amazonaws.com/{}/render-world.geojson'.format(current_app.config['AWS_S3_BUCKET'])
 
-    if compat.PY2:
-        run_states_url = run_states_url.decode('utf8')
-        latest_run_processed_url = latest_run_processed_url.decode('utf8')
-        tileindex_url = tileindex_url.decode('utf8')
-        licenses_url = licenses_url.decode('utf8')
-        latest_set_url = latest_set_url.decode('utf8')
-
-        render_world_url = render_world_url.decode('utf8')
-        render_europe_url = render_europe_url.decode('utf8')
-        render_usa_url = render_usa_url.decode('utf8')
-        render_geojson_url = render_geojson_url.decode('utf8')
-    
     return jsonify({
         'run_states_url': urljoin(request.url, run_states_url),
         'latest_run_processed_url': urljoin(request.url, latest_run_processed_url),

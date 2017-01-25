@@ -19,7 +19,6 @@ from .objects import read_latest_set, read_completed_runs_to_date
 from . import db_connect, db_cursor, setup_logger, log_function_errors
 from .. import S3, iterate_local_processed_files, util
 from ..conform import OPENADDR_CSV_SCHEMA
-from ..compat import PY2
 
 MULTIPART_CHUNK_SIZE = 5 * 1024 * 1024
 
@@ -229,14 +228,10 @@ def add_csv_to_zipfile(zip_out, arc_filename, file):
         File is assumed to be open in binary mode.
     '''
     handle, tmp_filename = mkstemp(suffix='.csv'); close(handle)
-
-    if not PY2:
-        file = TextIOWrapper(file, 'utf8')
-
     size, squares = .1, defaultdict(lambda: 0)
 
     with open(tmp_filename, 'w') as output:
-        in_csv = DictReader(file)
+        in_csv = DictReader(TextIOWrapper(file, 'utf8'))
         out_csv = DictWriter(output, OPENADDR_CSV_SCHEMA, dialect='excel')
         out_csv.writerow({col: col for col in OPENADDR_CSV_SCHEMA})
 

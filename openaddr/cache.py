@@ -1,8 +1,6 @@
 from __future__ import absolute_import, division, print_function
 import logging; _L = logging.getLogger('openaddr.cache')
 
-from .compat import PY2
-
 import os
 import errno
 import math

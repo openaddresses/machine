@@ -16,7 +16,6 @@ from io import StringIO
 from uritemplate import expand
 import requests, boto3
 
-from .compat import PY2
 from .ci import db_connect, db_cursor, setup_logger
 from .ci.objects import read_latest_set, read_completed_runs_to_date
 from . import iterate_local_processed_files
@@ -195,10 +194,7 @@ def stream_all_features(results):
             if ext == '.csv':
                 # Yield GeoJSON point objects with no properties.
                 bytes = zipfile.read(filename)
-                if PY2:
-                    buffer = csvIO(bytes)
-                else:
-                    buffer = StringIO(bytes.decode('utf8'))
+                buffer = StringIO(bytes.decode('utf8'))
                 for row in csv.DictReader(buffer):
                     try:
                         lon_lat = float(row['LON']), float(row['LAT'])

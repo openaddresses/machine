@@ -57,7 +57,7 @@ from ..jobs import JOB_TIMEOUT
 from ..ci.work import make_source_filename, assemble_output, MAGIC_OK_MESSAGE
 from ..ci.webhooks import apply_webhooks_blueprint
 from ..ci.webapi import apply_webapi_blueprint
-from .. import compat, LocalProcessedResult
+from .. import LocalProcessedResult
 from . import FakeS3
 
 def en64(bytes):
