@@ -6,12 +6,8 @@ PY2 = (sys.version_info[0] == 2)
 
 if PY2:
     from pipes import quote
-    import unicodecsv, subprocess32, uritemplate
+    import unicodecsv, uritemplate
     unicodecsv.field_size_limit(sys.maxsize)
-    
-    check_output = subprocess32.check_output
-    CalledProcessError = subprocess32.CalledProcessError
-    TimeoutExpired = subprocess32.TimeoutExpired
     
     csvIO = io.BytesIO
     
@@ -84,10 +80,6 @@ else:
     import csv, subprocess
     from uritemplate import expand as expand_uri
     standard_library = None
-    
-    check_output = subprocess.check_output
-    CalledProcessError = subprocess.CalledProcessError
-    TimeoutExpired = subprocess.TimeoutExpired
     
     csvIO = io.StringIO
     

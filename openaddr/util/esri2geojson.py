@@ -11,10 +11,10 @@ from shutil import rmtree
 from os import remove
 import email.parser
 import urllib.parse
+import subprocess
 
 from ..cache import EsriRestDownloadTask
 from ..conform import GEOM_FIELDNAME
-from ..compat import check_output
 
 from osgeo import ogr
 
@@ -98,7 +98,7 @@ def esri2ogrfile(esri_url, output_path, headers={}, params={}):
         if exists(output_path):
             remove(output_path)
 
-        print(check_output(('ogr2ogr', '-f', format_name, output_path, vrt_path)))
+        print(subprocess.check_output(('ogr2ogr', '-f', format_name, output_path, vrt_path)))
 
         _L.info('Converted {csv_path} to {output_path}'.format(**locals()))
 

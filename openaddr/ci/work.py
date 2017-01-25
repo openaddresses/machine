@@ -1,9 +1,9 @@
 import logging; _L = logging.getLogger('openaddr.ci.work')
 
-from .. import compat, util
+from .. import util
 from ..jobs import JOB_TIMEOUT
 
-import os, json, tempfile, shutil, base64
+import os, json, tempfile, shutil, base64, subprocess
 from urllib.parse import urlparse, urljoin
 
 MAGIC_OK_MESSAGE = 'Everything is fine'
@@ -111,10 +111,10 @@ def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_di
         known_error, cmd_status = False, 0
         timeout_seconds = JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400
         with open('/dev/null', 'a') as devnull:
-            result_stdout = compat.check_output(cmd, timeout=timeout_seconds, stderr=devnull)
-    except compat.TimeoutExpired as e:
+            result_stdout = subprocess.check_output(cmd, timeout=timeout_seconds, stderr=devnull)
+    except subprocess.TimeoutExpired as e:
         known_error, cmd_status, result_stdout = True, None, e.output
-    except compat.CalledProcessError as e:
+    except subprocess.CalledProcessError as e:
         known_error, cmd_status, result_stdout = True, e.returncode, e.output
     except Exception:
         known_error, cmd_status, result_stdout = False, None, None

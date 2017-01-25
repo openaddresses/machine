@@ -15,9 +15,6 @@ if sys.version_info[0] == 2:
         # https://github.com/jdunck/python-unicodecsv
         'unicodecsv >= 0.11.2',
         
-        # https://code.google.com/p/python-subprocess32/
-        'subprocess32 == 3.2.6',
-
         # https://pypi.python.org/pypi/python-memcached
         'python-memcached == 1.57',
 
