@@ -1,7 +1,5 @@
 import logging; _L = logging.getLogger('openaddr.ci.collect')
 
-from ..compat import standard_library
-
 from argparse import ArgumentParser
 from urllib.parse import urlparse
 from datetime import date

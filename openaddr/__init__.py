@@ -1,8 +1,6 @@
 from __future__ import absolute_import, division, print_function
 import logging; _L = logging.getLogger('openaddr')
 
-from .compat import standard_library
-
 from tempfile import mkdtemp, mkstemp
 from os.path import realpath, join, basename, splitext, exists, dirname, abspath, relpath
 from shutil import copy, move, rmtree

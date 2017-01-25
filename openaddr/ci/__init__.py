@@ -1,6 +1,5 @@
 import logging; _L = logging.getLogger('openaddr.ci')
 
-from ..compat import standard_library
 from .. import jobs, render, util
 
 from .objects import (

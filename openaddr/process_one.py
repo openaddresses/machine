@@ -1,8 +1,6 @@
 from __future__ import absolute_import, division, print_function
 import logging; _L = logging.getLogger('openaddr.process_one')
 
-from .compat import standard_library
-
 from urllib.parse import urlparse
 from os.path import join, basename, dirname, exists, splitext, relpath
 from shutil import copy, move, rmtree

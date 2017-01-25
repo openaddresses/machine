@@ -9,9 +9,6 @@ conditional_requirements = list()
 
 if sys.version_info[0] == 2:
     conditional_requirements += [
-        # http://python-future.org
-        'future >= 0.14.3',
-        
         # https://pypi.python.org/pypi/python-memcached
         'python-memcached == 1.57',
 

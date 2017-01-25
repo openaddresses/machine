@@ -3,8 +3,6 @@
 from __future__ import absolute_import, division, print_function
 import logging; _L = logging.getLogger('openaddr.conform')
 
-from .compat import standard_library
-
 import os
 import errno
 import tempfile

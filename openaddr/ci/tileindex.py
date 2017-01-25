@@ -1,7 +1,5 @@
 import logging; _L = logging.getLogger('openaddr.ci.tileindex')
 
-from ..compat import standard_library
-
 from io import TextIOWrapper
 from operator import attrgetter
 from tempfile import mkstemp, mkdtemp

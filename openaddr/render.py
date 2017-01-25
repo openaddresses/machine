@@ -1,8 +1,6 @@
 from __future__ import division
 import logging; _L = logging.getLogger('openaddr.render')
 
-from .compat import standard_library
-
 from glob import glob
 from unicodedata import normalize
 from collections import defaultdict

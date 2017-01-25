@@ -1,8 +1,6 @@
 from __future__ import print_function, division
 import logging; _L = logging.getLogger('openaddr.dotmap')
 
-from .compat import standard_library
-
 from sys import stderr
 from datetime import date
 from zipfile import ZipFile

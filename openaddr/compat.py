@@ -5,12 +5,10 @@ import io
 PY2 = (sys.version_info[0] == 2)
 
 if PY2:
-    from future import standard_library
-    standard_library.install_aliases()
+    pass
 
 else:
     import csv, subprocess
-    standard_library = None
 
 try:
     import cairo

@@ -12,7 +12,6 @@ All logging is suppressed unless --logall or -l specified
 
 
 from __future__ import absolute_import, division, print_function
-from ..compat import standard_library
 
 import unittest
 import shutil
