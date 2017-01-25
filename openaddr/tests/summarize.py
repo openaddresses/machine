@@ -6,10 +6,10 @@ from os.path import splitext, relpath
 import unittest, json
 
 from httmock import HTTMock, response
+from uritemplate import expand as expand_uri
 import mock
 
 from .. import __version__
-from ..compat import expand_uri
 from ..ci.objects import Run, RunState
 from ..summarize import (
     state_conform_type, is_coverage_complete, run_counts, convert_run,

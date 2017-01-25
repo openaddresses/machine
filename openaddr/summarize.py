@@ -14,9 +14,9 @@ from re import compile
 import json, pickle
 
 import requests
+from uritemplate import expand as expand_uri
 
 from . import S3, __version__
-from .compat import expand_uri
 
 # Sort constants for summarize_runs()
 GLASS_HALF_FULL = 1

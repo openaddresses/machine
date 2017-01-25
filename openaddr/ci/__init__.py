@@ -1,6 +1,6 @@
 import logging; _L = logging.getLogger('openaddr.ci')
 
-from ..compat import standard_library, expand_uri
+from ..compat import standard_library
 from .. import jobs, render, util
 
 from .objects import (
@@ -25,6 +25,7 @@ import json, os, re
 
 from flask import Flask, request, Response, jsonify, render_template
 from requests import get, post, ConnectionError
+from uritemplate import expand as expand_uri
 from dateutil.tz import tzutc
 from psycopg2 import connect
 from boto import connect_sns

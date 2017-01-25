@@ -15,7 +15,6 @@ from .objects import (
 
 from . import setup_logger, db_connect, db_cursor, tileindex
 from .webcommon import log_application_errors, nice_domain, flask_log_level
-from ..compat import expand_uri
 from .. import compat
 
 CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
