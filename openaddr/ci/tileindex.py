@@ -12,12 +12,12 @@ from os import close, environ, mkdir
 from argparse import ArgumentParser
 from csv import DictReader, DictWriter
 from random import randint
+import gzip
 
 from . import db_connect, db_cursor, setup_logger, log_function_errors, collect
 from .objects import read_latest_set, read_completed_runs_to_date
 from .. import S3, iterate_local_processed_files, util
 from ..conform import OPENADDR_CSV_SCHEMA
-from ..compat import gzopen
 
 BLOCK_SIZE = 100000
 SOURCE_COLNAME = 'OA:Source'
@@ -42,12 +42,12 @@ class Tile:
         handle, self.filename = mkstemp(prefix='tile-', suffix='.csv.gz', dir=dirname)
         close(handle)
         
-        with gzopen(self.filename, 'wt', encoding='utf8') as file:
+        with gzip.open(self.filename, 'wt', encoding='utf8') as file:
             rows = DictWriter(file, Tile.columns)
             rows.writerow({k: k for k in Tile.columns})
     
     def add_points(self, points):
-        with gzopen(self.filename, 'at', encoding='utf8') as file:
+        with gzip.open(self.filename, 'at', encoding='utf8') as file:
             rows = DictWriter(file, Tile.columns)
             for point in points:
                 self.results.add(point.result)
@@ -64,7 +64,7 @@ class Tile:
         
         zipfile = ZipFile(zip_filename, 'w', ZIP_DEFLATED, allowZip64=True)
         
-        with gzopen(self.filename, 'rb') as file:
+        with gzip.open(self.filename, 'rb') as file:
             zipfile.writestr('addresses.csv', file.read())
 
         license_text = util.summarize_result_licenses(self.results)

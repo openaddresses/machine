@@ -14,7 +14,7 @@ from mock import patch
 from time import sleep
 from uuid import uuid4
 
-import hmac, hashlib, mock, subprocess
+import hmac, hashlib, mock, subprocess, gzip
 import unittest, json, os, sys, itertools, logging
 
 from flask import Flask
@@ -3973,7 +3973,7 @@ class TestTileIndex (unittest.TestCase):
             self.assertIn((-123, 37), tiles)
             
             tile1 = tiles[(-122, 36)]
-            with compat.gzopen(tile1.filename, 'rt', encoding='utf8') as file1:
+            with gzip.open(tile1.filename, 'rt', encoding='utf8') as file1:
                 # El-Cheapo CSV parser.
                 next(file1)
                 row1 = next(file1).strip().split(',')
@@ -3983,7 +3983,7 @@ class TestTileIndex (unittest.TestCase):
             self.assertEqual(source1, 'us/ca/santa_clara')
 
             tile2 = tiles[(-122, 37)]
-            with compat.gzopen(tile2.filename, 'rt', encoding='utf8') as file2:
+            with gzip.open(tile2.filename, 'rt', encoding='utf8') as file2:
                 # El-Cheapo CSV parser.
                 next(file2)
                 row2 = next(file2).strip().split(',')
