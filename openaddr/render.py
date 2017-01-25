@@ -11,9 +11,14 @@ from urllib.parse import urljoin
 import json, csv, io, os
 
 from . import compat
-from .compat import cairo
 from osgeo import ogr, osr
 import requests
+
+try:
+    import cairo
+except ImportError:
+    # http://stackoverflow.com/questions/11491268/install-pycairo-in-virtualenv
+    import cairocffi as cairo
 
 # Deprecated location for sources from old batch mode.
 SOURCES_DIR = '/var/opt/openaddresses'
