@@ -1,27 +1,8 @@
 from setuptools import setup
 from os.path import join, dirname
-import sys
 
 with open(join(dirname(__file__), 'openaddr', 'VERSION')) as file:
     version = file.read().strip()
-
-conditional_requirements = list()
-
-if sys.version_info[0] == 2:
-    conditional_requirements += [
-        # https://pypi.python.org/pypi/python-memcached
-        'python-memcached == 1.57',
-
-        # https://github.com/kennethreitz/requests/issues/2022#issuecomment-143348232
-        'ndg-httpsclient == 0.4.0',
-        'pyOpenSSL == 16.0.0',
-        'pyasn1 == 0.1.9',
-    ]
-else:
-    conditional_requirements += [
-        # https://pypi.python.org/pypi/python-memcached
-        'python3-memcached == 1.51',
-    ]
 
 setup(
     name = 'OpenAddresses-Machine',
@@ -123,5 +104,8 @@ setup(
         # http://pythonhosted.org/itsdangerous/
         'itsdangerous == 0.24',
 
-        ] + conditional_requirements
+        # https://pypi.python.org/pypi/python-memcached
+        'python3-memcached == 1.51',
+
+        ]
 )
