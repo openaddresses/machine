@@ -12,6 +12,7 @@ import itertools
 import json
 import copy
 import sys
+import csv
 import re
 
 from zipfile import ZipFile
@@ -22,7 +23,6 @@ from hashlib import sha1
 from uuid import uuid4
 
 from . import compat
-from .compat import csvopen, csvreader, csvDictReader, csvDictWriter
 from .sample import sample_geojson, stream_geojson
 
 from osgeo import ogr, osr, gdal
@@ -365,8 +365,8 @@ class ExcerptDataTask(object):
     
     @staticmethod
     def _excerpt_csv_file(data_path, encoding, csvsplit):
-        with csvopen(data_path, 'r', encoding=encoding) as file:
-            input = csvreader(file, encoding=encoding, delimiter=csvsplit)
+        with open(data_path, 'r', encoding=encoding) as file:
+            input = csv.reader(file, delimiter=csvsplit)
             data_sample = [row for (row, _) in zip(input, range(6))]
 
             if len(data_sample) >= 2 and GEOM_FIELDNAME in data_sample[0]:
@@ -653,8 +653,8 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
     coordTransform = osr.CoordinateTransformation(inSpatialRef, outSpatialRef)
 
     # Write a CSV file with one row per feature in the OGR source
-    with csvopen(dest_path, 'w', encoding='utf-8') as f:
-        writer = csvDictWriter(f, fieldnames=out_fieldnames, encoding='utf-8')
+    with open(dest_path, 'w', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=out_fieldnames)
         writer.writeheader()
 
         in_feature = in_layer.GetNextFeature()
@@ -707,7 +707,7 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
 
     # Extract the source CSV, applying conversions to deal with oddball CSV formats
     # Also convert encoding to utf-8 and reproject to EPSG:4326 in X and Y columns
-    with csvopen(source_path, 'r', encoding=enc) as source_fp:
+    with open(source_path, 'r', encoding=enc) as source_fp:
         in_fieldnames = None   # in most cases, we let the csv module figure these out
 
         # headers processing tag
@@ -715,7 +715,7 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
             headers = source_definition["conform"]["headers"]
             if (headers == -1):
                 # Read a row off the file to see how many columns it has
-                temp_reader = csvreader(source_fp, encoding=enc, delimiter=str(delim))
+                temp_reader = csv.reader(source_fp, delimiter=str(delim))
                 first_row = next(temp_reader)
                 num_columns = len(first_row)
                 source_fp.seek(0)
@@ -735,7 +735,7 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
             # check the source doesn't specify skiplines without headers
             assert "skiplines" not in source_definition["conform"]
 
-        reader = csvDictReader(source_fp, encoding=enc, delimiter=delim, fieldnames=in_fieldnames)
+        reader = csv.DictReader(source_fp, delimiter=delim, fieldnames=in_fieldnames)
         num_fields = len(reader.fieldnames)
 
         # Construct headers for the extracted CSV file
@@ -751,8 +751,8 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
             out_fieldnames.append(Y_FIELDNAME)
 
         # Write the extracted CSV file
-        with csvopen(dest_path, 'w', encoding='utf-8') as dest_fp:
-            writer = csvDictWriter(dest_fp, out_fieldnames)
+        with open(dest_path, 'w', encoding='utf-8') as dest_fp:
+            writer = csv.DictWriter(dest_fp, out_fieldnames)
             writer.writeheader()
             # For every row in the source CSV
             row_number = 0
@@ -775,13 +775,13 @@ def geojson_source_to_csv(source_path, dest_path):
     # For every row in the source GeoJSON
     with open(source_path) as file:
         # Write the extracted CSV file
-        with csvopen(dest_path, 'w', encoding='utf-8') as dest_fp:
+        with open(dest_path, 'w', encoding='utf-8') as dest_fp:
             writer = None
             for (row_number, feature) in enumerate(stream_geojson(file)):
                 if writer is None:
                     out_fieldnames = list(feature['properties'].keys())
                     out_fieldnames.extend((X_FIELDNAME, Y_FIELDNAME))
-                    writer = csvDictWriter(dest_fp, out_fieldnames)
+                    writer = csv.DictWriter(dest_fp, out_fieldnames)
                     writer.writeheader()
                 
                 try:
@@ -1157,11 +1157,11 @@ def transform_to_out_csv(source_definition, extract_path, dest_path):
     source_definition = conform_smash_case(source_definition)
 
     # Read through the extract CSV
-    with csvopen(extract_path, 'r', encoding='utf-8') as extract_fp:
-        reader = csvDictReader(extract_fp, encoding='utf-8')
+    with open(extract_path, 'r', encoding='utf-8') as extract_fp:
+        reader = csv.DictReader(extract_fp)
         # Write to the destination CSV
-        with csvopen(dest_path, 'w', encoding='utf-8') as dest_fp:
-            writer = csvDictWriter(dest_fp, OPENADDR_CSV_SCHEMA, encoding='utf-8')
+        with open(dest_path, 'w', encoding='utf-8') as dest_fp:
+            writer = csv.DictWriter(dest_fp, OPENADDR_CSV_SCHEMA)
             writer.writeheader()
             # For every row in the extract
             for extract_row in reader:

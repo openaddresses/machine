@@ -6,63 +6,12 @@ PY2 = (sys.version_info[0] == 2)
 
 if PY2:
     from pipes import quote
-    import unicodecsv, uritemplate
-    unicodecsv.field_size_limit(sys.maxsize)
-    
-    csvIO = io.BytesIO
-    
-    def csvreader(file, encoding=None, **kwargs):
-        ''' Pass encoding to unicodecsv
-        '''
-        if encoding is not None:
-            kwargs['encoding'] = encoding
-        
-        if 'delimiter' in kwargs:
-            kwargs['delimiter'] = str(kwargs['delimiter'])
-
-        return unicodecsv.reader(file, **kwargs)
-    
-    def csvwriter(file, encoding=None, **kwargs):
-        ''' Pass encoding to unicodecsv
-        '''
-        if encoding is not None:
-            kwargs['encoding'] = encoding
-
-        return unicodecsv.writer(file, **kwargs)
-    
-    def csvDictReader(file, encoding=None, delimiter=None, **kwargs):
-        ''' Pass encoding to unicodecsv
-        '''
-        # Python2 unicodecsv requires this be not unicode
-        if delimiter is not None:
-            kwargs['delimiter'] = delimiter.encode('ascii')
-        
-        if encoding is not None:
-            kwargs['encoding'] = encoding
-
-        return unicodecsv.DictReader(file, **kwargs)
-    
-    def csvDictWriter(file, fieldnames, encoding=None, delimiter=None, **kwargs):
-        ''' Pass encoding to unicodecsv
-        '''
-        # Python2 unicodecsv requires this be not unicode
-        if delimiter is not None:
-            kwargs['delimiter'] = delimiter.encode('ascii')
-        
-        if encoding is not None:
-            kwargs['encoding'] = encoding
-
-        return unicodecsv.DictWriter(file, fieldnames, **kwargs)
+    import uritemplate
     
     def gzopen(filename, mode='r', encoding=None):
         ''' Discard encoding
         '''
         return gzip.open(filename, mode=mode)
-    
-    def csvopen(filename, mode='r', encoding=None):
-        ''' Discard encoding
-        '''
-        return io.FileIO(filename, mode=mode)
     
     def expand_uri(template, args):
         '''
@@ -81,40 +30,10 @@ else:
     from uritemplate import expand as expand_uri
     standard_library = None
     
-    csvIO = io.StringIO
-    
-    def csvreader(file, encoding=None, **kwargs):
-        ''' Discard encoding
-        '''
-        if 'delimiter' in kwargs:
-            kwargs['delimiter'] = str(kwargs['delimiter'])
-
-        return csv.reader(file, **kwargs)
-    
-    def csvwriter(file, encoding=None, **kwargs):
-        ''' Discard encoding
-        '''
-        return csv.writer(file, **kwargs)
-    
-    def csvDictReader(file, encoding=None, **kwargs):
-        ''' Discard encoding
-        '''
-        return csv.DictReader(file, **kwargs)
-    
-    def csvDictWriter(file, fieldnames, encoding=None, **kwargs):
-        ''' Discard encoding
-        '''
-        return csv.DictWriter(file, fieldnames, **kwargs)
-    
     def gzopen(filename, mode='r', encoding=None):
         ''' Pass encoding to gzip.open
         '''
         return gzip.open(filename, mode=mode, encoding=encoding)
-    
-    def csvopen(filename, mode='r', encoding=None):
-        ''' Pass encoding to io.open
-        '''
-        return io.open(filename, mode=mode, encoding=encoding)
 
 try:
     import cairo

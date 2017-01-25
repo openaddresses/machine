@@ -12,7 +12,7 @@ from _thread import get_ident
 import tempfile, json, csv, sys
 
 from . import cache, conform, preview, slippymap, CacheResult, ConformResult, __version__
-from .compat import csvopen, csvwriter, PY2
+from .compat import PY2
 from .cache import DownloadError
 
 from esridump.errors import EsriDownloadError
@@ -259,8 +259,8 @@ def write_state(source, skipped, destination, log_handler, cache_result,
         ('code version', __version__),
         ]
                
-    with csvopen(join(statedir, 'index.txt'), 'w', encoding='utf8') as file:
-        out = csvwriter(file, dialect='excel-tab', encoding='utf8')
+    with open(join(statedir, 'index.txt'), 'w', encoding='utf8') as file:
+        out = csv.writer(file, dialect='excel-tab')
         for row in zip(*state):
             out.writerow(row)
     

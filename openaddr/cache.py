@@ -10,6 +10,7 @@ import socket
 import mimetypes
 import shutil
 import re
+import csv
 import simplejson as json
 
 from os import mkdir
@@ -29,7 +30,6 @@ import requests
 # HTTP timeout in seconds, used in various calls to requests.get() and requests.post()
 _http_timeout = 180
 
-from .compat import csvopen, csvDictWriter
 from .conform import X_FIELDNAME, Y_FIELDNAME, GEOM_FIELDNAME, attrib_types
 from . import util
 
@@ -374,8 +374,8 @@ class EsriRestDownloadTask(DownloadTask):
             except EsriDownloadError:
                 _L.info("Source doesn't support count")
 
-            with csvopen(file_path, 'w', encoding='utf-8') as f:
-                writer = csvDictWriter(f, fieldnames=field_names, encoding='utf-8')
+            with open(file_path, 'w', encoding='utf-8') as f:
+                writer = csv.DictWriter(f, fieldnames=field_names)
                 writer.writeheader()
 
                 for feature in downloader:
