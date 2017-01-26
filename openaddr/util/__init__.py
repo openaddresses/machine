@@ -9,8 +9,8 @@ from os import close
 import ftplib, httmock
 import io, zipfile
 import json, time
+import shlex
 
-from .. import compat
 from boto.exception import EC2ResponseError
 
 def get_version():
@@ -61,7 +61,7 @@ def _command_messages(command):
         message_failed = 'Failed {}'.format(command),
         )
     
-    return { k: compat.quote(json.dumps(dict(text=v))) for (k, v) in strings.items() }
+    return { k: shlex.quote(json.dumps(dict(text=v))) for (k, v) in strings.items() }
 
 def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, command, bucket, slack_url):
     '''
@@ -77,13 +77,13 @@ def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, co
     
     with open(join(dirname(__file__), 'templates', 'task-instance-userdata.sh')) as file:
         userdata_kwargs = dict(
-            role = compat.quote(chef_role),
-            command = ' '.join(map(compat.quote, command)),
-            lifespan = compat.quote(str(lifespan)),
-            version = compat.quote(get_version()),
-            log_prefix = compat.quote('logs/{}-{}'.format(yyyymmdd, command[0])),
-            bucket = compat.quote(bucket or 'data.openaddresses.io'),
-            slack_url = compat.quote(slack_url or ''),
+            role = shlex.quote(chef_role),
+            command = ' '.join(map(shlex.quote, command)),
+            lifespan = shlex.quote(str(lifespan)),
+            version = shlex.quote(get_version()),
+            log_prefix = shlex.quote('logs/{}-{}'.format(yyyymmdd, command[0])),
+            bucket = shlex.quote(bucket or 'data.openaddresses.io'),
+            slack_url = shlex.quote(slack_url or ''),
             **_command_messages(command[0])
             )
     
@@ -192,8 +192,5 @@ def s3_key_url(key):
     '''
     base = u'https://s3.amazonaws.com'
     path = join(key.bucket.name, key.name.lstrip('/'))
-    
-    if compat.PY2 and type(path) is not unicode:
-        path = path.decode('utf8')
     
     return urljoin(base, path)

@@ -3,7 +3,7 @@ import logging; _L = logging.getLogger('openaddr.ci.webapi')
 from urllib.parse import urljoin
 from operator import attrgetter
 from collections import defaultdict
-import json, os
+import json, os, csv, io
 
 from flask import Response, Blueprint, request, current_app, jsonify, url_for, redirect
 from flask_cors import CORS
@@ -15,8 +15,6 @@ from .objects import (
 
 from . import setup_logger, db_connect, db_cursor, tileindex
 from .webcommon import log_application_errors, nice_domain, flask_log_level
-from ..compat import expand_uri, csvIO, csvDictWriter
-from .. import compat
 
 CSV_HEADER = 'source', 'cache', 'sample', 'geometry type', 'address count', \
              'version', 'fingerprint', 'cache time', 'processed', 'process time', \
@@ -63,18 +61,6 @@ def app_index_json():
     render_usa_url = 'https://s3.amazonaws.com/{}/render-usa.png'.format(current_app.config['AWS_S3_BUCKET'])
     render_geojson_url = 'https://s3.amazonaws.com/{}/render-world.geojson'.format(current_app.config['AWS_S3_BUCKET'])
 
-    if compat.PY2:
-        run_states_url = run_states_url.decode('utf8')
-        latest_run_processed_url = latest_run_processed_url.decode('utf8')
-        tileindex_url = tileindex_url.decode('utf8')
-        licenses_url = licenses_url.decode('utf8')
-        latest_set_url = latest_set_url.decode('utf8')
-
-        render_world_url = render_world_url.decode('utf8')
-        render_europe_url = render_europe_url.decode('utf8')
-        render_usa_url = render_usa_url.decode('utf8')
-        render_geojson_url = render_geojson_url.decode('utf8')
-    
     return jsonify({
         'run_states_url': urljoin(request.url, run_states_url),
         'latest_run_processed_url': urljoin(request.url, latest_run_processed_url),
@@ -124,8 +110,8 @@ def app_get_state_txt():
             set = read_latest_set(db, 'openaddresses', 'openaddresses')
             runs = read_completed_runs_to_date(db, set.id)
     
-    buffer = csvIO()
-    output = csvDictWriter(buffer, CSV_HEADER, dialect='excel-tab', encoding='utf8')
+    buffer = io.StringIO()
+    output = csv.DictWriter(buffer, CSV_HEADER, dialect='excel-tab')
     output.writerow({col: col for col in CSV_HEADER})
     for run in sorted(runs, key=attrgetter('source_path')):
         run_state = run.state or {}
@@ -150,8 +136,8 @@ def app_get_set_state_txt(set_id):
         with db_cursor(conn) as db:
             runs = new_read_completed_set_runs(db, set_id)
     
-    buffer = csvIO()
-    output = csvDictWriter(buffer, CSV_HEADER, dialect='excel-tab', encoding='utf8')
+    buffer = io.StringIO()
+    output = csv.DictWriter(buffer, CSV_HEADER, dialect='excel-tab')
     output.writerow({col: col for col in CSV_HEADER})
     for run in sorted(runs, key=attrgetter('source_path')):
         run_state = run.state or {}

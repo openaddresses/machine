@@ -1,5 +1,4 @@
 from __future__ import absolute_import, division, print_function
-from .compat import standard_library
 
 import json
 from csv import DictReader
@@ -14,9 +13,9 @@ from re import compile
 import json, pickle
 
 import requests
+from uritemplate import expand as expand_uri
 
 from . import S3, __version__
-from .compat import expand_uri
 
 # Sort constants for summarize_runs()
 GLASS_HALF_FULL = 1
