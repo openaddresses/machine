@@ -295,13 +295,13 @@ class ExcerptDataTask(object):
         layer_defn = layer.GetLayerDefn()
         fieldcount = layer_defn.GetFieldCount()
         fieldnames = [layer_defn.GetFieldDefn(i).GetName() for i in range(fieldcount)]
-        fieldnames = [f.decode(encoding) if hasattr(f, 'decode') else f for f in fieldnames]
+        fieldnames = [ftfy.fix_encoding(f.decode(encoding)) if hasattr(f, 'decode') else f for f in fieldnames]
 
         data_sample = [fieldnames]
         
         for (feature, _) in zip(layer, range(5)):
             row = [feature.GetField(i) for i in range(fieldcount)]
-            row = [v.decode(encoding) if hasattr(v, 'decode') else v for v in row]
+            row = [ftfy.fix_encoding(v.decode(encoding)) if hasattr(v, 'decode') else v for v in row]
             data_sample.append(row)
 
         if len(data_sample) < 2:
@@ -666,7 +666,7 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
                 field_value = in_feature.GetField(i)
                 if isinstance(field_value, bytes):
                     # Convert OGR's byte sequence strings to Python Unicode strings
-                    field_value = field_value.decode(shp_encoding) \
+                    field_value = ftfy.fix_encoding(field_value.decode(shp_encoding)) \
                         if hasattr(field_value, 'decode') else field_value
                 row[field_defn.GetNameRef()] = field_value
             geom = in_feature.GetGeometryRef()
