@@ -4,6 +4,7 @@
 from shutil import rmtree
 from os.path import dirname, join
 from datetime import datetime
+from shlex import quote
 
 import unittest, tempfile, json, io
 from mimetypes import guess_type
@@ -11,7 +12,6 @@ from urllib.parse import urlparse, parse_qs
 from httmock import HTTMock, response
 from mock import Mock, patch
 
-from ..compat import quote
 from .. import util, ci, LocalProcessedResult, __version__
 
 class TestUtilities (unittest.TestCase):

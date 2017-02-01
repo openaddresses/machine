@@ -1,3 +1,12 @@
+2017-01-31: 4.1.3
+- Deleted remaining Python 2.x compatibility code. (#535)
+- Extended collect-extracts run time. (#536)
+
+2017-01-23: 4.1.2
+- Extended Esri server timeout. (#532)
+- Fixed missing North America from collections. (#532)
+- Updated dashboard for graph scale.
+
 2017-01-22: 4.1.1
 - Started rendering Tippecanoe MBTiles without exposing the results. (#530)
 

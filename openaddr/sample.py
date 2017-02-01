@@ -1,5 +1,4 @@
 from __future__ import absolute_import, division, print_function
-from .compat import standard_library
 
 import json, ijson
 from itertools import chain

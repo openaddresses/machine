@@ -12,7 +12,6 @@ All logging is suppressed unless --logall or -l specified
 
 
 from __future__ import absolute_import, division, print_function
-from ..compat import standard_library, csvopen, csvDictReader
 
 import unittest
 import shutil
@@ -337,8 +336,8 @@ class TestOA (unittest.TestCase):
         
         output_path = join(dirname(state_path), state['processed'])
         
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
             self.assertEqual(rows[1]['ID'], '')
             self.assertEqual(rows[10]['ID'], '')
             self.assertEqual(rows[100]['ID'], '')
@@ -390,8 +389,8 @@ class TestOA (unittest.TestCase):
         
         output_path = join(dirname(state_path), state['processed'])
         
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
             self.assertEqual(rows[1]['ID'], '')
             self.assertEqual(rows[10]['ID'], '')
             self.assertEqual(rows[100]['ID'], '')
@@ -438,8 +437,8 @@ class TestOA (unittest.TestCase):
         
         output_path = join(dirname(state_path), state['processed'])
         
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
             self.assertEqual(rows[1]['ID'], '')
             self.assertEqual(rows[10]['ID'], '')
             self.assertEqual(rows[100]['ID'], '')
@@ -681,8 +680,8 @@ class TestOA (unittest.TestCase):
         
         output_path = join(dirname(state_path), state['processed'])
         
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
             self.assertEqual(rows[1]['ID'], '055 188300600')
             self.assertEqual(rows[10]['ID'], '055 189504000')
             self.assertEqual(rows[100]['ID'], '055 188700100')
@@ -758,8 +757,8 @@ class TestOA (unittest.TestCase):
         
         output_path = join(dirname(state_path), state['processed'])
         
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
             self.assertEqual(rows[1]['NUMBER'], u'5')
             self.assertEqual(rows[10]['NUMBER'], u'8')
             self.assertEqual(rows[100]['NUMBER'], u'5a')
@@ -830,8 +829,8 @@ class TestOA (unittest.TestCase):
         self.assertTrue('37.706391' in sample_data[1])
         self.assertTrue('140.480007' in sample_data[1])
         
-        with csvopen(join(dirname(state_path), state.processed), encoding='utf8') as file:
-            rows = list(csvDictReader(file, encoding='utf8'))
+        with open(join(dirname(state_path), state.processed), encoding='utf8') as file:
+            rows = list(csv.DictReader(file))
             
         self.assertEqual(len(rows), 6)
         self.assertEqual(rows[0]['NUMBER'], u'24-9')
@@ -901,8 +900,8 @@ class TestOA (unittest.TestCase):
         self.assertEqual(row3['LONG_WGS84'], '-21,76846217953')
         self.assertEqual(row4['LAT_WGS84'], '64,110044369942')
 
-        with csvopen(join(dirname(state_path), state['processed']), encoding='utf8') as file:
-            rows = list(csvDictReader(file, encoding='utf8'))
+        with open(join(dirname(state_path), state['processed']), encoding='utf8') as file:
+            rows = list(csv.DictReader(file))
             
         self.assertEqual(len(rows), 15)
         self.assertEqual(rows[0]['STREET'], u'2.Gata v/Rauðavatn')
@@ -1067,8 +1066,8 @@ class TestOA (unittest.TestCase):
         
         output_path = join(dirname(state_path), state['processed'])
         
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
             self.assertEqual(rows[1]['UNIT'], u'2')
             self.assertEqual(rows[11]['UNIT'], u'11')
             self.assertEqual(rows[21]['UNIT'], u'')
@@ -1134,8 +1133,8 @@ class TestOA (unittest.TestCase):
         
         output_path = join(dirname(state_path), state['processed'])
         
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
             self.assertEqual(rows[1]['UNIT'], u'')
             self.assertEqual(rows[10]['UNIT'], u'')
             self.assertEqual(rows[20]['UNIT'], u'')
@@ -1177,8 +1176,8 @@ class TestOA (unittest.TestCase):
         
         output_path = join(dirname(state_path), state['processed'])
         
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
             self.assertEqual(rows[1]['UNIT'], u'')
             self.assertEqual(rows[5]['UNIT'], u'')
             self.assertEqual(rows[9]['UNIT'], u'')
@@ -1226,8 +1225,8 @@ class TestOA (unittest.TestCase):
 
         output_path = join(dirname(state_path), state.processed)
         
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
             self.assertEqual(rows[0]['REGION'], u'TX')
             self.assertEqual(rows[0]['ID'], u'')
             self.assertEqual(rows[0]['NUMBER'], u'308')
@@ -1253,8 +1252,8 @@ class TestOA (unittest.TestCase):
 
         output_path = join(dirname(state_path), state['processed'])
         
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
             self.assertEqual(rows[0]['NUMBER'], u'72')
             self.assertEqual(rows[1]['NUMBER'], u'3')
             self.assertEqual(rows[2]['NUMBER'], u'75')
@@ -1288,8 +1287,8 @@ class TestOA (unittest.TestCase):
 
         output_path = join(dirname(state_path), state['processed'])
         
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
             self.assertEqual(len(rows), 12)
             self.assertEqual(rows[2]['NUMBER'], u'1')
             self.assertEqual(rows[3]['NUMBER'], u'10')
@@ -1321,8 +1320,8 @@ class TestOA (unittest.TestCase):
 
         output_path = join(dirname(state_path), state['processed'])
         
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
             self.assertEqual(len(rows), 8)
             self.assertEqual(rows[0]['NUMBER'], u'34x')
             self.assertEqual(rows[1]['NUMBER'], u'65-x')
@@ -1346,8 +1345,8 @@ class TestOA (unittest.TestCase):
 
         output_path = join(dirname(state_path), state['processed'])
         
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
             self.assertEqual(len(rows), 666)
             self.assertEqual(rows[0]['NUMBER'], u'2')
             self.assertEqual(rows[0]['STREET'], u'Rue de la Victoire')
@@ -1379,8 +1378,8 @@ class TestOA (unittest.TestCase):
 
         output_path = join(dirname(state_path), state['processed'])
         
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
             self.assertEqual(len(rows), 19)
             self.assertEqual(rows[0]['NUMBER'], u'33')
             self.assertEqual(rows[0]['STREET'], u'VIA CARLO CARRÀ')
@@ -1408,8 +1407,8 @@ class TestOA (unittest.TestCase):
         
         output_path = join(dirname(state_path), state['processed'])
         
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
             self.assertEqual(len(rows), 1045)
             self.assertEqual(rows[0]['NUMBER'], u'7')
             self.assertEqual(rows[0]['STREET'], u'Sagamore Avenue')
@@ -1449,8 +1448,8 @@ class TestOA (unittest.TestCase):
         
         output_path = join(dirname(state_path), state['processed'])
         
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
             self.assertEqual(len(rows), 6)
             self.assertEqual(rows[0]['NUMBER'], '5115')
             self.assertEqual(rows[0]['STREET'], 'FRUITED PLAINS LN')
@@ -1490,8 +1489,8 @@ class TestOA (unittest.TestCase):
         
         output_path = join(dirname(state_path), state['processed'])
         
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
             self.assertEqual(len(rows), 6)
             self.assertEqual(rows[0]['NUMBER'], '5115')
             self.assertEqual(rows[0]['STREET'], 'FRUITED PLAINS LN')
@@ -1531,8 +1530,8 @@ class TestOA (unittest.TestCase):
         
         output_path = join(dirname(state_path), state['processed'])
         
-        with csvopen(output_path, encoding='utf8') as input:
-            rows = list(csvDictReader(input, encoding='utf8'))
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
             self.assertEqual(len(rows), 6)
             self.assertEqual(rows[0]['NUMBER'], '5115')
             self.assertEqual(rows[0]['STREET'], 'FRUITED PLAINS LN')

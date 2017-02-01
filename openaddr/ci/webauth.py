@@ -15,7 +15,6 @@ from flask import (
 from itsdangerous import URLSafeSerializer
 import requests, uritemplate, boto
 
-from .. import compat
 from . import setup_logger
 from .webcommon import log_application_errors, flask_log_level
 
@@ -40,20 +39,12 @@ def callback_url(request, callback_url):
     '''
     '''
     if 'X-Forwarded-Proto' in request.headers:
-        _scheme = request.headers.get('X-Forwarded-Proto')
-        scheme = _scheme.encode('utf8') if compat.PY2 else _scheme
-        path = request.path.encode('utf8') if compat.PY2 else request.path
-
+        scheme = request.headers.get('X-Forwarded-Proto')
+        path = request.path
         base_url = urlunparse((scheme, request.host, path, None, None, None))
     else:
         base_url = request.url
     
-    if compat.PY2 and hasattr(base_url, 'encode'):
-        base_url = base_url.encode('utf8')
-
-    if compat.PY2 and hasattr(callback_url, 'encode'):
-        callback_url = callback_url.encode('utf8')
-
     return urljoin(base_url, callback_url)
 
 def exchange_tokens(code, client_id, secret):

@@ -1,7 +1,5 @@
 import logging; _L = logging.getLogger('openaddr.ci.collect')
 
-from ..compat import standard_library
-
 from argparse import ArgumentParser
 from collections import defaultdict
 from os import environ, stat, close, remove
@@ -21,7 +19,6 @@ from .objects import read_latest_set, read_completed_runs_to_date
 from . import db_connect, db_cursor, setup_logger, log_function_errors
 from .. import S3, iterate_local_processed_files, util
 from ..conform import OPENADDR_CSV_SCHEMA
-from ..compat import PY2
 
 MULTIPART_CHUNK_SIZE = 5 * 1024 * 1024
 
@@ -74,7 +71,7 @@ def main():
         'global': (lambda result: True), 'us_northeast': is_us_northeast,
         'us_midwest': is_us_midwest, 'us_south': is_us_south,
         'us_west': is_us_west, 'europe': is_europe, 'asia': is_asia,
-        'south_america': is_south_america
+        'south_america': is_south_america, 'north_america': is_north_america
         }
     sa_tests = {
         '': (lambda result: result.run_state.share_alike != 'true'),
@@ -231,14 +228,10 @@ def add_csv_to_zipfile(zip_out, arc_filename, file):
         File is assumed to be open in binary mode.
     '''
     handle, tmp_filename = mkstemp(suffix='.csv'); close(handle)
-
-    if not PY2:
-        file = TextIOWrapper(file, 'utf8')
-
     size, squares = .1, defaultdict(lambda: 0)
 
     with open(tmp_filename, 'w') as output:
-        in_csv = DictReader(file)
+        in_csv = DictReader(TextIOWrapper(file, 'utf8'))
         out_csv = DictWriter(output, OPENADDR_CSV_SCHEMA, dialect='excel')
         out_csv.writerow({col: col for col in OPENADDR_CSV_SCHEMA})
 

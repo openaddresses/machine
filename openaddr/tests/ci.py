@@ -13,8 +13,8 @@ from io import BytesIO, StringIO
 from mock import patch
 from time import sleep
 from uuid import uuid4
-import hmac, hashlib, mock
 
+import hmac, hashlib, mock, subprocess, gzip
 import unittest, json, os, sys, itertools, logging
 
 from flask import Flask
@@ -57,7 +57,7 @@ from ..jobs import JOB_TIMEOUT
 from ..ci.work import make_source_filename, assemble_output, MAGIC_OK_MESSAGE
 from ..ci.webhooks import apply_webhooks_blueprint
 from ..ci.webapi import apply_webapi_blueprint
-from .. import compat, LocalProcessedResult
+from .. import LocalProcessedResult
 from . import FakeS3
 
 def en64(bytes):
@@ -2323,7 +2323,7 @@ class TestRuns (unittest.TestCase):
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=2))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
-    @patch('openaddr.compat.check_output')
+    @patch('subprocess.check_output')
     def test_failing_run(self, check_output):
         ''' Test a run that fails.
         '''
@@ -2463,14 +2463,14 @@ class TestRuns (unittest.TestCase):
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
-    @patch('openaddr.compat.check_output')
+    @patch('subprocess.check_output')
     def test_timeout_logging_run(self, check_output):
         ''' Test a run that times out after producing logging output.
         '''
         def takes_a_long_time(cmd, timeout, stderr):
             with open(cmd[2], 'w') as file:
                 file.write('Took too long.\n')
-            raise compat.TimeoutExpired(cmd, timeout, 'Took too long')
+            raise subprocess.TimeoutExpired(cmd, timeout, 'Took too long')
 
         check_output.side_effect = takes_a_long_time
 
@@ -2506,12 +2506,12 @@ class TestRuns (unittest.TestCase):
     @patch('openaddr.jobs.JOB_TIMEOUT', new=timedelta(seconds=1))
     @patch('openaddr.ci.DUETASK_DELAY', new=timedelta(seconds=1))
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
-    @patch('openaddr.compat.check_output')
+    @patch('subprocess.check_output')
     def test_timeout_nonlogging_run(self, check_output):
         ''' Test a run that times out without producing logging output.
         '''
         def takes_a_long_time(cmd, timeout, stderr):
-            raise compat.TimeoutExpired(cmd, timeout, 'Took too long')
+            raise subprocess.TimeoutExpired(cmd, timeout, 'Took too long')
 
         check_output.side_effect = takes_a_long_time
 
@@ -2911,7 +2911,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/7/slippymap.mbtiles'))
 
     @patch('tempfile.mkdtemp')
-    @patch('openaddr.compat.check_output')
+    @patch('subprocess.check_output')
     def test_happy_worker(self, check_output, mkdtemp):
         '''
         '''
@@ -2981,12 +2981,12 @@ class TestWorker (unittest.TestCase):
         self.assertTrue(u'License: GPL\n' in readme_content)
     
     @patch('tempfile.mkdtemp')
-    @patch('openaddr.compat.check_output')
+    @patch('subprocess.check_output')
     def test_angry_worker(self, check_output, mkdtemp):
         '''
         '''
         def raises_called_process_error(cmd, timeout, stderr):
-            raise compat.CalledProcessError(1, cmd, 'Everything is ruined.\n')
+            raise subprocess.CalledProcessError(1, cmd, 'Everything is ruined.\n')
         
         def same_tempdir_every_time(prefix, dir):
             os.mkdir(join(dir, 'work'))
@@ -3015,7 +3015,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(result['result_code'], 1)
 
     @patch('tempfile.mkdtemp')
-    @patch('openaddr.compat.check_output')
+    @patch('subprocess.check_output')
     def test_skippy_worker(self, check_output, mkdtemp):
         '''
         '''
@@ -3973,7 +3973,7 @@ class TestTileIndex (unittest.TestCase):
             self.assertIn((-123, 37), tiles)
             
             tile1 = tiles[(-122, 36)]
-            with compat.gzopen(tile1.filename, 'rt', encoding='utf8') as file1:
+            with gzip.open(tile1.filename, 'rt', encoding='utf8') as file1:
                 # El-Cheapo CSV parser.
                 next(file1)
                 row1 = next(file1).strip().split(',')
@@ -3983,7 +3983,7 @@ class TestTileIndex (unittest.TestCase):
             self.assertEqual(source1, 'us/ca/santa_clara')
 
             tile2 = tiles[(-122, 37)]
-            with compat.gzopen(tile2.filename, 'rt', encoding='utf8') as file2:
+            with gzip.open(tile2.filename, 'rt', encoding='utf8') as file2:
                 # El-Cheapo CSV parser.
                 next(file2)
                 row2 = next(file2).strip().split(',')

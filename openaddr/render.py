@@ -1,8 +1,6 @@
 from __future__ import division
 import logging; _L = logging.getLogger('openaddr.render')
 
-from .compat import standard_library
-
 from glob import glob
 from unicodedata import normalize
 from collections import defaultdict
@@ -12,10 +10,14 @@ from os.path import join, dirname, splitext, relpath
 from urllib.parse import urljoin
 import json, csv, io, os
 
-from . import compat
-from .compat import cairo
 from osgeo import ogr, osr
 import requests
+
+try:
+    import cairo
+except ImportError:
+    # http://stackoverflow.com/questions/11491268/install-pycairo-in-virtualenv
+    import cairocffi as cairo
 
 # Deprecated location for sources from old batch mode.
 SOURCES_DIR = '/var/opt/openaddresses'
@@ -81,10 +83,7 @@ def load_live_state():
     '''
     '''
     got = requests.get('https://results.openaddresses.io/state.txt')
-    if compat.PY2:
-        state = compat.csvDictReader(io.BytesIO(got.content), dialect='excel-tab', encoding='utf8')
-    else:
-        state = csv.DictReader(io.StringIO(got.text), dialect='excel-tab')
+    state = csv.DictReader(io.StringIO(got.text), dialect='excel-tab')
     
     return {s['source']: None for s in state if (s['cache'] and s['processed'])}
 
@@ -96,8 +95,6 @@ def iterate_sources_dir(sources_dir):
             _, ext = splitext(filename.lower())
             if ext == '.json':
                 path = relpath(join(dirname, filename), sources_dir)
-                if compat.PY2 and hasattr(path, 'decode'):
-                    path = path.decode('utf8')
                 yield normalize('NFC', path)
 
 def load_fake_state(sources_dir):

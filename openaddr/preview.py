@@ -13,7 +13,12 @@ import json, itertools, os, struct
 import requests, uritemplate
 
 from osgeo import osr, ogr
-from .compat import cairo
+
+try:
+    import cairo
+except ImportError:
+    # http://stackoverflow.com/questions/11491268/install-pycairo-in-virtualenv
+    import cairocffi as cairo
 
 TILE_URL = 'http://tile.mapzen.com/mapzen/vector/v1/all/{z}/{x}/{y}.json{?api_key}'
 EARTH_DIAMETER = 6378137 * 2 * pi

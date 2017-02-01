@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function
 import os
 import copy
 import json
+import csv
 import re
 
 import unittest
@@ -19,7 +20,7 @@ from ..conform import (
     row_fxn_prefixed_number, row_fxn_postfixed_street,
     row_fxn_remove_prefix, row_fxn_remove_postfix,
     row_canonicalize_unit_and_number, conform_smash_case, conform_cli,
-    csvopen, csvDictReader, convert_regexp_replace, conform_license,
+    convert_regexp_replace, conform_license,
     conform_attribution, conform_sharealike, normalize_ogr_filename_case,
     OPENADDR_CSV_SCHEMA, is_in, geojson_source_to_csv
     )
@@ -607,8 +608,8 @@ class TestConformCli (unittest.TestCase):
         rc, dest_path = self._run_conform_on_source('lake-man', 'shp')
         self.assertEqual(0, rc)
 
-        with csvopen(dest_path) as fp:
-            reader = csvDictReader(fp)
+        with open(dest_path) as fp:
+            reader = csv.DictReader(fp)
             self.assertEqual(OPENADDR_CSV_SCHEMA, reader.fieldnames)
 
             rows = list(reader)
@@ -634,8 +635,8 @@ class TestConformCli (unittest.TestCase):
         rc, dest_path = self._run_conform_on_source('lake-man-gdb', 'gdb')
         self.assertEqual(0, rc)
 
-        with csvopen(dest_path) as fp:
-            reader = csvDictReader(fp)
+        with open(dest_path) as fp:
+            reader = csv.DictReader(fp)
             self.assertEqual(OPENADDR_CSV_SCHEMA, reader.fieldnames)
 
             rows = list(reader)
@@ -661,8 +662,8 @@ class TestConformCli (unittest.TestCase):
         rc, dest_path = self._run_conform_on_source('lake-man-split', 'shp')
         self.assertEqual(0, rc)
         
-        with csvopen(dest_path) as fp:
-            rows = list(csvDictReader(fp))
+        with open(dest_path) as fp:
+            rows = list(csv.DictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '915')
             self.assertEqual(rows[0]['STREET'], 'EDWARD AVE')
             self.assertEqual(rows[1]['NUMBER'], '3273')
@@ -680,8 +681,8 @@ class TestConformCli (unittest.TestCase):
         rc, dest_path = self._run_conform_on_source('lake-man-merge-postcode', 'shp')
         self.assertEqual(0, rc)
         
-        with csvopen(dest_path) as fp:
-            rows = list(csvDictReader(fp))
+        with open(dest_path) as fp:
+            rows = list(csv.DictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '35845')
             self.assertEqual(rows[0]['STREET'], 'EKLUTNA LAKE RD')
             self.assertEqual(rows[1]['NUMBER'], '35850')
@@ -699,8 +700,8 @@ class TestConformCli (unittest.TestCase):
         rc, dest_path = self._run_conform_on_source('lake-man-merge-postcode2', 'shp')
         self.assertEqual(0, rc)
         
-        with csvopen(dest_path) as fp:
-            rows = list(csvDictReader(fp))
+        with open(dest_path) as fp:
+            rows = list(csv.DictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '85')
             self.assertEqual(rows[0]['STREET'], 'MAITLAND DR')
             self.assertEqual(rows[1]['NUMBER'], '81')
@@ -717,16 +718,16 @@ class TestConformCli (unittest.TestCase):
     def test_lake_man_shp_utf8(self):
         rc, dest_path = self._run_conform_on_source('lake-man-utf8', 'shp')
         self.assertEqual(0, rc)
-        with csvopen(dest_path, encoding='utf-8') as fp:
-            rows = list(csvDictReader(fp, encoding='utf-8'))
+        with open(dest_path, encoding='utf-8') as fp:
+            rows = list(csv.DictReader(fp))
             self.assertEqual(rows[0]['STREET'], u'PZ ESPA\u00d1A')
 
     def test_lake_man_shp_epsg26943(self):
         rc, dest_path = self._run_conform_on_source('lake-man-epsg26943', 'shp')
         self.assertEqual(0, rc)
 
-        with csvopen(dest_path) as fp:
-            rows = list(csvDictReader(fp))
+        with open(dest_path) as fp:
+            rows = list(csv.DictReader(fp))
             self.assertAlmostEqual(float(rows[0]['LAT']), 37.802612637607439)
             self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824)
 
@@ -734,8 +735,8 @@ class TestConformCli (unittest.TestCase):
         rc, dest_path = self._run_conform_on_source('lake-man-epsg26943-noprj', 'shp')
         self.assertEqual(0, rc)
 
-        with csvopen(dest_path) as fp:
-            rows = list(csvDictReader(fp))
+        with open(dest_path) as fp:
+            rows = list(csv.DictReader(fp))
             self.assertAlmostEqual(float(rows[0]['LAT']), 37.802612637607439)
             self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824)
 
@@ -746,8 +747,8 @@ class TestConformCli (unittest.TestCase):
         rc, dest_path = self._run_conform_on_source('lake-man-split2', 'csv')
         self.assertEqual(0, rc)
 
-        with csvopen(dest_path) as fp:
-            rows = list(csvDictReader(fp))
+        with open(dest_path) as fp:
+            rows = list(csv.DictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '1')
             self.assertEqual(rows[0]['STREET'], 'Spectrum Pointe Dr #320')
             self.assertEqual(rows[1]['NUMBER'], '')
@@ -765,8 +766,8 @@ class TestConformCli (unittest.TestCase):
         "Test case from jp-nara.json"
         rc, dest_path = self._run_conform_on_source('jp-nara', 'csv')
         self.assertEqual(0, rc)
-        with csvopen(dest_path) as fp:
-            rows = list(csvDictReader(fp))
+        with open(dest_path) as fp:
+            rows = list(csv.DictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '2543-6')
             self.assertAlmostEqual(float(rows[0]['LON']), 135.955104)
             self.assertAlmostEqual(float(rows[0]['LAT']), 34.607832)
@@ -777,8 +778,8 @@ class TestConformCli (unittest.TestCase):
         "CSV in an oddball SRS"
         rc, dest_path = self._run_conform_on_source('lake-man-3740', 'csv')
         self.assertEqual(0, rc)
-        with csvopen(dest_path) as fp:
-            rows = list(csvDictReader(fp))
+        with open(dest_path) as fp:
+            rows = list(csv.DictReader(fp))
             self.assertAlmostEqual(float(rows[0]['LAT']), 37.802612637607439, places=5)
             self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824, places=5)
             self.assertEqual(rows[0]['NUMBER'], '5')
@@ -788,8 +789,8 @@ class TestConformCli (unittest.TestCase):
         "GML XML files"
         rc, dest_path = self._run_conform_on_source('lake-man-gml', 'gml')
         self.assertEqual(0, rc)
-        with csvopen(dest_path) as fp:
-            rows = list(csvDictReader(fp))
+        with open(dest_path) as fp:
+            rows = list(csv.DictReader(fp))
             self.assertEqual(6, len(rows))
             self.assertAlmostEqual(float(rows[0]['LAT']), 37.802612637607439)
             self.assertAlmostEqual(float(rows[0]['LON']), -122.259249687194824)
@@ -1015,8 +1016,8 @@ class TestConformMisc(unittest.TestCase):
         csv_path = os.path.join(self.testdir, 'us-tx-waco.csv')
         geojson_source_to_csv(geojson_path, csv_path)
         
-        with csvopen(csv_path, encoding='utf8') as file:
-            row = next(csvDictReader(file, encoding='utf8'))
+        with open(csv_path, encoding='utf8') as file:
+            row = next(csv.DictReader(file))
             self.assertAlmostEqual(float(row[X_FIELDNAME]), -74.98335721879076)
             self.assertAlmostEqual(float(row[Y_FIELDNAME]), 40.054962450263616)
             self.assertEqual(row['PARCEL_NUM'], '02-022-003')
@@ -1080,7 +1081,6 @@ class TestConformCsv(unittest.TestCase):
         self.assertEqual(self._ascii_header_out, r[0])
         self.assertEqual(self._ascii_row_out, r[1])
 
-        # unicodecsv freaked out about unicode strings for delimiter
         unicode_conform = { "conform": { "csvsplit": u";", "type": "csv", "lat": "LATITUDE", "lon": "LONGITUDE" }, 'type': 'test' }
         r = self._convert(unicode_conform, d)
         self.assertEqual(self._ascii_row_out, r[1])
