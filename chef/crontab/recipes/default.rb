@@ -68,6 +68,7 @@ LC_ALL=C.UTF-8
 # Archive collection, every other day at 11am UTC (4am PDT)
 0 11	*/2 * *	#{username}	\
   openaddr-run-ec2-command \
+  --hours 18 \
   -b "#{aws_s3_bucket}" \
   --sns-arn "#{aws_sns_arn}" \
   --slack-url "#{slack_url}" \
