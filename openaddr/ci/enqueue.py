@@ -90,7 +90,7 @@ def main():
                 except Exception as e:
                     _L.error('Problem during autoscale', exc_info=True)
                 if expected_count:
-                    sleep(5)
+                    sleep(3)
         
         with task_Q as db:
             _L.debug('Rendering that shit')

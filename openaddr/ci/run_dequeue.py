@@ -58,7 +58,7 @@ def main():
             raise
         except:
             _L.error('Error in dequeue main()', exc_info=True)
-            sleep(5)
+            sleep(3)
 
 if __name__ == '__main__':
     exit(main())
