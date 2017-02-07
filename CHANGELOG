@@ -1,3 +1,6 @@
+2017-02-06: 4.1.5
+- Fixed possible memory error in dotmap process. (#541)
+
 2017-02-04: 4.1.4
 - Shortened queue sleep times. (#540)
 - Extended job timeout time. (#539)
