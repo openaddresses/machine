@@ -11,7 +11,7 @@ from tempfile import mkstemp, gettempdir
 from os import environ, close
 from time import sleep
 import json, subprocess, csv
-from io import StringIO
+from io import TextIOWrapper
 
 from uritemplate import expand
 import requests, boto3
@@ -193,8 +193,8 @@ def stream_all_features(results):
             _, ext = splitext(filename)
             if ext == '.csv':
                 # Yield GeoJSON point objects with no properties.
-                bytes = zipfile.read(filename)
-                buffer = StringIO(bytes.decode('utf8'))
+                fileobj = zipfile.open(filename)
+                buffer = TextIOWrapper(fileobj, encoding='utf8')
                 for row in csv.DictReader(buffer):
                     try:
                         lon_lat = float(row['LON']), float(row['LAT'])
