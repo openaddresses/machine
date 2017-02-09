@@ -30,8 +30,11 @@ def summarize_messages(event):
     
     for record in records:
         if 'Sns' in record:
-            message = json.loads(record['Sns']['Message'])
-            messages.append('*{}*\n{}'.format(record['Sns']['Subject'], message['Cause']))
+            try:
+                message = json.loads(record['Sns']['Message'])['Cause']
+            except:
+                message = record['Sns']['Message']
+            messages.append('*{}*\n```\n{}\n```'.format(record['Sns']['Subject'], message))
         else:
             print('Unknown record type:', record)
             messages.append('Mysterious message from {}'.format(record.get('EventSource', '???')))
@@ -58,6 +61,24 @@ if __name__ == '__main__':
                 "Subject": "Auto Scaling: launch for group \\"CI Crontab 4.x\\"",
                 "TopicArn": "arn:aws:sns:us-east-1:847904970422:CI-Events",
                 "MessageId": "90cced31-040b-58a6-9538-bc24bebf2c8b"
+              }
+            },
+            {
+              "EventVersion": "1.0", 
+              "EventSource": "aws:sns", 
+              "EventSubscriptionArn": "arn:aws:sns:us-east-1:847904970422:CI-Events:543efcac-0802-4fdd-9eb1-d6d6c8f76799", 
+              "Sns": {
+                "MessageId": "d0f9ec0a-e542-5c24-863e-bd1f2993ce6b", 
+                "Signature": "mTD5mrUzok2eE1UmJR7Le/D0eOveczZ39wXC7bxxg8IMOchSNwa6+KtKV4D+oD26uC4WSmCH5z92b09hX6vaTTpdc7G1DPywInUiwrLXYgrPgFKVG1Tj1JJZqTp+14JH/XiaaQ5WQ9sxPSQ7u1Iczd86jHtdkdOs7LBmWgzuFjFAJrkJz41JpgYuiEhDR0K07Syz/EKBtao3hd3QlG2CvJNNqhgxaYvn98GMDsfbtO0OZcoZX4TiAHkQslpyj3v0B/7IpuRKsmIC7wXL0NMNH2S8TetLqVLPpssezOYOHJj/Lu53ojeYJ3y3hwdQGBHL8yH6gOuUT7G/x6wFNDdKKQ==", 
+                "Type": "Notification", 
+                "TopicArn": "arn:aws:sns:us-east-1:847904970422:CI-Events", 
+                "MessageAttributes": {}, 
+                "SignatureVersion": "1", 
+                "Timestamp": "2017-02-09T01:49:05.702Z", 
+                "SigningCertUrl": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-b95095beb82e8f6a046b3aafc7f4149a.pem", 
+                "Message": "And this is the test message", 
+                "UnsubscribeUrl": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:847904970422:CI-Events:543efcac-0802-4fdd-9eb1-d6d6c8f76799", 
+                "Subject": "Test Subject"
               }
             }
           ]
