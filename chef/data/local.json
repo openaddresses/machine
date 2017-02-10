@@ -21,7 +21,6 @@
     "webhook_secrets": "{Comma-delimited list of secrets}",
     "mapbox_key": "{Mapbox Key}",
     "mapzen_key": "{Mapzen Key}",
-    "slack_url": "{Slack URL}",
     "gag_github_status": "No",
 
     "worker_kind": null,
