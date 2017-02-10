@@ -14,6 +14,7 @@ parser = ArgumentParser(description='Run a process on a remote EC2 instance.')
 
 parser.add_argument('-a', '--access-key', help='Deprecated option provided for backwards compatibility.')
 parser.add_argument('-s', '--secret-key', help='Deprecated option provided for backwards compatibility.')
+parser.add_argument('--slack-url', help='Deprecated option provided for backwards compatibility.')
 
 parser.add_argument('-b', '--bucket', default=environ.get('AWS_S3_BUCKET', None),
                     help='S3 bucket name. Defaults to value of AWS_S3_BUCKET environment variable.')
@@ -29,9 +30,6 @@ parser.add_argument('--hours', default=12, type=float,
 
 parser.add_argument('--instance-type', default='m3.medium',
                     help='EC2 instance type. Defaults to "m3.medium".')
-
-parser.add_argument('--slack-url',
-                    help='Slack POST URL.')
 
 parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
                     action='store_const', dest='loglevel',
@@ -55,7 +53,7 @@ def main():
     autoscale = connect_autoscale(None, None)
     instance = request_task_instance(ec2, autoscale, args.instance_type,
                                      args.role, lifespan, args.command,
-                                     args.bucket, args.slack_url)
+                                     args.bucket, args.sns_arn)
     
     _L.info('instance {} is off to the races.'.format(instance))
 

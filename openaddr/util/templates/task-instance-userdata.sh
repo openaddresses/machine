@@ -1,22 +1,22 @@
 #!/bin/bash -ex
 
-# Tell Slack all about it
-function notify_slack
+# Tell SNS all about it
+function notify_sns
 {{
-    if [ {slack_url} ]; then
-        echo $1 | curl -s -o /dev/null -X POST -d @- {slack_url} || true
+    if [ {aws_sns_arn} ]; then
+        aws --region {aws_region} sns publish --topic-arn {aws_sns_arn} --subject 'Test Subject' --message 'And this is the test message.'
     fi
 }}
 
-notify_slack {message_starting}
+notify_sns {message_starting}
 
 # Bail out with a log message
 function shutdown_with_log
 {{
     if [ $1 = 0 ]; then
-        notify_slack {message_complete}
+        notify_sns {message_complete}
     else
-        notify_slack {message_failed}
+        notify_sns {message_failed}
     fi
     
     mkdir /tmp/task
