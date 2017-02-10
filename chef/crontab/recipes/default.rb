@@ -11,7 +11,6 @@ aws_sns_arn = local['aws_sns_arn']
 aws_cloudwatch_ns = local['aws_cloudwatch_ns']
 github_token = local['github_token']
 mapbox_key = local['mapbox_key']
-slack_url = local['slack_url']
 
 database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=require"
 
@@ -71,7 +70,6 @@ LC_ALL=C.UTF-8
   --hours 18 \
   -b "#{aws_s3_bucket}" \
   --sns-arn "#{aws_sns_arn}" \
-  --slack-url "#{slack_url}" \
   --verbose \
   -- \
     openaddr-collect-extracts \
@@ -93,7 +91,6 @@ LC_ALL=C.UTF-8
   --hours 9 \
   -b "#{aws_s3_bucket}" \
   --sns-arn "#{aws_sns_arn}" \
-  --slack-url "#{slack_url}" \
   --verbose \
   -- \
     openaddr-index-tiles \
@@ -117,7 +114,6 @@ LC_ALL=C.UTF-8
   --instance-type r3.large \
   -b "#{aws_s3_bucket}" \
   --sns-arn "#{aws_sns_arn}" \
-  --slack-url "#{slack_url}" \
   --verbose \
   -- \
     openaddr-update-dotmap \
@@ -139,7 +135,6 @@ LC_ALL=C.UTF-8
   --instance-type t2.nano \
   -b "#{aws_s3_bucket}" \
   --sns-arn "#{aws_sns_arn}" \
-  --slack-url "#{slack_url}" \
   --verbose \
   -- \
     openaddr-enqueue-sources \
