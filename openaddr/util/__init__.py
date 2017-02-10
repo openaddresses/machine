@@ -52,17 +52,6 @@ def set_autoscale_capacity(autoscale, cloudwatch, cloudwatch_ns, capacity):
     if measure['Maximum'] > .9:
         group.set_capacity(capacity)
 
-def _command_messages(command):
-    '''
-    '''
-    strings = dict(
-        message_starting = 'Starting {}...'.format(command),
-        message_complete = 'Completed {}'.format(command),
-        message_failed = 'Failed {}'.format(command),
-        )
-    
-    return { k: shlex.quote(json.dumps(dict(text=v))) for (k, v) in strings.items() }
-
 def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, command, bucket, aws_sns_arn):
     '''
     '''
@@ -84,7 +73,7 @@ def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, co
             log_prefix = shlex.quote('logs/{}-{}'.format(yyyymmdd, command[0])),
             bucket = shlex.quote(bucket or 'data.openaddresses.io'),
             aws_sns_arn = '', aws_region = '',
-            **_command_messages(command[0])
+            command_name = command[0]
             )
         
         if aws_sns_arn:

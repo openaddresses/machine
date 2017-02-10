@@ -114,6 +114,7 @@ class TestUtilities (unittest.TestCase):
         
         self.assertIn('chef/run.sh {}'.format(quote(chef_role)), image_run_kwargs['user_data'])
         self.assertIn('s3://bucket-name/logs/', image_run_kwargs['user_data'])
+        self.assertIn("notify_sns 'Starting openaddr-good-times...'", image_run_kwargs['user_data'])
         self.assertIn('aws --region null-island sns publish --topic-arn arn:aws:sns:null-island:etc.',
                       image_run_kwargs['user_data'])
         for (arg1, arg2) in zip(command, command[1:]):

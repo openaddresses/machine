@@ -4,19 +4,19 @@
 function notify_sns
 {{
     if [ {aws_sns_arn} ]; then
-        aws --region {aws_region} sns publish --topic-arn {aws_sns_arn} --subject 'Test Subject' --message 'And this is the test message.'
+        aws --region {aws_region} sns publish --topic-arn {aws_sns_arn} --subject 'Requested task instance' --message "$1"
     fi
 }}
 
-notify_sns {message_starting}
+notify_sns 'Starting {command_name}...'
 
 # Bail out with a log message
 function shutdown_with_log
 {{
     if [ $1 = 0 ]; then
-        notify_sns {message_complete}
+        notify_sns 'Completed {command_name}'
     else
-        notify_sns {message_failed}
+        notify_sns 'Failed {command_name}'
     fi
     
     mkdir /tmp/task
