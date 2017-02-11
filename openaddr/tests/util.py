@@ -100,7 +100,7 @@ class TestUtilities (unittest.TestCase):
         image.run.return_value = reservation
         reservation.instances = [instance]
         
-        util.request_task_instance(ec2, autoscale, 'm3.medium', chef_role, 60, command, 'bucket-name', None)
+        util.request_task_instance(ec2, autoscale, 'm3.medium', chef_role, 60, command, 'bucket-name', 'arn:aws:sns:null-island:etc.')
         
         autoscale.get_all_groups.assert_called_once_with([expected_group_name])
         autoscale.get_all_launch_configurations.assert_called_once_with(names=[group.launch_config_name])
@@ -114,6 +114,9 @@ class TestUtilities (unittest.TestCase):
         
         self.assertIn('chef/run.sh {}'.format(quote(chef_role)), image_run_kwargs['user_data'])
         self.assertIn('s3://bucket-name/logs/', image_run_kwargs['user_data'])
+        self.assertIn("notify_sns 'Starting openaddr-good-times...'", image_run_kwargs['user_data'])
+        self.assertIn('aws --region null-island sns publish --topic-arn arn:aws:sns:null-island:etc.',
+                      image_run_kwargs['user_data'])
         for (arg1, arg2) in zip(command, command[1:]):
             self.assertIn(quote(arg1)+' '+quote(arg2), image_run_kwargs['user_data'])
 

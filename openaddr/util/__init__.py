@@ -52,18 +52,7 @@ def set_autoscale_capacity(autoscale, cloudwatch, cloudwatch_ns, capacity):
     if measure['Maximum'] > .9:
         group.set_capacity(capacity)
 
-def _command_messages(command):
-    '''
-    '''
-    strings = dict(
-        message_starting = 'Starting {}...'.format(command),
-        message_complete = 'Completed {}'.format(command),
-        message_failed = 'Failed {}'.format(command),
-        )
-    
-    return { k: shlex.quote(json.dumps(dict(text=v))) for (k, v) in strings.items() }
-
-def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, command, bucket, slack_url):
+def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, command, bucket, aws_sns_arn):
     '''
     '''
     group_name = 'CI Workers {0}.x'.format(*get_version().split('.'))
@@ -83,9 +72,19 @@ def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, co
             version = shlex.quote(get_version()),
             log_prefix = shlex.quote('logs/{}-{}'.format(yyyymmdd, command[0])),
             bucket = shlex.quote(bucket or 'data.openaddresses.io'),
-            slack_url = shlex.quote(slack_url or ''),
-            **_command_messages(command[0])
+            aws_sns_arn = '', aws_region = '',
+            command_name = command[0]
             )
+        
+        if aws_sns_arn:
+            try:
+                _, _, _, aws_region, _ = aws_sns_arn.split(':', 4)
+            except ValueError:
+                pass
+            else:
+                if aws_sns_arn.startswith('arn:aws:sns:'):
+                    userdata_kwargs.update(aws_sns_arn = shlex.quote(aws_sns_arn),
+                                           aws_region = shlex.quote(aws_region))
     
         run_kwargs = dict(instance_type=instance_type, security_groups=['default'],
                           instance_initiated_shutdown_behavior='terminate',
