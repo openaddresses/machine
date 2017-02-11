@@ -1,3 +1,6 @@
+2017-02-10: 4.1.6
+- Stopped using Slack URL directly, and using SNS instead. (#545)
+
 2017-02-06: 4.1.5
 - Fixed possible memory error in dotmap process. (#541)
 
