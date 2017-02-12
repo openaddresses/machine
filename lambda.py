@@ -15,12 +15,13 @@ def lambda_handler(event, context):
     parsed = urlparse(os.environ['SLACK_URL'])
     conn = HTTPSConnection(parsed.hostname)
     
-    for message in summarize_messages(event):
-        body = json.dumps(dict(text=message))
+    for (subject, message) in summarize_messages(event):
+        body = json.dumps(dict(text=subject, attachments=[dict(text=message)]))
         conn.request('POST', parsed.path, body)
         resp = conn.getresponse()
 
-        print('HTTP {} for message {}'.format(resp.status, message))
+        print('Sent:', body)
+        print('HTTP {} from {}'.format(resp.status, parsed.hostname))
 
 def summarize_messages(event):
     '''
@@ -28,16 +29,18 @@ def summarize_messages(event):
     records = event.get('Records', [])
     messages = []
     
-    for record in records:
+    for (index, record) in enumerate(records):
+        print('Record {}:'.format(index), json.dumps(record))
+    
         if 'Sns' in record:
             try:
                 message = json.loads(record['Sns']['Message'])['Cause']
             except:
                 message = record['Sns']['Message']
-            messages.append('*{}*\n```\n{}\n```'.format(record['Sns']['Subject'], message))
+            messages.append((record['Sns']['Subject'], message))
         else:
             print('Unknown record type:', record)
-            messages.append('Mysterious message from {}'.format(record.get('EventSource', '???')))
+            messages.append(('Mysterious message from {}'.format(record.get('EventSource', '???')), None))
     
     return messages
 
