@@ -116,6 +116,9 @@ def app_hook():
     github_auth = current_app.config['GITHUB_AUTH']
     gag_status = current_app.config['GAG_GITHUB_STATUS']
     webhook_payload = json.loads(request.data.decode('utf8'))
+    
+    if current_app.config['REJECT_NEW_JOBS']:
+        return Response('Try again later', 503, content_type='text/plain')
 
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         queue = db_queue(conn, TASK_QUEUE)
