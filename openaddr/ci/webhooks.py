@@ -118,7 +118,8 @@ def app_hook():
     webhook_payload = json.loads(request.data.decode('utf8'))
     
     if current_app.config['REJECT_NEW_JOBS']:
-        return Response('Try again later', 503, content_type='text/plain')
+        return Response(json.dumps({'message': 'Try again later'}),
+                        503, content_type='application/json')
 
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         queue = db_queue(conn, TASK_QUEUE)
