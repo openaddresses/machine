@@ -10,6 +10,7 @@ aws_s3_bucket = local['aws_s3_bucket']
 aws_sns_arn = local['aws_sns_arn']
 
 gag_github_status = local['gag_github_status']
+reject_new_jobs = local['reject_new_jobs']
 database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=require"
 web_docroot = local['web_docroot']
 mapzen_key = local['mapzen_key']
@@ -27,6 +28,7 @@ file env_file do
 WEB_DOCROOT=#{web_docroot}
 DATABASE_URL=#{database_url}
 GAG_GITHUB_STATUS=#{gag_github_status}
+REJECT_NEW_JOBS=#{reject_new_jobs}
 AWS_SNS_ARN=#{aws_sns_arn}
 AWS_S3_BUCKET=#{aws_s3_bucket}
 MAPZEN_KEY=#{mapzen_key}
