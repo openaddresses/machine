@@ -44,6 +44,7 @@ def load_config():
     webhook_secrets = secrets_string.split(b',') if secrets_string else []
 
     return dict(GAG_GITHUB_STATUS=truthy(os.environ.get('GAG_GITHUB_STATUS', '')),
+                REJECT_NEW_JOBS=truthy(os.environ.get('REJECT_NEW_JOBS', '')),
                 GITHUB_AUTH=(os.environ['GITHUB_TOKEN'], 'x-oauth-basic'),
                 GITHUB_OAUTH_CLIENT_ID=os.environ.get('GITHUB_CLIENT_ID'),
                 GITHUB_OAUTH_SECRET=os.environ.get('GITHUB_SECRET'),

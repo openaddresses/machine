@@ -13,6 +13,7 @@ aws_cloudwatch_ns = local['aws_cloudwatch_ns']
 webhook_secrets = local['webhook_secrets']
 
 gag_github_status = local['gag_github_status']
+reject_new_jobs = local['reject_new_jobs']
 database_url = "postgres://#{db_user}:#{db_pass}@#{db_host}/#{db_name}?sslmode=require"
 github_token = local['github_token']
 github_callback = local['github_callback']
@@ -36,6 +37,7 @@ GITHUB_CALLBACK=#{github_callback}
 GITHUB_CLIENT_ID=#{github_client_id}
 GITHUB_SECRET=#{github_secret}
 GAG_GITHUB_STATUS=#{gag_github_status}
+REJECT_NEW_JOBS=#{reject_new_jobs}
 AWS_SNS_ARN=#{aws_sns_arn}
 AWS_CLOUDWATCH_NS=#{aws_cloudwatch_ns}
 AWS_S3_BUCKET=#{aws_s3_bucket}
