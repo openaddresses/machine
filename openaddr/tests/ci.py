@@ -1522,14 +1522,14 @@ class TestHook (unittest.TestCase):
     def test_webhook_queue_disabled(self):
         ''' Push a single commit while the queue is disabled.
         '''
-        self.app.config['REJECT_NEW_JOBS'] = True
+        previous_flag, self.app.config['REJECT_NEW_JOBS'] = self.app.config['REJECT_NEW_JOBS'], True
 
         data = '''{   }'''
         
         with HTTMock(self.response_content):
             posted = self.client.post('/hook', data=data, headers=signed(data, valid=True))
         
-        self.app.config['REJECT_NEW_JOBS'] = False
+        self.app.config['REJECT_NEW_JOBS'] = previous_flag
         self.assertEqual(posted.status_code, 503)
     
     @patch('openaddr.ci.HEARTBEAT_INTERVAL', new=timedelta(seconds=1))
