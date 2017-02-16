@@ -1189,16 +1189,16 @@ class TestHook (unittest.TestCase):
         os.environ['AWS_ACCESS_KEY_ID'] = '12345'
         os.environ['AWS_SECRET_ACCESS_KEY'] = '67890'
 
-        app = Flask(__name__)
-        app.config.update(load_config(), MINIMUM_LOGLEVEL=logging.CRITICAL)
-        apply_webhooks_blueprint(app)
+        self.app = Flask(__name__)
+        self.app.config.update(load_config(), MINIMUM_LOGLEVEL=logging.CRITICAL)
+        apply_webhooks_blueprint(self.app)
 
-        recreate_db.recreate(app.config['DATABASE_URL'])
+        recreate_db.recreate(self.app.config['DATABASE_URL'])
 
         self.output_dir = mkdtemp(prefix='TestHook-')
-        self.database_url = app.config['DATABASE_URL']
-        self.github_auth = app.config['GITHUB_AUTH']
-        self.client = app.test_client()
+        self.database_url = self.app.config['DATABASE_URL']
+        self.github_auth = self.app.config['GITHUB_AUTH']
+        self.client = self.app.test_client()
         self.last_status_state = None
         self.last_status_message = None
         self.s3 = FakeS3()
@@ -1517,6 +1517,20 @@ class TestHook (unittest.TestCase):
         
         print('Unknowable Request {} "{}"'.format(request.method, url.geturl()), file=sys.stderr)
         raise ValueError('Unknowable Request {} "{}"'.format(request.method, url.geturl()))
+    
+    @patch('openaddr.ci.HEARTBEAT_INTERVAL', new=timedelta(seconds=1))
+    def test_webhook_queue_disabled(self):
+        ''' Push a single commit while the queue is disabled.
+        '''
+        self.app.config['REJECT_NEW_JOBS'] = True
+
+        data = '''{   }'''
+        
+        with HTTMock(self.response_content):
+            posted = self.client.post('/hook', data=data, headers=signed(data, valid=True))
+        
+        self.app.config['REJECT_NEW_JOBS'] = False
+        self.assertEqual(posted.status_code, 503)
     
     @patch('openaddr.ci.HEARTBEAT_INTERVAL', new=timedelta(seconds=1))
     def test_webhook_badjson_content(self):
