@@ -1,18 +1,18 @@
 FROM python:3.4
 
-RUN apt-get update \
- && apt-get upgrade -y \
- && apt-get install -y libgdal1-dev gdal-bin
+RUN apt-get update && \
+    apt-get install -y \
+            libgdal1-dev \
+            gdal-bin && \
+    rm -rf /var/lib/apt/lists/*
 
-ADD . /machine
+COPY . /machine
 WORKDIR /machine
 
 ENV CPLUS_INCLUDE_PATH=/usr/include/gdal
 ENV C_INCLUDE_PATH=/usr/include/gdal
 
-RUN gdalinfo --version
-
-RUN pip install cairocffi gdal==1.10.0 \
- && pip install -U .
-
-CMD ["python", "setup.py", "test"]
+RUN pip install \
+        cairocffi \
+        gdal==1.10.0 && \
+    pip install -U .
