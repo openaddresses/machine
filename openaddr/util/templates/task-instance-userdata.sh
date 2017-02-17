@@ -4,7 +4,7 @@
 function notify_sns
 {{
     if [ {aws_sns_arn} ]; then
-        aws --region {aws_region} sns publish --topic-arn {aws_sns_arn} --subject 'Requested task instance' --message "$1"
+        aws --region {aws_region} sns publish --topic-arn {aws_sns_arn} --subject "$1" --message "$1"
     fi
 }}
 

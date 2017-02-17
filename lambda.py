@@ -16,7 +16,10 @@ def lambda_handler(event, context):
     conn = HTTPSConnection(parsed.hostname)
     
     for (subject, message) in summarize_messages(event):
-        body = json.dumps(dict(text=subject, attachments=[dict(text=message)]))
+        if subject == message:
+            body = json.dumps(dict(text=subject))
+        else:
+            body = json.dumps(dict(text=subject, attachments=[dict(text=message)]))
         conn.request('POST', parsed.path, body)
         resp = conn.getresponse()
 
