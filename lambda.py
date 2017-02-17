@@ -38,7 +38,7 @@ def summarize_messages(event):
         if 'Sns' in record:
             try:
                 msgjson = json.loads(record['Sns']['Message'])
-            except json.decoder.JSONDecodeError as e:
+            except ValueError:
                 # Send the raw message, which couldn't be parsed as JSON.
                 message = record['Sns']['Message']
             else:
