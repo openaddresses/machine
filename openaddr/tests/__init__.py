@@ -254,6 +254,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/cache/uploads/migurski/ed789f/toscana20160804.zip'):
             local_path = join(data_dirname, 'it-52-statewide.zip')
         
+        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/cache/uploads/nvkelso/5a5bf6/ParkCountyADDRESS_POINTS_point.zip'):
+            local_path = join(data_dirname, 'us-wy-park.zip')
+        
         if (host, path) == ('njgin.state.nj.us', '/download2/Address/ADDR_POINT_NJ_fgdb.zip'):
             local_path = join(data_dirname, 'nj-statewide.gdb.zip')
         
@@ -1236,6 +1239,35 @@ class TestOA (unittest.TestCase):
             self.assertEqual(rows[0]['LAT'], u'31.4432703')
             self.assertEqual(rows[0]['STREET'], u'PULLEN ST')
             self.assertEqual(rows[0]['POSTCODE'], u'76657')
+            self.assertEqual(rows[0]['UNIT'], u'')
+            self.assertEqual(rows[0]['DISTRICT'], u'')
+
+    def test_single_wy_park(self):
+        ''' Test complete process_one.process on data without ESRI support for resultRecordCount.
+        '''
+        source = join(self.src_dir, 'us-wy-park.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir, False)
+
+        with open(state_path) as file:
+            state = RunState(dict(zip(*json.load(file))))
+        
+        self.assertIsNotNone(state.sample)
+        self.assertIsNotNone(state.processed)
+
+        output_path = join(dirname(state_path), state.processed)
+        
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
+            self.assertEqual(rows[0]['ID'], u'')
+            self.assertEqual(rows[0]['NUMBER'], u'162')
+            self.assertEqual(rows[0]['HASH'], u'1cfd1c00aa1d5060')
+            self.assertEqual(rows[0]['CITY'], u'')
+            self.assertEqual(rows[0]['LON'], u'-108.7563613')
+            self.assertEqual(rows[0]['LAT'], u'44.7538737')
+            self.assertEqual(rows[0]['STREET'], u'N CLARK ST')
+            self.assertEqual(rows[0]['POSTCODE'], u'')
             self.assertEqual(rows[0]['UNIT'], u'')
             self.assertEqual(rows[0]['DISTRICT'], u'')
 
