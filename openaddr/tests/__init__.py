@@ -1248,51 +1248,26 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-wy-park.json')
 
         with HTTMock(self.response_content):
-            ofs = csv.field_size_limit()
-            csv.field_size_limit(1)
             state_path = process_one.process(source, self.testdir, False)
-            csv.field_size_limit(ofs)
 
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
         
-        with open(join(dirname(state_path), state.output)) as file:
-            print(file.read())
-
-        self.assertIsNone(state.sample, 'Sample should be missing when csv.field_size_limit() is too short')
-        self.assertEqual(state.source_problem, 'Could not conform source data')
-        self.assertIsNone(state.processed)
-
-        source = join(self.src_dir, 'us/tx/city_of_waco.json')
-
-        with HTTMock(self.response_content):
-            ofs = csv.field_size_limit()
-            csv.field_size_limit(sys.maxsize)
-            state_path = process_one.process(source, self.testdir, False)
-            csv.field_size_limit(ofs)
-
-        with open(state_path) as file:
-            state = RunState(dict(zip(*json.load(file))))
-
-        self.assertIsNotNone(state.sample, 'Sample should be present when csv.field_size_limit() is long enough')
-        self.assertIsNone(state.source_problem)
+        self.assertIsNotNone(state.sample)
         self.assertIsNotNone(state.processed)
-        self.assertIsNone(state.preview)
-        self.assertIsNone(state.slippymap)
 
         output_path = join(dirname(state_path), state.processed)
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
-            self.assertEqual(rows[0]['REGION'], u'TX')
             self.assertEqual(rows[0]['ID'], u'')
-            self.assertEqual(rows[0]['NUMBER'], u'308')
-            self.assertEqual(rows[0]['HASH'], u'0b0395441e3477b7')
-            self.assertEqual(rows[0]['CITY'], u'Mcgregor')
-            self.assertEqual(rows[0]['LON'], u'-97.3961771')
-            self.assertEqual(rows[0]['LAT'], u'31.4432703')
-            self.assertEqual(rows[0]['STREET'], u'PULLEN ST')
-            self.assertEqual(rows[0]['POSTCODE'], u'76657')
+            self.assertEqual(rows[0]['NUMBER'], u'162')
+            self.assertEqual(rows[0]['HASH'], u'1cfd1c00aa1d5060')
+            self.assertEqual(rows[0]['CITY'], u'')
+            self.assertEqual(rows[0]['LON'], u'-108.7563613')
+            self.assertEqual(rows[0]['LAT'], u'44.7538737')
+            self.assertEqual(rows[0]['STREET'], u'N CLARK ST')
+            self.assertEqual(rows[0]['POSTCODE'], u'')
             self.assertEqual(rows[0]['UNIT'], u'')
             self.assertEqual(rows[0]['DISTRICT'], u'')
 

@@ -7,6 +7,7 @@ import os
 import errno
 import tempfile
 import itertools
+import mimetypes
 import json
 import copy
 import sys
@@ -146,7 +147,7 @@ class DecompressionTask(object):
     @classmethod
     def from_type_string(clz, type_string):
         if type_string == None:
-            return NoopDecompressTask()
+            return GuessDecompressTask()
         elif type_string.lower() == 'zip':
             return ZipDecompressTask()
         else:
@@ -156,8 +157,18 @@ class DecompressionTask(object):
         raise NotImplementedError()
 
 
-class NoopDecompressTask(DecompressionTask):
+class GuessDecompressTask(DecompressionTask):
+    ''' Decompression task that tries to guess compression from file names.
+    '''
     def decompress(self, source_paths, workdir, filenames):
+        types = {type for (type, _) in map(mimetypes.guess_type, source_paths)}
+        
+        if types == {'application/zip'}:
+            substitute_task = ZipDecompressTask()
+            _L.info('Guessing zip compression based on file names')
+            return substitute_task.decompress(source_paths, workdir, filenames)
+        
+        _L.warning('Could not guess a single compression from file names')
         return source_paths
 
 def is_in(path, names):
