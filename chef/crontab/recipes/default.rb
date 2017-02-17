@@ -111,7 +111,7 @@ LC_ALL=C.UTF-8
   openaddr-run-ec2-command \
   --role dotmap \
   --hours 16 \
-  --instance-type r3.large \
+  --instance-type r3.xlarge \
   -b "#{aws_s3_bucket}" \
   --sns-arn "#{aws_sns_arn}" \
   --verbose \
