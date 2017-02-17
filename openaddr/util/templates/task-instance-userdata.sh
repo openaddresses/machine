@@ -32,6 +32,12 @@ function shutdown_with_log
 # Bail out when the timer reaches zero
 ( sleep {lifespan}; shutdown_with_log 2 ) &
 
+# Prepare temp volume, if applicable
+if [ -b /dev/xvdb ]; then
+    mkfs.ext3 /dev/xvdb
+    mount /dev/xvdb /tmp
+fi
+
 # (Re)install machine.
 cd /home/ubuntu/machine
 sudo -u ubuntu git fetch origin {version}

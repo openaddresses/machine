@@ -12,6 +12,10 @@ import json, time
 import shlex
 
 from boto.exception import EC2ResponseError
+from boto.ec2 import blockdevicemapping
+
+# http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html
+block_device_sizes = {'r3.large': 32, 'r3.xlarge': 80, 'r3.2xlarge': 160, 'r3.4xlarge': 320}
 
 def get_version():
     ''' Prevent circular imports.
@@ -86,13 +90,21 @@ def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, co
                     userdata_kwargs.update(aws_sns_arn = shlex.quote(aws_sns_arn),
                                            aws_region = shlex.quote(aws_region))
     
+        device_map = blockdevicemapping.BlockDeviceMapping()
+
+        if instance_type in block_device_sizes:
+            device_map = blockdevicemapping.BlockDeviceMapping()
+            dev_sdb = blockdevicemapping.BlockDeviceType()
+            dev_sdb.size = block_device_sizes[instance_type]
+            device_map['/dev/sdb'] = dev_sdb
+
         run_kwargs = dict(instance_type=instance_type, security_groups=['default'],
                           instance_initiated_shutdown_behavior='terminate',
                           user_data=file.read().format(**userdata_kwargs),
                           # TODO: use current role from http://169.254.169.254/latest/meta-data/iam/info
                           instance_profile_name='machine-communication',
-                          key_name=keypair.name)
-
+                          key_name=keypair.name, block_device_map=device_map)
+        
     reservation = image.run(**run_kwargs)
     (instance, ) = reservation.instances
     
