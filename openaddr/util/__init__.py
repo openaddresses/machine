@@ -64,9 +64,9 @@ def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, co
     (group, ) = autoscale.get_all_groups([group_name])
     (config, ) = autoscale.get_all_launch_configurations(names=[group.launch_config_name])
     (image, ) = ec2.get_all_images(image_ids=[config.image_id])
-    keypair = ec2.get_all_key_pairs()[0]
+    keypair = [kp for kp in ec2.get_all_key_pairs() if kp.name.startswith('oa-')][0]
 
-    yyyymmdd = datetime.now().strftime('%Y-%m-%d')
+    yyyymmdd = datetime.utcnow().strftime('%Y-%m-%d-%H-%M')
     
     with open(join(dirname(__file__), 'templates', 'task-instance-userdata.sh')) as file:
         userdata_kwargs = dict(
