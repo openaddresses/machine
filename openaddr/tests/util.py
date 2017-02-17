@@ -122,6 +122,49 @@ class TestUtilities (unittest.TestCase):
 
         instance.add_tag.assert_called_once_with('Name', expected_instance_name)
     
+    def test_task_instance_blockdevices(self):
+        '''
+        '''
+        autoscale, ec2, reservation, image = Mock(), Mock(), Mock(), Mock()
+
+        autoscale.get_all_groups.return_value = [Mock()]
+        autoscale.get_all_launch_configurations.return_value = [Mock()]
+        ec2.get_all_images.return_value = [image]
+        ec2.get_all_key_pairs.return_value = [Mock()]
+        
+        image.run.return_value = reservation
+        reservation.instances = [Mock()]
+        
+        args = 'dotmap', 60, ['sleep'], 'bucket-name', 'arn:aws:sns:null-island:etc.'
+        
+        # Check for block device mappings for known instance types.
+        # Reference list at http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html
+        util.request_task_instance(ec2, autoscale, 'r3.large', *args)
+        image_run_kwargs1 = image.run.mock_calls[-1][2]
+        self.assertEqual(len(image_run_kwargs1['block_device_map']), 1)
+        self.assertEqual(image_run_kwargs1['block_device_map']['/dev/sdb'].size, 32)
+        
+        util.request_task_instance(ec2, autoscale, 'r3.xlarge', *args)
+        image_run_kwargs2 = image.run.mock_calls[-1][2]
+        self.assertEqual(len(image_run_kwargs2['block_device_map']), 1)
+        self.assertEqual(image_run_kwargs2['block_device_map']['/dev/sdb'].size, 80)
+        
+        util.request_task_instance(ec2, autoscale, 'r3.2xlarge', *args)
+        image_run_kwargs3 = image.run.mock_calls[-1][2]
+        self.assertEqual(len(image_run_kwargs3['block_device_map']), 1)
+        self.assertEqual(image_run_kwargs3['block_device_map']['/dev/sdb'].size, 160)
+        
+        util.request_task_instance(ec2, autoscale, 'r3.4xlarge', *args)
+        image_run_kwargs4 = image.run.mock_calls[-1][2]
+        self.assertEqual(len(image_run_kwargs4['block_device_map']), 1)
+        self.assertEqual(image_run_kwargs4['block_device_map']['/dev/sdb'].size, 320)
+        
+        # Check for no block device mappings for some other instance types.
+        for instance_type in ('m3.medium', 't2.nano', 't2.small'):
+            util.request_task_instance(ec2, autoscale, instance_type, *args)
+            image_run_kwargs5 = image.run.mock_calls[-1][2]
+            self.assertEqual(len(image_run_kwargs5['block_device_map']), 0)
+    
     def test_summarize_result_licenses(self):
         '''
         '''
