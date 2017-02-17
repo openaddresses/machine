@@ -37,9 +37,21 @@ def summarize_messages(event):
     
         if 'Sns' in record:
             try:
-                message = json.loads(record['Sns']['Message'])['Cause']
-            except:
+                msgjson = json.loads(record['Sns']['Message'])
+            except json.decoder.JSONDecodeError as e:
+                # Send the raw message, which couldn't be parsed as JSON.
                 message = record['Sns']['Message']
+            else:
+                # Look for known values in the message JSON.
+                if 'Cause' in msgjson:
+                    # Autoscale events have a cause.
+                    message = msgjson['Cause']
+                elif 'NewStateReason' in msgjson:
+                    # Cloudwatch alarms have a reason.
+                    message = msgjson['NewStateReason']
+                else:
+                    # Send the raw JSON, which didn't have a recognized value.
+                    message = json.dumps(msgjson)
             messages.append((record['Sns']['Subject'], message))
         else:
             print('Unknown record type:', record)
@@ -48,7 +60,7 @@ def summarize_messages(event):
     return messages
 
 if __name__ == '__main__':
-    print(summarize_messages(json.loads('''
+    summaries = summarize_messages(json.loads('''
         {
           "Records": [
             {
@@ -86,7 +98,54 @@ if __name__ == '__main__':
                 "UnsubscribeUrl": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:847904970422:CI-Events:543efcac-0802-4fdd-9eb1-d6d6c8f76799", 
                 "Subject": "Test Subject"
               }
+            },
+            {
+              "EventVersion": "1.0", 
+              "EventSource": "aws:sns", 
+              "EventSubscriptionArn": "arn:aws:sns:us-east-1:847904970422:CI-Events:543efcac-0802-4fdd-9eb1-d6d6c8f76799", 
+              "Sns": {
+                "MessageId": "d0f9ec0a-e542-5c24-863e-bd1f2993ce6b", 
+                "Signature": "mTD5mrUzok2eE1UmJR7Le/D0eOveczZ39wXC7bxxg8IMOchSNwa6+KtKV4D+oD26uC4WSmCH5z92b09hX6vaTTpdc7G1DPywInUiwrLXYgrPgFKVG1Tj1JJZqTp+14JH/XiaaQ5WQ9sxPSQ7u1Iczd86jHtdkdOs7LBmWgzuFjFAJrkJz41JpgYuiEhDR0K07Syz/EKBtao3hd3QlG2CvJNNqhgxaYvn98GMDsfbtO0OZcoZX4TiAHkQslpyj3v0B/7IpuRKsmIC7wXL0NMNH2S8TetLqVLPpssezOYOHJj/Lu53ojeYJ3y3hwdQGBHL8yH6gOuUT7G/x6wFNDdKKQ==", 
+                "Type": "Notification", 
+                "TopicArn": "arn:aws:sns:us-east-1:847904970422:CI-Events", 
+                "MessageAttributes": {}, 
+                "SignatureVersion": "1", 
+                "Timestamp": "2017-02-09T01:49:05.702Z", 
+                "SigningCertUrl": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-b95095beb82e8f6a046b3aafc7f4149a.pem", 
+                "Message": "[1,2,3]", 
+                "UnsubscribeUrl": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:847904970422:CI-Events:543efcac-0802-4fdd-9eb1-d6d6c8f76799", 
+                "Subject": "Test Subject"
+              }
+            },
+            {
+                "EventVersion": "1.0",
+                "EventSubscriptionArn": "arn:aws:sns:us-east-1:847904970422:CI-Events:543efcac-0802-4fdd-9eb1-d6d6c8f76799",
+                "EventSource": "aws:sns",
+                "Sns": {
+                    "SignatureVersion": "1",
+                    "Timestamp": "2017-02-15T23:42:53.523Z",
+                    "Signature": "YxmEX0nUkDLlg33oGx4KMdrRH4QPl44pA5cuD0YY+qgSTs2+6n9A11esHySDoGZhrJ6EhHeFECtTcSxfa93Kk82H31pqulgEXpfPPnddz8rNgTtSgJQmeu7E3fYTj6t1tbmE+u2wc9UIzps/2KS0tEdXd56ZKsKs8avA0iAlGbZtf4lNLUvUFJlyR+VB7Zb96lxjnyo6HNP6se2y29IpvYxQrA0na89+4w+m6BU4hxpQT5SmqaCool4K7ezzJ3tkm4e20JQViQdtvm5AYx0/9nl6JOSCOuk7cIR/atx09VsaCw6zGrt36Vqqi4ZshXlzxshGCICE7Wk6sB1kwREWHQ==",
+                    "SigningCertUrl": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-b95095beb82e8f6a046b3aafc7f4149a.pem",
+                    "MessageId": "c250d0c2-0bd1-5241-b5dc-81dce26c043f",
+                    "Message": "{\\"AlarmName\\":\\"Machine RDS Low CPU Credits\\",\\"AlarmDescription\\":null,\\"AWSAccountId\\":\\"847904970422\\",\\"NewStateValue\\":\\"ALARM\\",\\"NewStateReason\\":\\"Threshold Crossed: 1 datapoint (79.85) was less than the threshold (80.0).\\",\\"StateChangeTime\\":\\"2017-02-15T23:42:53.475+0000\\",\\"Region\\":\\"US East - N. Virginia\\",\\"OldStateValue\\":\\"OK\\",\\"Trigger\\":{\\"MetricName\\":\\"CPUCreditBalance\\",\\"Namespace\\":\\"AWS/RDS\\",\\"StatisticType\\":\\"Statistic\\",\\"Statistic\\":\\"AVERAGE\\",\\"Unit\\":null,\\"Dimensions\\":[{\\"name\\":\\"DBInstanceIdentifier\\",\\"value\\":\\"machine\\"}],\\"Period\\":300,\\"EvaluationPeriods\\":1,\\"ComparisonOperator\\":\\"LessThanThreshold\\",\\"Threshold\\":80.0,\\"TreatMissingData\\":\\"\\",\\"EvaluateLowSampleCountPercentile\\":\\"\\"}}",
+                    "MessageAttributes": {},
+                    "Type": "Notification",
+                    "UnsubscribeUrl": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:847904970422:CI-Events:543efcac-0802-4fdd-9eb1-d6d6c8f76799",
+                    "TopicArn": "arn:aws:sns:us-east-1:847904970422:CI-Events",
+                    "Subject": "ALARM: \\"Machine RDS Low CPU Credits\\" in US East - N. Virginia"
+                }
             }
           ]
         }
-        ''')))
+        '''))
+    
+    assert summaries[0] == ('Auto Scaling: launch for group "CI Crontab 4.x"',
+    'At 2017-02-09T00:31:13Z an instance was started in response to a difference '
+    'between desired and actual capacity, increasing the capacity from 0 to 1.')
+    assert summaries[1] == ('Test Subject', 'And this is the test message')
+    assert summaries[2] == ('Test Subject', '[1, 2, 3]')
+    assert summaries[3] == ('ALARM: "Machine RDS Low CPU Credits" in US East - N. Virginia',
+    'Threshold Crossed: 1 datapoint (79.85) was less than the threshold (80.0).')
+
+    from pprint import pprint
+    pprint(summaries)
