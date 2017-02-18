@@ -66,7 +66,7 @@ def main():
                                         worker_dir, args.mapzen_key)
         except:
             _L.error('Error in worker main()', exc_info=True)
-            time.sleep(5)
+            time.sleep(2)
         finally:
             shutil.rmtree(worker_dir)
 
