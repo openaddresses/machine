@@ -3,6 +3,7 @@ execute 'apt-get update -y'
 
 package 'python3-pip'
 
-execute "pip3 install -U 'awscli == 1.11.22' 'botocore == 1.4.79'" do
+# Watch for compatibility between awscli, botocore, and boto3.
+execute "pip3 install -U 'awscli == 1.11.50' 'botocore == 1.5.14'" do
   environment({'LC_ALL' => "C.UTF-8"}) # ...for correct encoding in python open()
 end
