@@ -15,6 +15,7 @@ from .cache import DownloadError
 from esridump.errors import EsriDownloadError
 
 class SourceSaysSkip(RuntimeError): pass
+class SourceTestsFailed(RuntimeError): pass
 
 def boolstr(value):
     '''
@@ -44,13 +45,36 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
     
     cache_result, conform_result = CacheResult.empty(), ConformResult.empty()
     preview_path, slippymap_path, skipped_source = None, None, False
-
+    tests_passed = None
+    
     try:
         with open(temp_src) as file:
             if json.load(file).get('skip', None):
                 raise SourceSaysSkip()
         
-        tests_passed = None # Always null for now.
+        from .conform import row_transform_and_convert, row_smash_case
+        
+        with open(temp_src) as file:
+            print(file)
+            src = json.load(file)
+            print('src:', src)
+            
+            for (index, test) in enumerate(src.get('test', {}).get('acceptance-tests', [])):
+                input_row = row_smash_case(src, test['inputs'])
+                print('input:', input_row)
+
+                output_row = row_smash_case(src, row_transform_and_convert(src, input_row))
+                actual = {k: v for (k, v) in output_row.items() if k in test['expected']}
+                print('actual:', actual)
+
+                print('expected:', test['expected'])
+                
+                if actual == test['expected']:
+                    tests_passed = True # So far, so good
+                else:
+                    expected_json = json.dumps(test['expected'], ensure_ascii=False)
+                    actual_json = json.dumps(actual, ensure_ascii=False)
+                    raise SourceTestsFailed('Expected {} but got {}'.format(expected_json, actual_json))
     
         # Cache source data.
         try:
@@ -86,9 +110,13 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
                 else:
                     _L.info('Preview image in {}'.format(preview_path))
     
-    except SourceSaysSkip as e:
+    except SourceSaysSkip:
         _L.info('Source says to skip in process_one.process()')
         skipped_source = True
+
+    except SourceTestsFailed as e:
+        _L.warning('A source test failed in process_one.process(): %s', str(e))
+        tests_passed = False
 
     except Exception:
         _L.warning('Error in process_one.process()', exc_info=True)
