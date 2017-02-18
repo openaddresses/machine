@@ -167,7 +167,7 @@ def find_source_problem(log_contents, source):
     if 'WARNING: A source test failed' in log_contents:
         return 'An acceptance test failed'
     
-    if 'WARNING: A source test failed in process_one.process()' in log_contents:
+    if 'WARNING: Source is missing a conform object' in log_contents:
         return 'Source is missing a conform object'
     
     if 'WARNING: Unknown source conform type' in log_contents:
