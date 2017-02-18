@@ -106,6 +106,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('www.ci.berkeley.ca.us', '/uploadedFiles/IT/GIS/No-Parcels.zip'):
             return response(404, 'Nobody here but us coats')
         
+        if (host, path) == ('www.dropbox.com', '/s/fhopgbg4vkyoobr/czech_addresses_wgs84_12092016_MASTER.zip'):
+            return response(404, 'Nobody here but us coats')
+        
         if (host, path) == ('data.openoakland.org', '/sites/default/files/OakParcelsGeo2013_0.zip'):
             local_path = join(data_dirname, 'us-ca-oakland-excerpt.zip')
         
@@ -1500,6 +1503,66 @@ class TestOA (unittest.TestCase):
             self.assertAlmostEqual(float(rows[1]['LAT']),  40.3203365, places=5)
             self.assertAlmostEqual(float(rows[2]['LON']), -74.0011386, places=5)
             self.assertAlmostEqual(float(rows[2]['LAT']),  40.3166497, places=5)
+
+    def test_single_cz_countrywide_good_tests(self):
+        ''' Test complete process_one.process on data.
+        '''
+        source = join(self.src_dir, 'cz-countrywide-good-tests.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir, False)
+
+        with open(state_path) as file:
+            state = RunState(dict(zip(*json.load(file))))
+        
+        self.assertIs(state.tests_passed, True)
+        self.assertIsNone(state.sample)
+        self.assertIsNone(state.processed)
+
+        with open(join(dirname(state_path), state.output)) as file:
+            print(file.read())
+        
+        print('state:', state.to_json())
+
+    def test_single_cz_countrywide_bad_tests(self):
+        ''' Test complete process_one.process on data.
+        '''
+        source = join(self.src_dir, 'cz-countrywide-bad-tests.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir, False)
+
+        with open(state_path) as file:
+            state = RunState(dict(zip(*json.load(file))))
+        
+        self.assertIs(state.tests_passed, False)
+        self.assertIsNone(state.sample)
+        self.assertIsNone(state.processed)
+
+        with open(join(dirname(state_path), state.output)) as file:
+            print(file.read())
+        
+        print('state:', state.to_json())
+
+    def test_single_cz_countrywide_no_tests(self):
+        ''' Test complete process_one.process on data.
+        '''
+        source = join(self.src_dir, 'cz-countrywide-no-tests.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir, False)
+
+        with open(state_path) as file:
+            state = RunState(dict(zip(*json.load(file))))
+        
+        self.assertIs(state.tests_passed, None)
+        self.assertIsNone(state.sample)
+        self.assertIsNone(state.processed)
+
+        with open(join(dirname(state_path), state.output)) as file:
+            print(file.read())
+        
+        print('state:', state.to_json())
 
     def test_single_lake_man_gdb(self):
         ''' Test complete process_one.process on data.
