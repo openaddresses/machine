@@ -216,6 +216,23 @@ class TestOA (unittest.TestCase):
             if qs.get('f') == ['json']:
                 local_path = join(data_dirname, 'us-tx-waco-metadata.json')
 
+        if (host, path) == ('ocgis.orangecountygov.com', '/ArcGIS/rest/services/Dynamic/LandBase/MapServer/0/query'):
+            qs = parse_qs(query)
+            body_data = parse_qs(request.body) if request.body else {}
+
+            if qs.get('returnIdsOnly') == ['true']:
+                local_path = join(data_dirname, 'us-ny-orange-ids-only.json')
+            elif qs.get('returnCountOnly') == ['true']:
+                local_path = join(data_dirname, 'us-ny-orange-count-only.json')
+            elif body_data.get('outSR') == ['4326']:
+                local_path = join(data_dirname, 'us-ny-orange-0.json')
+
+        if (host, path) == ('ocgis.orangecountygov.com', '/ArcGIS/rest/services/Dynamic/LandBase/MapServer/0'):
+            qs = parse_qs(query)
+
+            if qs.get('f') == ['json']:
+                local_path = join(data_dirname, 'us-ny-orange-metadata.json')
+
         if (host, path) == ('cdr.citynet.kharkov.ua', '/arcgis/rest/services/gis_ort_stat_general/MapServer/1/query'):
             qs = parse_qs(query)
             body_data = parse_qs(request.body) if request.body else {}
@@ -1268,6 +1285,35 @@ class TestOA (unittest.TestCase):
             self.assertEqual(rows[0]['LAT'], u'44.7538737')
             self.assertEqual(rows[0]['STREET'], u'N CLARK ST')
             self.assertEqual(rows[0]['POSTCODE'], u'')
+            self.assertEqual(rows[0]['UNIT'], u'')
+            self.assertEqual(rows[0]['DISTRICT'], u'')
+
+    def test_single_ny_orange(self):
+        ''' Test complete process_one.process on data NaN values in ESRI response.
+        '''
+        source = join(self.src_dir, 'us-ny-orange.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir, False)
+
+        with open(state_path) as file:
+            state = RunState(dict(zip(*json.load(file))))
+        
+        self.assertIsNotNone(state.sample)
+        self.assertIsNotNone(state.processed)
+
+        output_path = join(dirname(state_path), state.processed)
+        
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
+            self.assertEqual(rows[0]['ID'], u'')
+            self.assertEqual(rows[0]['NUMBER'], u'434')
+            self.assertEqual(rows[0]['HASH'], u'28a961c6e6e6590e')
+            self.assertEqual(rows[0]['CITY'], u'MONROE')
+            self.assertEqual(rows[0]['LON'], u'-74.1926686')
+            self.assertEqual(rows[0]['LAT'], u'41.3187728')
+            self.assertEqual(rows[0]['STREET'], u'')
+            self.assertEqual(rows[0]['POSTCODE'], u'10950')
             self.assertEqual(rows[0]['UNIT'], u'')
             self.assertEqual(rows[0]['DISTRICT'], u'')
 
