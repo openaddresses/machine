@@ -1507,7 +1507,7 @@ class TestOA (unittest.TestCase):
     def test_single_cz_countrywide(self):
         ''' Test complete process_one.process on data.
         '''
-        source = join(self.src_dir, 'cz-countrywide-good-tests.json')
+        source = join(self.src_dir, 'cz-countrywide-bad-tests.json')
 
         with HTTMock(self.response_content):
             state_path = process_one.process(source, self.testdir, False)
@@ -1515,9 +1515,10 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
         
-        self.assertTrue(state.tests_passed)
+        self.assertIs(state.tests_passed, False)
         self.assertIsNone(state.sample)
         self.assertIsNone(state.processed)
+        self.assertEqual(state.source_problem, 'An acceptance test failed')
 
     def test_single_lake_man_gdb(self):
         ''' Test complete process_one.process on data.
@@ -1744,7 +1745,7 @@ class TestState (unittest.TestCase):
         self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Error doing conform; skipping', {})}).source_problem, 'Could not conform source data')
         self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Could not download source data', {})}).source_problem, 'Could not download source data')
         self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Unknown source conform type', {})}).source_problem, 'Unknown source conform type')
-        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Source is missing a conform object', {})}).source_problem, 'Source is missing a conform object')
+        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: A source test failed', {})}).source_problem, 'An acceptance test failed')
 
 class TestPackage (unittest.TestCase):
 
