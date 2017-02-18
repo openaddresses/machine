@@ -1734,7 +1734,7 @@ class TestState (unittest.TestCase):
                     destination=self.output_dir, log_handler=log_handler,
                     cache_result=cache_result, conform_result=conform_result,
                     temp_dir=self.output_dir, preview_path=preview_path,
-                    slippymap_path=slippymap_path)
+                    slippymap_path=slippymap_path, tests_passed=True)
 
         path1 = process_one.write_state(**args)
         
@@ -1760,6 +1760,7 @@ class TestState (unittest.TestCase):
         self.assertEqual(state1['share-alike'], 'true')
         self.assertEqual(state1['attribution required'], 'true')
         self.assertEqual(state1['attribution name'], 'Example')
+        self.assertEqual(state1['tests passed'], True)
 
         #
         # Tweak a few values, try process_one.write_state() again.

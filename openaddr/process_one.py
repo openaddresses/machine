@@ -49,6 +49,8 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
         with open(temp_src) as file:
             if json.load(file).get('skip', None):
                 raise SourceSaysSkip()
+        
+        tests_passed = None # Always null for now.
     
         # Cache source data.
         try:
@@ -97,7 +99,8 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
 
     # Write output
     state_path = write_state(source, skipped_source, destination, log_handler,
-        cache_result, conform_result, preview_path, slippymap_path, temp_dir)
+        tests_passed, cache_result, conform_result, preview_path, slippymap_path,
+        temp_dir)
 
     log_handler.close()
     rmtree(temp_dir)
@@ -176,8 +179,9 @@ def find_source_problem(log_contents, source):
     
     return None
 
-def write_state(source, skipped, destination, log_handler, cache_result,
-                conform_result, preview_path, slippymap_path, temp_dir):
+def write_state(source, skipped, destination, log_handler, tests_passed,
+                cache_result, conform_result, preview_path, slippymap_path,
+                temp_dir):
     '''
     '''
     source_id, _ = splitext(basename(source))
@@ -254,6 +258,7 @@ def write_state(source, skipped, destination, log_handler, cache_result,
         ('share-alike', boolstr(conform_result.sharealike_flag)),
         ('source problem', source_problem),
         ('code version', __version__),
+        ('tests passed', tests_passed),
         ]
                
     with open(join(statedir, 'index.txt'), 'w', encoding='utf8') as file:
