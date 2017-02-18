@@ -1504,7 +1504,7 @@ class TestOA (unittest.TestCase):
             self.assertAlmostEqual(float(rows[2]['LON']), -74.0011386, places=5)
             self.assertAlmostEqual(float(rows[2]['LAT']),  40.3166497, places=5)
 
-    def test_single_cz_countrywide_good_tests(self):
+    def test_single_cz_countrywide(self):
         ''' Test complete process_one.process on data.
         '''
         source = join(self.src_dir, 'cz-countrywide-good-tests.json')
@@ -1515,54 +1515,9 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
         
-        self.assertIs(state.tests_passed, True)
+        self.assertTrue(state.tests_passed)
         self.assertIsNone(state.sample)
         self.assertIsNone(state.processed)
-
-        with open(join(dirname(state_path), state.output)) as file:
-            print(file.read())
-        
-        print('state:', state.to_json())
-
-    def test_single_cz_countrywide_bad_tests(self):
-        ''' Test complete process_one.process on data.
-        '''
-        source = join(self.src_dir, 'cz-countrywide-bad-tests.json')
-
-        with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
-
-        with open(state_path) as file:
-            state = RunState(dict(zip(*json.load(file))))
-        
-        self.assertIs(state.tests_passed, False)
-        self.assertIsNone(state.sample)
-        self.assertIsNone(state.processed)
-
-        with open(join(dirname(state_path), state.output)) as file:
-            print(file.read())
-        
-        print('state:', state.to_json())
-
-    def test_single_cz_countrywide_no_tests(self):
-        ''' Test complete process_one.process on data.
-        '''
-        source = join(self.src_dir, 'cz-countrywide-no-tests.json')
-
-        with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
-
-        with open(state_path) as file:
-            state = RunState(dict(zip(*json.load(file))))
-        
-        self.assertIs(state.tests_passed, None)
-        self.assertIsNone(state.sample)
-        self.assertIsNone(state.processed)
-
-        with open(join(dirname(state_path), state.output)) as file:
-            print(file.read())
-        
-        print('state:', state.to_json())
 
     def test_single_lake_man_gdb(self):
         ''' Test complete process_one.process on data.

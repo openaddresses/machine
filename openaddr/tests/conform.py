@@ -22,7 +22,7 @@ from ..conform import (
     row_canonicalize_unit_and_number, conform_smash_case, conform_cli,
     convert_regexp_replace, conform_license,
     conform_attribution, conform_sharealike, normalize_ogr_filename_case,
-    OPENADDR_CSV_SCHEMA, is_in, geojson_source_to_csv
+    OPENADDR_CSV_SCHEMA, is_in, geojson_source_to_csv, check_source_tests
     )
 
 class TestConformTransforms (unittest.TestCase):
@@ -1260,3 +1260,35 @@ class TestConformLicense (unittest.TestCase):
         for value2 in (True, 'Yes', 'yes', 'true', 'True', 'y', 't'):
             dict2 = {'share-alike': value2}
             self.assertIs(conform_sharealike(dict2), True, 'sa:{} should be True'.format(repr(value2)))
+
+class TestConformTests (unittest.TestCase):
+    
+    def test_good_tests(self):
+        '''
+        '''
+        with open(os.path.join(os.path.dirname(__file__), 'sources', 'cz-countrywide-good-tests.json')) as file:
+            source = json.load(file)
+        
+        result, message = check_source_tests(source)
+        self.assertIs(result, True)
+        self.assertIsNone(message)
+    
+    def test_bad_tests(self):
+        '''
+        '''
+        with open(os.path.join(os.path.dirname(__file__), 'sources', 'cz-countrywide-bad-tests.json')) as file:
+            source = json.load(file)
+        
+        result, message = check_source_tests(source)
+        self.assertIs(result, False)
+        self.assertIsNotNone(message)
+    
+    def test_no_tests(self):
+        '''
+        '''
+        with open(os.path.join(os.path.dirname(__file__), 'sources', 'cz-countrywide-no-tests.json')) as file:
+            source = json.load(file)
+        
+        result, message = check_source_tests(source)
+        self.assertIsNone(result)
+        self.assertIsNone(message)

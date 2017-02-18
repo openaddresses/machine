@@ -11,6 +11,7 @@ import tempfile, json, csv, sys
 
 from . import cache, conform, preview, slippymap, CacheResult, ConformResult, __version__
 from .cache import DownloadError
+from .conform import check_source_tests
 
 from esridump.errors import EsriDownloadError
 
@@ -52,29 +53,11 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
             if json.load(file).get('skip', None):
                 raise SourceSaysSkip()
         
-        from .conform import row_transform_and_convert, row_smash_case
-        
+        # Check tests in source data.
         with open(temp_src) as file:
-            print(file)
-            src = json.load(file)
-            print('src:', src)
-            
-            for (index, test) in enumerate(src.get('test', {}).get('acceptance-tests', [])):
-                input_row = row_smash_case(src, test['inputs'])
-                print('input:', input_row)
-
-                output_row = row_smash_case(src, row_transform_and_convert(src, input_row))
-                actual = {k: v for (k, v) in output_row.items() if k in test['expected']}
-                print('actual:', actual)
-
-                print('expected:', test['expected'])
-                
-                if actual == test['expected']:
-                    tests_passed = True # So far, so good
-                else:
-                    expected_json = json.dumps(test['expected'], ensure_ascii=False)
-                    actual_json = json.dumps(actual, ensure_ascii=False)
-                    raise SourceTestsFailed('Expected {} but got {}'.format(expected_json, actual_json))
+            tests_passed, failure_details = check_source_tests(json.load(file))
+            if tests_passed is False:
+                raise SourceTestsFailed(failure_details)
     
         # Cache source data.
         try:
