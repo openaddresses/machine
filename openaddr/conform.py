@@ -1290,3 +1290,28 @@ def conform_sharealike(license):
         if share_alike.lower() in ('y', 'yes', 't', 'true'):
             return True
 
+def check_source_tests(source):
+    ''' Return boolean status and a message if any tests failed.
+    '''
+    source_test = source.get('test', {})
+    tests_enabled = source_test.get('enabled', True)
+    acceptance_tests = source_test.get('acceptance-tests')
+    
+    if not tests_enabled or not acceptance_tests:
+        # There is nothing to be done here.
+        return None, None
+    
+    for (index, test) in enumerate(acceptance_tests):
+        input = row_smash_case(source, test['inputs'])
+        output = row_smash_case(source, row_transform_and_convert(source, input))
+        actual = {k: v for (k, v) in output.items() if k in test['expected']}
+        expected = row_smash_case(source, test['expected'])
+        
+        if actual != expected:
+            expected_json = json.dumps(expected, ensure_ascii=False)
+            actual_json = json.dumps(actual, ensure_ascii=False)
+            description = test.get('description', 'test {}'.format(index))
+            return False, 'For {}, expected {} but got {}'.format(description, expected_json, actual_json)
+    
+    # Yay, everything passed.
+    return True, None

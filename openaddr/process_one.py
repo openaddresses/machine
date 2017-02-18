@@ -11,10 +11,12 @@ import tempfile, json, csv, sys
 
 from . import cache, conform, preview, slippymap, CacheResult, ConformResult, __version__
 from .cache import DownloadError
+from .conform import check_source_tests
 
 from esridump.errors import EsriDownloadError
 
 class SourceSaysSkip(RuntimeError): pass
+class SourceTestsFailed(RuntimeError): pass
 
 def boolstr(value):
     '''
@@ -44,11 +46,18 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
     
     cache_result, conform_result = CacheResult.empty(), ConformResult.empty()
     preview_path, slippymap_path, skipped_source = None, None, False
-
+    tests_passed = None
+    
     try:
         with open(temp_src) as file:
             if json.load(file).get('skip', None):
                 raise SourceSaysSkip()
+        
+        # Check tests in source data.
+        with open(temp_src) as file:
+            tests_passed, failure_details = check_source_tests(json.load(file))
+            if tests_passed is False:
+                raise SourceTestsFailed(failure_details)
     
         # Cache source data.
         try:
@@ -84,9 +93,13 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
                 else:
                     _L.info('Preview image in {}'.format(preview_path))
     
-    except SourceSaysSkip as e:
+    except SourceSaysSkip:
         _L.info('Source says to skip in process_one.process()')
         skipped_source = True
+
+    except SourceTestsFailed as e:
+        _L.warning('A source test failed in process_one.process(): %s', str(e))
+        tests_passed = False
 
     except Exception:
         _L.warning('Error in process_one.process()', exc_info=True)
@@ -97,7 +110,8 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
 
     # Write output
     state_path = write_state(source, skipped_source, destination, log_handler,
-        cache_result, conform_result, preview_path, slippymap_path, temp_dir)
+        tests_passed, cache_result, conform_result, preview_path, slippymap_path,
+        temp_dir)
 
     log_handler.close()
     rmtree(temp_dir)
@@ -150,6 +164,9 @@ def get_log_handler(directory):
 def find_source_problem(log_contents, source):
     '''
     '''
+    if 'WARNING: A source test failed' in log_contents:
+        return 'An acceptance test failed'
+    
     if 'WARNING: Source is missing a conform object' in log_contents:
         return 'Source is missing a conform object'
     
@@ -176,8 +193,9 @@ def find_source_problem(log_contents, source):
     
     return None
 
-def write_state(source, skipped, destination, log_handler, cache_result,
-                conform_result, preview_path, slippymap_path, temp_dir):
+def write_state(source, skipped, destination, log_handler, tests_passed,
+                cache_result, conform_result, preview_path, slippymap_path,
+                temp_dir):
     '''
     '''
     source_id, _ = splitext(basename(source))
@@ -254,6 +272,7 @@ def write_state(source, skipped, destination, log_handler, cache_result,
         ('share-alike', boolstr(conform_result.sharealike_flag)),
         ('source problem', source_problem),
         ('code version', __version__),
+        ('tests passed', tests_passed),
         ]
                
     with open(join(statedir, 'index.txt'), 'w', encoding='utf8') as file:

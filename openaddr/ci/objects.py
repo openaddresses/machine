@@ -7,7 +7,7 @@ FAIL_REASONS = {
     None, 'Source says to skip', 'Source is missing a conform object',
     'Unknown source conform type', 'Could not download source data',
     'Could not conform source data', 'Missing or incomplete coverage',
-    'Missing required ESRI token'
+    'Missing required ESRI token', 'An acceptance test failed'
     }
 
 class Job:
@@ -90,7 +90,7 @@ class RunState:
         'output', 'process time', 'website', 'skipped', 'license',
         'share-alike', 'attribution required', 'attribution name',
         'attribution flag', 'process hash', 'preview', 'slippymap',
-        'source problem', 'code version')}
+        'source problem', 'code version', 'tests passed')}
 
     def __init__(self, json_blob):
         blob_dict = dict(json_blob or {})
@@ -119,6 +119,7 @@ class RunState:
         self.attribution_flag = blob_dict.get('attribution flag')
         self.source_problem = blob_dict.get('source problem')
         self.code_version = blob_dict.get('code version')
+        self.tests_passed = blob_dict.get('tests passed')
 
         unexpected = ', '.join(set(self.keys) - set(RunState.key_attrs.keys()))
         assert len(unexpected) == 0, 'RunState should not have keys {}'.format(unexpected)

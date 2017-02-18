@@ -22,7 +22,7 @@ from ..conform import (
     row_canonicalize_unit_and_number, conform_smash_case, conform_cli,
     convert_regexp_replace, conform_license,
     conform_attribution, conform_sharealike, normalize_ogr_filename_case,
-    OPENADDR_CSV_SCHEMA, is_in, geojson_source_to_csv
+    OPENADDR_CSV_SCHEMA, is_in, geojson_source_to_csv, check_source_tests
     )
 
 class TestConformTransforms (unittest.TestCase):
@@ -1260,3 +1260,41 @@ class TestConformLicense (unittest.TestCase):
         for value2 in (True, 'Yes', 'yes', 'true', 'True', 'y', 't'):
             dict2 = {'share-alike': value2}
             self.assertIs(conform_sharealike(dict2), True, 'sa:{} should be True'.format(repr(value2)))
+
+class TestConformTests (unittest.TestCase):
+    
+    def test_good_tests(self):
+        '''
+        '''
+        filenames = ['cz-countrywide-good-tests.json', 'cz-countrywide-implied-tests.json']
+        
+        for filename in filenames:
+            with open(os.path.join(os.path.dirname(__file__), 'sources', filename)) as file:
+                source = json.load(file)
+        
+            result, message = check_source_tests(source)
+            self.assertIs(result, True, 'Tests should pass in {}'.format(filename))
+            self.assertIsNone(message, 'No message expected from {}'.format(filename))
+    
+    def test_bad_tests(self):
+        '''
+        '''
+        with open(os.path.join(os.path.dirname(__file__), 'sources', 'cz-countrywide-bad-tests.json')) as file:
+            source = json.load(file)
+        
+        result, message = check_source_tests(source)
+        self.assertIs(result, False, 'Tests should fail in {}'.format(file.name))
+        self.assertIn('address with /-delimited number', message, 'A message is expected from {}'.format(file.name))
+    
+    def test_no_tests(self):
+        '''
+        '''
+        filenames = ['cz-countrywide-no-tests.json', 'cz-countrywide-disabled-tests.json']
+        
+        for filename in filenames:
+            with open(os.path.join(os.path.dirname(__file__), 'sources', filename)) as file:
+                source = json.load(file)
+        
+            result, message = check_source_tests(source)
+            self.assertIsNone(result, 'Tests should not exist in {}'.format(filename))
+            self.assertIsNone(message, 'No message expected from {}'.format(filename))

@@ -106,6 +106,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('www.ci.berkeley.ca.us', '/uploadedFiles/IT/GIS/No-Parcels.zip'):
             return response(404, 'Nobody here but us coats')
         
+        if (host, path) == ('www.dropbox.com', '/s/fhopgbg4vkyoobr/czech_addresses_wgs84_12092016_MASTER.zip'):
+            return response(404, 'Nobody here but us coats')
+        
         if (host, path) == ('data.openoakland.org', '/sites/default/files/OakParcelsGeo2013_0.zip'):
             local_path = join(data_dirname, 'us-ca-oakland-excerpt.zip')
         
@@ -1501,6 +1504,22 @@ class TestOA (unittest.TestCase):
             self.assertAlmostEqual(float(rows[2]['LON']), -74.0011386, places=5)
             self.assertAlmostEqual(float(rows[2]['LAT']),  40.3166497, places=5)
 
+    def test_single_cz_countrywide(self):
+        ''' Test complete process_one.process on data.
+        '''
+        source = join(self.src_dir, 'cz-countrywide-bad-tests.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir, False)
+
+        with open(state_path) as file:
+            state = RunState(dict(zip(*json.load(file))))
+        
+        self.assertIs(state.tests_passed, False)
+        self.assertIsNone(state.sample)
+        self.assertIsNone(state.processed)
+        self.assertEqual(state.source_problem, 'An acceptance test failed')
+
     def test_single_lake_man_gdb(self):
         ''' Test complete process_one.process on data.
         '''
@@ -1671,7 +1690,7 @@ class TestState (unittest.TestCase):
                     destination=self.output_dir, log_handler=log_handler,
                     cache_result=cache_result, conform_result=conform_result,
                     temp_dir=self.output_dir, preview_path=preview_path,
-                    slippymap_path=slippymap_path)
+                    slippymap_path=slippymap_path, tests_passed=True)
 
         path1 = process_one.write_state(**args)
         
@@ -1697,6 +1716,7 @@ class TestState (unittest.TestCase):
         self.assertEqual(state1['share-alike'], 'true')
         self.assertEqual(state1['attribution required'], 'true')
         self.assertEqual(state1['attribution name'], 'Example')
+        self.assertEqual(state1['tests passed'], True)
 
         #
         # Tweak a few values, try process_one.write_state() again.
@@ -1725,7 +1745,7 @@ class TestState (unittest.TestCase):
         self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Error doing conform; skipping', {})}).source_problem, 'Could not conform source data')
         self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Could not download source data', {})}).source_problem, 'Could not download source data')
         self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Unknown source conform type', {})}).source_problem, 'Unknown source conform type')
-        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Source is missing a conform object', {})}).source_problem, 'Source is missing a conform object')
+        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: A source test failed', {})}).source_problem, 'An acceptance test failed')
 
 class TestPackage (unittest.TestCase):
 
