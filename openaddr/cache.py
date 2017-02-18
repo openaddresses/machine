@@ -397,6 +397,8 @@ class EsriRestDownloadTask(DownloadTask):
                             row[X_FIELDNAME] = round(xmin/2 + xmax/2, 7)
                             row[Y_FIELDNAME] = round(ymin/2 + ymax/2, 7)
                         else:
+                            if centroid.is_empty:
+                                raise TypeError(json.dumps(feature['geometry']))
                             row[X_FIELDNAME] = round(centroid.x, 7)
                             row[Y_FIELDNAME] = round(centroid.y, 7)
 

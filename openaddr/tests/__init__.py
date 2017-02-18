@@ -1299,11 +1299,6 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
         
-        with open(join(dirname(state_path), state.output)) as file:
-            print(file.read())
-        
-        return
-        
         self.assertIsNotNone(state.sample)
         self.assertIsNotNone(state.processed)
 
@@ -1312,13 +1307,13 @@ class TestOA (unittest.TestCase):
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(rows[0]['ID'], u'')
-            self.assertEqual(rows[0]['NUMBER'], u'162')
-            self.assertEqual(rows[0]['HASH'], u'1cfd1c00aa1d5060')
-            self.assertEqual(rows[0]['CITY'], u'')
-            self.assertEqual(rows[0]['LON'], u'-108.7563613')
-            self.assertEqual(rows[0]['LAT'], u'44.7538737')
-            self.assertEqual(rows[0]['STREET'], u'N CLARK ST')
-            self.assertEqual(rows[0]['POSTCODE'], u'')
+            self.assertEqual(rows[0]['NUMBER'], u'434')
+            self.assertEqual(rows[0]['HASH'], u'28a961c6e6e6590e')
+            self.assertEqual(rows[0]['CITY'], u'MONROE')
+            self.assertEqual(rows[0]['LON'], u'-74.1926686')
+            self.assertEqual(rows[0]['LAT'], u'41.3187728')
+            self.assertEqual(rows[0]['STREET'], u'')
+            self.assertEqual(rows[0]['POSTCODE'], u'10950')
             self.assertEqual(rows[0]['UNIT'], u'')
             self.assertEqual(rows[0]['DISTRICT'], u'')
 
