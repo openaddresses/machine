@@ -1266,12 +1266,15 @@ class TestConformTests (unittest.TestCase):
     def test_good_tests(self):
         '''
         '''
-        with open(os.path.join(os.path.dirname(__file__), 'sources', 'cz-countrywide-good-tests.json')) as file:
-            source = json.load(file)
+        filenames = ['cz-countrywide-good-tests.json', 'cz-countrywide-implied-tests.json']
         
-        result, message = check_source_tests(source)
-        self.assertIs(result, True)
-        self.assertIsNone(message)
+        for filename in filenames:
+            with open(os.path.join(os.path.dirname(__file__), 'sources', filename)) as file:
+                source = json.load(file)
+        
+            result, message = check_source_tests(source)
+            self.assertIs(result, True, 'Tests should pass in {}'.format(filename))
+            self.assertIsNone(message, 'No message expected from {}'.format(filename))
     
     def test_bad_tests(self):
         '''
@@ -1280,15 +1283,18 @@ class TestConformTests (unittest.TestCase):
             source = json.load(file)
         
         result, message = check_source_tests(source)
-        self.assertIs(result, False)
-        self.assertIsNotNone(message)
+        self.assertIs(result, False, 'Tests should fail in {}'.format(file.name))
+        self.assertIn('address with /-delimited number', message, 'A message is expected from {}'.format(file.name))
     
     def test_no_tests(self):
         '''
         '''
-        with open(os.path.join(os.path.dirname(__file__), 'sources', 'cz-countrywide-no-tests.json')) as file:
-            source = json.load(file)
+        filenames = ['cz-countrywide-no-tests.json', 'cz-countrywide-disabled-tests.json']
         
-        result, message = check_source_tests(source)
-        self.assertIsNone(result)
-        self.assertIsNone(message)
+        for filename in filenames:
+            with open(os.path.join(os.path.dirname(__file__), 'sources', filename)) as file:
+                source = json.load(file)
+        
+            result, message = check_source_tests(source)
+            self.assertIsNone(result, 'Tests should not exist in {}'.format(filename))
+            self.assertIsNone(message, 'No message expected from {}'.format(filename))
