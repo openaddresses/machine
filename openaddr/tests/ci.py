@@ -112,6 +112,12 @@ class TestObjects (unittest.TestCase):
         self.assertEqual(state.get('code version'), value)
         self.assertEqual(state.code_version, value)
 
+        # special case for tests passed
+        value = str(uuid4())
+        state = RunState({'tests passed': value})
+        self.assertEqual(state.get('tests passed'), value)
+        self.assertEqual(state.tests_passed, value)
+
     def test_add_job(self):
         ''' Check behavior of objects.add_job()
         '''
