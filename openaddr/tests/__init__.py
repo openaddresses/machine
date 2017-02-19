@@ -963,7 +963,20 @@ class TestOA (unittest.TestCase):
     def test_single_fr_lareunion(self):
         ''' Test complete process_one.process on data that uses non-UTF8 encoding (issue #136)
         '''
-        source = join(self.src_dir, u'fr/la-réunion.json')
+        # Common encoding of la-réunion uses U+00E9:
+        # http://www.fileformat.info/info/unicode/char/e9/index.htm
+        filename_00E9 = b'fr/la-r\xc3\xa9union.json'.decode('utf8')
+
+        # Less-common encoding of la-réunion uses combining character U+0301:
+        # http://www.fileformat.info/info/unicode/char/0301/index.htm
+        filename_0301 = b'fr/la-re\xcc\x81union.json'.decode('utf8')
+        
+        if os.path.exists(join(self.src_dir, filename_00E9)):
+            source = join(self.src_dir, filename_00E9)
+        elif os.path.exists(join(self.src_dir, filename_0301)):
+            source = join(self.src_dir, filename_0301)
+        else:
+            raise Exception('Could not find a usable fr/la-réunion.json')
 
         with HTTMock(self.response_content):
             state_path = process_one.process(source, self.testdir, False)
