@@ -1,3 +1,8 @@
+2017-02-19: 4.3.0
+- Added support for acceptance tests in sources. (#558)
+- Changed sleep times in various loops. (#557)
+- Updated packages versions.
+
 2017-02-17: 4.2.2
 - Fixed a few source handling bugs. (#555, #556)
 - Fixed parts of SNS/Slack Lambda script.
