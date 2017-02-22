@@ -16,15 +16,15 @@ basis, with output visible at [results.openaddresses.io](https://results.openadd
 Usage
 -----
 
-Machine is a normal part of the OpenAddresses project. When new sources
+Machine is an integral of the OpenAddresses project. When new sources
 [are added in Github](https://github.com/openaddresses/openaddresses#contributing-addresses),
 they are automatically processed and status output is displayed in Github’s
 pull request UI. A successful set of checks looks like this:
 
 ![Github status display](docs/github-status.png)
 
-More information about Machine’s output can be seen by
-[following the Details link](http://results.openaddresses.io/jobs/b044ce9c-caa0-46fb-a7e4-842beeae3f52).
+More information about Machine’s output can be seen by following the Details link
+[to a job page like this](http://results.openaddresses.io/jobs/b044ce9c-caa0-46fb-a7e4-842beeae3f52).
 
 Machine also runs its own weekly batch process to generate the downloadable
 files, maps, and other resources available via [results.openaddresses.io](https://results.openaddresses.io).
