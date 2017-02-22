@@ -90,7 +90,7 @@ class TestUtilities (unittest.TestCase):
         command = 'openaddr-good-times', '--yo', 'b', 'd\\d', 'a"a', "s's", 'a:a'
         
         expected_group_name = 'CI Workers {0}.x'.format(*__version__.split('.'))
-        expected_instance_name = 'Scheduled {} {}'.format(datetime.now().strftime('%Y-%m-%d'), command[0])
+        expected_instance_name = 'Scheduled {} {}'.format(datetime.utcnow().strftime('%Y-%m-%d-%H-%M'), command[0])
         
         autoscale.get_all_groups.return_value = [group]
         autoscale.get_all_launch_configurations.return_value = [config]
@@ -121,6 +121,35 @@ class TestUtilities (unittest.TestCase):
             self.assertIn(quote(arg1)+' '+quote(arg2), image_run_kwargs['user_data'])
 
         instance.add_tag.assert_called_once_with('Name', expected_instance_name)
+    
+    def test_task_instance_blockdevices(self):
+        '''
+        '''
+        autoscale, ec2, reservation, image = Mock(), Mock(), Mock(), Mock()
+
+        autoscale.get_all_groups.return_value = [Mock()]
+        autoscale.get_all_launch_configurations.return_value = [Mock()]
+        ec2.get_all_images.return_value = [image]
+        ec2.get_all_key_pairs.return_value = [Mock()]
+        
+        image.run.return_value = reservation
+        reservation.instances = [Mock()]
+        
+        args = 'dotmap', 60, ['sleep'], 'bucket-name', 'arn:aws:sns:null-island:etc.'
+        
+        # Check for block device mappings for known instance types.
+        # Reference list at http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html
+        for (instance_type, size) in util.block_device_sizes.items():
+            util.request_task_instance(ec2, autoscale, instance_type, *args)
+            image_run_kwargs = image.run.mock_calls[-1][2]
+            self.assertEqual(len(image_run_kwargs['block_device_map']), 1)
+            self.assertEqual(image_run_kwargs['block_device_map']['/dev/sdb'].size, size)
+        
+        # Check for no block device mappings for some other instance types.
+        for instance_type in ('m3.medium', 't2.nano', 't2.small'):
+            util.request_task_instance(ec2, autoscale, instance_type, *args)
+            image_run_kwargs = image.run.mock_calls[-1][2]
+            self.assertEqual(len(image_run_kwargs['block_device_map']), 0)
     
     def test_summarize_result_licenses(self):
         '''

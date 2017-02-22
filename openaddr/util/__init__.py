@@ -12,6 +12,10 @@ import json, time
 import shlex
 
 from boto.exception import EC2ResponseError
+from boto.ec2 import blockdevicemapping
+
+# http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html
+block_device_sizes = {'r3.large': 32, 'r3.xlarge': 80, 'r3.2xlarge': 160, 'r3.4xlarge': 320}
 
 def get_version():
     ''' Prevent circular imports.
@@ -60,9 +64,9 @@ def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, co
     (group, ) = autoscale.get_all_groups([group_name])
     (config, ) = autoscale.get_all_launch_configurations(names=[group.launch_config_name])
     (image, ) = ec2.get_all_images(image_ids=[config.image_id])
-    keypair = ec2.get_all_key_pairs()[0]
+    keypair = [kp for kp in ec2.get_all_key_pairs() if kp.name.startswith('oa-')][0]
 
-    yyyymmdd = datetime.now().strftime('%Y-%m-%d')
+    yyyymmdd = datetime.utcnow().strftime('%Y-%m-%d-%H-%M')
     
     with open(join(dirname(__file__), 'templates', 'task-instance-userdata.sh')) as file:
         userdata_kwargs = dict(
@@ -86,13 +90,21 @@ def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, co
                     userdata_kwargs.update(aws_sns_arn = shlex.quote(aws_sns_arn),
                                            aws_region = shlex.quote(aws_region))
     
+        device_map = blockdevicemapping.BlockDeviceMapping()
+
+        if instance_type in block_device_sizes:
+            device_map = blockdevicemapping.BlockDeviceMapping()
+            dev_sdb = blockdevicemapping.BlockDeviceType()
+            dev_sdb.size = block_device_sizes[instance_type]
+            device_map['/dev/sdb'] = dev_sdb
+
         run_kwargs = dict(instance_type=instance_type, security_groups=['default'],
                           instance_initiated_shutdown_behavior='terminate',
                           user_data=file.read().format(**userdata_kwargs),
                           # TODO: use current role from http://169.254.169.254/latest/meta-data/iam/info
                           instance_profile_name='machine-communication',
-                          key_name=keypair.name)
-
+                          key_name=keypair.name, block_device_map=device_map)
+        
     reservation = image.run(**run_kwargs)
     (instance, ) = reservation.instances
     
