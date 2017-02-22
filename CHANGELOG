@@ -1,3 +1,6 @@
+2017-02-22: 4.3.2
+- Fixed a case-smashing bug in source tests. (#561)
+
 2017-02-21: 4.3.1
 - Changed task instances to use instance storage. (#554)
 
