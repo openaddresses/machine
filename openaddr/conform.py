@@ -1293,7 +1293,13 @@ def conform_sharealike(license):
 def check_source_tests(raw_source):
     ''' Return boolean status and a message if any tests failed.
     '''
-    source = conform_smash_case(raw_source)
+    try:
+        # Convert all field names in the conform spec to lower case
+        source = conform_smash_case(raw_source)
+    except:
+        # There may be problems in the source spec - ignore them for now.
+        source = raw_source
+
     source_test = source.get('test', {})
     tests_enabled = source_test.get('enabled', True)
     acceptance_tests = source_test.get('acceptance-tests')
