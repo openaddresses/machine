@@ -1,0 +1,26 @@
+FROM ubuntu:14.04
+
+RUN apt-get update -y && \
+    apt-get install -y software-properties-common python-software-properties
+
+ENV LC_ALL=C.UTF-8
+
+# From chef/prereqs/recipes/default.rb
+RUN add-apt-repository -y ppa:openaddresses/gdal2 && \
+    apt-get update -y && \
+    apt-get install -y python3-pip
+
+# # Watch for compatibility between awscli, botocore, and boto3.
+# RUN apt-get install -y libyaml-dev && \
+#     pip3 install -U 'awscli == 1.11.50' 'botocore == 1.5.14'
+
+# From chef/openaddr-prereqs/recipes/default.rb
+RUN apt-get install -y python3-cairo libgeos-c1v5=3.5.0-1~trusty1 \
+        libgdal20=2.1.0+dfsg-1~trusty2 python3-gdal=2.1.0+dfsg-1~trusty2 \
+        python3-pip python3-dev libpq-dev memcached libffi-dev \
+        gdal-bin=2.1.0+dfsg-1~trusty2 libgdal-dev=2.1.0+dfsg-1~trusty2
+
+# From chef/openaddr/recipes/default.rb
+COPY . /usr/local/src/openaddr
+RUN cd /usr/local/src/openaddr && \
+    pip3 install -U .
