@@ -109,6 +109,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('www.dropbox.com', '/s/fhopgbg4vkyoobr/czech_addresses_wgs84_12092016_MASTER.zip'):
             return response(404, 'Nobody here but us coats')
         
+        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/cache/uploads/migurski/d5add2/oregon_state_addresses.zip'):
+            return response(404, 'Nobody here but us coats')
+        
         if (host, path) == ('data.openoakland.org', '/sites/default/files/OakParcelsGeo2013_0.zip'):
             local_path = join(data_dirname, 'us-ca-oakland-excerpt.zip')
         
@@ -1519,6 +1522,22 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state.sample)
         self.assertIsNone(state.processed)
         self.assertEqual(state.source_problem, 'An acceptance test failed')
+
+    def test_single_or_curry(self):
+        ''' Test complete process_one.process on data.
+        '''
+        source = join(self.src_dir, 'us-or-curry.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir, False)
+
+        with open(state_path) as file:
+            state = RunState(dict(zip(*json.load(file))))
+        
+        self.assertTrue(state.tests_passed)
+        self.assertIsNone(state.sample)
+        self.assertIsNone(state.processed)
+        self.assertEqual(state.source_problem, 'Could not download source data')
 
     def test_single_lake_man_gdb(self):
         ''' Test complete process_one.process on data.
