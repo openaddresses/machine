@@ -55,7 +55,7 @@ with sample data. These instruction show how to run a set of small-scale testing
 data from [the repository `openaddresses/minimal-test-sources`](https://github.com/openaddresses/minimal-test-sources).
 This process should take less than 10 minutes.
 
-1.  After installing the `localdev` chef role and running tests, a new local
+1.  After preparing a virtual machine and running tests, a new local
     `openaddr` Postgres database will exist with this connection string:
     
         postgres://openaddr:openaddr@localhost/openaddr
