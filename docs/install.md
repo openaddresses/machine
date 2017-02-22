@@ -5,29 +5,43 @@ Local Development
 -----------------
 
 You can edit a local copy of OpenAddresses code with working tests by installing
-everything onto an Ubuntu Linux virtual machine. We recommend using a dedicated
-virtual machine for development; our Chef script installs servers, packages, and
-other configuration that may disrupt other uses of an Ubuntu machine. This
-process should take about 20 minutes depending on download speed, or you can
-skip the first four steps by using a pre-built Ubuntu 14.04 image on Amazon EC2.
+everything onto a [Vagrant virtual machine](https://www.vagrantup.com). We
+recommend using a dedicated virtual machine for development; our Chef script
+installs servers, packages, and other configuration that may disrupt other uses
+of an Ubuntu machine. This process should take about 10-20 minutes depending on
+download speed.
 
-1.  Download and install [VirtualBox](https://www.virtualbox.org/wiki/Downloads) on your development machine.
+1.  Download and install [VirtualBox](https://www.virtualbox.org) and [Vagrant](https://www.vagrantup.com) on your development machine. Both are available as separate installs, or as [part of Homebrew](https://brew.sh).
     
-2.  Download an [Ubuntu 14.04 Trusty server install image](http://releases.ubuntu.com/14.04/). A good choice might be `ubuntu-14.04.5-server-amd64.iso`.
+    Ensure that `VBoxManage` is in your path. If you download [VirtualBox from the website](https://www.virtualbox.org/wiki/Downloads), `VBoxManage` may be located in `/Applications/VirtualBox.app/Contents/MacOS` and you will need to [add it to your shell path](https://kb.iu.edu/d/acar).
+
+2.  Clone [OpenAddresses Machine code](https://github.com/openaddresses/machine) from Github.
+
+3.  From inside the machine folder, prepare the VirtualBox virtual machine with this command:
+
+        vagrant up
     
-3.  Create a new virtual machine, and configure its NAT network adapter so you can SSH into the machine [as described in this guide](http://stackoverflow.com/questions/5906441/how-to-ssh-to-a-virtualbox-guest-externally-through-a-host#10532299). Note that you’ll be SSHing into `127.0.0.1`, not the VM’s address.
+    You’ll see a few notices scroll by to know that this process is working:
     
-4.  Install Ubuntu 14.04 on the new machine, and log in. Configure a minimal install with just ssh; Chef will install all the needed servers like Postgres.
+        ==> default: Importing base box 'ubuntu/trusty64'...
+        ==> default: Setting the name of the VM: OpenAddresses-Machine_default_1487786156783_59682
+        ==> default: Waiting for machine to boot. This may take a few minutes...
+        ==> default: Machine booted and ready!
     
-5.  Clone [OpenAddresses Machine code](https://github.com/openaddresses/machine) from Github.
+    This last part can take ~5 minutes:
     
-6.  From inside the new `machine` directory, install the code for local development. This might take a few minutes the first time. It will print some error messages from the C compiler; this is normal and harmless. To verify Chef worked correctly run it a second time and manually inspect the output. `chef/run.sh` is safe to run multiple times:
+        ==> default: Mounting shared folders...
+            default: /vagrant => /Users/jrandom/Sites/OpenAddresses-Machine
+        ==> default: Running provisioner: shell...
+            default: Running: inline script
+
+4.  Connect to the virtual machine with this command:
     
-        sudo chef/run.sh localdev
+        vagrant ssh
+
+5.  Run the complete test suite to verify that it works:
     
-7.  Run the complete test suite to verify that it works:
-    
-        python3 test.py
+        python3 /vagrant/test.py
 
 You should now be able to make changes and test them. Be sure to use `pip3` and
 `python3` when running, or [set up an optional quick local virtual environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/)
