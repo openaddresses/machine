@@ -1534,13 +1534,10 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
         
-        with open(join(dirname(state_path), state.output)) as file:
-            print(file.read())
-        
         self.assertTrue(state.tests_passed)
         self.assertIsNone(state.sample)
         self.assertIsNone(state.processed)
-        self.assertEqual(state.source_problem, 'An acceptance test failed')
+        self.assertEqual(state.source_problem, 'Could not download source data')
 
     def test_single_lake_man_gdb(self):
         ''' Test complete process_one.process on data.
