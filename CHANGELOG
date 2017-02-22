@@ -1,3 +1,6 @@
+2017-02-21: 4.3.1
+- Changed task instances to use instance storage. (#554)
+
 2017-02-19: 4.3.0
 - Added support for acceptance tests in sources. (#558)
 - Changed sleep times in various loops. (#557)
