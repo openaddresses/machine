@@ -47,6 +47,21 @@ You should now be able to make changes and test them. Be sure to use `pip3` and
 `python3` when running, or [set up an optional quick local virtual environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/)
 with Python 3.
 
+Running A First Source
+----------------------
+
+You can process a single individual source of OpenAddresses data with the command `openaddr-process-one` and a source JSON file. This will let you verify tests and behavior locally.
+
+1.  Download a source from [OpenAdresses/openaddresses on Github](https://github.com/openaddresses/openaddresses). [Berkeley, California](https://results.openaddresses.io/sources/us/ca/berkeley) is a small, reliable source that’s good to test with:
+    
+        curl -L https://github.com/openaddresses/openaddresses/raw/master/sources/us/ca/berkeley.json -o us-ca-berkeley.json
+
+2.  Run `openaddr-process-one` to process the source:
+    
+        openaddr-process-one -v us-ca-berkeley.json .
+
+3.  Look in the directory `us-ca-berkeley` for address output, logs, and other files.
+
 Running A First Set
 -------------------
 
