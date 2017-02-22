@@ -8,67 +8,32 @@ data sources to work.
 Status
 ------
 
-This code is being used to process the complete OA dataset on an expected-weekly
-basis, with output visible at [data.openaddresses.io](http://data.openaddresses.io).
+This code is being used to process the complete OA dataset on a weekly and on-demand
+basis, with output visible at [results.openaddresses.io](https://results.openaddresses.io).
 
 [![Build Status](https://travis-ci.org/openaddresses/machine.svg?branch=master)](https://travis-ci.org/openaddresses/machine/branches)
 
 Usage
 -----
 
-Machine supports two modes. Continuous integration (CI) mode listens for tasks
-from the OpenAddresses Github repository, includes a persistent web server and
-database, and supports a flexible number of worker processes to deal with large
-changes quickly. Batch mode processes the entire OpenAddresses source
-collection at once, and is intended to be run periodically to reflect new
-submissions.
+Machine is a normal part of the OpenAddresses project. When new sources
+[are added in Github](https://github.com/openaddresses/openaddresses#contributing-addresses),
+they are automatically processed and status output is displayed in Github’s
+pull request UI. A successful set of checks looks like this:
 
-### CI Mode
+![Github status display](docs/github-status.png)
 
-Installation scripts for preparing a fresh install of Ubuntu 14.04 can be found
-in `chef`. You will need a local installation of PostgreSQL, a PostgreSQL role 
-named `dashboard`, a database named `openaddr` that's been initialized with the 
-schema `openaddr/ci/schema.pgsql`, and an Amazon S3 bucket with credentials.
+More information about Machine’s output can be seen by
+[following the Details link](http://results.openaddresses.io/jobs/b044ce9c-caa0-46fb-a7e4-842beeae3f52).
 
-    createuser dashboard
-    createdb openaddr
-    ﻿psql -f openaddr/ci/schema.pgsql openaddr
+Machine also runs its own weekly batch process to generate the downloadable
+files, maps, and other resources available via [results.openaddresses.io](https://results.openaddresses.io).
 
-After editing `chef/role-webhooks.json` and `chef/role-worker.json`, run them
-from a Git checkout like this:
-
-    sudo apt-get update
-    sudo chef/run.sh webhooks
-    sudo chef/run.sh worker
-
-`webhooks` will install Apache, a web application to listen for new tasks, and
-a small queue observer to watch for completed tasks. `worker` will install the
-`openaddr-ci-worker` utility to watch for newly-scheduled tasks.
-
-Run a single source locally with `openaddr-process-one`:
-
-    openaddr-process-one -l <log> <path to source JSON> <output directory>
-
-### Batch Mode & CI Workers
-
-To run batch mode with existing CI workers and queue, prepare a complete set of
-sources from master branch with `openaddr-enqueue-sources`:
-
-    openaddr-enqueue-sources -d <database URL> -t <Github token> -o <repo owner> -r <repo name>
+![OpenAddresses worldwide coverage map](https://s3.amazonaws.com/data.openaddresses.io/render-world.png)
 
 Development
 -----------
 
-[Documentation for machine internals](docs/README.md) can help point you in the
-right direction for development.
-
-Test the OpenAddresses machine with `test.py`:
-
-    python test.py
-
-Run the webhook server, queue listener, and worker processes:
-
-    python run-debug-webhooks.py
-    python -m openaddr.ci.run_dequeue
-    
-    python -m openaddr.ci.worker
+[Documentation for Machine internals](docs/README.md) can help point you in the
+right direction for development. Follow the [installation instructions](docs/install.md)
+to use and modify Machine code locally.
