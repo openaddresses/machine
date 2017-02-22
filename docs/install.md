@@ -1,6 +1,8 @@
 Install
 =======
 
+This document describes how to install the Machine code for local development, and demonstrates two ways to use it: running a single source and running a complete batch set. If you’re editing a lot of sources and want to do it quickly without waiting for a remote Github-based continuous integration service, you may want to use run single sources locally. If you're working on the queuing and job control portions of Machine code, you may want to run complete batch sets on test data.
+
 Local Development
 -----------------
 
