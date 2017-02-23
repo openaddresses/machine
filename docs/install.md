@@ -7,11 +7,9 @@ Local Development
 -----------------
 
 You can edit a local copy of OpenAddresses code with working tests by installing
-everything onto a [Vagrant virtual machine](https://www.vagrantup.com). We
-recommend using a dedicated virtual machine for development; our Chef script
-installs servers, packages, and other configuration that may disrupt other uses
-of an Ubuntu machine. This process should take about 10-20 minutes depending on
-download speed.
+everything onto a local virtual machine using [VirtualBox](https://www.virtualbox.org)
+and [Vagrant](https://www.vagrantup.com). This process should take about 10-20
+minutes depending on download speed.
 
 1.  Download and install [VirtualBox](https://www.virtualbox.org) and [Vagrant](https://www.vagrantup.com) on your development machine. Both are available as separate installs, or as [part of Homebrew](https://brew.sh).
     
