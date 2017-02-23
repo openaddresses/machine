@@ -45,9 +45,11 @@ download speed.
     
         python3 /vagrant/test.py
 
-You should now be able to make changes and test them. Be sure to use `pip3` and
+You should now be able to make changes and test them. The virtual machine’s
+`/vagrant` directory is a mount of your host machine’s current directory, so you
+will be able to edit files in your normal text editor. Be sure to use `pip3` and
 `python3` when running, or [set up an optional quick local virtual environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/)
-with Python 3.
+with Python 3 and the [`--editable` flag](https://pip.pypa.io/en/stable/reference/pip_install/#install-editable).
 
 Running A First Source
 ----------------------
