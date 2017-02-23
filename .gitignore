@@ -10,6 +10,7 @@ state-*.txt
 state-*.json
 env-*
 venv-hooked-on-sources
+.vagrant
 
 # PyCharm/JetBrains IDE files
 .idea
