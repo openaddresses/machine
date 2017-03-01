@@ -11,6 +11,7 @@ aws_s3_bucket = local['aws_s3_bucket']
 aws_sns_arn = local['aws_sns_arn']
 aws_cloudwatch_ns = local['aws_cloudwatch_ns']
 dotmaps_base_url = local['dotmaps_base_url']
+machine_base_url = local['machine_base_url']
 webhook_secrets = local['webhook_secrets']
 
 gag_github_status = local['gag_github_status']
@@ -43,6 +44,7 @@ AWS_SNS_ARN=#{aws_sns_arn}
 AWS_CLOUDWATCH_NS=#{aws_cloudwatch_ns}
 AWS_S3_BUCKET=#{aws_s3_bucket}
 DOTMAPS_BASE_URL=#{dotmaps_base_url}
+MACHINE_BASE_URL=#{machine_base_url}
 WEBHOOK_SECRETS=#{webhook_secrets}
 LC_ALL=C.UTF-8
 CONF
