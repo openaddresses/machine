@@ -20,7 +20,7 @@
 <table>
 {% for (sha, path) in job.task_files.items() %}
 
-    {% set file_result = job.file_results[path] %}
+    {% set file_runstate = job.file_runstates[path] %}
     {% set file_state = job.file_states[path] %}
 
     <tr>
@@ -35,23 +35,23 @@
         {{ path }}
         </td>
         <td>
-        {% if file_result and file_result.output and file_result.output['output'] %}
-            <a href="{{ file_result.output['output'] }}">log</a>
+        {% if file_runstate and file_runstate.output %}
+            <a href="{{ file_runstate.output }}">log</a>
         {% endif %}
         </td>
         <td>
-        {% if file_result and file_result.output and file_result.output['sample'] %}
-            <a href="{{ file_result.output['sample'] }}">sample</a>
+        {% if file_runstate and file_runstate.sample %}
+            <a href="{{ file_runstate.sample }}">sample</a>
         {% endif %}
         </td>
         <td>
-        {% if file_result and file_result.output and file_result.output['processed'] %}
-            <a href="{{ file_result.output['processed'] }}">data</a>
+        {% if file_runstate and file_runstate.processed %}
+            <a href="{{ file_runstate.processed }}">data</a>
         {% endif %}
         </td>
         <td>
-        {% if file_result and file_result.output and file_result.output['preview'] %}
-            <a href="{{ file_result.output['preview'] }}">preview</a>
+        {% if file_runstate and file_runstate.preview %}
+            <a href="{{ file_runstate.preview }}">preview</a>
         {% endif %}
         </td>
     </tr>
