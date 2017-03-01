@@ -22,6 +22,9 @@
     "mapbox_key": "{Mapbox Key}",
     "mapzen_key": "{Mapzen Key}",
     "gag_github_status": "No",
+    "reject_new_jobs": "No",
+    "dotmaps_base_url": "{URL}",
+    "machine_base_url": "{URL}",
 
     "worker_kind": null,
     "web_docroot": "/var/www/html",
