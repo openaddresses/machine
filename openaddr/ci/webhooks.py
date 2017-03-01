@@ -4,6 +4,7 @@ import logging; _L = logging.getLogger('openaddr.ci.webhooks')
 
 from functools import wraps
 from operator import itemgetter, attrgetter
+from urllib.parse import urlparse, urljoin
 from collections import OrderedDict
 from datetime import datetime
 from dateutil.tz import tzutc
@@ -23,7 +24,7 @@ from . import (
     )
 
 from .objects import (
-    read_job, read_jobs, read_sets, read_set, read_latest_set,
+    read_job, read_jobs, read_sets, read_set, read_latest_set, RunState,
     read_run, new_read_completed_set_runs, read_completed_runs_to_date,
     load_collection_zips_dict, read_latest_run, read_completed_source_runs
     )
@@ -179,10 +180,16 @@ def app_get_job(job_id):
 
     ordered_files = OrderedDict(sorted(file_tuples, key=key_func))
     
+    file_runstates = {file_path: RunState(file_result['output'])
+                      for (file_path, file_result) in job.file_results.items()
+                      if (file_result and 'output' in file_result)}
+
     job = dict(status=job.status, task_files=ordered_files, file_states=job.states,
-               file_results=job.file_results, github_status_url=job.github_status_url)
+               file_results=job.file_results, github_status_url=job.github_status_url,
+               file_runstates=file_runstates)
     
-    return render_template('job.html', job=job)
+    return render_template('job.html', job=job,
+                           dotmaps_base_url=current_app.config['DOTMAPS_BASE_URL'])
 
 @webhooks.route('/sets/', methods=['GET'])
 @log_application_errors
@@ -368,6 +375,15 @@ def nice_size(size):
     else:
         return '{:.0f}{}'.format(size, suffix)
 
+def temporary_slippymap_preview_url(slippymap_mbtiles_url):
+    '''
+    '''
+    # TODO: this is a hack-ass way to get the run ID
+    parsed_url = urlparse(slippymap_mbtiles_url)
+    run_id = os.path.basename(os.path.dirname(parsed_url.path))
+
+    return urljoin(current_app.config['DOTMAPS_BASE_URL'], run_id)
+
 def apply_webhooks_blueprint(app):
     '''
     '''
@@ -383,6 +399,8 @@ def apply_webhooks_blueprint(app):
         app.jinja_env.filters['nice_timedelta'] = nice_timedelta
         app.jinja_env.filters['breakstate'] = break_state
         app.jinja_env.filters['nice_size'] = nice_size
+        
+        app.jinja_env.filters['slippymap_preview_url'] = temporary_slippymap_preview_url
 
         setup_logger(None,
                      None,
