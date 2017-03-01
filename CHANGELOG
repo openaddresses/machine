@@ -1,3 +1,6 @@
+2017-03-01: 4.4.1
+- Changed comment wording for status updates to include URL. (#568)
+
 2017-03-01: 4.4.0
 - Added public link for slippy map preview with DOTMAPS_BASE_URL config. (#566)
 - Added Vagrantfile for easier local development. (#559)
