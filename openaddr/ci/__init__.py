@@ -861,6 +861,9 @@ def update_job_comments(db, job_id, run_id, github_auth):
             return
     
     comment_json = {'body': '![Preview]({})'.format(run.state.preview)}
+    if 'MACHINE_BASE_URL' in os.environ:
+        job_url = urljoin(os.environ['MACHINE_BASE_URL'], '/jobs/{}'.format(job_id))
+        comment_json['body'] = '{body}\n\nMore: {}'.format(job_url, **comment_json)
     posted = post(job.github_comments_url, data=json.dumps(comment_json), auth=github_auth,
                   headers={'Content-Type': 'application/json'})
     
