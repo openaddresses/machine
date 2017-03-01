@@ -90,12 +90,13 @@ class RunState:
         'output', 'process time', 'website', 'skipped', 'license',
         'share-alike', 'attribution required', 'attribution name',
         'attribution flag', 'process hash', 'preview', 'slippymap',
-        'source problem', 'code version', 'tests passed')}
+        'source problem', 'code version', 'tests passed', 'run id')}
 
     def __init__(self, json_blob):
         blob_dict = dict(json_blob or {})
         self.keys = blob_dict.keys()
         
+        self.run_id = blob_dict['run id']
         self.source = blob_dict.get('source')
         self.cache = blob_dict.get('cache')
         self.sample = blob_dict.get('sample')
