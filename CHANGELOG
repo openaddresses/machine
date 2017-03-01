@@ -1,3 +1,7 @@
+2017-03-01: 4.4.0
+- Added public link for slippy map preview with DOTMAPS_BASE_URL config. (#566)
+- Added Vagrantfile for easier local development. (#559)
+
 2017-02-22: 4.3.2
 - Fixed a case-smashing bug in source tests. (#561)
 
