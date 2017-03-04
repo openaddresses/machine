@@ -13,6 +13,8 @@ import json, csv, io, os
 from osgeo import ogr, osr
 import requests
 
+from .ci import objects
+
 try:
     import cairo
 except ImportError:
@@ -33,6 +35,13 @@ EPSG2163 = '+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6370997 +b=6370997
 
 # World Van der Grinten I, http://spatialreference.org/ref/esri/54029/
 ESRI54029 = '+proj=vandg +lon_0=0 +x_0=0 +y_0=0 +R_A +ellps=WGS84 +datum=WGS84 +units=m +no_defs'
+
+class RunPartial:
+    ''' Partial mock of objects.Run, just to make load_live_state() valid.
+    '''
+    def __init__(self, state):
+        self.datetime_tz = 'null' # needed by render_geojson()
+        self.state = state
 
 def make_context(width=960, resolution=1, area=WORLD):
     ''' Get Cairo surface, context, and drawing scale.
@@ -85,7 +94,8 @@ def load_live_state():
     got = requests.get('https://results.openaddresses.io/state.txt')
     state = csv.DictReader(io.StringIO(got.text), dialect='excel-tab')
     
-    return {s['source']: None for s in state if (s['cache'] and s['processed'])}
+    return {s['source']: RunPartial(objects.RunState(s))
+            for s in state if (s['cache'] and s['processed'])}
 
 def iterate_sources_dir(sources_dir):
     '''
@@ -431,6 +441,12 @@ def render_png(sources_dir, good_sources, width, resolution, filename, area):
     # Output
     surface.write_to_png(filename)
 
+def _source_address_count(sources, paths):
+    ''' Get total count of addresses for named paths in a collection of sources.
+    '''
+    addr_counts = [int(sources[path].state.address_count or 0) for path in paths]
+    return sum(addr_counts)
+
 def render_geojson(sources_dir, good_sources, filename, area):
     '''
     '''
@@ -447,8 +463,8 @@ def render_geojson(sources_dir, good_sources, filename, area):
     wgs84 = osr.SpatialReference(osr.SRS_WKT_WGS84)
     feature_strings = []
     
-    def append_feature_string(geom, name, status, paths, etc):
-        source_dates = [str(run.datetime_tz if run else 'null')
+    def append_feature_string(geom, name, status, paths, count, etc):
+        source_dates = [str(run.datetime_tz)
                         for (path, run) in good_sources.items()
                         if path in paths]
 
@@ -458,6 +474,7 @@ def render_geojson(sources_dir, good_sources, filename, area):
         properties = dict(name=name, status=status, **etc)
         properties.update({'source paths': ', '.join(paths), 'source count': len(paths)})
         properties.update({'source dates': ', '.join(source_dates)})
+        properties.update({'address count': count})
         
         feature_obj = dict(type='Feature', properties=properties, geometry='<placeholder>')
         feature_str = json.dumps(feature_obj).replace('"<placeholder>"', geom_str)
@@ -468,42 +485,49 @@ def render_geojson(sources_dir, good_sources, filename, area):
         name = feature.GetFieldAsString('name')
         if iso_a2 in good_iso3166s:
             geom, status, paths = feature.GetGeometryRef(), 'good', good_iso3166s[iso_a2]
+            addr_count = _source_address_count(good_sources, paths)
         elif iso_a2 in bad_iso3166s:
             geom, status, paths = feature.GetGeometryRef(), 'bad', bad_iso3166s[iso_a2]
+            addr_count = 0
         else:
             continue
 
-        append_feature_string(geom, name, status, paths, {'ISO 3166': iso_a2})
+        append_feature_string(geom, name, status, paths, addr_count, {'ISO 3166': iso_a2})
     
     for feature in admin1s_features:
         iso_3166_2 = feature.GetFieldAsString('iso_3166_2')
         name = feature.GetFieldAsString('name')
         if iso_3166_2 in good_iso3166s:
             geom, status, paths = feature.GetGeometryRef(), 'good', good_iso3166s[iso_3166_2]
+            addr_count = _source_address_count(good_sources, paths)
         elif iso_3166_2 in bad_iso3166s:
             geom, status, paths = feature.GetGeometryRef(), 'bad', bad_iso3166s[iso_3166_2]
+            addr_count = 0
         else:
             continue
 
-        append_feature_string(geom, name, status, paths, {'ISO 3166-2': iso_3166_2})
+        append_feature_string(geom, name, status, paths, addr_count, {'ISO 3166-2': iso_3166_2})
     
     for feature in chain(us_state_features, us_county_features):
         geoid = feature.GetFieldAsString('GEOID')
         name = feature.GetFieldAsString('NAME')
         if geoid in good_geoids:
             geom, status, paths = feature.GetGeometryRef(), 'good', good_geoids[geoid]
+            addr_count = _source_address_count(good_sources, paths)
         elif geoid in bad_geoids:
             geom, status, paths = feature.GetGeometryRef(), 'bad', bad_geoids[geoid]
+            addr_count = 0
         else:
             continue
 
-        append_feature_string(geom, name, status, paths, {'US Census GEOID': geoid})
+        append_feature_string(geom, name, status, paths, addr_count, {'US Census GEOID': geoid})
     
     for (path, geom) in good_geometries.items():
-        append_feature_string(geom, None, 'good', [path], {})
+        addr_count = _source_address_count(good_sources, [path])
+        append_feature_string(geom, None, 'good', [path], addr_count, {})
 
     for (path, geom) in bad_geometries.items():
-        append_feature_string(geom, None, 'bad', [path], {})
+        append_feature_string(geom, None, 'bad', [path], 0, {})
     
     with open(filename, 'w') as file:
         collection_str = json.dumps(dict(type='FeatureCollection', features=['<placeholder>']))

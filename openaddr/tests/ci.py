@@ -3375,7 +3375,7 @@ class TestBatch (unittest.TestCase):
         ''' Show that a batch context will result in rendered maps.
         '''
         def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
+            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "address count": 999})
         
         do_work.side_effect = returns_plausible_result
 
@@ -3411,6 +3411,19 @@ class TestBatch (unittest.TestCase):
             self.assertEqual(get(the_set.render_europe).status_code, 200)
             self.assertEqual(get(the_set.render_world).status_code, 200)
             self.assertEqual(get(the_set.render_geojson).status_code, 200)
+            
+            geojson = json.loads(get(the_set.render_geojson).content.decode('utf8'))
+            properties = [feat['properties'] for feat in geojson['features']]
+            
+            self.assertEqual(properties[0]['name'], 'Contra Costa')
+            self.assertEqual(properties[0]['address count'], 999)
+            self.assertEqual(properties[0]['source count'], 1)
+            self.assertEqual(properties[1]['name'], 'Nevada')
+            self.assertEqual(properties[1]['address count'], 999)
+            self.assertEqual(properties[1]['source count'], 1)
+            self.assertEqual(properties[2]['name'], 'Alameda')
+            self.assertEqual(properties[2]['address count'], 999)
+            self.assertEqual(properties[2]['source count'], 1)
     
     def test_render_index_maps(self):
         ''' Show that front page maps get rendered correctly.

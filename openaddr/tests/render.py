@@ -73,4 +73,10 @@ class TestRender (unittest.TestCase):
         with HTTMock(response_state_txt):
             state = render.load_live_state()
         
-        self.assertEqual(state, {'ar/ba/buenos_aires.json': None, 'at/31255.json': None, 'at/31254.json': None})
+        self.assertEqual(len(state), 3)
+        self.assertIn('ar/ba/buenos_aires.json', state)
+        self.assertIn('at/31255.json', state)
+        self.assertIn('at/31254.json', state)
+        self.assertEqual(state['ar/ba/buenos_aires.json'].state.address_count, '555755')
+        self.assertEqual(state['at/31255.json'].state.address_count, '910854')
+        self.assertEqual(state['at/31254.json'].state.address_count, '218885')
