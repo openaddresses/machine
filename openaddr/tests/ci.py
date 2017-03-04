@@ -3412,7 +3412,7 @@ class TestBatch (unittest.TestCase):
             self.assertEqual(get(the_set.render_world).status_code, 200)
             self.assertEqual(get(the_set.render_geojson).status_code, 200)
             
-            geojson = json.loads(get(the_set.render_geojson).content)
+            geojson = json.loads(get(the_set.render_geojson).content.decode('utf8'))
             properties = [feat['properties'] for feat in geojson['features']]
             
             self.assertEqual(properties[0]['name'], 'Contra Costa')
