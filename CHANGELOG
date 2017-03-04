@@ -1,3 +1,6 @@
+2017-03-03: 4.5.0
+- Added total address count to GeoJSON renders. (#570)
+
 2017-03-03: 4.4.2
 - Bumped pyesridump version to 1.6.0. (#569)
 
