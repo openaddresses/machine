@@ -463,7 +463,7 @@ def render_geojson(sources_dir, good_sources, filename, area):
     wgs84 = osr.SpatialReference(osr.SRS_WKT_WGS84)
     feature_strings = []
     
-    def append_feature_string(geom, name, status, paths, etc):
+    def append_feature_string(geom, name, status, paths, count, etc):
         source_dates = [str(run.datetime_tz)
                         for (path, run) in good_sources.items()
                         if path in paths]
@@ -474,6 +474,7 @@ def render_geojson(sources_dir, good_sources, filename, area):
         properties = dict(name=name, status=status, **etc)
         properties.update({'source paths': ', '.join(paths), 'source count': len(paths)})
         properties.update({'source dates': ', '.join(source_dates)})
+        properties.update({'address count': count})
         
         feature_obj = dict(type='Feature', properties=properties, geometry='<placeholder>')
         feature_str = json.dumps(feature_obj).replace('"<placeholder>"', geom_str)
@@ -491,8 +492,7 @@ def render_geojson(sources_dir, good_sources, filename, area):
         else:
             continue
 
-        append_feature_string(geom, name, status, paths,
-                              {'ISO 3166': iso_a2, 'address count': addr_count})
+        append_feature_string(geom, name, status, paths, addr_count, {'ISO 3166': iso_a2})
     
     for feature in admin1s_features:
         iso_3166_2 = feature.GetFieldAsString('iso_3166_2')
@@ -506,8 +506,7 @@ def render_geojson(sources_dir, good_sources, filename, area):
         else:
             continue
 
-        append_feature_string(geom, name, status, paths,
-                              {'ISO 3166-2': iso_3166_2, 'address count': addr_count})
+        append_feature_string(geom, name, status, paths, addr_count, {'ISO 3166-2': iso_3166_2})
     
     for feature in chain(us_state_features, us_county_features):
         geoid = feature.GetFieldAsString('GEOID')
@@ -521,15 +520,14 @@ def render_geojson(sources_dir, good_sources, filename, area):
         else:
             continue
 
-        append_feature_string(geom, name, status, paths,
-                              {'US Census GEOID': geoid, 'address count': addr_count})
+        append_feature_string(geom, name, status, paths, addr_count, {'US Census GEOID': geoid})
     
     for (path, geom) in good_geometries.items():
         addr_count = _source_address_count(good_sources, [path])
-        append_feature_string(geom, None, 'good', [path], {'address count': addr_count})
+        append_feature_string(geom, None, 'good', [path], addr_count, {})
 
     for (path, geom) in bad_geometries.items():
-        append_feature_string(geom, None, 'bad', [path], {'address count': 0})
+        append_feature_string(geom, None, 'bad', [path], 0, {})
     
     with open(filename, 'w') as file:
         collection_str = json.dumps(dict(type='FeatureCollection', features=['<placeholder>']))
