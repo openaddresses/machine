@@ -4,8 +4,8 @@ from .. import jobs, render, util
 
 from .objects import (
     add_job, write_job, read_job, complete_set, update_set_renders,
-    add_run, set_run, copy_run, read_completed_set_runs, RunState,
-    get_completed_file_run, get_completed_run, new_read_completed_set_runs
+    set_run, copy_run, read_completed_set_runs, RunState,
+    get_completed_run, new_read_completed_set_runs
     )
 
 from . import objects, work, queuedata
@@ -946,7 +946,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
             previous_run = None
         else:
             interval = '{} seconds'.format(RUN_REUSE_TIMEOUT.seconds + RUN_REUSE_TIMEOUT.days * 86400)
-            previous_run = get_completed_file_run(db, taskdata.file_id, interval)
+            previous_run = objects.get_completed_file_run(db, taskdata.file_id, interval)
     
         if previous_run:
             # Make a copy of the previous run.
@@ -958,7 +958,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
         
         else:
             # Reserve space for a new run.
-            passed_on_kwargs['run_id'] = add_run(db)
+            passed_on_kwargs['run_id'] = objects.add_run(db)
 
             # Send a Due task, possibly for later.
             due_task = queuedata.Due(**passed_on_kwargs)

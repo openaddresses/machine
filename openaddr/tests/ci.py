@@ -3511,6 +3511,45 @@ class TestQueue (unittest.TestCase):
         
         job_data = update_job_status.mock_calls[0][1]
         self.assertEqual(job_data[1:6], ('j', 'u', 'sources/xx/f.json', False, {'message': 'Yo', 'output': output_data}))
+    
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.work.do_work')
+    @patch('openaddr.ci.objects.get_completed_file_run')
+    @patch('openaddr.ci.objects.add_run')
+    def test_pop_task_from_taskqueue(self, add_run, get_completed_file_run, do_work):
+        '''
+        '''
+        add_run.return_value = 999
+        get_completed_file_run.return_value = None
+
+        s3, task_queue, done_queue = mock.Mock(), mock.Mock(), mock.Mock()
+        due_queue, heartbeat_queue = mock.Mock(), mock.Mock()
+        task_queue.__enter__, task_queue.__exit__ = mock.Mock(), mock.Mock()
+        
+        task_queue.get.return_value.data = dict(job_id='J', url='U', name='N', content_b64='Qw==', commit_sha='S', file_id='F')
+        pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, '', '')
+        
+        (done_data, ) = done_queue.mock_calls[0][1]
+        (due_data, ) = due_queue.mock_calls[0][1]
+        
+        # All items from task data were passed through to done and due queues
+        for (key, value) in task_queue.get.return_value.data.items():
+            self.assertEqual(done_data[key], value)
+            self.assertEqual(due_data[key], value)
+        
+        # Run ID and work results were also passed through correctly
+        self.assertEqual(done_data['run_id'], add_run.return_value)
+        self.assertEqual(due_data['run_id'], add_run.return_value)
+        self.assertEqual(done_data['result'], do_work.return_value)
+        self.assertNotIn('result', due_data)
+        
+        # Additional values were not added
+        for key in ('set_id', 'rerun'):
+            self.assertIsNone(done_data.get(key, None))
+            self.assertIsNone(due_data.get(key, None))
+        
+        print(done_data)
+        print(due_data)
 
 class TestCollect (unittest.TestCase):
 
