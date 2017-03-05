@@ -1012,7 +1012,7 @@ def pop_task_from_donequeue(queue, github_auth):
         _L.info(u'Got file {} from done queue'.format(donedata.name))
         results = donedata.result
         message = results['message']
-        run_state = RunState(results.get('output', None))
+        run_state = RunState(results.get('state', None) or results.get('output', None)) # TODO: stop looking for old "output" here.
         content_b64 = donedata.content_b64
         commit_sha = donedata.commit_sha
         worker_id = donedata.worker_id

@@ -54,7 +54,7 @@ from ..ci.tileindex import (
     )
 
 from ..jobs import JOB_TIMEOUT
-from ..ci.work import make_source_filename, assemble_output, MAGIC_OK_MESSAGE
+from ..ci.work import make_source_filename, assemble_runstate, MAGIC_OK_MESSAGE
 from ..ci.webhooks import apply_webhooks_blueprint
 from ..ci.webapi import apply_webapi_blueprint
 from .. import LocalProcessedResult
@@ -2295,7 +2295,7 @@ class TestRuns (unittest.TestCase):
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
         
         def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
+            return dict(message=MAGIC_OK_MESSAGE, state=RunState({"source": "user_input.txt"}))
         
         do_work.side_effect = returns_plausible_result
 
@@ -2420,7 +2420,7 @@ class TestRuns (unittest.TestCase):
         ''' Test a run that succeeds past its due date.
         '''
         def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
+            return dict(message=MAGIC_OK_MESSAGE, state=RunState({"source": "user_input.txt"}))
 
         do_work.side_effect = returns_plausible_result
 
@@ -2585,7 +2585,8 @@ class TestRuns (unittest.TestCase):
         fprint = itertools.count(1)
         
         def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
-            return dict(message='Something went wrong', output={"source": "user_input.txt", "fingerprint": next(fprint)}, result_code=0, result_stdout='...')
+            return dict(message='Something went wrong', result_code=0, result_stdout='...',
+                        state=RunState({"source": "user_input.txt", "fingerprint": next(fprint)}))
         
         def raises_an_error(s3, run_id, source_name, content, output_dir):
             raise Exception('Worker did not know to re-use previous run')
@@ -2691,7 +2692,7 @@ class TestRuns (unittest.TestCase):
         fprint = itertools.count(1)
         
         def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "fingerprint": next(fprint)})
+            return dict(message=MAGIC_OK_MESSAGE, state=RunState({"source": "user_input.txt", "fingerprint": next(fprint)}))
         
         fake_queued_job_args = list(self.fake_queued_job_args[:])
         fake_queued_job_args[2] = True # rerun is true
@@ -2766,7 +2767,8 @@ class TestRuns (unittest.TestCase):
         fprint = itertools.count(1)
         
         def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "fingerprint": next(fprint)}, result_code=0, result_stdout='...')
+            return dict(message=MAGIC_OK_MESSAGE, result_code=0, result_stdout='...',
+                        state=RunState({"source": "user_input.txt", "fingerprint": next(fprint)}))
         
         do_work.side_effect = returns_plausible_result
 
@@ -2842,8 +2844,8 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(make_source_filename(u'yo/yo'), u'yo--yo.txt')
         self.assertEqual(make_source_filename(u'yó/yó'), u'yó--yó.txt')
     
-    def test_assemble_output_runstate(self):
-        ''' Test that return value of assemble_output() works for RunState.
+    def test_assemble_runstate(self):
+        ''' Test that assemble_runstate() puts the right values in RunState.
         '''
         s3 = mock.Mock()
         s3.new_key.return_value.md5 = b'0xWHATEVER'
@@ -2851,7 +2853,7 @@ class TestWorker (unittest.TestCase):
         s3.new_key.return_value.bucket.name = 'a-bucket'
 
         input1 = {'cache': False, 'sample': False, 'processed': False, 'output': False, 'preview': False, 'slippymap': False}
-        state1 = RunState(assemble_output(s3, input1, 'xx/f', 1, 'dir'))
+        state1 = assemble_runstate(s3, input1, 'xx/f', 1, 'dir')
 
         self.assertEqual(state1.cache, input1['cache'])
         self.assertEqual(state1.sample, input1['sample'])
@@ -2861,7 +2863,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(state1.slippymap, input1['slippymap'])
 
         input2 = {'cache': 'cache.csv', 'sample': False, 'processed': False, 'output': False, 'preview': False, 'slippymap': False}
-        state2 = RunState(assemble_output(s3, input2, 'xx/f', 2, 'dir'))
+        state2 = assemble_runstate(s3, input2, 'xx/f', 2, 'dir')
 
         self.assertEqual(state2.cache, 'https://s3.amazonaws.com/a-bucket/a-key')
         self.assertEqual(state2.fingerprint, '0xWHATEVER')
@@ -2873,7 +2875,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/2/cache.csv'))
 
         input3 = {'cache': False, 'sample': 'sample.json', 'processed': False, 'output': False, 'preview': False, 'slippymap': False}
-        state3 = RunState(assemble_output(s3, input3, 'xx/f', 3, 'dir'))
+        state3 = assemble_runstate(s3, input3, 'xx/f', 3, 'dir')
 
         self.assertEqual(state3.cache, input3['cache'])
         self.assertEqual(state3.sample, 'https://s3.amazonaws.com/a-bucket/a-key')
@@ -2884,7 +2886,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/3/sample.json'))
 
         input4 = {'cache': False, 'sample': False, 'processed': False, 'output': 'out.txt', 'preview': False, 'slippymap': False}
-        state4 = RunState(assemble_output(s3, input4, 'xx/f', 4, 'dir'))
+        state4 = assemble_runstate(s3, input4, 'xx/f', 4, 'dir')
 
         self.assertEqual(state4.cache, input4['cache'])
         self.assertEqual(state4.sample, input4['sample'])
@@ -2897,7 +2899,7 @@ class TestWorker (unittest.TestCase):
         with patch('openaddr.util.package_output') as package_output:
             package_output.return_value = 'nothing.zip'
             input5 = {'cache': False, 'sample': False, 'processed': 'data.zip', 'output': False, 'preview': False, 'slippymap': False}
-            state5 = RunState(assemble_output(s3, input5, 'xx/f', 5, 'dir'))
+            state5 = assemble_runstate(s3, input5, 'xx/f', 5, 'dir')
 
         self.assertEqual(state5.cache, input5['cache'])
         self.assertEqual(state5.sample, input5['sample'])
@@ -2909,7 +2911,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/5/xx/f.zip'))
 
         input6 = {'cache': False, 'sample': False, 'processed': False, 'output': False, 'preview': 'preview.png', 'slippymap': False}
-        state6 = RunState(assemble_output(s3, input6, 'xx/f', 6, 'dir'))
+        state6 = assemble_runstate(s3, input6, 'xx/f', 6, 'dir')
 
         self.assertEqual(state6.cache, input6['cache'])
         self.assertEqual(state6.sample, input6['sample'])
@@ -2920,7 +2922,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/6/preview.png'))
 
         input7 = {'cache': False, 'sample': False, 'processed': False, 'output': False, 'preview': False, 'slippymap': 'slippymap.mbtiles'}
-        state7 = RunState(assemble_output(s3, input7, 'xx/f', 7, 'dir'))
+        state7 = assemble_runstate(s3, input7, 'xx/f', 7, 'dir')
 
         self.assertEqual(state7.cache, input7['cache'])
         self.assertEqual(state7.sample, input7['sample'])
@@ -2976,16 +2978,16 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(result['message'], MAGIC_OK_MESSAGE)
         self.assertEqual(result['result_code'], 0)
 
-        self.assertFalse(result['output']['skipped'])
-        self.assertTrue(result['output']['cache'].endswith('/cache.zip'))
-        self.assertTrue(result['output']['sample'].endswith('/sample.json'))
-        self.assertTrue(result['output']['output'].endswith('/output.txt'))
-        self.assertTrue(result['output']['preview'].endswith('/preview.png'))
-        self.assertTrue(result['output']['processed'].endswith(u'/so/exalté.zip'))
-        self.assertEqual(result['output']['website'], 'http://example.com')
-        self.assertEqual(result['output']['license'], 'GPL')
+        self.assertFalse(result['state'].skipped)
+        self.assertTrue(result['state'].cache.endswith('/cache.zip'))
+        self.assertTrue(result['state'].sample.endswith('/sample.json'))
+        self.assertTrue(result['state'].output.endswith('/output.txt'))
+        self.assertTrue(result['state'].preview.endswith('/preview.png'))
+        self.assertTrue(result['state'].processed.endswith(u'/so/exalté.zip'))
+        self.assertEqual(result['state'].website, 'http://example.com')
+        self.assertEqual(result['state'].license, 'GPL')
         
-        zip_path = urlparse(result['output']['processed']).path
+        zip_path = urlparse(result['state'].processed).path
         zip_bytes = self.s3._read_fake_key(zip_path[len('/fake-bucket'):])
         zip_file = ZipFile(BytesIO(zip_bytes), mode='r')
         self.assertTrue(u'README.txt' in zip_file.namelist())
@@ -3079,11 +3081,11 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(result['message'], MAGIC_OK_MESSAGE)
         self.assertEqual(result['result_code'], 0)
 
-        self.assertTrue(result['output']['skipped'])
-        self.assertIsNone(result['output']['cache'])
-        self.assertIsNone(result['output']['sample'])
-        self.assertIsNone(result['output']['license'])
-        self.assertIsNone(result['output']['processed'])
+        self.assertTrue(result['state'].skipped)
+        self.assertIsNone(result['state'].cache)
+        self.assertIsNone(result['state'].sample)
+        self.assertIsNone(result['state'].license)
+        self.assertIsNone(result['state'].processed)
 
 class TestBatch (unittest.TestCase):
 
@@ -3314,7 +3316,7 @@ class TestBatch (unittest.TestCase):
         ''' Show that the tasks enqueued in a batch context can be run.
         '''
         def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
+            return dict(message=MAGIC_OK_MESSAGE, state=RunState({"source": "user_input.txt"}))
         
         do_work.side_effect = returns_plausible_result
 
@@ -3375,7 +3377,7 @@ class TestBatch (unittest.TestCase):
         ''' Show that a batch context will result in rendered maps.
         '''
         def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "address count": 999})
+            return dict(message=MAGIC_OK_MESSAGE, state=RunState({"source": "user_input.txt", "address count": 999}))
         
         do_work.side_effect = returns_plausible_result
 
