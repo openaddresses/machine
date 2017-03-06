@@ -367,12 +367,13 @@ def get_completed_file_run(db, file_id, interval):
     
     previous_run = db.fetchone()
     
-    if previous_run:
-        _L.debug('Found previous run {0} ({2}) for file {file_id}'.format(*previous_run, **locals()))
-    else:
+    if previous_run is None:
         _L.debug('No previous run for file {file_id}'.format(**locals()))
+        return None
 
-    return previous_run
+    run_id, state_dict, status = previous_run
+    _L.debug('Found previous run {run_id} ({status}) for file {file_id}'.format(**locals()))
+    return run_id, RunState(state_dict), status
 
 def get_completed_run(db, run_id, min_dtz):
     '''

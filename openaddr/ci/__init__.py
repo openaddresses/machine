@@ -968,7 +968,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
         # Re-use result from the previous run.
         run_id, state, status = previous_run
         message = work.MAGIC_OK_MESSAGE if status else 'Re-using failed previous run'
-        result = dict(message=message, reused_run=run_id, output=state)
+        result = dict(message=message, reused_run=run_id, state=state)
 
     else:
         # Run the task.

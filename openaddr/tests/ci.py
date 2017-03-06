@@ -448,10 +448,12 @@ class TestObjects (unittest.TestCase):
     def test_get_completed_file_run_yes(self):
         ''' Check behavior of objects.get_completed_file_run_yes()
         '''
-        self.db.fetchone.return_value = (456, True, {})
+        self.db.fetchone.return_value = (456, {'source': 'example'}, True)
         
         run_id, state, status = get_completed_file_run(self.db, 'abc', timedelta(0))
         self.assertEqual(run_id, 456)
+        self.assertEqual(state.source, 'example')
+        self.assertIs(status, True)
 
         self.db.execute.assert_called_once_with(
                '''SELECT id, state, status FROM runs
@@ -3660,7 +3662,7 @@ class TestQueue (unittest.TestCase):
         '''
         '''
         copy_run.return_value = 999
-        get_completed_file_run.return_value = (321, {}, True)
+        get_completed_file_run.return_value = (321, RunState({}), True)
 
         s3, task_queue, done_queue = mock.Mock(), mock.Mock(), mock.Mock()
         due_queue, heartbeat_queue = mock.Mock(), mock.Mock()
@@ -3674,20 +3676,19 @@ class TestQueue (unittest.TestCase):
         self.assertEqual(len(do_work.mock_calls), 0, 'Should not have done any real work')
         self.assertEqual(len(copy_run.mock_calls), 1, 'Should have copied the previous run')
         self.assertEqual(len(due_queue.mock_calls), 0, 'Should not have pushed to the due queue')
-        print(copy_run.mock_calls)
         
         db = task_queue.__enter__.return_value
         copy_run.assert_called_once_with(db, 321, 'J', 'S', None)
         
         (done_data, ) = done_queue.mock_calls[0][1]
         
-        # All items from task data were passed through to done and due queues
+        # All items from task data were passed through to done queue
         for (key, value) in task_queue.get.return_value.data.items():
             self.assertEqual(done_data[key], value)
         
         # Run ID and work results were also passed through correctly
         self.assertEqual(done_data['run_id'], copy_run.return_value)
-        self.assertEqual(done_data['result'], {'message': 'Everything is fine', 'reused_run': 321, 'output': {}})
+        self.assertEqual(done_data['result'], {'message': 'Everything is fine', 'reused_run': 321, 'state': {}})
         
         # Additional values were not added
         for key in ('set_id', 'rerun'):
