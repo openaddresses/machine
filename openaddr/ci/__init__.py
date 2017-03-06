@@ -4,8 +4,8 @@ from .. import jobs, render, util
 
 from .objects import (
     add_job, write_job, read_job, complete_set, update_set_renders,
-    set_run, copy_run, read_completed_set_runs, RunState,
-    get_completed_run, new_read_completed_set_runs
+    set_run, read_completed_set_runs, RunState, get_completed_run,
+    new_read_completed_set_runs
     )
 
 from . import objects, work, queuedata
@@ -952,7 +952,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
             # Make a copy of the previous run.
             previous_run_id, _, _ = previous_run
             copy_args = (passed_on_kwargs[k] for k in ('job_id', 'commit_sha', 'set_id'))
-            passed_on_kwargs['run_id'] = copy_run(db, previous_run_id, *copy_args)
+            passed_on_kwargs['run_id'] = objects.copy_run(db, previous_run_id, *copy_args)
             
             # Don't send a due task, since we will not be doing any actual work.
         

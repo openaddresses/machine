@@ -3516,7 +3516,28 @@ class TestQueue (unittest.TestCase):
     @patch('openaddr.ci.work.do_work')
     @patch('openaddr.ci.objects.get_completed_file_run')
     @patch('openaddr.ci.objects.add_run')
-    def test_pop_task_from_taskqueue(self, add_run, get_completed_file_run, do_work):
+    def test_pop_task_from_taskqueue_no_data(self, add_run, get_completed_file_run, do_work):
+        '''
+        '''
+        add_run.return_value = 999
+        get_completed_file_run.return_value = None
+
+        s3, task_queue, done_queue = mock.Mock(), mock.Mock(), mock.Mock()
+        due_queue, heartbeat_queue = mock.Mock(), mock.Mock()
+        task_queue.__enter__, task_queue.__exit__ = mock.Mock(), mock.Mock()
+        
+        task_queue.get.return_value = None
+        pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, '', '')
+        
+        self.assertEqual(len(get_completed_file_run.mock_calls), 0, 'Should not have checked for a previous run')
+        self.assertEqual(len(done_queue.mock_calls), 0, 'Should not have pushed to the done queue')
+        self.assertEqual(len(due_queue.mock_calls), 0, 'Should not have pushed to the due queue')
+    
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.work.do_work')
+    @patch('openaddr.ci.objects.get_completed_file_run')
+    @patch('openaddr.ci.objects.add_run')
+    def test_pop_task_from_taskqueue_new_run(self, add_run, get_completed_file_run, do_work):
         '''
         '''
         add_run.return_value = 999
@@ -3528,6 +3549,10 @@ class TestQueue (unittest.TestCase):
         
         task_queue.get.return_value.data = dict(job_id='J', url='U', name='N', content_b64='Qw==', commit_sha='S', file_id='F')
         pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, '', '')
+        
+        self.assertEqual(len(get_completed_file_run.mock_calls), 1, 'Should have checked for a previous run')
+        self.assertGreaterEqual(len(do_work.mock_calls), 1, 'Should have done some real work')
+        self.assertEqual(len(add_run.mock_calls), 1, 'Should have added a new run')
         
         (done_data, ) = done_queue.mock_calls[0][1]
         (due_data, ) = due_queue.mock_calls[0][1]
@@ -3547,9 +3572,126 @@ class TestQueue (unittest.TestCase):
         for key in ('set_id', 'rerun'):
             self.assertIsNone(done_data.get(key, None))
             self.assertIsNone(due_data.get(key, None))
+    
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.work.do_work')
+    @patch('openaddr.ci.objects.get_completed_file_run')
+    @patch('openaddr.ci.objects.add_run')
+    def test_pop_task_from_taskqueue_no_rerun(self, add_run, get_completed_file_run, do_work):
+        '''
+        '''
+        add_run.return_value = 999
+        get_completed_file_run.return_value = None
+
+        s3, task_queue, done_queue = mock.Mock(), mock.Mock(), mock.Mock()
+        due_queue, heartbeat_queue = mock.Mock(), mock.Mock()
+        task_queue.__enter__, task_queue.__exit__ = mock.Mock(), mock.Mock()
         
-        print(done_data)
-        print(due_data)
+        task_queue.get.return_value.data = dict(rerun=True, job_id='J', url='U', name='N', content_b64='Qw==', commit_sha='S', file_id='F')
+        pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, '', '')
+        
+        self.assertEqual(len(get_completed_file_run.mock_calls), 0, 'Should not have checked for a previous run')
+        self.assertGreaterEqual(len(do_work.mock_calls), 1, 'Should have done some real work')
+        self.assertEqual(len(add_run.mock_calls), 1, 'Should have added a new run')
+        
+        (done_data, ) = done_queue.mock_calls[0][1]
+        (due_data, ) = due_queue.mock_calls[0][1]
+        
+        # All items from task data were passed through to done and due queues
+        for (key, value) in task_queue.get.return_value.data.items():
+            self.assertEqual(done_data[key], value)
+            self.assertEqual(due_data[key], value)
+        
+        # Run ID and work results were also passed through correctly
+        self.assertEqual(done_data['run_id'], add_run.return_value)
+        self.assertEqual(due_data['run_id'], add_run.return_value)
+        self.assertEqual(done_data['result'], do_work.return_value)
+        self.assertNotIn('result', due_data)
+        
+        # Additional values were not added
+        self.assertIsNone(done_data.get('set_id', None))
+        self.assertIsNone(due_data.get('set_id', None))
+    
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.work.do_work')
+    @patch('openaddr.ci.objects.get_completed_file_run')
+    @patch('openaddr.ci.objects.add_run')
+    def test_pop_task_from_taskqueue_with_setid(self, add_run, get_completed_file_run, do_work):
+        '''
+        '''
+        add_run.return_value = 999
+        get_completed_file_run.return_value = None
+
+        s3, task_queue, done_queue = mock.Mock(), mock.Mock(), mock.Mock()
+        due_queue, heartbeat_queue = mock.Mock(), mock.Mock()
+        task_queue.__enter__, task_queue.__exit__ = mock.Mock(), mock.Mock()
+        
+        task_queue.get.return_value.data = dict(set_id=123, job_id='J', url='U', name='N', content_b64='Qw==', commit_sha='S', file_id='F')
+        pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, '', '')
+        
+        self.assertEqual(len(get_completed_file_run.mock_calls), 1, 'Should have checked for a previous run')
+        self.assertGreaterEqual(len(do_work.mock_calls), 1, 'Should have done some real work')
+        self.assertEqual(len(add_run.mock_calls), 1, 'Should have added a new run')
+        
+        (done_data, ) = done_queue.mock_calls[0][1]
+        (due_data, ) = due_queue.mock_calls[0][1]
+        
+        # All items from task data were passed through to done and due queues
+        for (key, value) in task_queue.get.return_value.data.items():
+            self.assertEqual(done_data[key], value)
+            self.assertEqual(due_data[key], value)
+        
+        # Run ID and work results were also passed through correctly
+        self.assertEqual(done_data['run_id'], add_run.return_value)
+        self.assertEqual(due_data['run_id'], add_run.return_value)
+        self.assertEqual(done_data['result'], do_work.return_value)
+        self.assertNotIn('result', due_data)
+        
+        # Additional values were not added
+        self.assertIsNone(done_data.get('rerun', None))
+        self.assertIsNone(due_data.get('rerun', None))
+    
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.work.do_work')
+    @patch('openaddr.ci.objects.copy_run')
+    @patch('openaddr.ci.objects.get_completed_file_run')
+    @patch('openaddr.ci.objects.add_run')
+    def test_pop_task_from_taskqueue_previous_run(self, add_run, get_completed_file_run, copy_run, do_work):
+        '''
+        '''
+        copy_run.return_value = 999
+        get_completed_file_run.return_value = (321, {}, True)
+
+        s3, task_queue, done_queue = mock.Mock(), mock.Mock(), mock.Mock()
+        due_queue, heartbeat_queue = mock.Mock(), mock.Mock()
+        task_queue.__enter__, task_queue.__exit__ = mock.Mock(), mock.Mock()
+        
+        task_queue.get.return_value.data = dict(job_id='J', url='U', name='N', content_b64='Qw==', commit_sha='S', file_id='F')
+        pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, '', '')
+        
+        self.assertEqual(len(get_completed_file_run.mock_calls), 1, 'Should have checked for a previous run')
+        self.assertEqual(len(add_run.mock_calls), 0, 'Should not have added a new run')
+        self.assertEqual(len(do_work.mock_calls), 0, 'Should not have done any real work')
+        self.assertEqual(len(copy_run.mock_calls), 1, 'Should have copied the previous run')
+        self.assertEqual(len(due_queue.mock_calls), 0, 'Should not have pushed to the due queue')
+        print(copy_run.mock_calls)
+        
+        db = task_queue.__enter__.return_value
+        copy_run.assert_called_once_with(db, 321, 'J', 'S', None)
+        
+        (done_data, ) = done_queue.mock_calls[0][1]
+        
+        # All items from task data were passed through to done and due queues
+        for (key, value) in task_queue.get.return_value.data.items():
+            self.assertEqual(done_data[key], value)
+        
+        # Run ID and work results were also passed through correctly
+        self.assertEqual(done_data['run_id'], copy_run.return_value)
+        self.assertEqual(done_data['result'], {'message': 'Everything is fine', 'reused_run': 321, 'output': {}})
+        
+        # Additional values were not added
+        for key in ('set_id', 'rerun'):
+            self.assertIsNone(done_data.get(key, None))
 
 class TestCollect (unittest.TestCase):
 
