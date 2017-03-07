@@ -4,8 +4,8 @@ from .. import jobs, render, util
 
 from .objects import (
     add_job, write_job, read_job, complete_set, update_set_renders,
-    add_run, set_run, copy_run, read_completed_set_runs, RunState,
-    get_completed_file_run, get_completed_run, new_read_completed_set_runs
+    set_run, read_completed_set_runs, RunState, get_completed_run,
+    new_read_completed_set_runs
     )
 
 from . import objects, work, queuedata
@@ -946,19 +946,19 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
             previous_run = None
         else:
             interval = '{} seconds'.format(RUN_REUSE_TIMEOUT.seconds + RUN_REUSE_TIMEOUT.days * 86400)
-            previous_run = get_completed_file_run(db, taskdata.file_id, interval)
+            previous_run = objects.get_completed_file_run(db, taskdata.file_id, interval)
     
         if previous_run:
             # Make a copy of the previous run.
             previous_run_id, _, _ = previous_run
             copy_args = (passed_on_kwargs[k] for k in ('job_id', 'commit_sha', 'set_id'))
-            passed_on_kwargs['run_id'] = copy_run(db, previous_run_id, *copy_args)
+            passed_on_kwargs['run_id'] = objects.copy_run(db, previous_run_id, *copy_args)
             
             # Don't send a due task, since we will not be doing any actual work.
         
         else:
             # Reserve space for a new run.
-            passed_on_kwargs['run_id'] = add_run(db)
+            passed_on_kwargs['run_id'] = objects.add_run(db)
 
             # Send a Due task, possibly for later.
             due_task = queuedata.Due(**passed_on_kwargs)
@@ -968,7 +968,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
         # Re-use result from the previous run.
         run_id, state, status = previous_run
         message = work.MAGIC_OK_MESSAGE if status else 'Re-using failed previous run'
-        result = dict(message=message, reused_run=run_id, output=state)
+        result = dict(message=message, reused_run=run_id, state=state)
 
     else:
         # Run the task.
@@ -1012,7 +1012,7 @@ def pop_task_from_donequeue(queue, github_auth):
         _L.info(u'Got file {} from done queue'.format(donedata.name))
         results = donedata.result
         message = results['message']
-        run_state = RunState(results.get('output', None))
+        run_state = RunState(results.get('state', None) or results.get('output', None)) # TODO: stop looking for old "output" here.
         content_b64 = donedata.content_b64
         commit_sha = donedata.commit_sha
         worker_id = donedata.worker_id

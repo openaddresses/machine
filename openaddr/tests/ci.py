@@ -54,7 +54,7 @@ from ..ci.tileindex import (
     )
 
 from ..jobs import JOB_TIMEOUT
-from ..ci.work import make_source_filename, assemble_output, MAGIC_OK_MESSAGE
+from ..ci.work import make_source_filename, assemble_runstate, MAGIC_OK_MESSAGE
 from ..ci.webhooks import apply_webhooks_blueprint
 from ..ci.webapi import apply_webapi_blueprint
 from .. import LocalProcessedResult
@@ -448,10 +448,12 @@ class TestObjects (unittest.TestCase):
     def test_get_completed_file_run_yes(self):
         ''' Check behavior of objects.get_completed_file_run_yes()
         '''
-        self.db.fetchone.return_value = (456, True, {})
+        self.db.fetchone.return_value = (456, {'source': 'example'}, True)
         
         run_id, state, status = get_completed_file_run(self.db, 'abc', timedelta(0))
         self.assertEqual(run_id, 456)
+        self.assertEqual(state.source, 'example')
+        self.assertIs(status, True)
 
         self.db.execute.assert_called_once_with(
                '''SELECT id, state, status FROM runs
@@ -2295,7 +2297,7 @@ class TestRuns (unittest.TestCase):
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
         
         def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
+            return dict(message=MAGIC_OK_MESSAGE, state=RunState({"source": "user_input.txt"}))
         
         do_work.side_effect = returns_plausible_result
 
@@ -2420,7 +2422,7 @@ class TestRuns (unittest.TestCase):
         ''' Test a run that succeeds past its due date.
         '''
         def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
+            return dict(message=MAGIC_OK_MESSAGE, state=RunState({"source": "user_input.txt"}))
 
         do_work.side_effect = returns_plausible_result
 
@@ -2585,7 +2587,8 @@ class TestRuns (unittest.TestCase):
         fprint = itertools.count(1)
         
         def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
-            return dict(message='Something went wrong', output={"source": "user_input.txt", "fingerprint": next(fprint)}, result_code=0, result_stdout='...')
+            return dict(message='Something went wrong', result_code=0, result_stdout='...',
+                        state=RunState({"source": "user_input.txt", "fingerprint": next(fprint)}))
         
         def raises_an_error(s3, run_id, source_name, content, output_dir):
             raise Exception('Worker did not know to re-use previous run')
@@ -2691,7 +2694,7 @@ class TestRuns (unittest.TestCase):
         fprint = itertools.count(1)
         
         def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "fingerprint": next(fprint)})
+            return dict(message=MAGIC_OK_MESSAGE, state=RunState({"source": "user_input.txt", "fingerprint": next(fprint)}))
         
         fake_queued_job_args = list(self.fake_queued_job_args[:])
         fake_queued_job_args[2] = True # rerun is true
@@ -2766,7 +2769,8 @@ class TestRuns (unittest.TestCase):
         fprint = itertools.count(1)
         
         def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "fingerprint": next(fprint)}, result_code=0, result_stdout='...')
+            return dict(message=MAGIC_OK_MESSAGE, result_code=0, result_stdout='...',
+                        state=RunState({"source": "user_input.txt", "fingerprint": next(fprint)}))
         
         do_work.side_effect = returns_plausible_result
 
@@ -2842,8 +2846,8 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(make_source_filename(u'yo/yo'), u'yo--yo.txt')
         self.assertEqual(make_source_filename(u'yó/yó'), u'yó--yó.txt')
     
-    def test_assemble_output_runstate(self):
-        ''' Test that return value of assemble_output() works for RunState.
+    def test_assemble_runstate(self):
+        ''' Test that assemble_runstate() puts the right values in RunState.
         '''
         s3 = mock.Mock()
         s3.new_key.return_value.md5 = b'0xWHATEVER'
@@ -2851,7 +2855,7 @@ class TestWorker (unittest.TestCase):
         s3.new_key.return_value.bucket.name = 'a-bucket'
 
         input1 = {'cache': False, 'sample': False, 'processed': False, 'output': False, 'preview': False, 'slippymap': False}
-        state1 = RunState(assemble_output(s3, input1, 'xx/f', 1, 'dir'))
+        state1 = assemble_runstate(s3, input1, 'xx/f', 1, 'dir')
 
         self.assertEqual(state1.cache, input1['cache'])
         self.assertEqual(state1.sample, input1['sample'])
@@ -2861,7 +2865,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(state1.slippymap, input1['slippymap'])
 
         input2 = {'cache': 'cache.csv', 'sample': False, 'processed': False, 'output': False, 'preview': False, 'slippymap': False}
-        state2 = RunState(assemble_output(s3, input2, 'xx/f', 2, 'dir'))
+        state2 = assemble_runstate(s3, input2, 'xx/f', 2, 'dir')
 
         self.assertEqual(state2.cache, 'https://s3.amazonaws.com/a-bucket/a-key')
         self.assertEqual(state2.fingerprint, '0xWHATEVER')
@@ -2873,7 +2877,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/2/cache.csv'))
 
         input3 = {'cache': False, 'sample': 'sample.json', 'processed': False, 'output': False, 'preview': False, 'slippymap': False}
-        state3 = RunState(assemble_output(s3, input3, 'xx/f', 3, 'dir'))
+        state3 = assemble_runstate(s3, input3, 'xx/f', 3, 'dir')
 
         self.assertEqual(state3.cache, input3['cache'])
         self.assertEqual(state3.sample, 'https://s3.amazonaws.com/a-bucket/a-key')
@@ -2884,7 +2888,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/3/sample.json'))
 
         input4 = {'cache': False, 'sample': False, 'processed': False, 'output': 'out.txt', 'preview': False, 'slippymap': False}
-        state4 = RunState(assemble_output(s3, input4, 'xx/f', 4, 'dir'))
+        state4 = assemble_runstate(s3, input4, 'xx/f', 4, 'dir')
 
         self.assertEqual(state4.cache, input4['cache'])
         self.assertEqual(state4.sample, input4['sample'])
@@ -2897,7 +2901,7 @@ class TestWorker (unittest.TestCase):
         with patch('openaddr.util.package_output') as package_output:
             package_output.return_value = 'nothing.zip'
             input5 = {'cache': False, 'sample': False, 'processed': 'data.zip', 'output': False, 'preview': False, 'slippymap': False}
-            state5 = RunState(assemble_output(s3, input5, 'xx/f', 5, 'dir'))
+            state5 = assemble_runstate(s3, input5, 'xx/f', 5, 'dir')
 
         self.assertEqual(state5.cache, input5['cache'])
         self.assertEqual(state5.sample, input5['sample'])
@@ -2909,7 +2913,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/5/xx/f.zip'))
 
         input6 = {'cache': False, 'sample': False, 'processed': False, 'output': False, 'preview': 'preview.png', 'slippymap': False}
-        state6 = RunState(assemble_output(s3, input6, 'xx/f', 6, 'dir'))
+        state6 = assemble_runstate(s3, input6, 'xx/f', 6, 'dir')
 
         self.assertEqual(state6.cache, input6['cache'])
         self.assertEqual(state6.sample, input6['sample'])
@@ -2920,7 +2924,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(s3.new_key.mock_calls[-2], mock.call('/runs/6/preview.png'))
 
         input7 = {'cache': False, 'sample': False, 'processed': False, 'output': False, 'preview': False, 'slippymap': 'slippymap.mbtiles'}
-        state7 = RunState(assemble_output(s3, input7, 'xx/f', 7, 'dir'))
+        state7 = assemble_runstate(s3, input7, 'xx/f', 7, 'dir')
 
         self.assertEqual(state7.cache, input7['cache'])
         self.assertEqual(state7.sample, input7['sample'])
@@ -2976,16 +2980,16 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(result['message'], MAGIC_OK_MESSAGE)
         self.assertEqual(result['result_code'], 0)
 
-        self.assertFalse(result['output']['skipped'])
-        self.assertTrue(result['output']['cache'].endswith('/cache.zip'))
-        self.assertTrue(result['output']['sample'].endswith('/sample.json'))
-        self.assertTrue(result['output']['output'].endswith('/output.txt'))
-        self.assertTrue(result['output']['preview'].endswith('/preview.png'))
-        self.assertTrue(result['output']['processed'].endswith(u'/so/exalté.zip'))
-        self.assertEqual(result['output']['website'], 'http://example.com')
-        self.assertEqual(result['output']['license'], 'GPL')
+        self.assertFalse(result['state'].skipped)
+        self.assertTrue(result['state'].cache.endswith('/cache.zip'))
+        self.assertTrue(result['state'].sample.endswith('/sample.json'))
+        self.assertTrue(result['state'].output.endswith('/output.txt'))
+        self.assertTrue(result['state'].preview.endswith('/preview.png'))
+        self.assertTrue(result['state'].processed.endswith(u'/so/exalté.zip'))
+        self.assertEqual(result['state'].website, 'http://example.com')
+        self.assertEqual(result['state'].license, 'GPL')
         
-        zip_path = urlparse(result['output']['processed']).path
+        zip_path = urlparse(result['state'].processed).path
         zip_bytes = self.s3._read_fake_key(zip_path[len('/fake-bucket'):])
         zip_file = ZipFile(BytesIO(zip_bytes), mode='r')
         self.assertTrue(u'README.txt' in zip_file.namelist())
@@ -3079,11 +3083,11 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(result['message'], MAGIC_OK_MESSAGE)
         self.assertEqual(result['result_code'], 0)
 
-        self.assertTrue(result['output']['skipped'])
-        self.assertIsNone(result['output']['cache'])
-        self.assertIsNone(result['output']['sample'])
-        self.assertIsNone(result['output']['license'])
-        self.assertIsNone(result['output']['processed'])
+        self.assertTrue(result['state'].skipped)
+        self.assertIsNone(result['state'].cache)
+        self.assertIsNone(result['state'].sample)
+        self.assertIsNone(result['state'].license)
+        self.assertIsNone(result['state'].processed)
 
 class TestBatch (unittest.TestCase):
 
@@ -3314,7 +3318,7 @@ class TestBatch (unittest.TestCase):
         ''' Show that the tasks enqueued in a batch context can be run.
         '''
         def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt"})
+            return dict(message=MAGIC_OK_MESSAGE, state=RunState({"source": "user_input.txt"}))
         
         do_work.side_effect = returns_plausible_result
 
@@ -3375,7 +3379,7 @@ class TestBatch (unittest.TestCase):
         ''' Show that a batch context will result in rendered maps.
         '''
         def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
-            return dict(message=MAGIC_OK_MESSAGE, output={"source": "user_input.txt", "address count": 999})
+            return dict(message=MAGIC_OK_MESSAGE, state=RunState({"source": "user_input.txt", "address count": 999}))
         
         do_work.side_effect = returns_plausible_result
 
@@ -3509,6 +3513,186 @@ class TestQueue (unittest.TestCase):
         
         job_data = update_job_status.mock_calls[0][1]
         self.assertEqual(job_data[1:6], ('j', 'u', 'sources/xx/f.json', False, {'message': 'Yo', 'output': output_data}))
+    
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.work.do_work')
+    @patch('openaddr.ci.objects.get_completed_file_run')
+    @patch('openaddr.ci.objects.add_run')
+    def test_pop_task_from_taskqueue_no_data(self, add_run, get_completed_file_run, do_work):
+        '''
+        '''
+        add_run.return_value = 999
+        get_completed_file_run.return_value = None
+
+        s3, task_queue, done_queue = mock.Mock(), mock.Mock(), mock.Mock()
+        due_queue, heartbeat_queue = mock.Mock(), mock.Mock()
+        task_queue.__enter__, task_queue.__exit__ = mock.Mock(), mock.Mock()
+        
+        task_queue.get.return_value = None
+        pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, '', '')
+        
+        self.assertEqual(len(get_completed_file_run.mock_calls), 0, 'Should not have checked for a previous run')
+        self.assertEqual(len(done_queue.mock_calls), 0, 'Should not have pushed to the done queue')
+        self.assertEqual(len(due_queue.mock_calls), 0, 'Should not have pushed to the due queue')
+    
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.work.do_work')
+    @patch('openaddr.ci.objects.get_completed_file_run')
+    @patch('openaddr.ci.objects.add_run')
+    def test_pop_task_from_taskqueue_new_run(self, add_run, get_completed_file_run, do_work):
+        '''
+        '''
+        add_run.return_value = 999
+        get_completed_file_run.return_value = None
+
+        s3, task_queue, done_queue = mock.Mock(), mock.Mock(), mock.Mock()
+        due_queue, heartbeat_queue = mock.Mock(), mock.Mock()
+        task_queue.__enter__, task_queue.__exit__ = mock.Mock(), mock.Mock()
+        
+        task_queue.get.return_value.data = dict(job_id='J', url='U', name='N', content_b64='Qw==', commit_sha='S', file_id='F')
+        pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, '', '')
+        
+        self.assertEqual(len(get_completed_file_run.mock_calls), 1, 'Should have checked for a previous run')
+        self.assertGreaterEqual(len(do_work.mock_calls), 1, 'Should have done some real work')
+        self.assertEqual(len(add_run.mock_calls), 1, 'Should have added a new run')
+        
+        (done_data, ) = done_queue.mock_calls[0][1]
+        (due_data, ) = due_queue.mock_calls[0][1]
+        
+        # All items from task data were passed through to done and due queues
+        for (key, value) in task_queue.get.return_value.data.items():
+            self.assertEqual(done_data[key], value)
+            self.assertEqual(due_data[key], value)
+        
+        # Run ID and work results were also passed through correctly
+        self.assertEqual(done_data['run_id'], add_run.return_value)
+        self.assertEqual(due_data['run_id'], add_run.return_value)
+        self.assertEqual(done_data['result'], do_work.return_value)
+        self.assertNotIn('result', due_data)
+        
+        # Additional values were not added
+        for key in ('set_id', 'rerun'):
+            self.assertIsNone(done_data.get(key, None))
+            self.assertIsNone(due_data.get(key, None))
+    
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.work.do_work')
+    @patch('openaddr.ci.objects.get_completed_file_run')
+    @patch('openaddr.ci.objects.add_run')
+    def test_pop_task_from_taskqueue_no_rerun(self, add_run, get_completed_file_run, do_work):
+        '''
+        '''
+        add_run.return_value = 999
+        get_completed_file_run.return_value = None
+
+        s3, task_queue, done_queue = mock.Mock(), mock.Mock(), mock.Mock()
+        due_queue, heartbeat_queue = mock.Mock(), mock.Mock()
+        task_queue.__enter__, task_queue.__exit__ = mock.Mock(), mock.Mock()
+        
+        task_queue.get.return_value.data = dict(rerun=True, job_id='J', url='U', name='N', content_b64='Qw==', commit_sha='S', file_id='F')
+        pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, '', '')
+        
+        self.assertEqual(len(get_completed_file_run.mock_calls), 0, 'Should not have checked for a previous run')
+        self.assertGreaterEqual(len(do_work.mock_calls), 1, 'Should have done some real work')
+        self.assertEqual(len(add_run.mock_calls), 1, 'Should have added a new run')
+        
+        (done_data, ) = done_queue.mock_calls[0][1]
+        (due_data, ) = due_queue.mock_calls[0][1]
+        
+        # All items from task data were passed through to done and due queues
+        for (key, value) in task_queue.get.return_value.data.items():
+            self.assertEqual(done_data[key], value)
+            self.assertEqual(due_data[key], value)
+        
+        # Run ID and work results were also passed through correctly
+        self.assertEqual(done_data['run_id'], add_run.return_value)
+        self.assertEqual(due_data['run_id'], add_run.return_value)
+        self.assertEqual(done_data['result'], do_work.return_value)
+        self.assertNotIn('result', due_data)
+        
+        # Additional values were not added
+        self.assertIsNone(done_data.get('set_id', None))
+        self.assertIsNone(due_data.get('set_id', None))
+    
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.work.do_work')
+    @patch('openaddr.ci.objects.get_completed_file_run')
+    @patch('openaddr.ci.objects.add_run')
+    def test_pop_task_from_taskqueue_with_setid(self, add_run, get_completed_file_run, do_work):
+        '''
+        '''
+        add_run.return_value = 999
+        get_completed_file_run.return_value = None
+
+        s3, task_queue, done_queue = mock.Mock(), mock.Mock(), mock.Mock()
+        due_queue, heartbeat_queue = mock.Mock(), mock.Mock()
+        task_queue.__enter__, task_queue.__exit__ = mock.Mock(), mock.Mock()
+        
+        task_queue.get.return_value.data = dict(set_id=123, job_id='J', url='U', name='N', content_b64='Qw==', commit_sha='S', file_id='F')
+        pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, '', '')
+        
+        self.assertEqual(len(get_completed_file_run.mock_calls), 1, 'Should have checked for a previous run')
+        self.assertGreaterEqual(len(do_work.mock_calls), 1, 'Should have done some real work')
+        self.assertEqual(len(add_run.mock_calls), 1, 'Should have added a new run')
+        
+        (done_data, ) = done_queue.mock_calls[0][1]
+        (due_data, ) = due_queue.mock_calls[0][1]
+        
+        # All items from task data were passed through to done and due queues
+        for (key, value) in task_queue.get.return_value.data.items():
+            self.assertEqual(done_data[key], value)
+            self.assertEqual(due_data[key], value)
+        
+        # Run ID and work results were also passed through correctly
+        self.assertEqual(done_data['run_id'], add_run.return_value)
+        self.assertEqual(due_data['run_id'], add_run.return_value)
+        self.assertEqual(done_data['result'], do_work.return_value)
+        self.assertNotIn('result', due_data)
+        
+        # Additional values were not added
+        self.assertIsNone(done_data.get('rerun', None))
+        self.assertIsNone(due_data.get('rerun', None))
+    
+    @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
+    @patch('openaddr.ci.work.do_work')
+    @patch('openaddr.ci.objects.copy_run')
+    @patch('openaddr.ci.objects.get_completed_file_run')
+    @patch('openaddr.ci.objects.add_run')
+    def test_pop_task_from_taskqueue_previous_run(self, add_run, get_completed_file_run, copy_run, do_work):
+        '''
+        '''
+        copy_run.return_value = 999
+        get_completed_file_run.return_value = (321, RunState({}), True)
+
+        s3, task_queue, done_queue = mock.Mock(), mock.Mock(), mock.Mock()
+        due_queue, heartbeat_queue = mock.Mock(), mock.Mock()
+        task_queue.__enter__, task_queue.__exit__ = mock.Mock(), mock.Mock()
+        
+        task_queue.get.return_value.data = dict(job_id='J', url='U', name='N', content_b64='Qw==', commit_sha='S', file_id='F')
+        pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue, '', '')
+        
+        self.assertEqual(len(get_completed_file_run.mock_calls), 1, 'Should have checked for a previous run')
+        self.assertEqual(len(add_run.mock_calls), 0, 'Should not have added a new run')
+        self.assertEqual(len(do_work.mock_calls), 0, 'Should not have done any real work')
+        self.assertEqual(len(copy_run.mock_calls), 1, 'Should have copied the previous run')
+        self.assertEqual(len(due_queue.mock_calls), 0, 'Should not have pushed to the due queue')
+        
+        db = task_queue.__enter__.return_value
+        copy_run.assert_called_once_with(db, 321, 'J', 'S', None)
+        
+        (done_data, ) = done_queue.mock_calls[0][1]
+        
+        # All items from task data were passed through to done queue
+        for (key, value) in task_queue.get.return_value.data.items():
+            self.assertEqual(done_data[key], value)
+        
+        # Run ID and work results were also passed through correctly
+        self.assertEqual(done_data['run_id'], copy_run.return_value)
+        self.assertEqual(done_data['result'], {'message': 'Everything is fine', 'reused_run': 321, 'state': {}})
+        
+        # Additional values were not added
+        for key in ('set_id', 'rerun'):
+            self.assertIsNone(done_data.get(key, None))
 
 class TestCollect (unittest.TestCase):
 

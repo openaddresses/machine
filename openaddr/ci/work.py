@@ -2,6 +2,7 @@ import logging; _L = logging.getLogger('openaddr.ci.work')
 
 from .. import util
 from ..jobs import JOB_TIMEOUT
+from .objects import RunState
 
 import os, json, tempfile, shutil, base64, subprocess
 from urllib.parse import urlparse, urljoin
@@ -24,11 +25,8 @@ def make_source_filename(source_name):
     '''
     return source_name.replace(u'/', u'--') + '.txt'
 
-def assemble_output(s3, input, source_name, run_id, index_dirname):
-    ''' Convert worker index dictionary to result output.
-        
-        The return of this function is passed through a few queues,
-        and eventually is expected to be acceptable to RunState().
+def assemble_runstate(s3, input, source_name, run_id, index_dirname):
+    ''' Convert worker index dictionary to RunState.
     '''
     output = {k: v for (k, v) in input.items()}
     
@@ -79,7 +77,7 @@ def assemble_output(s3, input, source_name, run_id, index_dirname):
         url, _ = upload_file(s3, key_name, slippymap_path)
         output['slippymap'] = url
     
-    return output
+    return RunState(output)
 
 def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_dir, mapzen_key=None):
     ''' Do the actual work of running a source file in job_contents.
@@ -153,7 +151,7 @@ def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_di
                 result.update(result_code=-1, message='Failed to produce {} data'.format(key))
         
         index_dirname = os.path.dirname(state_fullpath)
-        result['output'] = assemble_output(s3, index, source_name, run_id, index_dirname)
+        result['state'] = assemble_runstate(s3, index, source_name, run_id, index_dirname)
     
     shutil.rmtree(workdir)
     return result
