@@ -406,6 +406,16 @@ def read_completed_set_runs(db, set_id):
     
     return [Run(*row[:5]+(RunState(row[5]),)+row[6:]) for row in db.fetchall()]
 
+def read_completed_set_runs_count(db, set_id):
+    '''
+    '''
+    db.execute('''SELECT COUNT(*) FROM runs
+                  WHERE set_id = %s AND status IS NOT NULL''',
+               (set_id, ))
+    
+    (count, ) = db.fetchone()
+    return count
+
 def read_completed_source_runs(db, source_path):
     '''
     '''

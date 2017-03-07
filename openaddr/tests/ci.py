@@ -40,7 +40,7 @@ from ..ci.objects import (
     add_run, set_run, copy_run, get_completed_file_run, get_completed_run,
     old_read_completed_set_runs, read_completed_set_runs, read_latest_set,
     read_run, read_completed_runs_to_date, read_latest_run, Run, RunState,
-    read_completed_source_runs
+    read_completed_source_runs, read_completed_set_runs_count
     )
 
 from ..ci.collect import (
@@ -546,6 +546,19 @@ class TestObjects (unittest.TestCase):
                '''SELECT id, source_path, source_id, source_data, datetime_tz,
                          state, status, copy_of, code_version, worker_id,
                          job_id, set_id, commit_sha, is_merged FROM runs
+                  WHERE set_id = %s AND status IS NOT NULL''',
+                  (123, ))
+    
+    def test_read_completed_set_runs_count(self):
+        ''' Check behavior of objects.read_completed_set_runs_count()
+        '''
+        self.db.fetchone.return_value = (99, )
+        
+        count = read_completed_set_runs_count(self.db, 123)
+        self.assertEqual(count, 99)
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT COUNT(*) FROM runs
                   WHERE set_id = %s AND status IS NOT NULL''',
                   (123, ))
     
