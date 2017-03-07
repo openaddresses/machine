@@ -1,3 +1,7 @@
+2017-03-03: 4.5.1
+- Switched to RunState objects for pop_task_from_taskqueue(). (#572)
+- Updated front page text with total source count. (#573)
+
 2017-03-03: 4.5.0
 - Added total address count to GeoJSON renders. (#570)
 
