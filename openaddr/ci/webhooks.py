@@ -25,7 +25,7 @@ from . import (
 
 from .objects import (
     read_job, read_jobs, read_sets, read_set, read_latest_set, RunState,
-    read_run, new_read_completed_set_runs, read_completed_runs_to_date,
+    read_run, read_completed_set_runs, read_completed_runs_to_date,
     load_collection_zips_dict, read_latest_run, read_completed_source_runs
     )
 
@@ -249,7 +249,7 @@ def app_get_set(set_id):
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
             set = read_set(db, set_id)
-            runs = new_read_completed_set_runs(db, set.id)
+            runs = read_completed_set_runs(db, set.id)
 
     if set is None:
         return Response('Set {} not found'.format(set_id), 404)

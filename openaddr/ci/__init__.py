@@ -4,8 +4,7 @@ from .. import jobs, render, util
 
 from .objects import (
     add_job, write_job, read_job, complete_set, update_set_renders,
-    set_run, read_completed_set_runs, RunState, get_completed_run,
-    new_read_completed_set_runs
+    set_run, RunState, get_completed_run, read_completed_set_runs
     )
 
 from . import objects, work, queuedata
@@ -641,9 +640,9 @@ def enqueue_sources(queue, the_set, sources):
 def _update_expected_paths(db, expected_paths, the_set):
     ''' Discard sources from expected_paths set as they appear in runs table.
     '''
-    for (_, source_path, _, _) in read_completed_set_runs(db, the_set.id):
-        _L.debug(u'Discarding {}'.format(source_path))
-        expected_paths.discard(source_path)
+    for run in read_completed_set_runs(db, the_set.id):
+        _L.debug(u'Discarding {}'.format(run.source_path))
+        expected_paths.discard(run.source_path)
 
 def render_index_maps(s3, runs):
     ''' Render index maps and upload them to S3.
@@ -665,7 +664,7 @@ def render_set_maps(s3, db, the_set):
 
     try:
         s3_prefix = join('/sets', str(the_set.id))
-        runs = new_read_completed_set_runs(db, the_set.id)
+        runs = read_completed_set_runs(db, the_set.id)
         good_sources = _prepare_render_sources(runs, dirname)
         s3_urls = _render_and_upload_maps(s3, good_sources, s3_prefix, dirname)
         update_set_renders(db, the_set.id, *s3_urls)

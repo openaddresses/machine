@@ -386,7 +386,7 @@ def get_completed_run(db, run_id, min_dtz):
     
     return db.fetchone()
 
-def read_completed_set_runs(db, set_id):
+def old_read_completed_set_runs(db, set_id):
     '''
     '''
     db.execute('''SELECT source_id, source_path, source_data, status FROM runs
@@ -395,7 +395,7 @@ def read_completed_set_runs(db, set_id):
     
     return list(db.fetchall())
 
-def new_read_completed_set_runs(db, set_id):
+def read_completed_set_runs(db, set_id):
     '''
     '''
     db.execute('''SELECT id, source_path, source_id, source_data, datetime_tz,
