@@ -386,7 +386,7 @@ def get_completed_run(db, run_id, min_dtz):
     
     return db.fetchone()
 
-def read_completed_set_runs(db, set_id):
+def old_read_completed_set_runs(db, set_id):
     '''
     '''
     db.execute('''SELECT source_id, source_path, source_data, status FROM runs
@@ -395,7 +395,7 @@ def read_completed_set_runs(db, set_id):
     
     return list(db.fetchall())
 
-def new_read_completed_set_runs(db, set_id):
+def read_completed_set_runs(db, set_id):
     '''
     '''
     db.execute('''SELECT id, source_path, source_id, source_data, datetime_tz,
@@ -405,6 +405,16 @@ def new_read_completed_set_runs(db, set_id):
                (set_id, ))
     
     return [Run(*row[:5]+(RunState(row[5]),)+row[6:]) for row in db.fetchall()]
+
+def read_completed_set_runs_count(db, set_id):
+    '''
+    '''
+    db.execute('''SELECT COUNT(*) FROM runs
+                  WHERE set_id = %s AND status IS NOT NULL''',
+               (set_id, ))
+    
+    (count, ) = db.fetchone()
+    return count
 
 def read_completed_source_runs(db, source_path):
     '''

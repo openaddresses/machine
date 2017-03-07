@@ -6,7 +6,7 @@
     This is a summary view of <a href="http://openaddresses.io">OpenAddresses data</a>.
     <span class="stat">{{ counts.addresses|nice_integer }} addresses</span>
     have been processed as of <span class="stat">{{ last_modified.strftime('%A, %b %d, %Y') }}</span>.
-    Out of <a href="https://github.com/openaddresses/openaddresses/tree/master/sources">all sources</a>,
+    Out of <a href="https://github.com/openaddresses/openaddresses/tree/master/sources">{{ source_count|nice_integer }} sources</a>,
     <a href="#first-processed" class="stat">{{ counts.processed|nice_integer }} have completed</a>.
 </p>
 <p>

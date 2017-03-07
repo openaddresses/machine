@@ -10,7 +10,7 @@ from flask_cors import CORS
 
 from .objects import (
     load_collection_zips_dict, read_latest_set, read_completed_runs_to_date,
-    new_read_completed_set_runs, read_set
+    read_completed_set_runs, read_set
     )
 
 from . import setup_logger, db_connect, db_cursor, tileindex
@@ -134,7 +134,7 @@ def app_get_set_state_txt(set_id):
     '''
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
-            runs = new_read_completed_set_runs(db, set_id)
+            runs = read_completed_set_runs(db, set_id)
     
     buffer = io.StringIO()
     output = csv.DictWriter(buffer, CSV_HEADER, dialect='excel-tab')
