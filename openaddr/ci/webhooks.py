@@ -26,7 +26,8 @@ from . import (
 from .objects import (
     read_job, read_jobs, read_sets, read_set, read_latest_set, RunState,
     read_run, read_completed_set_runs, read_completed_runs_to_date,
-    load_collection_zips_dict, read_latest_run, read_completed_source_runs
+    load_collection_zips_dict, read_latest_run, read_completed_source_runs,
+    read_completed_set_runs_count
     )
 
 from ..summarize import summarize_runs, GLASS_HALF_FULL, GLASS_HALF_EMPTY, nice_integer, break_state
@@ -90,6 +91,7 @@ def app_index():
             set = read_latest_set(db, 'openaddresses', 'openaddresses')
             runs = read_completed_runs_to_date(db, set and set.id)
             zips = load_collection_zips_dict(db)
+            source_count = read_completed_set_runs_count(db, set.id) if set else None
     
     good_runs, last_modified = list(), datetime.now(tz=tzutc())
 
@@ -108,7 +110,8 @@ def app_index():
         more_runs = 0
 
     return render_template('index.html', s3_bucket=current_app.config['AWS_S3_BUCKET'],
-                           set=None, zips=zips, additional_runs=more_runs, **summary_data)
+                           set=None, zips=zips, additional_runs=more_runs,
+                           source_count=source_count, **summary_data)
 
 @webhooks.route('/hook', methods=['POST'])
 @log_application_errors
