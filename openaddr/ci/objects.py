@@ -142,17 +142,40 @@ class Zip:
         self.url = url
         self.content_length = content_length
 
+def _result_runstate2dictionary(result):
+    '''
+    '''
+    actual_result = copy.copy(result)
+
+    if result and 'state' in result:
+        actual_result['state'] = result['state'].to_dict()
+    elif result and 'output' in result:
+        # old-style
+        actual_result['state'] = result.pop('output').to_dict()
+
+    return actual_result
+
+def _result_dictionary2runstate(result):
+    '''
+    '''
+    actual_result = copy.copy(result)
+
+    if result and 'state' in result:
+        actual_result['state'] = RunState(result['state'])
+    elif result and 'output' in result:
+        # old-style
+        actual_result['state'] = RunState(result.pop('output'))
+
+    return actual_result
+
 def add_job(db, job_id, status, task_files, file_states, file_results, owner, repo, status_url, comments_url):
     ''' Save information about a job to the database.
     
         Throws an IntegrityError exception if the job ID exists.
     '''
     # Find RunState instances in file_results and turn them into dictionaries.
-    actual_results = dict()
-    for (path, result) in file_results.items():
-        actual_results[path] = copy.copy(result)
-        if result and 'state' in result:
-            actual_results[path]['state'] = result['state'].to_dict()
+    actual_results = {path: _result_runstate2dictionary(result)
+                      for (path, result) in file_results.items()}
     
     db.execute('''INSERT INTO jobs
                   (task_files, file_states, file_results, github_owner,
@@ -167,14 +190,8 @@ def write_job(db, job_id, status, task_files, file_states, file_results, owner, 
     ''' Save information about a job to the database.
     '''
     # Find RunState instances in file_results and turn them into dictionaries.
-    actual_results = dict()
-    for (path, result) in file_results.items():
-        actual_results[path] = copy.copy(result)
-        if result and 'state' in result:
-            actual_results[path]['state'] = result['state'].to_dict()
-        elif result and 'output' in result:
-            # old-style
-            actual_results[path]['state'] = result.pop('output').to_dict()
+    actual_results = {path: _result_runstate2dictionary(result)
+                      for (path, result) in file_results.items()}
     
     is_complete = bool(status is not None)
     
@@ -206,15 +223,8 @@ def read_job(db, job_id):
         return None
     else:
         # Find dictionaries in file_results and turn them into RunState instances.
-        actual_results = dict()
-        for (path, result) in file_results.items():
-            actual_results[path] = copy.copy(result)
-            if result and 'state' in result:
-                actual_results[path]['state'] = RunState(result['state'])
-            elif result and 'output' in result:
-                # old-style
-                state_dict = actual_results[path].pop('output')
-                actual_results[path]['state'] = RunState(state_dict)
+        actual_results = {path: _result_dictionary2runstate(result)
+                          for (path, result) in file_results.items()}
     
         return Job(job_id, status, task_files, states, actual_results,
                    github_owner, github_repository, github_status_url,
@@ -241,15 +251,9 @@ def read_jobs(db, past_id):
     for row in db.fetchall():
         # Find dictionaries in file_results and turn them into RunState instances.
         job_args = list(row)
-        file_results, actual_results = job_args.pop(4), dict()
-        for (path, result) in file_results.items():
-            actual_results[path] = copy.copy(result)
-            if result and 'state' in result:
-                actual_results[path]['state'] = RunState(result['state'])
-            elif result and 'output' in result:
-                # old-style
-                state_dict = actual_results[path].pop('output')
-                actual_results[path]['state'] = RunState(state_dict)
+        file_results = job_args.pop(4)
+        actual_results = {path: _result_dictionary2runstate(result)
+                          for (path, result) in file_results.items()}
         job_args.insert(4, actual_results)
         jobs.append(Job(*job_args))
     
