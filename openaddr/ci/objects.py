@@ -151,7 +151,7 @@ def add_job(db, job_id, status, task_files, file_states, file_results, owner, re
     actual_results = dict()
     for (path, result) in file_results.items():
         actual_results[path] = copy.copy(result)
-        if 'state' in result:
+        if result and 'state' in result:
             actual_results[path]['state'] = result['state'].to_dict()
     
     db.execute('''INSERT INTO jobs
@@ -170,8 +170,11 @@ def write_job(db, job_id, status, task_files, file_states, file_results, owner, 
     actual_results = dict()
     for (path, result) in file_results.items():
         actual_results[path] = copy.copy(result)
-        if 'state' in result:
+        if result and 'state' in result:
             actual_results[path]['state'] = result['state'].to_dict()
+        elif result and 'output' in result:
+            # old-style
+            actual_results[path]['state'] = result.pop('output').to_dict()
     
     is_complete = bool(status is not None)
     
@@ -206,9 +209,9 @@ def read_job(db, job_id):
         actual_results = dict()
         for (path, result) in file_results.items():
             actual_results[path] = copy.copy(result)
-            if 'state' in result:
+            if result and 'state' in result:
                 actual_results[path]['state'] = RunState(result['state'])
-            elif 'output' in result:
+            elif result and 'output' in result:
                 # old-style
                 state_dict = actual_results[path].pop('output')
                 actual_results[path]['state'] = RunState(state_dict)
@@ -241,9 +244,9 @@ def read_jobs(db, past_id):
         file_results, actual_results = job_args.pop(4), dict()
         for (path, result) in file_results.items():
             actual_results[path] = copy.copy(result)
-            if 'state' in result:
+            if result and 'state' in result:
                 actual_results[path]['state'] = RunState(result['state'])
-            elif 'output' in result:
+            elif result and 'output' in result:
                 # old-style
                 state_dict = actual_results[path].pop('output')
                 actual_results[path]['state'] = RunState(state_dict)
