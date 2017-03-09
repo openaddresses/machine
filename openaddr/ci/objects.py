@@ -155,7 +155,7 @@ def _result_runstate2dictionary(result):
 
     return actual_result
 
-def _result_dictionary2runstate(result):
+def result_dictionary2runstate(result):
     '''
     '''
     actual_result = copy.copy(result)
@@ -165,6 +165,8 @@ def _result_dictionary2runstate(result):
     elif result and 'output' in result:
         # old-style
         actual_result['state'] = RunState(result.pop('output'))
+    elif result:
+        actual_result['state'] = RunState(None)
 
     return actual_result
 
@@ -223,7 +225,7 @@ def read_job(db, job_id):
         return None
     else:
         # Find dictionaries in file_results and turn them into RunState instances.
-        actual_results = {path: _result_dictionary2runstate(result)
+        actual_results = {path: result_dictionary2runstate(result)
                           for (path, result) in file_results.items()}
     
         return Job(job_id, status, task_files, states, actual_results,
@@ -252,7 +254,7 @@ def read_jobs(db, past_id):
         # Find dictionaries in file_results and turn them into RunState instances.
         job_args = list(row)
         file_results = job_args.pop(4)
-        actual_results = {path: _result_dictionary2runstate(result)
+        actual_results = {path: result_dictionary2runstate(result)
                           for (path, result) in file_results.items()}
         job_args.insert(4, actual_results)
         jobs.append(Job(*job_args))

@@ -40,7 +40,8 @@ from ..ci.objects import (
     add_run, set_run, copy_run, get_completed_file_run, get_completed_run,
     old_read_completed_set_runs, read_completed_set_runs, read_latest_set,
     read_run, read_completed_runs_to_date, read_latest_run, Run, RunState,
-    read_completed_source_runs, read_completed_set_runs_count
+    read_completed_source_runs, read_completed_set_runs_count,
+    result_dictionary2runstate
     )
 
 from ..ci.collect import (
@@ -133,6 +134,28 @@ class TestObjects (unittest.TestCase):
                   ('{}', '{}', '{"sources/file.json": {"message": "Yo", "state": {"source": "file.txt"}}}',
                    'o', 'a', 'http://', 'https://', True, 'xyz'))
 
+    def test_result_dictionary2runstate(self):
+        '''
+        '''
+        result1 = {'message': 'Yo', 'state': {'source': 'Hello'}}
+        result1b = result_dictionary2runstate(result1)
+        self.assertEqual(result1b['message'], 'Yo')
+        self.assertEqual(result1b['state'].source, 'Hello')
+
+        result2 = {'message': 'Yo', 'output': {'source': 'Hello'}}
+        result2b = result_dictionary2runstate(result2)
+        self.assertEqual(result2b['message'], 'Yo')
+        self.assertEqual(result2b['state'].source, 'Hello')
+
+        result3 = {'message': 'Yo'}
+        result3b = result_dictionary2runstate(result3)
+        self.assertEqual(result3b['message'], 'Yo')
+        self.assertIsNone(result3b['state'].source)
+
+        result4 = None
+        result4b = result_dictionary2runstate(result4)
+        self.assertIsNone(result4b)
+    
     def test_write_job_success(self):
         ''' Check behavior of objects.write_job()
         '''
@@ -181,22 +204,6 @@ class TestObjects (unittest.TestCase):
                   ('{}', '{}', '{"sources/file.json": {"message": "Yo", "state": {"source": "file.txt"}}}',
                    'o', 'a', 'http://', 'https://', None, False, 'xyz'))
 
-    def test_write_job_stateless(self):
-        ''' Check behavior of objects.write_job()
-        '''
-        results = {'sources/file.json': None}
-        write_job(self.db, 'xyz', None, {}, {}, results, 'o', 'a', 'http://', 'https://')
-
-        self.db.execute.assert_called_once_with(
-               '''UPDATE jobs
-                  SET task_files=%s::json, file_states=%s::json,
-                      file_results=%s::json, github_owner=%s, github_repository=%s,
-                      github_status_url=%s, github_comments_url=%s, status=%s,
-                      datetime_end=CASE WHEN %s THEN NOW() ELSE null END
-                  WHERE id = %s''',
-                  ('{}', '{}', '{"sources/file.json": null}',
-                   'o', 'a', 'http://', 'https://', None, False, 'xyz'))
-
     def test_read_job_yes(self):
         ''' Check behavior of objects.read_job()
         '''
@@ -232,15 +239,6 @@ class TestObjects (unittest.TestCase):
         self.assertIn('sources/file.json', job.file_results)
         self.assertEqual(job.file_results['sources/file.json']['message'], 'Yo')
         self.assertEqual(job.file_results['sources/file.json']['state'].source, 'file.txt')
-
-    def test_read_job_stateless(self):
-        ''' Check old-dict behavior of objects.read_job()
-        '''
-        self.db.fetchone.return_value = True, {}, {}, {"sources/file.json": None}, 'o', 'a', 'http://', 'https://', None, None
-        
-        job = read_job(self.db, 'xyz')
-        self.assertIn('sources/file.json', job.file_results)
-        self.assertIsNone(job.file_results['sources/file.json'])
 
     def test_read_job_no(self):
         ''' Check behavior of objects.read_job()
@@ -281,17 +279,6 @@ class TestObjects (unittest.TestCase):
                   FROM jobs WHERE sequence < COALESCE((SELECT sequence FROM jobs WHERE id = %s), 2^64)
                   ORDER BY sequence DESC LIMIT 25''',
                   (None, ))
-
-    def test_read_jobs_stateless(self):
-        ''' Check behavior of objects.read_jobs()
-        '''
-        self.db.fetchall.return_value = (('xyz', True, {}, {}, {"sources/file.json": None}, 'o', 'a', 'http://', 'https://', None, None), )
-        
-        (job, ) = read_jobs(self.db, None)
-        self.assertEqual(job.id, 'xyz')
-        self.assertEqual(job.status, True)
-        self.assertIn('sources/file.json', job.file_results)
-        self.assertIsNone(job.file_results['sources/file.json'])
 
     @patch('openaddr.ci.objects.read_set')
     def test_add_set(self, read_set):

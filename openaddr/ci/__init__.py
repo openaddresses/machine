@@ -1009,13 +1009,7 @@ def pop_task_from_donequeue(queue, github_auth):
     
         # Convert dictionary into RunState
         if 'result' in task.data:
-            result = task.data['result']
-            if 'state' in result:
-                result['state'] = RunState(result['state'])
-            elif 'output' in result:
-                result['state'] = RunState(result.pop('output'))
-            else:
-                result['state'] = RunState(None)
+            task.data['result'] = objects.result_dictionary2runstate(task.data['result'])
         
         donedata = queuedata.Done(**task.data)
         _L.info(u'Got file {} from done queue'.format(donedata.name))
