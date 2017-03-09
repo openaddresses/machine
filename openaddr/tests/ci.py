@@ -3585,7 +3585,10 @@ class TestQueue (unittest.TestCase):
         self.assertEqual(run_data[6:], (False, 'j', None, 'sss', is_merged_to_master.return_value, None))
         
         job_data = update_job_status.mock_calls[0][1]
-        self.assertEqual(job_data[1:6], ('j', 'u', 'sources/xx/f.json', False, {'message': 'Yo', 'output': output_data}))
+        self.assertEqual(job_data[1:5], ('j', 'u', 'sources/xx/f.json', False))
+        self.assertEqual(job_data[5]['message'], 'Yo')
+        self.assertEqual(job_data[5]['state'].source, 'sources/xx/f.json')
+        self.assertEqual(job_data[5]['state'].process_hash, 'f00')
     
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
     @patch('openaddr.ci.work.do_work')
