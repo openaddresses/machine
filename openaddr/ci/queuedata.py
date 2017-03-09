@@ -56,8 +56,7 @@ class Done:
 
         # Convert RunState to a plain dictionary
         if data['result'] and 'state' in data['result']:
-            state = data['result']['state']
-            data['result']['state'] = {k: state.get(k) for k in state.keys}
+            data['result']['state'] = data['result']['state'].to_dict()
     
         return data
 

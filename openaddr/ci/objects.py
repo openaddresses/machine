@@ -1,6 +1,6 @@
 import logging; _L = logging.getLogger('openaddr.ci.objects')
 
-import json, pickle
+import json, pickle, copy
 
 # Todo: make this a Python 3 enum
 FAIL_REASONS = {
@@ -128,9 +128,12 @@ class RunState:
     
     def get(self, json_key):
         return getattr(self, RunState.key_attrs[json_key])
-        
+    
+    def to_dict(self):
+        return {k: self.get(k) for k in self.keys}
+    
     def to_json(self):
-        return json.dumps({k: self.get(k) for k in self.keys})
+        return json.dumps(self.to_dict())
 
 class Zip:
     '''
@@ -139,23 +142,59 @@ class Zip:
         self.url = url
         self.content_length = content_length
 
+def _result_runstate2dictionary(result):
+    '''
+    '''
+    actual_result = copy.copy(result)
+
+    if result and 'state' in result:
+        actual_result['state'] = result['state'].to_dict()
+    elif result and 'output' in result:
+        # old-style
+        actual_result['state'] = result.pop('output').to_dict()
+
+    return actual_result
+
+def result_dictionary2runstate(result):
+    '''
+    '''
+    actual_result = copy.copy(result)
+
+    if result and 'state' in result:
+        actual_result['state'] = RunState(result['state'])
+    elif result and 'output' in result:
+        # old-style
+        actual_result['state'] = RunState(result.pop('output'))
+    elif result:
+        actual_result['state'] = RunState(None)
+
+    return actual_result
+
 def add_job(db, job_id, status, task_files, file_states, file_results, owner, repo, status_url, comments_url):
     ''' Save information about a job to the database.
     
         Throws an IntegrityError exception if the job ID exists.
     '''
+    # Find RunState instances in file_results and turn them into dictionaries.
+    actual_results = {path: _result_runstate2dictionary(result)
+                      for (path, result) in file_results.items()}
+    
     db.execute('''INSERT INTO jobs
                   (task_files, file_states, file_results, github_owner,
                    github_repository, github_status_url, github_comments_url,
                    status, id, datetime_start)
                   VALUES (%s::json, %s::json, %s::json, %s, %s, %s, %s, %s, %s, NOW())''',
                (json.dumps(task_files), json.dumps(file_states),
-                json.dumps(file_results), owner, repo, status_url,
+                json.dumps(actual_results), owner, repo, status_url,
                 comments_url, status, job_id))
 
 def write_job(db, job_id, status, task_files, file_states, file_results, owner, repo, status_url, comments_url):
     ''' Save information about a job to the database.
     '''
+    # Find RunState instances in file_results and turn them into dictionaries.
+    actual_results = {path: _result_runstate2dictionary(result)
+                      for (path, result) in file_results.items()}
+    
     is_complete = bool(status is not None)
     
     db.execute('''UPDATE jobs
@@ -165,7 +204,7 @@ def write_job(db, job_id, status, task_files, file_states, file_results, owner, 
                       datetime_end=CASE WHEN %s THEN NOW() ELSE null END
                   WHERE id = %s''',
                (json.dumps(task_files), json.dumps(file_states),
-                json.dumps(file_results), owner, repo, status_url, comments_url,
+                json.dumps(actual_results), owner, repo, status_url, comments_url,
                 status, is_complete, job_id))
 
 def read_job(db, job_id):
@@ -185,7 +224,11 @@ def read_job(db, job_id):
     except TypeError:
         return None
     else:
-        return Job(job_id, status, task_files, states, file_results,
+        # Find dictionaries in file_results and turn them into RunState instances.
+        actual_results = {path: result_dictionary2runstate(result)
+                          for (path, result) in file_results.items()}
+    
+        return Job(job_id, status, task_files, states, actual_results,
                    github_owner, github_repository, github_status_url,
                    github_comments_url, datetime_start, datetime_end)
     
@@ -205,7 +248,18 @@ def read_jobs(db, past_id):
                   ORDER BY sequence DESC LIMIT 25''',
                (past_id, ))
     
-    return [Job(*row) for row in db.fetchall()]
+    jobs = []
+    
+    for row in db.fetchall():
+        # Find dictionaries in file_results and turn them into RunState instances.
+        job_args = list(row)
+        file_results = job_args.pop(4)
+        actual_results = {path: result_dictionary2runstate(result)
+                          for (path, result) in file_results.items()}
+        job_args.insert(4, actual_results)
+        jobs.append(Job(*job_args))
+    
+    return jobs
 
 def add_set(db, owner, repository):
     '''

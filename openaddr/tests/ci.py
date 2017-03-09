@@ -40,7 +40,8 @@ from ..ci.objects import (
     add_run, set_run, copy_run, get_completed_file_run, get_completed_run,
     old_read_completed_set_runs, read_completed_set_runs, read_latest_set,
     read_run, read_completed_runs_to_date, read_latest_run, Run, RunState,
-    read_completed_source_runs, read_completed_set_runs_count
+    read_completed_source_runs, read_completed_set_runs_count,
+    result_dictionary2runstate
     )
 
 from ..ci.collect import (
@@ -121,7 +122,8 @@ class TestObjects (unittest.TestCase):
     def test_add_job(self):
         ''' Check behavior of objects.add_job()
         '''
-        add_job(self.db, 'xyz', True, {}, {}, {}, 'o', 'a', 'http://', 'https://')
+        results = {'sources/file.json': {'message': 'Yo', 'state': RunState({'source': 'file.txt'})}}
+        add_job(self.db, 'xyz', True, {}, {}, results, 'o', 'a', 'http://', 'https://')
 
         self.db.execute.assert_called_once_with(
                '''INSERT INTO jobs
@@ -129,12 +131,36 @@ class TestObjects (unittest.TestCase):
                    github_repository, github_status_url, github_comments_url,
                    status, id, datetime_start)
                   VALUES (%s::json, %s::json, %s::json, %s, %s, %s, %s, %s, %s, NOW())''',
-                  ('{}', '{}', '{}', 'o', 'a', 'http://', 'https://', True, 'xyz'))
+                  ('{}', '{}', '{"sources/file.json": {"message": "Yo", "state": {"source": "file.txt"}}}',
+                   'o', 'a', 'http://', 'https://', True, 'xyz'))
 
+    def test_result_dictionary2runstate(self):
+        '''
+        '''
+        result1 = {'message': 'Yo', 'state': {'source': 'Hello'}}
+        result1b = result_dictionary2runstate(result1)
+        self.assertEqual(result1b['message'], 'Yo')
+        self.assertEqual(result1b['state'].source, 'Hello')
+
+        result2 = {'message': 'Yo', 'output': {'source': 'Hello'}}
+        result2b = result_dictionary2runstate(result2)
+        self.assertEqual(result2b['message'], 'Yo')
+        self.assertEqual(result2b['state'].source, 'Hello')
+
+        result3 = {'message': 'Yo'}
+        result3b = result_dictionary2runstate(result3)
+        self.assertEqual(result3b['message'], 'Yo')
+        self.assertIsNone(result3b['state'].source)
+
+        result4 = None
+        result4b = result_dictionary2runstate(result4)
+        self.assertIsNone(result4b)
+    
     def test_write_job_success(self):
         ''' Check behavior of objects.write_job()
         '''
-        write_job(self.db, 'xyz', True, {}, {}, {}, 'o', 'a', 'http://', 'https://')
+        results = {'sources/file.json': {'message': 'Yo', 'state': RunState({'source': 'file.txt'})}}
+        write_job(self.db, 'xyz', True, {}, {}, results, 'o', 'a', 'http://', 'https://')
 
         self.db.execute.assert_called_once_with(
                '''UPDATE jobs
@@ -143,12 +169,14 @@ class TestObjects (unittest.TestCase):
                       github_status_url=%s, github_comments_url=%s, status=%s,
                       datetime_end=CASE WHEN %s THEN NOW() ELSE null END
                   WHERE id = %s''',
-                  ('{}', '{}', '{}', 'o', 'a', 'http://', 'https://', True, True, 'xyz'))
+                  ('{}', '{}', '{"sources/file.json": {"message": "Yo", "state": {"source": "file.txt"}}}',
+                   'o', 'a', 'http://', 'https://', True, True, 'xyz'))
 
     def test_write_job_failure(self):
         ''' Check behavior of objects.write_job()
         '''
-        write_job(self.db, 'xyz', False, {}, {}, {}, 'o', 'a', 'http://', 'https://')
+        results = {'sources/file.json': {'message': 'Yo', 'state': RunState({'source': 'file.txt'})}}
+        write_job(self.db, 'xyz', False, {}, {}, results, 'o', 'a', 'http://', 'https://')
 
         self.db.execute.assert_called_once_with(
                '''UPDATE jobs
@@ -157,12 +185,14 @@ class TestObjects (unittest.TestCase):
                       github_status_url=%s, github_comments_url=%s, status=%s,
                       datetime_end=CASE WHEN %s THEN NOW() ELSE null END
                   WHERE id = %s''',
-                  ('{}', '{}', '{}', 'o', 'a', 'http://', 'https://', False, True, 'xyz'))
+                  ('{}', '{}', '{"sources/file.json": {"message": "Yo", "state": {"source": "file.txt"}}}',
+                   'o', 'a', 'http://', 'https://', False, True, 'xyz'))
 
     def test_write_job_ongoing(self):
         ''' Check behavior of objects.write_job()
         '''
-        write_job(self.db, 'xyz', None, {}, {}, {}, 'o', 'a', 'http://', 'https://')
+        results = {'sources/file.json': {'message': 'Yo', 'state': RunState({'source': 'file.txt'})}}
+        write_job(self.db, 'xyz', None, {}, {}, results, 'o', 'a', 'http://', 'https://')
 
         self.db.execute.assert_called_once_with(
                '''UPDATE jobs
@@ -171,12 +201,13 @@ class TestObjects (unittest.TestCase):
                       github_status_url=%s, github_comments_url=%s, status=%s,
                       datetime_end=CASE WHEN %s THEN NOW() ELSE null END
                   WHERE id = %s''',
-                  ('{}', '{}', '{}', 'o', 'a', 'http://', 'https://', None, False, 'xyz'))
+                  ('{}', '{}', '{"sources/file.json": {"message": "Yo", "state": {"source": "file.txt"}}}',
+                   'o', 'a', 'http://', 'https://', None, False, 'xyz'))
 
     def test_read_job_yes(self):
         ''' Check behavior of objects.read_job()
         '''
-        self.db.fetchone.return_value = True, {}, {}, {}, 'o', 'a', 'http://', 'https://', None, None
+        self.db.fetchone.return_value = True, {}, {}, {"sources/file.json": {"message": "Yo", "state": {"source": "file.txt"}}}, 'o', 'a', 'http://', 'https://', None, None
         
         job = read_job(self.db, 'xyz')
         self.assertEqual(job.id, 'xyz')
@@ -185,6 +216,9 @@ class TestObjects (unittest.TestCase):
         self.assertEqual(job.github_repository, 'a')
         self.assertEqual(job.github_status_url, 'http://')
         self.assertEqual(job.github_comments_url, 'https://')
+        self.assertIn('sources/file.json', job.file_results)
+        self.assertEqual(job.file_results['sources/file.json']['message'], 'Yo')
+        self.assertEqual(job.file_results['sources/file.json']['state'].source, 'file.txt')
         self.assertIsNone(job.datetime_start)
         self.assertIsNone(job.datetime_end)
 
@@ -195,6 +229,16 @@ class TestObjects (unittest.TestCase):
                   FROM jobs WHERE id = %s
                   LIMIT 1''',
                   ('xyz', ))
+
+    def test_read_job_old(self):
+        ''' Check old-dict behavior of objects.read_job()
+        '''
+        self.db.fetchone.return_value = True, {}, {}, {"sources/file.json": {"message": "Yo", "output": {"source": "file.txt"}}}, 'o', 'a', 'http://', 'https://', None, None
+        
+        job = read_job(self.db, 'xyz')
+        self.assertIn('sources/file.json', job.file_results)
+        self.assertEqual(job.file_results['sources/file.json']['message'], 'Yo')
+        self.assertEqual(job.file_results['sources/file.json']['state'].source, 'file.txt')
 
     def test_read_job_no(self):
         ''' Check behavior of objects.read_job()
@@ -215,11 +259,14 @@ class TestObjects (unittest.TestCase):
     def test_read_jobs(self):
         ''' Check behavior of objects.read_jobs()
         '''
-        self.db.fetchall.return_value = (('xyz', True, {}, {}, {}, 'o', 'a', 'http://', 'https://', None, None), )
+        self.db.fetchall.return_value = (('xyz', True, {}, {}, {"sources/file.json": {"message": "Yo", "state": {"source": "file.txt"}}}, 'o', 'a', 'http://', 'https://', None, None), )
         
         (job, ) = read_jobs(self.db, None)
         self.assertEqual(job.id, 'xyz')
         self.assertEqual(job.status, True)
+        self.assertIn('sources/file.json', job.file_results)
+        self.assertEqual(job.file_results['sources/file.json']['message'], 'Yo')
+        self.assertEqual(job.file_results['sources/file.json']['state'].source, 'file.txt')
 
         self.db.execute.assert_called_once_with(
                '''SELECT id, status, task_files, file_states, file_results,
@@ -3525,7 +3572,10 @@ class TestQueue (unittest.TestCase):
         self.assertEqual(run_data[6:], (False, 'j', None, 'sss', is_merged_to_master.return_value, None))
         
         job_data = update_job_status.mock_calls[0][1]
-        self.assertEqual(job_data[1:6], ('j', 'u', 'sources/xx/f.json', False, {'message': 'Yo', 'output': output_data}))
+        self.assertEqual(job_data[1:5], ('j', 'u', 'sources/xx/f.json', False))
+        self.assertEqual(job_data[5]['message'], 'Yo')
+        self.assertEqual(job_data[5]['state'].source, 'sources/xx/f.json')
+        self.assertEqual(job_data[5]['state'].process_hash, 'f00')
     
     @patch('openaddr.ci.WORKER_COOLDOWN', new=timedelta(seconds=0))
     @patch('openaddr.ci.work.do_work')
