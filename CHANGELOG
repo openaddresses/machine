@@ -1,3 +1,6 @@
+2017-03-09: 4.6.0
+- Added conversion to/from RunState on all database boundaries. (#576)
+
 2017-03-09: 4.5.2
 - Fixed display bug on jobs pages. (#575)
 
