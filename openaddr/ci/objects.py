@@ -133,7 +133,7 @@ class RunState:
         return {k: self.get(k) for k in self.keys}
     
     def to_json(self):
-        return json.dumps(self.to_dict())
+        return json.dumps(self.to_dict(), sort_keys=True)
 
 class Zip:
     '''
@@ -184,8 +184,8 @@ def add_job(db, job_id, status, task_files, file_states, file_results, owner, re
                    github_repository, github_status_url, github_comments_url,
                    status, id, datetime_start)
                   VALUES (%s::json, %s::json, %s::json, %s, %s, %s, %s, %s, %s, NOW())''',
-               (json.dumps(task_files), json.dumps(file_states),
-                json.dumps(actual_results), owner, repo, status_url,
+               (json.dumps(task_files, sort_keys=True), json.dumps(file_states, sort_keys=True),
+                json.dumps(actual_results, sort_keys=True), owner, repo, status_url,
                 comments_url, status, job_id))
 
 def write_job(db, job_id, status, task_files, file_states, file_results, owner, repo, status_url, comments_url):
@@ -203,8 +203,8 @@ def write_job(db, job_id, status, task_files, file_states, file_results, owner, 
                       github_status_url=%s, github_comments_url=%s, status=%s,
                       datetime_end=CASE WHEN %s THEN NOW() ELSE null END
                   WHERE id = %s''',
-               (json.dumps(task_files), json.dumps(file_states),
-                json.dumps(actual_results), owner, repo, status_url, comments_url,
+               (json.dumps(task_files, sort_keys=True), json.dumps(file_states, sort_keys=True),
+                json.dumps(actual_results, sort_keys=True), owner, repo, status_url, comments_url,
                 status, is_complete, job_id))
 
 def read_job(db, job_id):
