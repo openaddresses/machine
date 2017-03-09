@@ -183,13 +183,8 @@ def app_get_job(job_id):
 
     ordered_files = OrderedDict(sorted(file_tuples, key=key_func))
     
-    file_runstates = {file_path: RunState(file_result.get('state') or file_result['output'])
-                      for (file_path, file_result) in job.file_results.items()
-                      if (file_result and ('output' in file_result or 'state' in file_result))}
-
     job = dict(status=job.status, task_files=ordered_files, file_states=job.states,
-               file_results=job.file_results, github_status_url=job.github_status_url,
-               file_runstates=file_runstates)
+               file_results=job.file_results, github_status_url=job.github_status_url)
     
     return render_template('job.html', job=job,
                            dotmaps_base_url=current_app.config['DOTMAPS_BASE_URL'])
