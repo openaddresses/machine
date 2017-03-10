@@ -20,7 +20,7 @@
 <table>
 {% for (sha, path) in job.task_files.items() %}
 
-    {% set file_runstate = job.file_runstates[path] %}
+    {% set file_runstate = job.file_results[path].state %}
     {% set file_state = job.file_states[path] %}
 
     <tr>
