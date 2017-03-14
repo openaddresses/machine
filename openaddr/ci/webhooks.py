@@ -373,12 +373,19 @@ def nice_size(size):
     else:
         return '{:.0f}{}'.format(size, suffix)
 
-def temporary_slippymap_preview_url(slippymap_mbtiles_url):
+def slippymap_preview_url(runstate):
     '''
     '''
-    # TODO: this is a hack-ass way to get the run ID
-    parsed_url = urlparse(slippymap_mbtiles_url)
-    run_id = os.path.basename(os.path.dirname(parsed_url.path))
+    if runstate.run_id:
+        run_id = str(runstate.run_id)
+
+    elif runstate.slippymap:
+        # Old hack-ass way to get the run ID
+        parsed_url = urlparse(runstate.slippymap)
+        run_id = os.path.basename(os.path.dirname(parsed_url.path))
+
+    else:
+        raise ValueError()
 
     return urljoin(current_app.config['DOTMAPS_BASE_URL'], run_id)
 
@@ -398,7 +405,7 @@ def apply_webhooks_blueprint(app):
         app.jinja_env.filters['breakstate'] = break_state
         app.jinja_env.filters['nice_size'] = nice_size
         
-        app.jinja_env.filters['slippymap_preview_url'] = temporary_slippymap_preview_url
+        app.jinja_env.filters['slippymap_preview_url'] = slippymap_preview_url
 
         setup_logger(None,
                      None,

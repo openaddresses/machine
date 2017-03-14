@@ -57,7 +57,7 @@
         {% if dotmaps_base_url %}
             <td>
             {% if file_runstate and file_runstate.slippymap %}
-                <a href="{{ file_runstate.slippymap|slippymap_preview_url }}">slippy map preview</a>
+                <a href="{{ file_runstate|slippymap_preview_url }}">slippy map preview</a>
             {% endif %}
             </td>
         {% endif %}

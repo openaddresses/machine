@@ -2270,19 +2270,36 @@ class TestHook (unittest.TestCase):
 
         with db_connect(self.database_url) as conn:
             with db_cursor(conn) as db:
-                state = RunState({
+                state1 = RunState({
+                    'output': 'http://example.com/998/log.txt',
+                    'sample': 'http://example.com/998/sample.json',
+                    'processed': 'http://example.com/998/stuff.zip',
+                    'preview': 'http://example.com/998/preview.png',
+                    'slippymap': 'http://example.com/998/tiles.mbtiles'
+                    })
+                state2 = RunState({
                     'output': 'http://example.com/999/log.txt',
                     'sample': 'http://example.com/999/sample.json',
                     'processed': 'http://example.com/999/stuff.zip',
                     'preview': 'http://example.com/999/preview.png',
-                    'slippymap': 'http://example.com/999/tiles.mbtiles',
+                    'slippymap': 'http://example.org/tiles.mbtiles',
                     'run id': 999
                     })
-                add_job(db, 'abc', True, {'0xWHATEVER': 'foo'}, {'foo': True}, {'foo': {'state': state}}, 'oa', 'oa', None, None)
+                add_job(db, 'abc', True, {'this': 'foo', 'that': 'bar'},
+                       {'foo': True, 'bar': True},
+                       {'foo': {'state': state1}, 'bar': {'state': state2}},
+                       'oa', 'oa', None, None)
 
         got2 = self.client.get('/jobs/abc')
         body2 = got2.data.decode('utf8')
         self.assertEqual(got2.status_code, 200)
+
+        self.assertIn('http://example.com/998/log.txt', body2)
+        self.assertIn('http://example.com/998/sample.json', body2)
+        self.assertIn('http://example.com/998/stuff.zip', body2)
+        self.assertIn('http://example.com/998/preview.png', body2)
+        self.assertIn('https://dotmaps.example.com/yo/998', body2)
+
         self.assertIn('http://example.com/999/log.txt', body2)
         self.assertIn('http://example.com/999/sample.json', body2)
         self.assertIn('http://example.com/999/stuff.zip', body2)
