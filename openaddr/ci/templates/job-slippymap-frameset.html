@@ -1,0 +1,19 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN"
+	"http://www.w3.org/TR/html4/frameset.dtd">
+<html lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8">
+	<title>OpenAddresses — Run {{ run.id }} Map Preview</title>
+</head>
+{% if job %}
+    <frameset rows="100,*" border="0">
+        <frame src="{{ url_for('webhooks.app_get_run_slippymap', frame='header', job_id=job.id, run_id=run.id) }}" scrolling="no">
+        <frame scrolling="no" src="{{ run.state|slippymap_preview_url }}">
+    </frameset>
+{% else %}
+    <frameset rows="60,*" border="0">
+        <frame src="{{ url_for('webhooks.app_get_run_slippymap', frame='header', run_id=run.id) }}" scrolling="no">
+        <frame scrolling="no" src="{{ run.state|slippymap_preview_url }}">
+    </frameset>
+{% endif %}
+</html>

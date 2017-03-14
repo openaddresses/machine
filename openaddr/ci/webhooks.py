@@ -183,11 +183,34 @@ def app_get_job(job_id):
 
     ordered_files = OrderedDict(sorted(file_tuples, key=key_func))
     
-    job = dict(status=job.status, task_files=ordered_files, file_states=job.states,
+    job = dict(id=job_id, status=job.status, task_files=ordered_files, file_states=job.states,
                file_results=job.file_results, github_status_url=job.github_status_url)
     
     return render_template('job.html', job=job,
                            dotmaps_base_url=current_app.config['DOTMAPS_BASE_URL'])
+
+@webhooks.route('/slippymaps/<run_id>/', methods=['GET'])
+@webhooks.route('/slippymaps/<run_id>/<frame>/', methods=['GET'])
+@webhooks.route('/slippymaps/<run_id>/<frame>/<job_id>/', methods=['GET'])
+@log_application_errors
+def app_get_run_slippymap(run_id, frame='top', job_id=None):
+    '''
+    '''
+    if not current_app.config['DOTMAPS_BASE_URL']:
+        return Response('No slippy maps for you', 404)
+    
+    with db_connect(current_app.config['DATABASE_URL']) as conn:
+        with db_cursor(conn) as db:
+            run = read_run(db, run_id)
+            try:
+                job = read_job(db, job_id)
+            except TypeError:
+                job = None
+    
+    if frame == 'header':
+        return render_template('job-slippymap-header.html', job=job, run=run)
+
+    return render_template('job-slippymap-frameset.html', job=job, run=run)
 
 @webhooks.route('/sets/', methods=['GET'])
 @log_application_errors

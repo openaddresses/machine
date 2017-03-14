@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Job {{ job.id }}{% endblock %}
+{% block main %}
+    {% if job %}
+        <a href="{{ url_for('webhooks.app_get_job', job_id=job.id) }}" target="_top">← Return to CI job page</a>
+    {% endif %}
+{% endblock main %}
+{% block info %}{% endblock %}
