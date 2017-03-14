@@ -102,11 +102,11 @@
             </form>
             {% endif %}
         {% endif %}
-        <a href="http://openaddresses.io"> <img id="icon" src="{{ url_for('static', filename='17.png') }}">Home</a>
-        <a href="{{ url_for('webhooks.app_index') }}">Download Data</a>
-        <a href="{{ url_for('webhooks.app_get_sets') }}">All Batch Sets</a>
-        <a href="{{ url_for('webhooks.app_get_jobs') }}">All CI Jobs</a>
-        <a href="{{ url_for('webhooks.app_get_dashboard') }}">Dashboard</a>
+        <a target="_top" href="http://openaddresses.io"> <img id="icon" src="{{ url_for('static', filename='17.png') }}">Home</a>
+        <a target="_top" href="{{ url_for('webhooks.app_index') }}">Download Data</a>
+        <a target="_top" href="{{ url_for('webhooks.app_get_sets') }}">All Batch Sets</a>
+        <a target="_top" href="{{ url_for('webhooks.app_get_jobs') }}">All CI Jobs</a>
+        <a target="_top" href="{{ url_for('webhooks.app_get_dashboard') }}">Dashboard</a>
     </nav>
     <main>
         {% if error_org_membership %}
@@ -126,8 +126,8 @@
         {% block info %}
         <p>
             I am the OpenAddresses data service.
-            <a href="https://github.com/openaddresses/machine">Find me on Github</a> or
-            <a href="http://mike.teczno.com/notes/openaddresses-ci.html">read this blog post</a>
+            <a target="_top" href="https://github.com/openaddresses/machine">Find me on Github</a> or
+            <a target="_top" href="http://mike.teczno.com/notes/openaddresses-ci.html">read this blog post</a>
             to learn more.
         </p>
         {% endblock %}

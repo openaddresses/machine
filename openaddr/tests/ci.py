@@ -2298,13 +2298,13 @@ class TestHook (unittest.TestCase):
         self.assertIn('http://example.com/998/sample.json', body2)
         self.assertIn('http://example.com/998/stuff.zip', body2)
         self.assertIn('http://example.com/998/preview.png', body2)
-        self.assertIn('https://dotmaps.example.com/yo/998', body2)
+        self.assertIn('https://dotmaps.example.com/yo/998', body2, 'Should see the external URL for slippy map')
 
         self.assertIn('http://example.com/999/log.txt', body2)
         self.assertIn('http://example.com/999/sample.json', body2)
         self.assertIn('http://example.com/999/stuff.zip', body2)
         self.assertIn('http://example.com/999/preview.png', body2)
-        self.assertIn('https://dotmaps.example.com/yo/999', body2)
+        self.assertIn('/slippymaps/999/top/abc', body2, 'Should see the internal frameset URL for slippy map')
     
 class TestRuns (unittest.TestCase):
 

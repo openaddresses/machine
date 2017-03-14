@@ -57,7 +57,11 @@
         {% if dotmaps_base_url %}
             <td>
             {% if file_runstate and file_runstate.slippymap %}
-                <a href="{{ file_runstate|slippymap_preview_url }}">slippy map preview</a>
+                {% if file_runstate.run_id %}
+                    <a href="{{ url_for('webhooks.app_get_run_slippymap', frame='top', job_id=job.id, run_id=file_runstate.run_id) }}">slippy map preview</a>
+                {% else %}
+                    <a href="{{ file_runstate|slippymap_preview_url }}">slippy map preview</a>
+                {% endif %}
             {% endif %}
             </td>
         {% endif %}
