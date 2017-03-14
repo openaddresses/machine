@@ -1263,6 +1263,7 @@ class TestHook (unittest.TestCase):
         os.environ['WEBHOOK_SECRETS'] = 'hello,world'
         os.environ['AWS_ACCESS_KEY_ID'] = '12345'
         os.environ['AWS_SECRET_ACCESS_KEY'] = '67890'
+        os.environ['DOTMAPS_BASE_URL'] = 'https://dotmaps.example.com/yo/'
 
         self.app = Flask(__name__)
         self.app.config.update(load_config(), MINIMUM_LOGLEVEL=logging.CRITICAL)
@@ -2269,10 +2270,24 @@ class TestHook (unittest.TestCase):
 
         with db_connect(self.database_url) as conn:
             with db_cursor(conn) as db:
-                add_job(db, 'abc', True, {}, {}, {}, 'oa', 'oa', None, None)
+                state = RunState({
+                    'output': 'http://example.com/999/log.txt',
+                    'sample': 'http://example.com/999/sample.json',
+                    'processed': 'http://example.com/999/stuff.zip',
+                    'preview': 'http://example.com/999/preview.png',
+                    'slippymap': 'http://example.com/999/tiles.mbtiles',
+                    'run id': 999
+                    })
+                add_job(db, 'abc', True, {'0xWHATEVER': 'foo'}, {'foo': True}, {'foo': {'state': state}}, 'oa', 'oa', None, None)
 
-        got1 = self.client.get('/jobs/abc')
-        self.assertEqual(got1.status_code, 200)
+        got2 = self.client.get('/jobs/abc')
+        body2 = got2.data.decode('utf8')
+        self.assertEqual(got2.status_code, 200)
+        self.assertIn('http://example.com/999/log.txt', body2)
+        self.assertIn('http://example.com/999/sample.json', body2)
+        self.assertIn('http://example.com/999/stuff.zip', body2)
+        self.assertIn('http://example.com/999/preview.png', body2)
+        self.assertIn('https://dotmaps.example.com/yo/999', body2)
     
 class TestRuns (unittest.TestCase):
 
