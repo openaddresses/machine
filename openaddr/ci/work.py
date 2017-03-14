@@ -29,6 +29,7 @@ def assemble_runstate(s3, input, source_name, run_id, index_dirname):
     ''' Convert worker index dictionary to RunState.
     '''
     output = {k: v for (k, v) in input.items()}
+    output['run id'] = run_id
     
     if input['cache']:
         # e.g. /runs/0/cache.zip

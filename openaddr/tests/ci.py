@@ -91,7 +91,8 @@ class TestObjects (unittest.TestCase):
         keys = ('source', 'cache', 'sample', 'geometry type', 'processed',
             'address count', 'version', 'fingerprint', 'cache time',
             'output', 'process time', 'website', 'skipped', 'license',
-            'share-alike', 'attribution required', 'attribution name')
+            'share-alike', 'attribution required', 'attribution name',
+            'run id')
         
         for key in keys:
             value = str(uuid4())
@@ -100,6 +101,12 @@ class TestObjects (unittest.TestCase):
             
             attr = key.replace(' ', '_').replace('-', '_')
             self.assertEqual(getattr(state, attr), value)
+
+        # special case for run id
+        value = str(uuid4())
+        state = RunState({'run id': value})
+        self.assertEqual(state.get('run id'), value)
+        self.assertEqual(state.run_id, value)
 
         # special case for source problem
         value = None
@@ -1256,6 +1263,7 @@ class TestHook (unittest.TestCase):
         os.environ['WEBHOOK_SECRETS'] = 'hello,world'
         os.environ['AWS_ACCESS_KEY_ID'] = '12345'
         os.environ['AWS_SECRET_ACCESS_KEY'] = '67890'
+        os.environ['DOTMAPS_BASE_URL'] = 'https://dotmaps.example.com/yo/'
 
         self.app = Flask(__name__)
         self.app.config.update(load_config(), MINIMUM_LOGLEVEL=logging.CRITICAL)
@@ -2262,10 +2270,41 @@ class TestHook (unittest.TestCase):
 
         with db_connect(self.database_url) as conn:
             with db_cursor(conn) as db:
-                add_job(db, 'abc', True, {}, {}, {}, 'oa', 'oa', None, None)
+                state1 = RunState({
+                    'output': 'http://example.com/998/log.txt',
+                    'sample': 'http://example.com/998/sample.json',
+                    'processed': 'http://example.com/998/stuff.zip',
+                    'preview': 'http://example.com/998/preview.png',
+                    'slippymap': 'http://example.com/998/tiles.mbtiles'
+                    })
+                state2 = RunState({
+                    'output': 'http://example.com/999/log.txt',
+                    'sample': 'http://example.com/999/sample.json',
+                    'processed': 'http://example.com/999/stuff.zip',
+                    'preview': 'http://example.com/999/preview.png',
+                    'slippymap': 'http://example.org/tiles.mbtiles',
+                    'run id': 999
+                    })
+                add_job(db, 'abc', True, {'this': 'foo', 'that': 'bar'},
+                       {'foo': True, 'bar': True},
+                       {'foo': {'state': state1}, 'bar': {'state': state2}},
+                       'oa', 'oa', None, None)
 
-        got1 = self.client.get('/jobs/abc')
-        self.assertEqual(got1.status_code, 200)
+        got2 = self.client.get('/jobs/abc')
+        body2 = got2.data.decode('utf8')
+        self.assertEqual(got2.status_code, 200)
+
+        self.assertIn('http://example.com/998/log.txt', body2)
+        self.assertIn('http://example.com/998/sample.json', body2)
+        self.assertIn('http://example.com/998/stuff.zip', body2)
+        self.assertIn('http://example.com/998/preview.png', body2)
+        self.assertIn('https://dotmaps.example.com/yo/998', body2)
+
+        self.assertIn('http://example.com/999/log.txt', body2)
+        self.assertIn('http://example.com/999/sample.json', body2)
+        self.assertIn('http://example.com/999/stuff.zip', body2)
+        self.assertIn('http://example.com/999/preview.png', body2)
+        self.assertIn('https://dotmaps.example.com/yo/999', body2)
     
 class TestRuns (unittest.TestCase):
 
@@ -2917,6 +2956,7 @@ class TestWorker (unittest.TestCase):
         input1 = {'cache': False, 'sample': False, 'processed': False, 'output': False, 'preview': False, 'slippymap': False}
         state1 = assemble_runstate(s3, input1, 'xx/f', 1, 'dir')
 
+        self.assertEqual(state1.run_id, 1)
         self.assertEqual(state1.cache, input1['cache'])
         self.assertEqual(state1.sample, input1['sample'])
         self.assertEqual(state1.processed, input1['processed'])
@@ -2927,6 +2967,7 @@ class TestWorker (unittest.TestCase):
         input2 = {'cache': 'cache.csv', 'sample': False, 'processed': False, 'output': False, 'preview': False, 'slippymap': False}
         state2 = assemble_runstate(s3, input2, 'xx/f', 2, 'dir')
 
+        self.assertEqual(state2.run_id, 2)
         self.assertEqual(state2.cache, 'https://s3.amazonaws.com/a-bucket/a-key')
         self.assertEqual(state2.fingerprint, '0xWHATEVER')
         self.assertEqual(state2.sample, input2['sample'])
@@ -2939,6 +2980,7 @@ class TestWorker (unittest.TestCase):
         input3 = {'cache': False, 'sample': 'sample.json', 'processed': False, 'output': False, 'preview': False, 'slippymap': False}
         state3 = assemble_runstate(s3, input3, 'xx/f', 3, 'dir')
 
+        self.assertEqual(state3.run_id, 3)
         self.assertEqual(state3.cache, input3['cache'])
         self.assertEqual(state3.sample, 'https://s3.amazonaws.com/a-bucket/a-key')
         self.assertEqual(state3.processed, input3['processed'])
@@ -2950,6 +2992,7 @@ class TestWorker (unittest.TestCase):
         input4 = {'cache': False, 'sample': False, 'processed': False, 'output': 'out.txt', 'preview': False, 'slippymap': False}
         state4 = assemble_runstate(s3, input4, 'xx/f', 4, 'dir')
 
+        self.assertEqual(state4.run_id, 4)
         self.assertEqual(state4.cache, input4['cache'])
         self.assertEqual(state4.sample, input4['sample'])
         self.assertEqual(state4.processed, input4['processed'])
@@ -2963,6 +3006,7 @@ class TestWorker (unittest.TestCase):
             input5 = {'cache': False, 'sample': False, 'processed': 'data.zip', 'output': False, 'preview': False, 'slippymap': False}
             state5 = assemble_runstate(s3, input5, 'xx/f', 5, 'dir')
 
+        self.assertEqual(state5.run_id, 5)
         self.assertEqual(state5.cache, input5['cache'])
         self.assertEqual(state5.sample, input5['sample'])
         self.assertEqual(state5.processed, 'https://s3.amazonaws.com/a-bucket/a-key')
@@ -2975,6 +3019,7 @@ class TestWorker (unittest.TestCase):
         input6 = {'cache': False, 'sample': False, 'processed': False, 'output': False, 'preview': 'preview.png', 'slippymap': False}
         state6 = assemble_runstate(s3, input6, 'xx/f', 6, 'dir')
 
+        self.assertEqual(state6.run_id, 6)
         self.assertEqual(state6.cache, input6['cache'])
         self.assertEqual(state6.sample, input6['sample'])
         self.assertEqual(state6.processed, input6['processed'])
@@ -2986,6 +3031,7 @@ class TestWorker (unittest.TestCase):
         input7 = {'cache': False, 'sample': False, 'processed': False, 'output': False, 'preview': False, 'slippymap': 'slippymap.mbtiles'}
         state7 = assemble_runstate(s3, input7, 'xx/f', 7, 'dir')
 
+        self.assertEqual(state7.run_id, 7)
         self.assertEqual(state7.cache, input7['cache'])
         self.assertEqual(state7.sample, input7['sample'])
         self.assertEqual(state7.processed, input7['processed'])
@@ -3048,6 +3094,7 @@ class TestWorker (unittest.TestCase):
         self.assertTrue(result['state'].processed.endswith(u'/so/exalté.zip'))
         self.assertEqual(result['state'].website, 'http://example.com')
         self.assertEqual(result['state'].license, 'GPL')
+        self.assertEqual(result['state'].run_id, -1)
         
         zip_path = urlparse(result['state'].processed).path
         zip_bytes = self.s3._read_fake_key(zip_path[len('/fake-bucket'):])
@@ -3148,6 +3195,7 @@ class TestWorker (unittest.TestCase):
         self.assertIsNone(result['state'].sample)
         self.assertIsNone(result['state'].license)
         self.assertIsNone(result['state'].processed)
+        self.assertEqual(result['state'].run_id, -1)
 
 class TestBatch (unittest.TestCase):
 
