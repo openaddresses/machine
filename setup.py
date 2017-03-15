@@ -26,6 +26,7 @@ setup(
             'openaddr-run-ec2-command = openaddr.run_ec2_ami:main',
             'openaddr-update-dotmap = openaddr.dotmap:main',
             'openaddr-sum-up-data = openaddr.ci.sum_up:main',
+            'openaddr-calculate-coverage = openaddr.ci.coverage.calculate:main',
         ]
     ),
     package_data = {

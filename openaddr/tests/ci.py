@@ -29,7 +29,7 @@ from ..ci import (
     create_queued_job, TASK_QUEUE, DONE_QUEUE, DUE_QUEUE,
     enqueue_sources, find_batch_sources, render_set_maps, render_index_maps,
     is_merged_to_master, get_commit_info, HEARTBEAT_QUEUE, flush_heartbeat_queue,
-    get_recent_workers, load_config, get_batch_run_times, webauth,
+    get_recent_workers, load_config, get_batch_run_times, webauth, webcoverage,
     process_github_payload, skip_payload, is_rerun_payload, update_job_comments,
     reset_logger
     )
@@ -1207,6 +1207,7 @@ class TestAuth (unittest.TestCase):
             app.config.update(load_config(), MINIMUM_LOGLEVEL=logging.CRITICAL)
             apply_webhooks_blueprint(app)
             webauth.apply_webauth_blueprint(app)
+            webcoverage.apply_coverage_blueprint(app)
         
             client = app.test_client()
         
@@ -1268,6 +1269,7 @@ class TestHook (unittest.TestCase):
         self.app = Flask(__name__)
         self.app.config.update(load_config(), MINIMUM_LOGLEVEL=logging.CRITICAL)
         apply_webhooks_blueprint(self.app)
+        webcoverage.apply_coverage_blueprint(self.app)
 
         recreate_db.recreate(self.app.config['DATABASE_URL'])
 
