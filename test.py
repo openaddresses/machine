@@ -31,6 +31,7 @@ from openaddr.tests.util import TestUtilities
 from openaddr.tests.summarize import TestSummarizeFunctions
 from openaddr.tests.parcels import TestParcelsUtils, TestParcelsParse
 from openaddr.tests.dashboard_stats import TestDashboardStats
+from openaddr.tests.coverage import TestCoverage
 
 from openaddr.tests.ci import (
     TestHook, TestRuns, TestWorker, TestBatch, TestObjects, TestCollect,

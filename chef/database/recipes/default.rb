@@ -1,6 +1,23 @@
 # CircleCI has 9.3, while installing package 'postgresql' gets conflicting 9.5.
 package 'postgresql-9.3'
 
+package 'libsfcgal1' do
+  version '1.2.2-1~trusty2'
+end
+
+package 'liblwgeom-2.2-5' do
+  version '2.2.2+dfsg-2~trusty0'
+end
+
+package 'postgresql-9.3-postgis-2.2' do
+  version '2.2.2+dfsg-2~trusty0'
+end
+
+package 'postgresql-9.3-postgis-scripts' do
+  version '2.2.2+dfsg-2~trusty0'
+  options '--force-yes'
+end
+
 local = data_bag_item('data', 'local')
 user = local['db_user']
 pass = local['db_pass']
@@ -25,6 +42,7 @@ bash "create database" do
     psql #{args} -c "CREATE USER dashboard";
     psql #{args} -c "CREATE USER #{user} WITH SUPERUSER PASSWORD '#{pass}'";
     psql #{args} -c "CREATE DATABASE #{name} WITH OWNER #{user}";
+    psql #{args} -c "CREATE EXTENSION postgis" -d #{name};
   CODE
   
   # Stop as soon as an error is encountered.

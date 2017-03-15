@@ -6,6 +6,9 @@ machine:
     DATABASE_URL: postgres://openaddr:openaddr@localhost/openaddr
 
 dependencies:
+  pre:
+    # Remove existing PostGIS and Postgres to make room for our own.
+    - sudo apt-get autoremove -y postgis* postgresql*
   override:
     # Install Machine globally via Chef recipe, to pick up complete dependencies.
     - sudo chef/run.sh prereqs

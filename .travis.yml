@@ -7,7 +7,10 @@ cache:
   apt: true
   pip: true
 addons:
-  postgresql: "9.4"
+  postgresql: "9.3"
+before_install:
+  # Remove existing PostGIS to make room for our own.
+  - sudo apt-get remove -y postgis*
 install:
   # Install Machine globally via Chef recipe, to pick up complete dependencies.
   - sudo chef/run.sh prereqs
