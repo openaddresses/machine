@@ -134,6 +134,9 @@ START_URL = 'https://results.openaddresses.io/index.json'
 
 parser = ArgumentParser(description='Calculate current worldwide address coverage.')
 
+parser.add_argument('-d', '--database-url', default=os.environ.get('DATABASE_URL', None),
+                    help='Optional connection string for database. Defaults to value of DATABASE_URL environment variable.')
+
 parser.add_argument('--sns-arn', default=os.environ.get('AWS_SNS_ARN', None),
                     help='Optional AWS Simple Notification Service (SNS) resource. Defaults to value of AWS_SNS_ARN environment variable.')
 
@@ -150,7 +153,7 @@ def main():
     '''
     args = parser.parse_args()
     setup_logger(None, None, args.sns_arn, log_level=args.loglevel)
-    calculate(os.environ['DATABASE_URL'])
+    calculate(args.database_url)
 
 def calculate(DATABASE_URL):
     '''
