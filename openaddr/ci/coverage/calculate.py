@@ -182,18 +182,18 @@ def calculate(DATABASE_URL):
             for feature in rendered_ds.GetLayer(0):
                 iso_a2 = insert_coverage_feature(db, feature)
                 iso_a2s.add(iso_a2)
-                print(iso_a2, feature.GetField('address count'), 'addresses from', feature.GetField('source paths'), file=sys.stderr)
+                _L.debug('{} - {} addresses from {}'.format(iso_a2, feature.GetField('address count'), feature.GetField('source paths')))
         
             db.execute('''
                 DELETE FROM areas;
             
                 INSERT INTO areas (iso_a2, addr_count, buffer_km, geom)
-                SELECT iso_a2, SUM(count), 10, ST_Multi(ST_Union(geom))
+                SELECT iso_a2, SUM(count), 10, ST_Multi(ST_Union(ST_Buffer(geom, 0.00001)))
                 FROM rendered_world GROUP BY iso_a2;
                 ''')
         
             for (index, iso_a2) in enumerate(sorted(iso_a2s)):
-                print('Counting up {} ({}/{})...'.format(iso_a2, index+1, len(iso_a2s)), file=sys.stderr)
+                _L.info('Counting up {} ({}/{})...'.format(iso_a2, index+1, len(iso_a2s)))
                 summarize_country_coverage(db, iso_a2)
 
     os.remove(filename)
