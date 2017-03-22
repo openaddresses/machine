@@ -1,5 +1,145 @@
 {% extends "base.html" %}
 {% block title %}Coverage{% endblock %}
 {% block main %}
-Yo.
+<p>
+    OpenAddresses data is constantly improving through the efforts of our
+    volunteer community. The table on this page shows the latest coverage
+    details on a country-by-country basis.
+</p>
+<dl>
+    <dt>Coverage Group</dt>
+    <dd>
+        Countries are divided into three groups below:
+        {{ best_areas|length }} countries with complete land area coverage,
+        {{ okay_areas|length }} countries with substantial coverage,
+        and {{ empty_areas|length }} countries with minimal coverage.
+    </dd>
+    <dt>Land Area</dt>
+    <dd>
+        <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#coverage-object">Source coverage information</a>
+        is given as ISO 3166 codes, U.S. FIPS codes, or simple point and polygon geometries.
+    </dd>
+    <dt>Population Covered</dt>
+    <dd>
+        Number of people covered by given ISO 3166 codes, U.S. FIPS codes, or
+        simple point and polygon geometries, according to
+        <a href="#gpwv4">Gridded Population of the World (GPWv4)</a>.
+    </dd>
+    <dt>Addresses per 1,000 People</dt>
+    <dd>
+        We compare raw counts of address points in each country to GPWv4
+        adjusted population numbers.
+    </dd>
+</dl>
+<style lang="text/css">
+
+    #coverage { border-collapse: collapse }
+    
+    #coverage tr th,
+    #coverage tr td.group,
+    #coverage tr td.area-detail,
+    #coverage tr td.population-detail
+    {
+        font-size: 65%;
+    }
+    
+    #coverage tr th.numeric,
+    #coverage tr td.numeric
+    {
+        text-align: right;
+    }
+    
+    #coverage tr th, #coverage tr td
+    {
+        text-align: left;
+        padding: 3px 10px;
+        border: none;
+    }
+    
+    #coverage tr th
+    {
+        padding-top: 2em;
+    }
+    
+    #coverage tr td.flag
+    {
+        text-align: right;
+        padding-right: 0;
+    }
+    
+    #coverage tr td.name
+    {
+        padding-left: .5em;
+    }
+    
+    #coverage tr td.iso code
+    {
+        border: none;
+        background-color: transparent;
+    }
+    
+    #coverage tr:nth-child(2n+0)>* { background-color: #f8f8f8 }
+    #coverage tr:nth-child(2n+1)>* { background-color: #ffffff }
+
+</style>
+<table id="coverage">
+    {% for areas in [best_areas, okay_areas, empty_areas] %}
+        <tr>
+            <th colspan="2">Country</th>
+            <th>ISO</th>
+            <th>Coverage Group</th>
+            <th colspan="2" class="numeric">Land Area Covered</th>
+            <th colspan="2" class="numeric">Population Covered</th>
+            <th class="numeric">Addresses per 1,000 People</th>
+        </tr>
+        {% for area in areas %}
+            <tr>
+                <td class="flag">{{ area.iso_a2|nice_flag|safe }}</td>
+                <td class="name">{{ area.name }}</td>
+                <td class="iso"><code>{{ area.iso_a2 }}</code></td>
+                <td class="group">
+                    {% if areas == best_areas %}
+                        Complete
+                    {% elif areas == okay_areas %}
+                        Substantial
+                    {% elif areas == empty_areas %}
+                        Minimal
+                    {% endif %}
+                </td>
+                <td class="numeric">
+                    {{ area.area_pct|nice_percentage }}
+                </td>
+                <td class="numeric area-detail">
+                    {{ area.area_total|nice_big_number }} km²
+                </td>
+                <td class="numeric">
+                    {{ area.pop_pct|nice_percentage }}
+                </td>
+                <td class="numeric population-detail">
+                    {{ area.pop_total|nice_big_number }} people
+                </td>
+                <td class="numeric">
+                    {% if area.pop_total > 0 %}
+                        {{ (1000 * area.addr_count / area.pop_total)|nice_integer }}
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+    {% endfor %}
+</table>
+<h3 id="gpwv4">Gridded Population of the World (GPW), v4</h3>
+<p>
+    <a href="http://beta.sedac.ciesin.columbia.edu/data/collection/gpw-v4">The Gridded Population of the World (GPW) series</a>,
+    now in its fourth version (GPWv4), models the distribution of human
+    population (counts and densities) on a continuous global surface. Since the
+    release of the first version of this global population grid in 1995, the
+    essential inputs have been population census tables and corresponding
+    geographic boundaries. For GPWv4, population input data are collected at the
+    most detailed spatial resolution available from the results of the 2010
+    round of censuses, which occurred between 2005 and 2014.
+</p>
+<figure>
+    <figcaption>CC-BY 2016, Trustees of Columbia University in the City of New York</figcaption>
+    <img src="{{ url_for('static', filename='GPWv4.png') }}" width="100%">
+</figure>
 {% endblock main %}
