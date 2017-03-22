@@ -11,7 +11,7 @@ setup(
     author = 'Michal Migurski',
     author_email = 'mike-pypi@teczno.com',
     description = 'In-progress scripts for running OpenAddresses on a complete data set and publishing the results.',
-    packages = ['openaddr', 'openaddr.util', 'openaddr.ci', 'openaddr.tests', 'openaddr.parcels'],
+    packages = ['openaddr', 'openaddr.util', 'openaddr.ci', 'openaddr.ci.coverage', 'openaddr.tests', 'openaddr.parcels'],
     entry_points = dict(
         console_scripts = [
             'openaddr-render-us = openaddr.render:main',
@@ -26,6 +26,7 @@ setup(
             'openaddr-run-ec2-command = openaddr.run_ec2_ami:main',
             'openaddr-update-dotmap = openaddr.dotmap:main',
             'openaddr-sum-up-data = openaddr.ci.sum_up:main',
+            'openaddr-calculate-coverage = openaddr.ci.coverage.calculate:main',
         ]
     ),
     package_data = {
@@ -35,6 +36,9 @@ setup(
         ],
         'openaddr.ci': [
             'schema.pgsql', 'templates/*.*', 'static/*.*'
+        ],
+        'openaddr.ci.coverage': [
+            'schema.pgsql'
         ],
         'openaddr.tests': [
             'data/*.*', 'outputs/*.*', 'sources/*.*', 'sources/fr/*.*',

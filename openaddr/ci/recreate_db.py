@@ -7,11 +7,17 @@ from psycopg2 import connect
 def recreate(DATABASE_URL):
     '''
     '''
-    schema_filename = join(dirname(__file__), 'schema.pgsql')
+    ci_schema_filename = join(dirname(__file__), 'schema.pgsql')
+    cov_schema_filename = join(dirname(__file__), 'coverage', 'schema.pgsql')
 
     with connect(DATABASE_URL) as conn:
         with conn.cursor() as db:
-            with open(schema_filename) as file:
+            db.execute('SET client_min_messages TO WARNING')
+        
+            with open(ci_schema_filename) as file:
+                db.execute(file.read())
+            
+            with open(cov_schema_filename) as file:
                 db.execute(file.read())
             
             db.execute('DROP TABLE IF EXISTS queue')

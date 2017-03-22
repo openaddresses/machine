@@ -1,4 +1,5 @@
 execute 'add-apt-repository -y ppa:openaddresses/gdal2'
+execute 'add-apt-repository -y ppa:openaddresses/postgis2'
 execute 'apt-get update -y'
 
 package 'python3-pip'
