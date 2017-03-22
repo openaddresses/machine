@@ -1,6 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS postgis;
 
 DROP TABLE IF EXISTS gpwv4_2015;
+DROP TABLE IF EXISTS ne_50m_admin_0_countries;
 DROP TABLE IF EXISTS boxes;
 DROP TABLE IF EXISTS areas;
 
@@ -40,6 +41,16 @@ CREATE TABLE gpwv4_2015
     box_id      INTEGER REFERENCES boxes(id),
     population  FLOAT,
     area        FLOAT
+);
+
+CREATE TABLE ne_50m_admin_0_countries
+(
+    gid         SERIAL PRIMARY KEY,
+    name        VARCHAR(80),
+    name_long   VARCHAR(80),
+    iso_a2      VARCHAR(80),
+    iso_a3      VARCHAR(80),
+    geom        GEOMETRY(MultiPolygon, 4326)
 );
 
 CREATE TEMPORARY TABLE gpwv4_2015_temp

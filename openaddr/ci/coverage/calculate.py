@@ -10,6 +10,9 @@ from osgeo import ogr
 
 from .. import setup_logger
 
+is_point = lambda geom: bool(geom.GetGeometryType() in (ogr.wkbPoint, ogr.wkbMultiPoint))
+is_polygon = lambda geom: bool(geom.GetGeometryType() in (ogr.wkbPolygon, ogr.wkbMultiPolygon))
+
 def validate_geometry(geometry):
     '''
     '''
@@ -147,7 +150,11 @@ def main():
     '''
     args = parser.parse_args()
     setup_logger(None, None, args.sns_arn, log_level=args.loglevel)
+    calculate(os.environ['DATABASE_URL'])
 
+def calculate(DATABASE_URL):
+    '''
+    '''
     index = requests.get(START_URL).json()
     geojson_url = urljoin(START_URL, index['render_geojson_url'])
     _L.info('Downloading {}...'.format(geojson_url))
@@ -156,7 +163,7 @@ def main():
     geojson = os.write(handle, requests.get(geojson_url).content)
     os.close(handle)
 
-    with psycopg2.connect(os.environ['DATABASE_URL']) as conn:
+    with psycopg2.connect(DATABASE_URL) as conn:
         with conn.cursor() as db:
 
             ogr.UseExceptions()
