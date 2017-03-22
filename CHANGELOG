@@ -1,3 +1,6 @@
+2017-03-22: 4.8.0
+- Added PostGIS and tables necessary for coverage report. (#582)
+
 2017-03-14: 4.7.0
 - Added RunState.run_id property. (#578)
 
