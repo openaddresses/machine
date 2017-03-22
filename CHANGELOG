@@ -1,3 +1,6 @@
+2017-03-22: 4.8.1
+- Linked and populated coverage page. (#583)
+
 2017-03-22: 4.8.0
 - Added PostGIS and tables necessary for coverage report. (#582)
 
