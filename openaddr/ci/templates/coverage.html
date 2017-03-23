@@ -125,7 +125,7 @@
                 </td>
                 <td class="numeric">
                     {% if area.pop_total > 0 %}
-                        {{ (1000 * area.addr_count / area.pop_total)|nice_integer }}
+                        {{ (1000 * area.addr_count / area.pop_total)|nice_coverage_integer }}
                     {% endif %}
                 </td>
             </tr>
