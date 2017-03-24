@@ -99,7 +99,7 @@ CREATE VIEW dashboard_runs AS
     SELECT round(extract(epoch from datetime_start)::numeric, 3)::text AS tsname
     FROM sets;
 
-GRANT SELECT ON dashboard_runs TO dashboard;
+--GRANT SELECT ON dashboard_runs TO dashboard;
 
 CREATE VIEW dashboard_stats AS
     SELECT round(extract(epoch from s.datetime_start)::numeric, 3)::text AS tsname,
@@ -120,4 +120,4 @@ CREATE VIEW dashboard_stats AS
       AND s.datetime_end IS NOT NULL
       AND r.state::text != 'null';
 
-GRANT SELECT ON dashboard_stats TO dashboard;
+--GRANT SELECT ON dashboard_stats TO dashboard;

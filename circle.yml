@@ -1,42 +1,21 @@
 machine:
-  python:
-    version: 3.4.4
   services:
     - docker
-  environment:
-    BOTO_CONFIG: /tmp/nowhere
-    DATABASE_URL: postgres://openaddr:openaddr@localhost/openaddr
 
 dependencies:
-  pre:
-    # Remove existing PostGIS and Postgres to make room for our own.
-    - sudo apt-get autoremove -y postgis* postgresql*
   override:
-    # Install Machine globally via Chef recipe, to pick up complete dependencies.
-    - sudo chef/run.sh prereqs
-    - sudo chef/run.sh testing
-    # Determine GDAL library version and install a compatible python binding.
-    #   http://gis.stackexchange.com/questions/28966/python-gdal-package-missing-header-file-when-installing-via-pip
-    - CPLUS_INCLUDE_PATH=/usr/include/gdal C_INCLUDE_PATH=/usr/include/gdal pip install "GDAL==`gdal-config --version`"
-    # cairocffi is a drop-in replacement for Pycairo, which is absent from pip.
-    #   http://stackoverflow.com/questions/11491268/install-pycairo-in-virtualenv
-    #   https://pythonhosted.org/cairocffi/
-    - pip install cairocffi
-    # Install Machine for virtualenv, to test with this Python version.
-    - pip install -U .
-    # Create necessary database tables.
-    - openaddr-ci-recreate-db
-    # Destroy the evidence, so that tests use a setup-installed version of openaddr.
-    - find openaddr -type f -a ! -name VERSION -delete
+    - docker build -t openaddr/testing -f Dockerfile .
 
 test:
   override:
-    - python setup.py test
+    - docker-compose run machine python3 setup.py test
 
 deployment:
   hub:
     branch: [migurski/docker-docker-docker]
     commands:
-      - docker build -t openaddr/machine:`cat openaddr/VERSION` .
+      - docker build -f Dockerfile-machine -t openaddr/machine:`cat openaddr/VERSION` .
       - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+      - docker tag openaddr/machine:`cat openaddr/VERSION` openaddr/machine:latest
       - docker push openaddr/machine:`cat openaddr/VERSION`
+      - docker push openaddr/machine:latest

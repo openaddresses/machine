@@ -1,0 +1,11 @@
+machine:
+  image: openaddr/testing:latest
+  environment:
+    - DATABASE_URL=postgresql://openaddr:openaddr@postgres/openaddr
+  links:
+    - postgres
+postgres:
+  image: mdillon/postgis:9.3
+  environment:
+    - POSTGRES_USER=openaddr
+    - POSTGRES_PASSWORD=openaddr
