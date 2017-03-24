@@ -105,7 +105,7 @@ def iterate_sources_dir(sources_dir):
             _, ext = splitext(filename.lower())
             if ext == '.json':
                 path = relpath(join(dirname, filename), sources_dir)
-                yield normalize('NFC', path)
+                yield path # yield normalize('NFC', path)
 
 def load_fake_state(sources_dir):
     '''
