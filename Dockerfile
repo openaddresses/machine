@@ -20,7 +20,7 @@ RUN apt-get install -y python3-cairo libgeos-c1v5=3.5.0-1~trusty1 \
         python3-pip python3-dev libpq-dev memcached libffi-dev \
         gdal-bin=2.1.0+dfsg-1~trusty2 libgdal-dev=2.1.0+dfsg-1~trusty2
 
-# From chef/openaddr/recipes/default.rb
-COPY . /usr/local/src/openaddr
-RUN cd /usr/local/src/openaddr && \
-    pip3 install -U .
+# # From chef/openaddr/recipes/default.rb
+# COPY . /usr/local/src/openaddr
+# RUN cd /usr/local/src/openaddr && \
+#     pip3 install -U .

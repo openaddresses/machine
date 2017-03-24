@@ -1,6 +1,8 @@
 machine:
   python:
     version: 3.4.4
+  services:
+    - docker
   environment:
     BOTO_CONFIG: /tmp/nowhere
     DATABASE_URL: postgres://openaddr:openaddr@localhost/openaddr
@@ -30,3 +32,11 @@ dependencies:
 test:
   override:
     - python setup.py test
+
+deployment:
+  hub:
+    branch: [migurski/docker-docker-docker]
+    commands:
+      - docker build -t openaddr/machine:`cat openaddr/VERSION` .
+      - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+      - docker push openaddr/machine:`cat openaddr/VERSION`
