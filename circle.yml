@@ -4,9 +4,9 @@ machine:
 
 dependencies:
   pre:
-    - docker pull openaddr/machine || true
+    - docker pull openaddr/prereqs || true
   override:
-    - docker build -f Dockerfile-machine -t openaddr/machine:latest .
+    - docker build -f Dockerfile-prereqs -t openaddr/prereqs:latest .
     - docker build -f Dockerfile-testing -t openaddr/testing:latest .
 
 test:
@@ -20,6 +20,6 @@ deployment:
     branch: [migurski/docker-docker-docker]
     commands:
       - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
-      - docker tag openaddr/machine:latest openaddr/machine:`cat openaddr/VERSION`
-      - docker push openaddr/machine:`cat openaddr/VERSION`
-      - docker push openaddr/machine:latest
+      - docker tag openaddr/prereqs:latest openaddr/prereqs:`cat openaddr/VERSION`
+      - docker push openaddr/prereqs:`cat openaddr/VERSION`
+      - docker push openaddr/prereqs:latest

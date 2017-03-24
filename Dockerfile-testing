@@ -1,4 +1,4 @@
-FROM openaddr/machine:latest
+FROM openaddr/prereqs:latest
 
 # From chef/openaddr/recipes/default.rb
 COPY . /usr/local/src/openaddr

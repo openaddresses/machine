@@ -2,8 +2,8 @@ sudo: required
 services:
   - docker
 before_install:
-  - docker pull openaddr/machine || true
-  - docker build -f Dockerfile-machine -t openaddr/machine:latest .
+  - docker pull openaddr/prereqs || true
+  - docker build -f Dockerfile-prereqs -t openaddr/prereqs:latest .
   - docker build -f Dockerfile-testing -t openaddr/testing:latest .
 script:
   # Postgres needs a little time
