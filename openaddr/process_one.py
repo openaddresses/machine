@@ -158,7 +158,7 @@ def render_slippymap(csv_filename, temp_dir):
     else:
         return mbtiles_filename
 
-class LogFilter:
+class LogFilterCurrentThread:
     ''' Logging filter object to match only record in the current thread.
     '''
     def __init__(self):
@@ -169,7 +169,7 @@ class LogFilter:
         return record.thread == self.thread_id
 
 def get_log_handler(directory):
-    ''' Create a new file handler for the current thread and return it.
+    ''' Create a new file handler and return it.
     '''
     handle, filename = tempfile.mkstemp(dir=directory, suffix='.log')
     close(handle)
@@ -178,7 +178,9 @@ def get_log_handler(directory):
     handler = logging.FileHandler(filename)
     handler.setFormatter(logging.Formatter(u'%(asctime)s %(levelname)08s: %(message)s'))
     handler.setLevel(logging.DEBUG)
-    handler.addFilter(LogFilter())
+    
+    # # Limit log messages to the current thread
+    # handler.addFilter(LogFilterCurrentThread())
     
     return handler
 
