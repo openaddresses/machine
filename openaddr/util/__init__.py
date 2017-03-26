@@ -17,7 +17,10 @@ from boto.ec2 import blockdevicemapping
 # http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html
 block_device_sizes = {'r3.large': 32, 'r3.xlarge': 80, 'r3.2xlarge': 160, 'r3.4xlarge': 320}
 
-RESOURCE_LOG_INTERVAL = timedelta(seconds=3)
+RESOURCE_LOG_INTERVAL = timedelta(seconds=30)
+RESOURCE_LOG_FORMAT = 'Resource usage: {user:.0f}% user, {system:.0f}% system, ' \
+    '{memory:.0f}MB memory, {read:.0f}KB read, {written:.0f}KB written, ' \
+    '{sent:.0f}KB sent, {received:.0f}KB received, {elapsed:.0f}sec elapsed'
 
 def get_version():
     ''' Prevent circular imports.
@@ -295,19 +298,30 @@ def log_process_usage(lock):
             # Got the lock, we are done.
             break
 
-        if time.time() > next_measure:
-            totcpu_curr, usercpu_curr, syscpu_curr = get_cpu_times()
-            read_curr, written_curr = get_diskio_bytes()
-            sent_curr, received_curr = get_network_bytes()
-            if totcpu_prev is not None:
-                memory_used = get_memory_usage()
-                user_cpu = 100 * (usercpu_curr - usercpu_prev) / (totcpu_curr - totcpu_prev)
-                sys_cpu = 100 * (syscpu_curr - syscpu_prev) / (totcpu_curr - totcpu_prev)
-                read, write = (read_curr - read_prev) / 1024, (written_curr - written_prev) / 1024
-                sent, received = (sent_curr - sent_prev) / 1024, (received_curr - received_prev) / 1024
-                message = 'Resource usage: {:.0f}% user, {:.0f}% system, {:.0f}MB memory, {:.0f}KB read, {:.0f}KB written, {:.0f}KB sent, {:.0f}KB received, {:.0f}sec elapsed'
-                _L.info(message.format(user_cpu, sys_cpu, memory_used, read, write, sent, received, time.time() - start_time))
-            usercpu_prev, syscpu_prev, totcpu_prev = usercpu_curr, syscpu_curr, totcpu_curr
-            read_prev, written_prev = read_curr, written_curr
-            sent_prev, received_prev = sent_curr, received_curr
-            next_measure += RESOURCE_LOG_INTERVAL.seconds + RESOURCE_LOG_INTERVAL.days * 86400
+        if time.time() <= next_measure:
+            # Not yet time to measure and log usage.
+            continue
+
+        totcpu_curr, usercpu_curr, syscpu_curr = get_cpu_times()
+        read_curr, written_curr = get_diskio_bytes()
+        sent_curr, received_curr = get_network_bytes()
+
+        if totcpu_prev is not None:
+            # Log resource usage by comparing to previous tick
+            megabytes_used = get_memory_usage()
+            user_cpu = (usercpu_curr - usercpu_prev) / (totcpu_curr - totcpu_prev)
+            sys_cpu = (syscpu_curr - syscpu_prev) / (totcpu_curr - totcpu_prev)
+            read, written = read_curr - read_prev, written_curr - written_prev
+            sent, received = sent_curr - sent_prev, received_curr - received_prev
+
+            percent, K = .01, 1024
+            _L.info(RESOURCE_LOG_FORMAT.format(
+                user=user_cpu/percent, system=sys_cpu/percent, memory=megabytes_used,
+                read=read/K, written=written/K, sent=sent/K, received=received/K,
+                elapsed=time.time() - start_time
+                ))
+
+        usercpu_prev, syscpu_prev, totcpu_prev = usercpu_curr, syscpu_curr, totcpu_curr
+        read_prev, written_prev = read_curr, written_curr
+        sent_prev, received_prev = sent_curr, received_curr
+        next_measure += RESOURCE_LOG_INTERVAL.seconds + RESOURCE_LOG_INTERVAL.days * 86400
