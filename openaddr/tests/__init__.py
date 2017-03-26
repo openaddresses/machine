@@ -283,6 +283,9 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('njgin.state.nj.us', '/download2/Address/ADDR_POINT_NJ_fgdb.zip'):
             local_path = join(data_dirname, 'nj-statewide.gdb.zip')
         
+        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/cache/uploads/trescube/f5df2e/us-mi-grand-traverse.geojson.zip'):
+            local_path = join(data_dirname, 'us-mi-grand-traverse.geojson.zip')
+        
         if (host, path) == ('fake-web', '/lake-man.gdb.zip'):
             local_path = join(data_dirname, 'lake-man.gdb.zip')
         
@@ -1551,6 +1554,20 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state.sample)
         self.assertIsNone(state.processed)
         self.assertEqual(state.source_problem, 'Could not download source data')
+    
+    def test_single_mi_grand_traverse(self):
+        '''
+        '''
+        source = join(self.src_dir, 'us-mi-grand_traverse.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir, False)
+
+        with open(state_path) as file:
+            state = RunState(dict(zip(*json.load(file))))
+        
+        self.assertIsNone(state.processed)
+        self.assertEqual(state.source_problem, 'Found no addresses in source data')
 
     def test_single_lake_man_gdb(self):
         ''' Test complete process_one.process on data.
