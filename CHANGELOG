@@ -1,3 +1,6 @@
+2017-03-26: 4.8.4
+- Fixed ISO 3166 code for Santa Catarina, BR. (#588)
+
 2017-03-23: 4.8.3
 - Fixed bug in nice_integer filter. (#586)
 
