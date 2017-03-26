@@ -2,20 +2,22 @@ import logging; _L = logging.getLogger('openaddr.util')
 
 from urllib.parse import urlparse, parse_qsl, urljoin
 from datetime import datetime, timedelta, date
-from os.path import join, basename, splitext, dirname
+from os.path import join, basename, splitext, dirname, exists
 from operator import attrgetter
 from tempfile import mkstemp
-from os import close
+from os import close, getpid
 import ftplib, httmock
 import io, zipfile
 import json, time
-import shlex
+import shlex, re
 
 from boto.exception import EC2ResponseError
 from boto.ec2 import blockdevicemapping
 
 # http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html
 block_device_sizes = {'r3.large': 32, 'r3.xlarge': 80, 'r3.2xlarge': 160, 'r3.4xlarge': 320}
+
+RESOURCE_LOG_INTERVAL = timedelta(seconds=3)
 
 def get_version():
     ''' Prevent circular imports.
@@ -205,3 +207,61 @@ def s3_key_url(key):
     path = join(key.bucket.name, key.name.lstrip('/'))
     
     return urljoin(base, path)
+
+def get_cpu_times():
+    ''' Return Linux CPU usage times in jiffies.
+    
+        See http://stackoverflow.com/questions/1420426/how-to-calculate-the-cpu-usage-of-a-process-by-pid-in-linux-from-c
+    '''
+    if not exists('/proc/stat') or not exists('/proc/{}/stat'.format(getpid())):
+        return None, None, None
+    
+    with open('/proc/stat') as file:
+        stat = re.split(r'\s+', next(file).strip())
+        time_total = sum([int(s) for s in stat[1:]])
+
+    with open('/proc/{}/stat'.format(getpid())) as file:
+        stat = next(file).strip().split(' ')
+        utime, stime = (int(s) for s in stat[13:15])
+    
+    return time_total, utime, stime
+
+def get_memory_usage():
+    ''' Return Linux memory usage in megabytes.
+    
+        See http://stackoverflow.com/questions/30869297/difference-between-memfree-and-memavailable
+        and http://stackoverflow.com/questions/131303/how-to-measure-actual-memory-usage-of-an-application-or-process
+    '''
+    if not exists('/proc/{}/status'.format(getpid())):
+        return None
+    
+    with open('/proc/{}/status'.format(getpid())) as file:
+        for line in file:
+            if 'VmSize' in line:
+                size = re.split(r'\s+', line.strip())
+                return int(size[1]) / 1024
+
+def log_process_usage(lock):
+    '''
+    '''
+    start_time = time.time()
+    next_measure = start_time
+    utime_prev, stime_prev, time_total_prev = None, None, None
+
+    while True:
+        time.sleep(.05)
+
+        if lock.acquire(False):
+            # Got the lock, we are done.
+            break
+
+        if time.time() > next_measure:
+            time_total_curr, utime_curr, stime_curr = get_cpu_times()
+            if time_total_prev is not None:
+                memory_used = get_memory_usage()
+                utime = 100 * (utime_curr - utime_prev) / (time_total_curr - time_total_prev)
+                stime = 100 * (stime_curr - stime_prev) / (time_total_curr - time_total_prev)
+                message = 'Resource usage: {:.0f}% user, {:.0f}% system, {:.0f}MB memory, {:.0f}sec elapsed'
+                _L.info(message.format(utime, stime, memory_used, time.time() - start_time))
+            utime_prev, stime_prev, time_total_prev = utime_curr, stime_curr, time_total_curr
+            next_measure += RESOURCE_LOG_INTERVAL.seconds + RESOURCE_LOG_INTERVAL.days * 86400
