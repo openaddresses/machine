@@ -173,6 +173,9 @@ def find_source_problem(log_contents, source):
     if 'WARNING: Unknown source conform type' in log_contents:
         return 'Unknown source conform type'
     
+    if 'WARNING: Found no addresses in source data' in log_contents:
+        return 'Found no addresses in source data'
+    
     if 'WARNING: Could not download source data' in log_contents:
         return 'Could not download source data'
     

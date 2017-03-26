@@ -1795,6 +1795,7 @@ class TestState (unittest.TestCase):
         self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Could not download source data', {})}).source_problem, 'Could not download source data')
         self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Unknown source conform type', {})}).source_problem, 'Unknown source conform type')
         self.assertEqual(RunState({'source problem': find_source_problem('WARNING: A source test failed', {})}).source_problem, 'An acceptance test failed')
+        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Found no addresses in source data', {})}).source_problem, 'Found no addresses in source data')
 
 class TestPackage (unittest.TestCase):
 

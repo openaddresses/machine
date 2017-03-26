@@ -178,7 +178,11 @@ def conform(srcjson, destdir, extras):
     task4 = ConvertToCsvTask()
     try:
         csv_path, addr_count = task4.convert(data, decompressed_paths, workdir)
-        _L.info("Converted to %s with %d addresses", csv_path, addr_count)
+        if addr_count > 0:
+            _L.info("Converted to %s with %d addresses", csv_path, addr_count)
+        else:
+            _L.warning('Found no addresses in source data')
+            csv_path = None
     except Exception as e:
         _L.warning("Error doing conform; skipping", exc_info=True)
         csv_path, addr_count = None, 0
