@@ -226,6 +226,26 @@ def get_cpu_times():
     
     return time_total, utime, stime
 
+def get_diskio_bytes():
+    ''' Return bytes read and written.
+    
+        See http://stackoverflow.com/questions/3633286/understanding-the-counters-in-proc-pid-io
+    '''
+    if not exists('/proc/{}/io'.format(getpid())):
+        return None, None
+    
+    read_bytes, write_bytes = None, None
+    
+    with open('/proc/{}/io'.format(getpid())) as file:
+        for line in file:
+            bytes = re.split(r':\s+', line.strip())
+            if 'read_bytes' in bytes:
+                read_bytes = int(bytes[1])
+            if 'write_bytes' in bytes:
+                write_bytes = int(bytes[1])
+    
+    return read_bytes, write_bytes
+
 def get_memory_usage():
     ''' Return Linux memory usage in megabytes.
     
@@ -246,7 +266,8 @@ def log_process_usage(lock):
     '''
     start_time = time.time()
     next_measure = start_time
-    utime_prev, stime_prev, time_total_prev = None, None, None
+    usercpu_prev, syscpu_prev, totcpu_prev = None, None, None
+    read_prev, written_prev = None, None
 
     while True:
         time.sleep(.05)
@@ -256,12 +277,15 @@ def log_process_usage(lock):
             break
 
         if time.time() > next_measure:
-            time_total_curr, utime_curr, stime_curr = get_cpu_times()
-            if time_total_prev is not None:
+            totcpu_curr, usercpu_curr, syscpu_curr = get_cpu_times()
+            read_curr, written_curr = get_diskio_bytes()
+            if totcpu_prev is not None:
                 memory_used = get_memory_usage()
-                utime = 100 * (utime_curr - utime_prev) / (time_total_curr - time_total_prev)
-                stime = 100 * (stime_curr - stime_prev) / (time_total_curr - time_total_prev)
-                message = 'Resource usage: {:.0f}% user, {:.0f}% system, {:.0f}MB memory, {:.0f}sec elapsed'
-                _L.info(message.format(utime, stime, memory_used, time.time() - start_time))
-            utime_prev, stime_prev, time_total_prev = utime_curr, stime_curr, time_total_curr
+                user_cpu = 100 * (usercpu_curr - usercpu_prev) / (totcpu_curr - totcpu_prev)
+                sys_cpu = 100 * (syscpu_curr - syscpu_prev) / (totcpu_curr - totcpu_prev)
+                read, write = (read_curr - read_prev) / 1024, (written_curr - written_prev) / 1024
+                message = 'Resource usage: {:.0f}% user, {:.0f}% system, {:.0f}MB memory, {:.0f}KB read, {:.0f}KB written, {:.0f}sec elapsed'
+                _L.info(message.format(user_cpu, sys_cpu, memory_used, read, write, time.time() - start_time))
+            usercpu_prev, syscpu_prev, totcpu_prev = usercpu_curr, syscpu_curr, totcpu_curr
+            read_prev, written_prev = read_curr, written_curr
             next_measure += RESOURCE_LOG_INTERVAL.seconds + RESOURCE_LOG_INTERVAL.days * 86400
