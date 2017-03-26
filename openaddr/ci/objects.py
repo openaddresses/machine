@@ -2,14 +2,7 @@ import logging; _L = logging.getLogger('openaddr.ci.objects')
 
 import json, pickle, copy
 
-# Todo: make this a Python 3 enum
-FAIL_REASONS = {
-    None, 'Source says to skip', 'Source is missing a conform object',
-    'Unknown source conform type', 'Could not download source data',
-    'Could not conform source data', 'Missing or incomplete coverage',
-    'Missing required ESRI token', 'An acceptance test failed',
-    'Found no addresses in source data'
-    }
+from ..process_one import SourceProblem
 
 class Job:
     '''
@@ -119,20 +112,25 @@ class RunState:
         self.attribution_required = blob_dict.get('attribution required')
         self.attribution_name = blob_dict.get('attribution name')
         self.attribution_flag = blob_dict.get('attribution flag')
-        self.source_problem = blob_dict.get('source problem')
         self.code_version = blob_dict.get('code version')
         self.tests_passed = blob_dict.get('tests passed')
+        
+        raw_problem = blob_dict.get('source problem', None)
+        self.source_problem = None if (raw_problem is None) else SourceProblem(raw_problem)
 
         unexpected = ', '.join(set(self.keys) - set(RunState.key_attrs.keys()))
         assert len(unexpected) == 0, 'RunState should not have keys {}'.format(unexpected)
-        
-        assert self.source_problem in FAIL_REASONS, 'Uknown failure reason {}'.format(repr(self.source_problem))
     
     def get(self, json_key):
         return getattr(self, RunState.key_attrs[json_key])
     
     def to_dict(self):
-        return {k: self.get(k) for k in self.keys}
+        dict = {k: self.get(k) for k in self.keys}
+        
+        if 'source problem' in dict and dict['source problem'] is not None:
+            dict['source problem'] = self.source_problem.value
+
+        return dict
     
     def to_json(self):
         return json.dumps(self.to_dict(), sort_keys=True)

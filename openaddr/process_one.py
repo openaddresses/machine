@@ -7,7 +7,7 @@ from shutil import copy, move, rmtree
 from argparse import ArgumentParser
 from os import mkdir, rmdir, close, chmod
 from _thread import get_ident
-import tempfile, json, csv, sys
+import tempfile, json, csv, sys, enum
 
 from . import cache, conform, preview, slippymap, CacheResult, ConformResult, __version__
 from .cache import DownloadError
@@ -17,6 +17,20 @@ from esridump.errors import EsriDownloadError
 
 class SourceSaysSkip(RuntimeError): pass
 class SourceTestsFailed(RuntimeError): pass
+
+@enum.unique
+class SourceProblem (enum.Enum):
+    ''' Possible problems encountered in a source.
+    '''
+    skip_source = 'Source says to skip'
+    missing_conform = 'Source is missing a conform object'
+    unknown_conform_type = 'Unknown source conform type'
+    download_source_failed = 'Could not download source data'
+    conform_source_failed = 'Could not conform source data'
+    no_coverage = 'Missing or incomplete coverage'
+    no_esri_token = 'Missing required ESRI token'
+    test_failed = 'An acceptance test failed'
+    no_addresses_found = 'Found no addresses in source data'
 
 def boolstr(value):
     '''
@@ -165,34 +179,34 @@ def find_source_problem(log_contents, source):
     '''
     '''
     if 'WARNING: A source test failed' in log_contents:
-        return 'An acceptance test failed'
+        return SourceProblem.test_failed
     
     if 'WARNING: Source is missing a conform object' in log_contents:
-        return 'Source is missing a conform object'
+        return SourceProblem.missing_conform
     
     if 'WARNING: Unknown source conform type' in log_contents:
-        return 'Unknown source conform type'
+        return SourceProblem.unknown_conform_type
     
     if 'WARNING: Found no addresses in source data' in log_contents:
-        return 'Found no addresses in source data'
+        return SourceProblem.no_addresses_found
     
     if 'WARNING: Could not download source data' in log_contents:
-        return 'Could not download source data'
+        return SourceProblem.download_source_failed
     
     if 'WARNING: Error doing conform; skipping' in log_contents:
-        return 'Could not conform source data'
+        return SourceProblem.conform_source_failed
     
     if 'WARNING: Could not download ESRI source data: Could not retrieve layer metadata: Token Required' in log_contents:
-        return 'Missing required ESRI token'
+        return SourceProblem.no_esri_token
     
     if 'coverage' in source:
         coverage = source.get('coverage')
         if 'US Census' in coverage or 'ISO 3166' in coverage or 'geometry' in coverage:
             pass
         else:
-            return 'Missing or incomplete coverage'
+            return SourceProblem.no_coverage
     else:
-        return 'Missing or incomplete coverage'
+        return SourceProblem.no_coverage
     
     return None
 
@@ -242,7 +256,7 @@ def write_state(source, skipped, destination, log_handler, tests_passed,
     copy(log_handler.stream.name, output_path)
 
     if skipped:
-        source_problem = 'Source says to skip'
+        source_problem = SourceProblem.skip_source
     else:
         with open(output_path) as file:
             log_content = file.read()
@@ -273,7 +287,7 @@ def write_state(source, skipped, destination, log_handler, tests_passed,
         ('attribution required', boolstr(conform_result.attribution_flag)),
         ('attribution name', conform_result.attribution_name),
         ('share-alike', boolstr(conform_result.sharealike_flag)),
-        ('source problem', source_problem),
+        ('source problem', getattr(source_problem, 'value', None)),
         ('code version', __version__),
         ('tests passed', tests_passed),
         ]

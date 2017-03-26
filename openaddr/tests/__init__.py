@@ -54,7 +54,7 @@ from ..util import package_output
 from ..ci.objects import Run, RunState
 from ..cache import CacheResult
 from ..conform import ConformResult
-from ..process_one import find_source_problem
+from ..process_one import find_source_problem, SourceProblem
 
 def touch_second_arg_file(_, path, *args, **kwargs):
     ''' Write a short dummy file for the second argument.
@@ -600,7 +600,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state.preview)
         self.assertIsNone(state.slippymap)
         # This test data does not contain a working conform object
-        self.assertEqual(state.source_problem, 'Missing required ESRI token')
+        self.assertIs(state.source_problem, SourceProblem.no_esri_token)
 
     def test_single_oak(self):
         ''' Test complete process_one.process on Oakland sample data.
@@ -616,7 +616,7 @@ class TestOA (unittest.TestCase):
         self.assertFalse(state.skipped)
         self.assertIsNotNone(state.cache)
         # This test data does not contain a working conform object
-        self.assertEqual(state.source_problem, 'Unknown source conform type')
+        self.assertIs(state.source_problem, SourceProblem.unknown_conform_type)
         self.assertIsNone(state.processed)
         self.assertIsNone(state.preview)
         self.assertIsNone(state.slippymap)
@@ -640,7 +640,7 @@ class TestOA (unittest.TestCase):
             state = RunState(dict(zip(*json.load(file))))
         
         # This test data says "skip": True
-        self.assertEqual(state.source_problem, 'Source says to skip')
+        self.assertIs(state.source_problem, SourceProblem.skip_source)
         self.assertTrue(state.skipped)
         self.assertIsNone(state.cache)
         self.assertIsNone(state.processed)
@@ -660,7 +660,7 @@ class TestOA (unittest.TestCase):
         
         self.assertIsNotNone(state.cache)
         # This test data does not contain a conform object at all
-        self.assertEqual(state.source_problem, 'Source is missing a conform object')
+        self.assertIs(state.source_problem, SourceProblem.missing_conform)
         self.assertIsNone(state.processed)
         self.assertIsNone(state.preview)
         self.assertIsNone(state.slippymap)
@@ -683,7 +683,7 @@ class TestOA (unittest.TestCase):
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
         
-        self.assertEqual(state.source_problem, 'Could not download source data')
+        self.assertIs(state.source_problem, SourceProblem.download_source_failed)
         self.assertIsNone(state.cache)
         self.assertIsNone(state.processed)
         self.assertIsNone(state.preview)
@@ -810,7 +810,7 @@ class TestOA (unittest.TestCase):
             state = RunState(dict(zip(*json.load(file))))
 
         self.assertIsNotNone(state.sample)
-        self.assertEqual(state.source_problem, 'Could not conform source data')
+        self.assertIs(state.source_problem, SourceProblem.conform_source_failed)
         self.assertIsNone(state.processed)
         self.assertIsNone(state.preview)
         self.assertIsNone(state.slippymap)
@@ -1245,7 +1245,7 @@ class TestOA (unittest.TestCase):
             state = RunState(dict(zip(*json.load(file))))
 
         self.assertIsNone(state.sample, 'Sample should be missing when csv.field_size_limit() is too short')
-        self.assertEqual(state.source_problem, 'Could not conform source data')
+        self.assertIs(state.source_problem, SourceProblem.conform_source_failed)
         self.assertIsNone(state.processed)
 
         source = join(self.src_dir, 'us/tx/city_of_waco.json')
@@ -1537,7 +1537,7 @@ class TestOA (unittest.TestCase):
         self.assertIs(state.tests_passed, False)
         self.assertIsNone(state.sample)
         self.assertIsNone(state.processed)
-        self.assertEqual(state.source_problem, 'An acceptance test failed')
+        self.assertIs(state.source_problem, SourceProblem.test_failed)
 
     def test_single_or_curry(self):
         ''' Test complete process_one.process on data.
@@ -1553,7 +1553,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(state.tests_passed)
         self.assertIsNone(state.sample)
         self.assertIsNone(state.processed)
-        self.assertEqual(state.source_problem, 'Could not download source data')
+        self.assertIs(state.source_problem, SourceProblem.download_source_failed)
     
     def test_single_mi_grand_traverse(self):
         '''
@@ -1567,7 +1567,7 @@ class TestOA (unittest.TestCase):
             state = RunState(dict(zip(*json.load(file))))
         
         self.assertIsNone(state.processed)
-        self.assertEqual(state.source_problem, 'Found no addresses in source data')
+        self.assertIs(state.source_problem, SourceProblem.no_addresses_found)
 
     def test_single_lake_man_gdb(self):
         ''' Test complete process_one.process on data.
@@ -1789,13 +1789,13 @@ class TestState (unittest.TestCase):
         self.assertIsNone(RunState({'source problem': find_source_problem('', {'coverage': {'US Census': None}})}).source_problem)
         self.assertIsNone(RunState({'source problem': find_source_problem('', {'coverage': {'ISO 3166': None}})}).source_problem)
 
-        self.assertEqual(RunState({'source problem': find_source_problem('', {})}).source_problem, 'Missing or incomplete coverage')
-        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Could not download ESRI source data: Could not retrieve layer metadata: Token Required', {})}).source_problem, 'Missing required ESRI token')
-        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Error doing conform; skipping', {})}).source_problem, 'Could not conform source data')
-        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Could not download source data', {})}).source_problem, 'Could not download source data')
-        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Unknown source conform type', {})}).source_problem, 'Unknown source conform type')
-        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: A source test failed', {})}).source_problem, 'An acceptance test failed')
-        self.assertEqual(RunState({'source problem': find_source_problem('WARNING: Found no addresses in source data', {})}).source_problem, 'Found no addresses in source data')
+        self.assertIs(RunState({'source problem': find_source_problem('', {})}).source_problem, SourceProblem.no_coverage)
+        self.assertIs(RunState({'source problem': find_source_problem('WARNING: Could not download ESRI source data: Could not retrieve layer metadata: Token Required', {})}).source_problem, SourceProblem.no_esri_token)
+        self.assertIs(RunState({'source problem': find_source_problem('WARNING: Error doing conform; skipping', {})}).source_problem, SourceProblem.conform_source_failed)
+        self.assertIs(RunState({'source problem': find_source_problem('WARNING: Could not download source data', {})}).source_problem, SourceProblem.download_source_failed)
+        self.assertIs(RunState({'source problem': find_source_problem('WARNING: Unknown source conform type', {})}).source_problem, SourceProblem.unknown_conform_type)
+        self.assertIs(RunState({'source problem': find_source_problem('WARNING: A source test failed', {})}).source_problem, SourceProblem.test_failed)
+        self.assertIs(RunState({'source problem': find_source_problem('WARNING: Found no addresses in source data', {})}).source_problem, SourceProblem.no_addresses_found)
 
 class TestPackage (unittest.TestCase):
 
