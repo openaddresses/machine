@@ -1,3 +1,6 @@
+2017-03-27: 4.8.6
+- Started logging resource usage (disk, memory, etc.) for each process. (#589)
+
 2017-03-26: 4.8.5
 - Fixed handling of empty sources with new problem definition. (#590)
 
