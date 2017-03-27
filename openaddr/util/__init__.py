@@ -18,9 +18,9 @@ from boto.ec2 import blockdevicemapping
 block_device_sizes = {'r3.large': 32, 'r3.xlarge': 80, 'r3.2xlarge': 160, 'r3.4xlarge': 320}
 
 RESOURCE_LOG_INTERVAL = timedelta(seconds=30)
-RESOURCE_LOG_FORMAT = 'Resource usage: {user:.0f}% user, {system:.0f}% system, ' \
-    '{memory:.0f}MB memory, {read:.0f}KB read, {written:.0f}KB written, ' \
-    '{sent:.0f}KB sent, {received:.0f}KB received, {elapsed:.0f}sec elapsed'
+RESOURCE_LOG_FORMAT = 'Resource usage: {{ user: {user:.0f}%, system: {system:.0f}%, ' \
+    'memory: {memory:.0f}MB, read: {read:.0f}KB, written: {written:.0f}KB, ' \
+    'sent: {sent:.0f}KB, received: {received:.0f}KB, elapsed: {elapsed:.0f}sec }}'
 
 def get_version():
     ''' Prevent circular imports.
