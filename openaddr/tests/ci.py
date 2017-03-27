@@ -109,10 +109,11 @@ class TestObjects (unittest.TestCase):
         self.assertEqual(state.run_id, value)
 
         # special case for source problem
-        value = None
+        value = 'Source says to skip'
         state = RunState({'source problem': value})
-        self.assertEqual(state.get('source problem'), value)
-        self.assertEqual(state.source_problem, value)
+        self.assertEqual(state.get('source problem').value, value)
+        self.assertEqual(state.source_problem.value, value)
+        self.assertEqual(state.to_dict()['source problem'], value)
 
         # special case for code version
         value = str(uuid4())
