@@ -8,8 +8,9 @@ from argparse import ArgumentParser
 from os import mkdir, rmdir, close, chmod
 from _thread import get_ident
 import tempfile, json, csv, sys, enum
+import threading
 
-from . import cache, conform, preview, slippymap, CacheResult, ConformResult, __version__
+from . import util, cache, conform, preview, slippymap, CacheResult, ConformResult, __version__
 from .cache import DownloadError
 from .conform import check_source_tests
 
@@ -51,6 +52,12 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
     
         Creates a new directory and files under destination.
     '''
+    # The main processing thread holds wait_lock until it is done.
+    # The logging thread periodically writes data in the background,
+    # then exits once the main thread releases the lock.
+    wait_lock = threading.Lock()
+    proc_wait = threading.Thread(target=util.log_process_usage, args=(wait_lock, ))
+    
     temp_dir = tempfile.mkdtemp(prefix='process_one-', dir=destination)
     temp_src = join(temp_dir, basename(source))
     copy(source, temp_src)
@@ -58,77 +65,80 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
     log_handler = get_log_handler(temp_dir)
     logging.getLogger('openaddr').addHandler(log_handler)
     
-    cache_result, conform_result = CacheResult.empty(), ConformResult.empty()
-    preview_path, slippymap_path, skipped_source = None, None, False
-    tests_passed = None
+    with wait_lock:
+        proc_wait.start()
+        cache_result, conform_result = CacheResult.empty(), ConformResult.empty()
+        preview_path, slippymap_path, skipped_source = None, None, False
+        tests_passed = None
     
-    try:
-        with open(temp_src) as file:
-            if json.load(file).get('skip', None):
-                raise SourceSaysSkip()
-        
-        # Check tests in source data.
-        with open(temp_src) as file:
-            tests_passed, failure_details = check_source_tests(json.load(file))
-            if tests_passed is False:
-                raise SourceTestsFailed(failure_details)
-    
-        # Cache source data.
         try:
-            cache_result = cache(temp_src, temp_dir, extras)
-        except EsriDownloadError as e:
-            _L.warning('Could not download ESRI source data: {}'.format(e))
-            raise
-        except DownloadError as e:
-            _L.warning('Could not download source data')
-            raise
+            with open(temp_src) as file:
+                if json.load(file).get('skip', None):
+                    raise SourceSaysSkip()
+        
+            # Check tests in source data.
+            with open(temp_src) as file:
+                tests_passed, failure_details = check_source_tests(json.load(file))
+                if tests_passed is False:
+                    raise SourceTestsFailed(failure_details)
     
-        if not cache_result.cache:
-            _L.warning('Nothing cached')
-        else:
-            _L.info(u'Cached data in {}'.format(cache_result.cache))
-
-            # Conform cached source data.
-            conform_result = conform(temp_src, temp_dir, cache_result.todict())
+            # Cache source data.
+            try:
+                cache_result = cache(temp_src, temp_dir, extras)
+            except EsriDownloadError as e:
+                _L.warning('Could not download ESRI source data: {}'.format(e))
+                raise
+            except DownloadError as e:
+                _L.warning('Could not download source data')
+                raise
     
-            if not conform_result.path:
-                _L.warning('Nothing processed')
+            if not cache_result.cache:
+                _L.warning('Nothing cached')
             else:
-                _L.info('Processed data in {}'.format(conform_result.path))
-                
-                if do_preview and mapzen_key:
-                    preview_path = render_preview(conform_result.path, temp_dir, mapzen_key)
-                
-                if do_preview:
-                    slippymap_path = render_slippymap(conform_result.path, temp_dir)
+                _L.info(u'Cached data in {}'.format(cache_result.cache))
 
-                if not preview_path:
-                    _L.warning('Nothing previewed')
+                # Conform cached source data.
+                conform_result = conform(temp_src, temp_dir, cache_result.todict())
+    
+                if not conform_result.path:
+                    _L.warning('Nothing processed')
                 else:
-                    _L.info('Preview image in {}'.format(preview_path))
+                    _L.info('Processed data in {}'.format(conform_result.path))
+                
+                    if do_preview and mapzen_key:
+                        preview_path = render_preview(conform_result.path, temp_dir, mapzen_key)
+                
+                    if do_preview:
+                        slippymap_path = render_slippymap(conform_result.path, temp_dir)
+
+                    if not preview_path:
+                        _L.warning('Nothing previewed')
+                    else:
+                        _L.info('Preview image in {}'.format(preview_path))
     
-    except SourceSaysSkip:
-        _L.info('Source says to skip in process_one.process()')
-        skipped_source = True
+        except SourceSaysSkip:
+            _L.info('Source says to skip in process_one.process()')
+            skipped_source = True
 
-    except SourceTestsFailed as e:
-        _L.warning('A source test failed in process_one.process(): %s', str(e))
-        tests_passed = False
+        except SourceTestsFailed as e:
+            _L.warning('A source test failed in process_one.process(): %s', str(e))
+            tests_passed = False
 
-    except Exception:
-        _L.warning('Error in process_one.process()', exc_info=True)
+        except Exception:
+            _L.warning('Error in process_one.process()', exc_info=True)
     
-    finally:
-        # Make sure this gets done no matter what
-        logging.getLogger('openaddr').removeHandler(log_handler)
+        finally:
+            # Make sure this gets done no matter what
+            logging.getLogger('openaddr').removeHandler(log_handler)
 
-    # Write output
-    state_path = write_state(source, skipped_source, destination, log_handler,
-        tests_passed, cache_result, conform_result, preview_path, slippymap_path,
-        temp_dir)
+        # Write output
+        state_path = write_state(source, skipped_source, destination, log_handler,
+            tests_passed, cache_result, conform_result, preview_path, slippymap_path,
+            temp_dir)
 
-    log_handler.close()
-    rmtree(temp_dir)
+        log_handler.close()
+        rmtree(temp_dir)
+
     return state_path
 
 def render_preview(csv_filename, temp_dir, mapzen_key):
@@ -151,7 +161,7 @@ def render_slippymap(csv_filename, temp_dir):
     else:
         return mbtiles_filename
 
-class LogFilter:
+class LogFilterCurrentThread:
     ''' Logging filter object to match only record in the current thread.
     '''
     def __init__(self):
@@ -162,7 +172,7 @@ class LogFilter:
         return record.thread == self.thread_id
 
 def get_log_handler(directory):
-    ''' Create a new file handler for the current thread and return it.
+    ''' Create a new file handler and return it.
     '''
     handle, filename = tempfile.mkstemp(dir=directory, suffix='.log')
     close(handle)
@@ -171,7 +181,9 @@ def get_log_handler(directory):
     handler = logging.FileHandler(filename)
     handler.setFormatter(logging.Formatter(u'%(asctime)s %(levelname)08s: %(message)s'))
     handler.setLevel(logging.DEBUG)
-    handler.addFilter(LogFilter())
+    
+    # # Limit log messages to the current thread
+    # handler.addFilter(LogFilterCurrentThread())
     
     return handler
 
