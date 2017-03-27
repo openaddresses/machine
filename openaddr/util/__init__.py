@@ -232,6 +232,10 @@ def get_cpu_times():
 def get_diskio_bytes():
     ''' Return bytes read and written.
     
+        This will measure all bytes read in the process, and so includes
+        reading in shared libraries, etc; not just our productive data
+        processing activity.
+    
         See http://stackoverflow.com/questions/3633286/understanding-the-counters-in-proc-pid-io
     '''
     if not exists('/proc/{}/io'.format(getpid())):
@@ -251,6 +255,9 @@ def get_diskio_bytes():
 
 def get_network_bytes():
     ''' Return bytes sent and received.
+        
+        TODO: This code measures network usage for the whole system.
+        It'll be better to do this measurement on a per-process basis later.
     '''
     if not exists('/proc/net/netstat'):
         return None, None
@@ -269,6 +276,9 @@ def get_network_bytes():
 
 def get_memory_usage():
     ''' Return Linux memory usage in megabytes.
+        
+        VMRSS is of interest here too; that's resident memory size.
+        It will matter if a machine runs out of RAM.
     
         See http://stackoverflow.com/questions/30869297/difference-between-memfree-and-memavailable
         and http://stackoverflow.com/questions/131303/how-to-measure-actual-memory-usage-of-an-application-or-process

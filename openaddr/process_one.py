@@ -52,6 +52,9 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
     
         Creates a new directory and files under destination.
     '''
+    # The main processing thread holds wait_lock until it is done.
+    # The logging thread periodically writes data in the background,
+    # then exits once the main thread releases the lock.
     wait_lock = threading.Lock()
     proc_wait = threading.Thread(target=util.log_process_usage, args=(wait_lock, ))
     
