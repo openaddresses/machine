@@ -6,6 +6,7 @@ from os.path import join, basename, splitext, dirname, exists
 from operator import attrgetter
 from tempfile import mkstemp
 from os import close, getpid
+import glob, collections
 import ftplib, httmock
 import io, zipfile
 import json, time
@@ -20,7 +21,8 @@ block_device_sizes = {'r3.large': 32, 'r3.xlarge': 80, 'r3.2xlarge': 160, 'r3.4x
 RESOURCE_LOG_INTERVAL = timedelta(seconds=30)
 RESOURCE_LOG_FORMAT = 'Resource usage: {{ user: {user:.0f}%, system: {system:.0f}%, ' \
     'memory: {memory:.0f}MB, read: {read:.0f}KB, written: {written:.0f}KB, ' \
-    'sent: {sent:.0f}KB, received: {received:.0f}KB, period: {period:.0f}sec }}'
+    'sent: {sent:.0f}KB, received: {received:.0f}KB, period: {period:.0f}sec, ' \
+    'procs: {procs:.0f} }}'
 
 def get_version():
     ''' Prevent circular imports.
@@ -211,25 +213,54 @@ def s3_key_url(key):
     
     return urljoin(base, path)
 
-def get_cpu_times():
+def get_pidlist(start_pid):
+    ''' Return a set of recursively-found child PIDs of the given start PID.
+    '''
+    children = collections.defaultdict(set)
+    
+    for path in glob.glob('/proc/*/status'):
+        _, _, pid, _ = path.split('/', 3)
+        if pid == 'self':
+            continue
+        with open(path) as file:
+            for line in file:
+                if line.startswith('PPid:\t'):
+                    ppid = line[6:].strip()
+                    break
+            children[int(ppid)].add(int(pid))
+    
+    parents, pids = [start_pid], set()
+    
+    while parents:
+        parent = parents.pop(0)
+        pids.add(parent)
+        parents.extend(children[parent])
+    
+    return pids
+
+def get_cpu_times(pidlist):
     ''' Return Linux CPU usage times in jiffies.
     
         See http://stackoverflow.com/questions/1420426/how-to-calculate-the-cpu-usage-of-a-process-by-pid-in-linux-from-c
     '''
-    if not exists('/proc/stat') or not exists('/proc/{}/stat'.format(getpid())):
+    if not exists('/proc/stat') or not exists('/proc/self/stat'):
         return None, None, None
     
     with open('/proc/stat') as file:
         stat = re.split(r'\s+', next(file).strip())
         time_total = sum([int(s) for s in stat[1:]])
 
-    with open('/proc/{}/stat'.format(getpid())) as file:
-        stat = next(file).strip().split(' ')
-        utime, stime = (int(s) for s in stat[13:15])
+    utime, stime = 0, 0
+    
+    for pid in pidlist:
+        with open('/proc/{}/stat'.format(pid)) as file:
+            stat = next(file).strip().split(' ')
+            utime += int(stat[13])
+            stime += int(stat[14])
     
     return time_total, utime, stime
 
-def get_diskio_bytes():
+def get_diskio_bytes(pidlist):
     ''' Return bytes read and written.
     
         This will measure all bytes read in the process, and so includes
@@ -238,18 +269,19 @@ def get_diskio_bytes():
     
         See http://stackoverflow.com/questions/3633286/understanding-the-counters-in-proc-pid-io
     '''
-    if not exists('/proc/{}/io'.format(getpid())):
+    if not exists('/proc/self/io'):
         return None, None
     
-    read_bytes, write_bytes = None, None
+    read_bytes, write_bytes = 0, 0
     
-    with open('/proc/{}/io'.format(getpid())) as file:
-        for line in file:
-            bytes = re.split(r':\s+', line.strip())
-            if 'read_bytes' in bytes:
-                read_bytes = int(bytes[1])
-            if 'write_bytes' in bytes:
-                write_bytes = int(bytes[1])
+    for pid in pidlist:
+        with open('/proc/{}/io'.format(pid)) as file:
+            for line in file:
+                bytes = re.split(r':\s+', line.strip())
+                if 'read_bytes' in bytes:
+                    read_bytes += int(bytes[1])
+                if 'write_bytes' in bytes:
+                    write_bytes += int(bytes[1])
     
     return read_bytes, write_bytes
 
@@ -274,7 +306,7 @@ def get_network_bytes():
     
     return sent_bytes, recv_bytes
 
-def get_memory_usage():
+def get_memory_usage(pidlist):
     ''' Return Linux memory usage in megabytes.
         
         VMRSS is of interest here too; that's resident memory size.
@@ -283,26 +315,33 @@ def get_memory_usage():
         See http://stackoverflow.com/questions/30869297/difference-between-memfree-and-memavailable
         and http://stackoverflow.com/questions/131303/how-to-measure-actual-memory-usage-of-an-application-or-process
     '''
-    if not exists('/proc/{}/status'.format(getpid())):
+    if not exists('/proc/self/status'):
         return None
     
-    with open('/proc/{}/status'.format(getpid())) as file:
-        for line in file:
-            if 'VmSize' in line:
-                size = re.split(r'\s+', line.strip())
-                return int(size[1]) / 1024
+    megabytes = 0
+    
+    for pid in pidlist:
+        with open('/proc/{}/status'.format(pid)) as file:
+            for line in file:
+                if 'VmSize' in line:
+                    size = re.split(r'\s+', line.strip())
+                    megabytes += int(size[1]) / 1024
+                    break
+    
+    return megabytes
 
 def log_current_usage(start_time, usercpu_prev, syscpu_prev, totcpu_prev, read_prev, written_prev, sent_prev, received_prev, time_prev):
     '''
     '''
-    totcpu_curr, usercpu_curr, syscpu_curr = get_cpu_times()
-    read_curr, written_curr = get_diskio_bytes()
+    pidlist = get_pidlist(getpid())
+    totcpu_curr, usercpu_curr, syscpu_curr = get_cpu_times(pidlist)
+    read_curr, written_curr = get_diskio_bytes(pidlist)
     sent_curr, received_curr = get_network_bytes()
     time_curr = time.time()
 
     if totcpu_prev is not None:
         # Log resource usage by comparing to previous tick
-        megabytes_used = get_memory_usage()
+        megabytes_used = get_memory_usage(pidlist)
         user_cpu = (usercpu_curr - usercpu_prev) / (totcpu_curr - totcpu_prev)
         sys_cpu = (syscpu_curr - syscpu_prev) / (totcpu_curr - totcpu_prev)
         read, written = read_curr - read_prev, written_curr - written_prev
@@ -312,7 +351,7 @@ def log_current_usage(start_time, usercpu_prev, syscpu_prev, totcpu_prev, read_p
         _L.info(RESOURCE_LOG_FORMAT.format(
             user=user_cpu/percent, system=sys_cpu/percent, memory=megabytes_used,
             read=read/K, written=written/K, sent=sent/K, received=received/K,
-            period=time_curr - time_prev
+            procs=len(pidlist), period=time_curr - time_prev
             ))
 
     return usercpu_curr, syscpu_curr, totcpu_curr, read_curr, written_curr, sent_curr, received_curr, time_curr

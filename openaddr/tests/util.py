@@ -237,7 +237,8 @@ class TestUtilities (unittest.TestCase):
     def test_log_current_usage(self):
         '''
         '''
-        with patch('openaddr.util.get_cpu_times') as get_cpu_times, \
+        with patch('openaddr.util.get_pidlist') as get_pidlist, \
+             patch('openaddr.util.get_cpu_times') as get_cpu_times, \
              patch('openaddr.util.get_diskio_bytes') as get_diskio_bytes, \
              patch('openaddr.util.get_network_bytes') as get_network_bytes, \
              patch('openaddr.util.get_memory_usage') as get_memory_usage:
@@ -246,9 +247,11 @@ class TestUtilities (unittest.TestCase):
             get_network_bytes.return_value = 6, 7
             get_memory_usage.return_value = 8
 
-            usercpu_prev, syscpu_prev, totcpu_prev, read_prev, written_prev, \
-            sent_prev, received_prev, time_prev = util.log_current_usage(0, 0, 0, 0, 0, 0, 0, 0, 0)
+            previous = util.log_current_usage(0, 0, 0, 0, 0, 0, 0, 0, 0)
         
-        self.assertEqual((totcpu_prev, usercpu_prev, syscpu_prev, read_prev,
-                         written_prev, sent_prev, received_prev), (1, 2, 3, 4,
-                         5, 6, 7))
+        get_cpu_times.assert_called_once_with(get_pidlist.return_value)
+        get_diskio_bytes.assert_called_once_with(get_pidlist.return_value)
+        get_network_bytes.assert_called_once_with()
+        get_memory_usage.assert_called_once_with(get_pidlist.return_value)
+        
+        self.assertEqual(previous[:7], (2, 3, 1, 4, 5, 6, 7))
