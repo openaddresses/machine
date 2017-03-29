@@ -292,14 +292,40 @@ def get_memory_usage():
                 size = re.split(r'\s+', line.strip())
                 return int(size[1]) / 1024
 
+def log_current_usage(start_time, usercpu_prev, syscpu_prev, totcpu_prev, read_prev, written_prev, sent_prev, received_prev):
+    '''
+    '''
+    totcpu_curr, usercpu_curr, syscpu_curr = get_cpu_times()
+    read_curr, written_curr = get_diskio_bytes()
+    sent_curr, received_curr = get_network_bytes()
+
+    if totcpu_prev is not None:
+        # Log resource usage by comparing to previous tick
+        megabytes_used = get_memory_usage()
+        user_cpu = (usercpu_curr - usercpu_prev) / (totcpu_curr - totcpu_prev)
+        sys_cpu = (syscpu_curr - syscpu_prev) / (totcpu_curr - totcpu_prev)
+        read, written = read_curr - read_prev, written_curr - written_prev
+        sent, received = sent_curr - sent_prev, received_curr - received_prev
+
+        percent, K = .01, 1024
+        _L.info(RESOURCE_LOG_FORMAT.format(
+            user=user_cpu/percent, system=sys_cpu/percent, memory=megabytes_used,
+            read=read/K, written=written/K, sent=sent/K, received=received/K,
+            elapsed=time.time() - start_time
+            ))
+
+    usercpu_prev, syscpu_prev, totcpu_prev = usercpu_curr, syscpu_curr, totcpu_curr
+    read_prev, written_prev = read_curr, written_curr
+    sent_prev, received_prev = sent_curr, received_curr
+    
+    return usercpu_prev, syscpu_prev, totcpu_prev, read_prev, written_prev, sent_prev, received_prev
+
 def log_process_usage(lock):
     '''
     '''
     start_time = time.time()
     next_measure = start_time
-    usercpu_prev, syscpu_prev, totcpu_prev = None, None, None
-    read_prev, written_prev = None, None
-    sent_prev, received_prev = None, None
+    previous = (None, None, None, None, None, None, None)
 
     while True:
         time.sleep(.05)
@@ -312,26 +338,5 @@ def log_process_usage(lock):
             # Not yet time to measure and log usage.
             continue
 
-        totcpu_curr, usercpu_curr, syscpu_curr = get_cpu_times()
-        read_curr, written_curr = get_diskio_bytes()
-        sent_curr, received_curr = get_network_bytes()
-
-        if totcpu_prev is not None:
-            # Log resource usage by comparing to previous tick
-            megabytes_used = get_memory_usage()
-            user_cpu = (usercpu_curr - usercpu_prev) / (totcpu_curr - totcpu_prev)
-            sys_cpu = (syscpu_curr - syscpu_prev) / (totcpu_curr - totcpu_prev)
-            read, written = read_curr - read_prev, written_curr - written_prev
-            sent, received = sent_curr - sent_prev, received_curr - received_prev
-
-            percent, K = .01, 1024
-            _L.info(RESOURCE_LOG_FORMAT.format(
-                user=user_cpu/percent, system=sys_cpu/percent, memory=megabytes_used,
-                read=read/K, written=written/K, sent=sent/K, received=received/K,
-                elapsed=time.time() - start_time
-                ))
-
-        usercpu_prev, syscpu_prev, totcpu_prev = usercpu_curr, syscpu_curr, totcpu_curr
-        read_prev, written_prev = read_curr, written_curr
-        sent_prev, received_prev = sent_curr, received_curr
+        previous = log_current_usage(start_time, *previous)
         next_measure += RESOURCE_LOG_INTERVAL.seconds + RESOURCE_LOG_INTERVAL.days * 86400

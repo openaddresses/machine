@@ -233,3 +233,22 @@ class TestUtilities (unittest.TestCase):
         key6 = Mock()
         key6.name, key6.bucket.name = u'/kéy6', 'bucket6'
         self.assertEqual(util.s3_key_url(key6), u'https://s3.amazonaws.com/bucket6/kéy6')
+    
+    def test_log_current_usage(self):
+        '''
+        '''
+        with patch('openaddr.util.get_cpu_times') as get_cpu_times, \
+             patch('openaddr.util.get_diskio_bytes') as get_diskio_bytes, \
+             patch('openaddr.util.get_network_bytes') as get_network_bytes, \
+             patch('openaddr.util.get_memory_usage') as get_memory_usage:
+            get_cpu_times.return_value = 1, 2, 3
+            get_diskio_bytes.return_value = 4, 5
+            get_network_bytes.return_value = 6, 7
+            get_memory_usage.return_value = 8
+
+            usercpu_prev, syscpu_prev, totcpu_prev, read_prev, written_prev, \
+            sent_prev, received_prev = util.log_current_usage(0, 0, 0, 0, 0, 0, 0, 0)
+        
+        self.assertEqual((totcpu_prev, usercpu_prev, syscpu_prev, read_prev,
+                         written_prev, sent_prev, received_prev), (1, 2, 3, 4,
+                         5, 6, 7))
