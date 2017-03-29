@@ -247,7 +247,7 @@ class TestUtilities (unittest.TestCase):
             get_memory_usage.return_value = 8
 
             usercpu_prev, syscpu_prev, totcpu_prev, read_prev, written_prev, \
-            sent_prev, received_prev = util.log_current_usage(0, 0, 0, 0, 0, 0, 0, 0)
+            sent_prev, received_prev, time_prev = util.log_current_usage(0, 0, 0, 0, 0, 0, 0, 0, 0)
         
         self.assertEqual((totcpu_prev, usercpu_prev, syscpu_prev, read_prev,
                          written_prev, sent_prev, received_prev), (1, 2, 3, 4,

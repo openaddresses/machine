@@ -20,7 +20,7 @@ block_device_sizes = {'r3.large': 32, 'r3.xlarge': 80, 'r3.2xlarge': 160, 'r3.4x
 RESOURCE_LOG_INTERVAL = timedelta(seconds=30)
 RESOURCE_LOG_FORMAT = 'Resource usage: {{ user: {user:.0f}%, system: {system:.0f}%, ' \
     'memory: {memory:.0f}MB, read: {read:.0f}KB, written: {written:.0f}KB, ' \
-    'sent: {sent:.0f}KB, received: {received:.0f}KB, elapsed: {elapsed:.0f}sec }}'
+    'sent: {sent:.0f}KB, received: {received:.0f}KB, period: {period:.0f}sec }}'
 
 def get_version():
     ''' Prevent circular imports.
@@ -292,12 +292,13 @@ def get_memory_usage():
                 size = re.split(r'\s+', line.strip())
                 return int(size[1]) / 1024
 
-def log_current_usage(start_time, usercpu_prev, syscpu_prev, totcpu_prev, read_prev, written_prev, sent_prev, received_prev):
+def log_current_usage(start_time, usercpu_prev, syscpu_prev, totcpu_prev, read_prev, written_prev, sent_prev, received_prev, time_prev):
     '''
     '''
     totcpu_curr, usercpu_curr, syscpu_curr = get_cpu_times()
     read_curr, written_curr = get_diskio_bytes()
     sent_curr, received_curr = get_network_bytes()
+    time_curr = time.time()
 
     if totcpu_prev is not None:
         # Log resource usage by comparing to previous tick
@@ -311,28 +312,25 @@ def log_current_usage(start_time, usercpu_prev, syscpu_prev, totcpu_prev, read_p
         _L.info(RESOURCE_LOG_FORMAT.format(
             user=user_cpu/percent, system=sys_cpu/percent, memory=megabytes_used,
             read=read/K, written=written/K, sent=sent/K, received=received/K,
-            elapsed=time.time() - start_time
+            period=time_curr - time_prev
             ))
 
-    usercpu_prev, syscpu_prev, totcpu_prev = usercpu_curr, syscpu_curr, totcpu_curr
-    read_prev, written_prev = read_curr, written_curr
-    sent_prev, received_prev = sent_curr, received_curr
-    
-    return usercpu_prev, syscpu_prev, totcpu_prev, read_prev, written_prev, sent_prev, received_prev
+    return usercpu_curr, syscpu_curr, totcpu_curr, read_curr, written_curr, sent_curr, received_curr, time_curr
 
 def log_process_usage(lock):
     '''
     '''
     start_time = time.time()
     next_measure = start_time
-    previous = (None, None, None, None, None, None, None)
+    previous = (None, None, None, None, None, None, None, None)
 
     while True:
         time.sleep(.05)
 
         if lock.acquire(False):
-            # Got the lock, we are done.
-            break
+            # Got the lock, we are done. Log one last time and get out.
+            log_current_usage(start_time, *previous)
+            return
 
         if time.time() <= next_measure:
             # Not yet time to measure and log usage.
