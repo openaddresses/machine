@@ -1,3 +1,6 @@
+2017-03-29: 4.8.10
+- Adjusted resource logging to use child processes. (#596)
+
 2017-03-28: 4.8.9
 - Fixed ISO 3166 code for Gifu, Japan.
 
