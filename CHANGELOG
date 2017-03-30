@@ -1,3 +1,6 @@
+2017-03-30: 4.8.11
+- Fixed cron definition for openaddr-calculate-coverage task.
+
 2017-03-29: 4.8.10
 - Adjusted resource logging to use child processes. (#596)
 

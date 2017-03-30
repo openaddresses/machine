@@ -156,7 +156,7 @@ file "/etc/cron.d/openaddr_crontab-calculate-coverage" do
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 LC_ALL=C.UTF-8
 # Update coverage page data, every third day at 11am UTC (4am PDT)
-0 23	* * fri	#{username}	\
+0 11	*/3 * *	#{username}	\
   openaddr-run-ec2-command \
   --hours 3 \
   --instance-type t2.nano \
