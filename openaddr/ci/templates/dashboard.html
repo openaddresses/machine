@@ -181,7 +181,7 @@ function addLostTable(data) {
 
     var headers = data.headers;
     var rows = data.rows.map(function(row) {
-                 return [row[0].replace('.json', ''),
+                 return ['<a href="' + row[0].replace(/^(sources\/.+)\.json$/, '/$1') + '">' + row[0].replace(/^sources\/(.+)\.json$/, '$1') + '</a>',
                          row[1].toLocaleString(),
                          dateFormatter(new Date(row[2]*1000))
                         ];});
@@ -202,8 +202,7 @@ function addLostTable(data) {
     // Table data values
     tr.selectAll('td')
       .data(Object).enter()
-        .append('td').text(Object)
-                     .style('text-align', function(d, i) { return i == 0 ? 'left' : 'right' });
+        .append('td').html(Object).style('text-align', function(d, i) { return i == 0 ? 'left' : 'right' });
 }
 
 // Main script. Load the data and graph it.
