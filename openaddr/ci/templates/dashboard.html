@@ -181,7 +181,7 @@ function addLostTable(data) {
 
     var headers = data.headers;
     var rows = data.rows.map(function(row) {
-                 return [row[0].replace('.json', ''),
+                 return ['<a href="' + row[0].replace(/^(sources\/.+)\.json$/, '/$1') + '">' + row[0].replace(/^sources\/(.+)\.json$/, '$1') + '</a>',
                          row[1].toLocaleString(),
                          dateFormatter(new Date(row[2]*1000))
                         ];});
@@ -202,8 +202,7 @@ function addLostTable(data) {
     // Table data values
     tr.selectAll('td')
       .data(Object).enter()
-        .append('td').text(Object)
-                     .style('text-align', function(d, i) { return i == 0 ? 'left' : 'right' });
+        .append('td').html(Object).style('text-align', function(d, i) { return i == 0 ? 'left' : 'right' });
 }
 
 // Main script. Load the data and graph it.
@@ -212,9 +211,9 @@ d3.json('https://s3.amazonaws.com/data.openaddresses.io/machine-stats.json', fun
     var timeseries = data['timeseries'];
     var dateRange = d3.extent(timeseries, function(d) { return d.ts; });
 
-    graphTimeSeries(d3.select("#addresses"), timeseries, function(d) { return d.addresses; }, dateRange, [60000000, 450000000]);
+    graphTimeSeries(d3.select("#addresses"), timeseries, function(d) { return d.addresses; }, dateRange, [60000000, 500000000]);
     graphTimeSeries(d3.select('#sources'), timeseries, function(d) { return d.successful_sources; }, dateRange, [400, 1500]);
-    graphTimeSeries(d3.select('#cache'), timeseries, function(d) { return d.average_cache_time; }, dateRange, [0, 200]);
+    graphTimeSeries(d3.select('#cache'), timeseries, function(d) { return d.average_cache_time; }, dateRange, [0, 300]);
     graphTimeSeries(d3.select('#process'), timeseries, function(d) { return d.average_process_time; }, dateRange, [0, 400]);
 
     graphHistogram(d3.select('#addressesHistogram'), data['last_address_counts'], [0, 200000])
