@@ -1,3 +1,6 @@
+2017-04-03: 4.8.12
+- Fixed graph and table dashboard display. (#598)
+
 2017-03-30: 4.8.11
 - Fixed cron definition for openaddr-calculate-coverage task.
 
