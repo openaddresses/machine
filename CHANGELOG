@@ -1,3 +1,6 @@
+2017-04-04: 4.8.13
+- Raised maximum S3 upload size to 600MB.
+
 2017-04-03: 4.8.12
 - Fixed graph and table dashboard display. (#598)
 

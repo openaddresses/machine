@@ -25,7 +25,7 @@ github_user_url = 'https://api.github.com/user'
 
 USER_KEY = 'github user'
 TOKEN_KEY = 'github token'
-MAX_UPLOAD_SIZE = 256 * 1024 * 1024
+MAX_UPLOAD_SIZE = 600 * 1024 * 1024
 
 webauth = Blueprint('webauth', __name__)
 
