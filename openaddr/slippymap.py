@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 import os, subprocess, json
 import requests
 
-def generate(filename_or_url, mbtiles_filename):
+def generate(mbtiles_filename, filename_or_url):
     '''
     '''
     src_filename = get_local_filename(filename_or_url)
@@ -83,8 +83,8 @@ def iterate_file_features(filename):
 
 parser = ArgumentParser(description='Generate a single source slippy map MBTiles file with Tippecanoe.')
 
-parser.add_argument('src_filename', help='Input Zip or CSV filename or URL.')
 parser.add_argument('mbtiles_filename', help='Output MBTiles filename.')
+parser.add_argument('src_filename', help='Input Zip or CSV filename or URL.')
 
 parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
                     action='store_const', dest='loglevel',
@@ -98,7 +98,7 @@ def main():
     args = parser.parse_args()
     from .ci import setup_logger
     setup_logger(None, None, None, log_level=args.loglevel)
-    generate(args.src_filename, args.mbtiles_filename)
+    generate(args.mbtiles_filename, args.src_filename)
 
 if __name__ == '__main__':
     exit(main())

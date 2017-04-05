@@ -28,7 +28,7 @@ class TestSlippyMap (unittest.TestCase):
 
         try:
             with mock.patch('subprocess.Popen') as Popen:
-                slippymap.generate(zip_filename, mbtiles_filename)
+                slippymap.generate(mbtiles_filename, zip_filename)
 
             self.assertEqual(len(Popen.return_value.stdin.write.mock_calls), 2 * 5305)
             self.assertEqual(len(Popen.return_value.stdin.close.mock_calls), 1)
@@ -54,7 +54,7 @@ class TestSlippyMap (unittest.TestCase):
                 csv_filename = file.name
         
             with mock.patch('subprocess.Popen') as Popen:
-                slippymap.generate(csv_filename, mbtiles_filename)
+                slippymap.generate(mbtiles_filename, csv_filename)
 
             self.assertEqual(len(Popen.return_value.stdin.write.mock_calls), 2 * 767)
             self.assertEqual(len(Popen.return_value.stdin.close.mock_calls), 1)
