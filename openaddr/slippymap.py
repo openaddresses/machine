@@ -4,10 +4,11 @@ import logging; _L = logging.getLogger('openaddr.slippymap')
 from zipfile import ZipFile
 from io import TextIOWrapper
 from csv import DictReader
-from tempfile import gettempdir
+from tempfile import gettempdir, mkstemp
 from argparse import ArgumentParser
 from urllib.parse import urlparse
 import os, subprocess, json
+import requests
 
 def generate(filename_or_url, mbtiles_filename):
     '''
