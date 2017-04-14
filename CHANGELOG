@@ -1,3 +1,7 @@
+2017-04-14: 4.9.0
+- Added Tippecanoe command line entry point. (#599)
+- Configured dotmap process to use complete properties. (#603)
+
 2017-04-04: 4.8.13
 - Raised maximum S3 upload size to 600MB.
 
