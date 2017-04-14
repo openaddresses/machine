@@ -3,52 +3,76 @@ Install
 
 This document describes how to install the Machine code for local development, and demonstrates two ways to use it: running a single source and running a complete batch set. If you’re editing a lot of sources and want to do it quickly without waiting for a remote Github-based continuous integration service, you may want to use run single sources locally. If you're working on the queuing and job control portions of Machine code, you may want to run complete batch sets on test data.
 
+Running A Source Locally
+------------------------
+
+Run a single source without installing Python or other packages locally
+using [OpenAddresses from Docker Hub](https://hub.docker.com/r/openaddr/).
+
+1.  Get the latest OpenAddresses image from Docker Hub:
+    
+        docker pull openaddr/machine:latest
+
+2.  Download a source from [OpenAdresses/openaddresses on Github](https://github.com/openaddresses/openaddresses). [Berkeley, California](https://results.openaddresses.io/sources/us/ca/berkeley) is a small, reliable source that’s good to test with:
+
+        curl -o us-ca-berkeley.json \
+          -L https://github.com/openaddresses/openaddresses/raw/master/sources/us/ca/berkeley.json
+
+3.  Using Docker, run `openaddr-process-one` to process the source:
+
+        docker run --volume `pwd`:/vol openaddr/machine \
+          openaddr-process-one -v vol/us-ca-berkeley.json vol
+
+4.  Look in the directory `us-ca-berkeley` for address output, logs, and other files.
+
 Local Development
 -----------------
 
 You can edit a local copy of OpenAddresses code with working tests by installing
-everything onto a local virtual machine using [VirtualBox](https://www.virtualbox.org)
-and [Vagrant](https://www.vagrantup.com). This process should take about 10-20
-minutes depending on download speed.
+everything onto a local virtual machine using [Docker](https://www.docker.com).
+This process should take 5-10 minutes depending on download speed.
 
-1.  Download and install [VirtualBox](https://www.virtualbox.org) and [Vagrant](https://www.vagrantup.com) on your development machine. Both are available as separate installs, or as [part of Homebrew](https://brew.sh).
+1.  Download and install [Docker](https://www.docker.com). On Mac OS X,
+    use [Docker for Mac](https://docs.docker.com/docker-for-mac/). On Ubuntu,
+    run `apt-get install docker.io` or follow [Docker’s own directions](https://docs.docker.com/engine/installation/linux/ubuntu/).
 
-    Ensure that `VBoxManage` is in your path. If you download [VirtualBox from the website](https://www.virtualbox.org/wiki/Downloads), `VBoxManage` may be located in `/Applications/VirtualBox.app/Contents/MacOS` and you will need to [add it to your shell path](https://kb.iu.edu/d/acar).
+2.  Build the pre-requisites image, which includes binary packages like GDAL.
+    
+        docker build -f Dockerfile-prereqs -t openaddr/prereqs:latest .
+    
+    You’ll see notices like this scroll by so you know that it’s working:
+    
+        Sending build context to Docker daemon 650.7 MB
+        Step 1/5 : FROM ubuntu:14.04
+         ---> 302fa07d8117
+        Step 2/5 : RUN apt-get update -y &&     apt-get install -y software-properties-common python-software-properties
+         ---> Running in 45a617062a5f
+        Ign http://archive.ubuntu.com trusty InRelease
+        Get:1 http://archive.ubuntu.com trusty-updates InRelease [65.9 kB]
+        Get:2 http://archive.ubuntu.com trusty-security InRelease [65.9 kB]
+        Get:3 http://archive.ubuntu.com trusty Release.gpg [933 B]
+        (etc.)
 
-2.  Clone [OpenAddresses Machine code](https://github.com/openaddresses/machine) from Github.
-
-3.  From inside the machine folder, prepare the VirtualBox virtual machine with this command:
-
-        vagrant up
-
-    You’ll see a few notices scroll by to know that this process is working:
-
-        ==> default: Importing base box 'ubuntu/trusty64'...
-        ==> default: Setting the name of the VM: OpenAddresses-Machine_default_1487786156783_59682
-        ==> default: Waiting for machine to boot. This may take a few minutes...
-        ==> default: Machine booted and ready!
-
-    This last part can take ~5 minutes:
-
-        ==> default: Mounting shared folders...
-            default: /home/vagrant/machine => /Users/jrandom/Sites/OpenAddresses-Machine
-        ==> default: Running provisioner: shell...
-            default: Running: inline script
-
-4.  Connect to the virtual machine with this command:
-
-        vagrant ssh
-
-5.  Run the complete test suite to verify that it works:
-
-        cd machine
-        python3 test.py
-
-You should now be able to make changes and test them. The virtual machine’s
-`/home/vagrant/machine` directory is a mount of your host machine’s current directory, so you
-will be able to edit files in your normal text editor. Be sure to use `pip3` and
-`python3` when running, or [set up an optional quick local virtual environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/)
-with Python 3 and the [`--editable` flag](https://pip.pypa.io/en/stable/reference/pip_install/#install-editable).
+3.  Connect to the pre-requisites image `openaddr/prereqs` with a bash shell
+    and the current working directory mapped to `/vol`:
+    
+        docker run -it --volume `pwd`:/vol openaddr/prereqs bash
+    
+4.  Build the OpenAddresses packages using
+    [virtualenv](https://packaging.python.org/installing/#creating-virtual-environments)
+    and [pip](https://packaging.python.org/installing/#use-pip-for-installing).
+    The `-e` flag to `pip install` insures that your local copy of OpenAddresses
+    is used, so that you can test changes to the code made in your own editor:
+    
+        pip install virtualenv
+        virtualenv -p python3 --system-site-packages venv
+        source venv/bin/activate
+        pip install -e file:///vol
+    
+You should now be able to make changes and test them.
+If you exit the Docker container, changes made in step 4 above will be lost.
+Use [Docker commit](https://docs.docker.com/engine/reference/commandline/commit/)
+or similar if you need to save them.
 
 Running A First Source
 ----------------------
@@ -57,7 +81,8 @@ You can process a single individual source of OpenAddresses data with the comman
 
 1.  Download a source from [OpenAdresses/openaddresses on Github](https://github.com/openaddresses/openaddresses). [Berkeley, California](https://results.openaddresses.io/sources/us/ca/berkeley) is a small, reliable source that’s good to test with:
 
-        curl -L https://github.com/openaddresses/openaddresses/raw/master/sources/us/ca/berkeley.json -o us-ca-berkeley.json
+        curl -o us-ca-berkeley.json \
+          -L https://github.com/openaddresses/openaddresses/raw/master/sources/us/ca/berkeley.json
 
 2.  Run `openaddr-process-one` to process the source:
 
