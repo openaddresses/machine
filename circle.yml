@@ -7,7 +7,7 @@ dependencies:
     - docker pull openaddr/prereqs || true
   override:
     - docker build -f Dockerfile-prereqs -t openaddr/prereqs:latest .
-    - docker build -f Dockerfile-testing -t openaddr/testing:latest .
+    - docker build -f Dockerfile-machine -t openaddr/machine:latest .
 
 test:
   override:
@@ -23,3 +23,6 @@ deployment:
       - docker tag openaddr/prereqs:latest openaddr/prereqs:`cat openaddr/VERSION`
       - docker push openaddr/prereqs:`cat openaddr/VERSION`
       - docker push openaddr/prereqs:latest
+      - docker tag openaddr/machine:latest openaddr/machine:`cat openaddr/VERSION`
+      - docker push openaddr/machine:`cat openaddr/VERSION`
+      - docker push openaddr/machine:latest

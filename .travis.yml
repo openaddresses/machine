@@ -4,7 +4,7 @@ services:
 before_install:
   - docker pull openaddr/prereqs || true
   - docker build -f Dockerfile-prereqs -t openaddr/prereqs:latest .
-  - docker build -f Dockerfile-testing -t openaddr/testing:latest .
+  - docker build -f Dockerfile-machine -t openaddr/machine:latest .
 script:
   # Postgres needs a little time
   - docker-compose up -d && sleep 15
