@@ -198,7 +198,8 @@ def stream_all_features(results):
                 for row in csv.DictReader(buffer):
                     try:
                         lon_lat = float(row['LON']), float(row['LAT'])
-                        feature = {"type": "Feature", "properties": {}, 
+                        properties = {k: v for (k, v) in row.items() if k not in ('LON', 'LAT')}
+                        feature = {"type": "Feature", "properties": properties, 
                             "geometry": {"type": "Point", "coordinates": lon_lat}}
                     except ValueError:
                         pass
