@@ -1,3 +1,6 @@
+2017-04-14: 4.9.1
+- Extended time available to openaddr-index-tiles task.
+
 2017-04-14: 4.9.0
 - Added Tippecanoe command line entry point. (#599)
 - Configured dotmap process to use complete properties. (#603)

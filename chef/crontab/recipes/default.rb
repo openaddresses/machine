@@ -92,7 +92,7 @@ LC_ALL=C.UTF-8
 # Index into tiles, every third day at 11am UTC (4am PDT)
 0 11	*/3 * *	#{username}	\
   openaddr-run-ec2-command \
-  --hours 9 \
+  --hours 12 \
   -b "#{aws_s3_bucket}" \
   --sns-arn "#{aws_sns_arn}" \
   --verbose \
