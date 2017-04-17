@@ -452,7 +452,7 @@ def find_source_path(source_definition, source_paths):
                     return c
             _L.warning("Source names file %s but could not find it", source_file_name)
             return None
-    elif conform["type"] == "geojson" and source_definition["type"] != "ESRI":
+    elif conform["type"] == "geojson" and source_definition["type"].lower() != "esri":
         candidates = []
         for fn in source_paths:
             basename, ext = os.path.splitext(fn)
@@ -468,7 +468,7 @@ def find_source_path(source_definition, source_paths):
             _L.warning("Found more than one JSON file in source, can't pick one")
             # geojson spec currently doesn't include a file attribute. Maybe it should?
             return None
-    elif conform["type"] == "geojson" and source_definition["type"] == "ESRI":
+    elif conform["type"] == "geojson" and source_definition["type"].lower() == "esri":
         # Old style ESRI conform: ESRI downloader should only give us a single cache.csv file
         return source_paths[0]
     elif conform["type"] == "csv":
@@ -745,7 +745,7 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
         num_fields = len(reader.fieldnames)
 
         # Construct headers for the extracted CSV file
-        if source_definition["type"] == "ESRI":
+        if source_definition["type"].lower() == "esri":
             # ESRI sources: just copy what the downloader gave us. (Already has OA:x and OA:y)
             out_fieldnames = list(reader.fieldnames)
         else:
@@ -823,7 +823,7 @@ def row_extract_and_reproject(source_definition, source_row):
     ignore_conform_names = bool(source_definition['conform']['type'] != 'csv')
 
     # ESRI-derived source CSV is synthetic; we should ignore any lat/lon names.
-    ignore_conform_names |= bool(source_definition['type'] == 'ESRI')
+    ignore_conform_names |= bool(source_definition['type'].lower() == 'esri')
 
     # Set local variables lon_name, source_x, lat_name, source_y
     if ignore_conform_names:
@@ -1142,7 +1142,7 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
         csv_source_to_csv(source_definition, source_path, extract_path)
     elif source_definition["conform"]["type"] == "geojson":
         # GeoJSON sources have some awkward legacy with ESRI, see issue #34
-        if source_definition["type"] == "ESRI":
+        if source_definition["type"].lower() == "esri":
             _L.info("ESRI GeoJSON source found; treating it as CSV")
             csv_source_to_csv(source_definition, source_path, extract_path)
         else:
