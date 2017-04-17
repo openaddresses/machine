@@ -36,41 +36,38 @@ This process should take 5-10 minutes depending on download speed.
     use [Docker for Mac](https://docs.docker.com/docker-for-mac/). On Ubuntu,
     run `apt-get install docker.io` or follow [Docker’s own directions](https://docs.docker.com/engine/installation/linux/ubuntu/).
 
-2.  Build the pre-requisites image, which includes binary packages like GDAL.
+2.  Build the required images, which includes binary packages like GDAL and Postgres.
     
-        docker build -f Dockerfile-prereqs -t openaddr/prereqs:latest .
+        docker-compose build
     
-    You’ll see notices like this scroll by so you know that it’s working:
+3.  Run everything in detached mode:
     
-        Sending build context to Docker daemon 650.7 MB
-        Step 1/5 : FROM ubuntu:14.04
-         ---> 302fa07d8117
-        Step 2/5 : RUN apt-get update -y &&     apt-get install -y software-properties-common python-software-properties
-         ---> Running in 45a617062a5f
-        Ign http://archive.ubuntu.com trusty InRelease
-        Get:1 http://archive.ubuntu.com trusty-updates InRelease [65.9 kB]
-        Get:2 http://archive.ubuntu.com trusty-security InRelease [65.9 kB]
-        Get:3 http://archive.ubuntu.com trusty Release.gpg [933 B]
-        (etc.)
+        docker-compose up -d
+    
+    Run `docker ps -a` to see output like this:
+    
+            IMAGE                       STATUS                        NAMES
+        ... openaddr/machine:latest ... Exited (0) 44 seconds ago ... openaddressesmachine_machine_1
+            mdillon/postgis:9.3         Up 45 seconds                 openaddressesmachine_postgres_1
 
-3.  Connect to the pre-requisites image `openaddr/prereqs` with a bash shell
+4.  Connect to the OpenAddresses image `openaddr/machine` with a bash shell
     and the current working directory mapped to `/vol`:
     
-        docker run -it --volume `pwd`:/vol openaddr/prereqs bash
+        docker-compose run machine bash
     
-4.  Build the OpenAddresses packages using
+5.  Build the OpenAddresses packages using
     [virtualenv](https://packaging.python.org/installing/#creating-virtual-environments)
     and [pip](https://packaging.python.org/installing/#use-pip-for-installing).
     The `-e` flag to `pip install` insures that your local copy of OpenAddresses
     is used, so that you can test changes to the code made in your own editor:
     
-        pip install virtualenv
+        pip3 install virtualenv
         virtualenv -p python3 --system-site-packages venv
         source venv/bin/activate
-        pip install -e file:///vol
+        pip3 install -e file:///vol
     
 You should now be able to make changes and test them.
-If you exit the Docker container, changes made in step 4 above will be lost.
+If you exit the Docker container, changes made in step 5 above will be lost.
 Use [Docker commit](https://docs.docker.com/engine/reference/commandline/commit/)
 or similar if you need to save them.
 

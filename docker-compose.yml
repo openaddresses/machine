@@ -4,6 +4,8 @@ machine:
     - DATABASE_URL=postgresql://openaddr:openaddr@postgres/openaddr
   links:
     - postgres
+  volumes:
+    - .:/vol
 postgres:
   image: mdillon/postgis:9.3
   environment:
