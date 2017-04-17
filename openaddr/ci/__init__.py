@@ -56,6 +56,9 @@ def load_config():
 
 TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, HEARTBEAT_QUEUE = 'tasks', 'finished', 'due', 'heartbeat'
 
+# A second queue to accept webhook-sourced jobs, for testing the Docker branch.
+TASK_QUEUE_2 = 'tasks2'
+
 # Additional delay after JOB_TIMEOUT for due tasks.
 DUETASK_DELAY = timedelta(minutes=5)
 
@@ -771,6 +774,8 @@ def add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun):
         delay = timedelta(seconds=len(tasks))
 
         queue.put(task.asdata(), expected_at=td2str(delay))
+        other_queue = db_queue(queue.conn, TASK_QUEUE_2)
+        other_queue.put(task.asdata(), expected_at=td2str(delay))
         tasks[file_id] = file_name
     
     return tasks
