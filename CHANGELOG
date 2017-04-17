@@ -1,3 +1,6 @@
+2017-04-17: 4.10.0
+- Added second task queue to test Docker workers. (#605)
+
 2017-04-14: 4.9.1
 - Extended time available to openaddr-index-tiles task.
 
