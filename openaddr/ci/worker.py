@@ -15,7 +15,7 @@ import time, os, tempfile, shutil
 
 from . import (
     db_connect, db_queue, db_queue, pop_task_from_taskqueue,
-    DONE_QUEUE, TASK_QUEUE, DUE_QUEUE, setup_logger, HEARTBEAT_QUEUE,
+    DONE_QUEUE, TASK_QUEUE_2, DUE_QUEUE, setup_logger, HEARTBEAT_QUEUE,
     log_function_errors
     )
 
@@ -58,7 +58,7 @@ def main():
     
         try:
             with db_connect(args.database_url) as conn:
-                task_Q = db_queue(conn, TASK_QUEUE)
+                task_Q = db_queue(conn, TASK_QUEUE_2)
                 done_Q = db_queue(conn, DONE_QUEUE)
                 due_Q = db_queue(conn, DUE_QUEUE)
                 beat_Q = db_queue(conn, HEARTBEAT_QUEUE)
