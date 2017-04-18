@@ -407,7 +407,4 @@ def apply_webhooks_blueprint(app):
         
         app.jinja_env.filters['slippymap_preview_url'] = slippymap_preview_url
 
-        setup_logger(None,
-                     None,
-                     os.environ.get('AWS_SNS_ARN'),
-                     flask_log_level(app.config))
+        setup_logger(os.environ.get('AWS_SNS_ARN'), None, flask_log_level(app.config))

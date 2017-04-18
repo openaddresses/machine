@@ -159,7 +159,7 @@ parser.add_argument('--sns-arn', default=environ.get('AWS_SNS_ARN', None),
 
 def main():
     args = parser.parse_args()
-    setup_logger(None, None, args.sns_arn)
+    setup_logger(args.sns_arn, None)
     
     with connect_db(args.database_url) as conn:
         with db_cursor(conn) as db:

@@ -222,7 +222,4 @@ def apply_webauth_blueprint(app):
 
     @app.before_first_request
     def app_prepare():
-        setup_logger(None,
-                     None,
-                     os.environ.get('AWS_SNS_ARN'),
-                     flask_log_level(app.config))
+        setup_logger(os.environ.get('AWS_SNS_ARN'), None, flask_log_level(app.config))

@@ -1185,7 +1185,7 @@ def reset_logger():
     if 'cloudwatch handler' in logger_state:
         openaddr_logger.removeHandler(logger_state['cloudwatch handler'])
 
-def setup_logger(aws_key, aws_secret, sns_arn, log_level=logging.DEBUG):
+def setup_logger(sns_arn, log_group, log_level=logging.DEBUG):
     ''' Set up logging for openaddr code.
     '''
     if len(_logger_status):
@@ -1221,16 +1221,16 @@ def setup_logger(aws_key, aws_secret, sns_arn, log_level=logging.DEBUG):
             openaddr_logger.addHandler(handler2)
             logger_state['aws sns handler'] = handler2
     
-    try:
-        stream_name = '{} ({})'.format(' '.join(sys.argv), os.getpid())
-        handler3 = CloudwatchHandler('testing-logs', stream_name)
-    except:
-        openaddr_logger.warning('Failed to authenticate Cloudwatch handler')
-    else:
-        handler3.setLevel(log_level)
-        handler3.setFormatter(logging.Formatter('%(levelname)07s: %(message)s'))
-        openaddr_logger.addHandler(handler3)
-        logger_state['cloudwatch handler'] = handler3
+        try:
+            stream_name = '{} ({})'.format(' '.join(sys.argv), os.getpid())
+            handler3 = CloudwatchHandler(log_group or 'testing-logs', stream_name)
+        except:
+            openaddr_logger.warning('Failed to authenticate Cloudwatch handler')
+        else:
+            handler3.setLevel(log_level)
+            handler3.setFormatter(logging.Formatter('%(levelname)07s: %(message)s'))
+            openaddr_logger.addHandler(handler3)
+            logger_state['cloudwatch handler'] = handler3
     
     _logger_status.append(logger_state)
 

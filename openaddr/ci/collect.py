@@ -55,7 +55,7 @@ def main():
     ''' Single threaded worker to serve the job queue.
     '''
     args = parser.parse_args()
-    setup_logger(None, None, args.sns_arn, log_level=args.loglevel)
+    setup_logger(args.sns_arn, None, log_level=args.loglevel)
     s3 = S3(None, None, args.bucket)
     db_args = util.prepare_db_kwargs(args.database_url)
 
