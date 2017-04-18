@@ -20,6 +20,7 @@ from shutil import rmtree
 from time import time, sleep
 import threading, sys
 import json, os, re
+import socket
 
 from flask import Flask, request, Response, jsonify, render_template
 from requests import get, post, ConnectionError
@@ -1222,7 +1223,8 @@ def setup_logger(sns_arn, log_group, log_level=logging.DEBUG):
             logger_state['aws sns handler'] = handler2
     
         try:
-            stream_name = '{} ({})'.format(' '.join(sys.argv), os.getpid())
+            stream_name = '{} {} {}'.format(os.path.basename(sys.argv[0]),
+                socket.gethostname(), datetime.utcnow().strftime('%Y-%m-%d-%H-%M-%S'))
             handler3 = CloudwatchHandler(log_group or 'testing-logs', stream_name)
         except:
             openaddr_logger.warning('Failed to authenticate Cloudwatch handler')
