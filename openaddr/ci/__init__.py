@@ -1217,9 +1217,12 @@ def setup_logger(sns_arn, log_group, log_level=logging.DEBUG):
             openaddr_logger.addHandler(handler2)
             logger_state['aws sns handler'] = handler2
     
+        stream_name = '{command} {hostname} ({pid}) {datetime}'.format(
+            command=os.path.basename(sys.argv[0]),
+            hostname=socket.gethostname(), pid=os.getpid(),
+            datetime=datetime.utcnow().strftime('%Y-%m-%d-%H-%M-%S'))
+
         try:
-            stream_name = '{} {} {}'.format(os.path.basename(sys.argv[0]),
-                socket.gethostname(), datetime.utcnow().strftime('%Y-%m-%d-%H-%M-%S'))
             handler3 = CloudwatchHandler(log_group or 'testing-logs', stream_name)
         except:
             openaddr_logger.warning('Failed to authenticate Cloudwatch handler')
