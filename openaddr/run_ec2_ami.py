@@ -47,7 +47,7 @@ def main():
     '''
     args = parser.parse_args()
     instance, deadline, lifespan = False, time() + (args.hours + 1) * 3600, int(args.hours * 3600)
-    setup_logger(None, None, args.sns_arn, log_level=args.loglevel)
+    setup_logger(args.sns_arn, None, log_level=args.loglevel)
 
     ec2 = connect_ec2(None, None)
     autoscale = connect_autoscale(None, None)

@@ -20,6 +20,7 @@ from shutil import rmtree
 from time import time, sleep
 import threading, sys
 import json, os, re
+import socket
 
 from flask import Flask, request, Response, jsonify, render_template
 from requests import get, post, ConnectionError
@@ -27,6 +28,7 @@ from uritemplate import expand as expand_uri
 from dateutil.tz import tzutc
 from psycopg2 import connect
 from boto import connect_sns
+from boto import connect_logs
 from pq import PQ
 
 # Ask Python 2 to get real unicode from the database.
@@ -1132,9 +1134,9 @@ def db_cursor(conn):
 class SnsHandler(logging.Handler):
     ''' Logs to the given Amazon SNS topic; meant for errors.
     '''
-    def __init__(self, key, secret, arn, *args, **kwargs):
+    def __init__(self, arn, *args, **kwargs):
         super(SnsHandler, self).__init__(*args, **kwargs)
-        self.arn, self.sns = arn, connect_sns(key, secret)
+        self.arn, self.sns = arn, connect_sns()
 
     def emit(self, record):
         subject = u'OpenAddr: {}: {}'.format(record.levelname, record.name)
@@ -1143,6 +1145,23 @@ class SnsHandler(logging.Handler):
             subject = u'{} - {}'.format(subject, record.request_info)
         
         self.sns.publish(self.arn, self.format(record), subject[:79])
+
+class CloudwatchHandler(logging.Handler):
+    ''' Logs to the given Amazon Cloudwatch log stream; meant for all logs.
+    '''
+    def __init__(self, group_name, stream_name, *args, **kwargs):
+        super(CloudwatchHandler, self).__init__(*args, **kwargs)
+        self.group, self.stream = group_name, stream_name
+        self.logs, self.token = connect_logs(), None
+        self.logs.create_log_stream(self.group, self.stream)
+    
+    def _send(self, message):
+        event = dict(timestamp=int(time()*1000), message=message)
+        response = self.logs.put_log_events(self.group, self.stream, [event], self.token)
+        self.token = response['nextSequenceToken']
+
+    def emit(self, record):
+        self._send(self.format(record))
 
 # Remember whether logger has been set up before as a series of states.
 _logger_status = list()
@@ -1164,7 +1183,10 @@ def reset_logger():
     if 'aws sns handler' in logger_state:
         openaddr_logger.removeHandler(logger_state['aws sns handler'])
 
-def setup_logger(aws_key, aws_secret, sns_arn, log_level=logging.DEBUG):
+    if 'cloudwatch handler' in logger_state:
+        openaddr_logger.removeHandler(logger_state['cloudwatch handler'])
+
+def setup_logger(sns_arn, log_group, log_level=logging.DEBUG):
     ''' Set up logging for openaddr code.
     '''
     if len(_logger_status):
@@ -1191,7 +1213,7 @@ def setup_logger(aws_key, aws_secret, sns_arn, log_level=logging.DEBUG):
     # Set up a second logger to SNS
     if sns_arn:
         try:
-            handler2 = SnsHandler(aws_key, aws_secret, sns_arn)
+            handler2 = SnsHandler(sns_arn)
         except:
             openaddr_logger.warning('Failed to authenticate SNS handler')
         else:
@@ -1199,6 +1221,18 @@ def setup_logger(aws_key, aws_secret, sns_arn, log_level=logging.DEBUG):
             handler2.setFormatter(logging.Formatter(log_format))
             openaddr_logger.addHandler(handler2)
             logger_state['aws sns handler'] = handler2
+    
+        try:
+            stream_name = '{} {} {}'.format(os.path.basename(sys.argv[0]),
+                socket.gethostname(), datetime.utcnow().strftime('%Y-%m-%d-%H-%M-%S'))
+            handler3 = CloudwatchHandler(log_group or 'testing-logs', stream_name)
+        except:
+            openaddr_logger.warning('Failed to authenticate Cloudwatch handler')
+        else:
+            handler3.setLevel(log_level)
+            handler3.setFormatter(logging.Formatter('%(levelname)07s: %(message)s'))
+            openaddr_logger.addHandler(handler3)
+            logger_state['cloudwatch handler'] = handler3
     
     _logger_status.append(logger_state)
 

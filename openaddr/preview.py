@@ -405,7 +405,7 @@ parser.add_argument('-q', '--quiet', help='Turn off most logging',
 def main():
     args = parser.parse_args()
     from .ci import setup_logger
-    setup_logger(None, None, None, log_level=args.loglevel)
+    setup_logger(None, None, log_level=args.loglevel)
     render(args.src_filename, args.png_filename, args.width, args.resolution, args.mapzen_key)
 
 if __name__ == '__main__':

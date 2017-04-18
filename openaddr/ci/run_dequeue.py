@@ -13,7 +13,7 @@ from . import (
 def main():
     '''
     '''
-    setup_logger(None, None, environ.get('AWS_SNS_ARN'))
+    setup_logger(environ.get('AWS_SNS_ARN'), None)
     config = load_config()
     checkin_time = time()
     try:

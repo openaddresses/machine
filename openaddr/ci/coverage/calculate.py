@@ -152,7 +152,7 @@ def main():
     '''
     '''
     args = parser.parse_args()
-    setup_logger(None, None, args.sns_arn, log_level=args.loglevel)
+    setup_logger(args.sns_arn, None, log_level=args.loglevel)
     calculate(args.database_url)
 
 def calculate(DATABASE_URL):

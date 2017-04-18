@@ -93,7 +93,4 @@ def apply_coverage_blueprint(app):
         app.jinja_env.filters['nice_big_number'] = filter_nice_big_number
         app.jinja_env.filters['nice_coverage_integer'] = filter_nice_integer
 
-        setup_logger(None,
-                     None,
-                     os.environ.get('AWS_SNS_ARN'),
-                     webcommon.flask_log_level(app.config))
+        setup_logger(os.environ.get('AWS_SNS_ARN'), None, webcommon.flask_log_level(app.config))
