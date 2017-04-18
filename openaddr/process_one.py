@@ -154,7 +154,7 @@ def render_slippymap(csv_filename, temp_dir):
     '''
     try:
         mbtiles_filename = join(temp_dir, 'slippymap.mbtiles')
-        slippymap.generate(csv_filename, mbtiles_filename)
+        slippymap.generate(mbtiles_filename, csv_filename)
     except Exception as e:
         _L.error('%s in render_slippymap: %s', type(e), e)
         return None

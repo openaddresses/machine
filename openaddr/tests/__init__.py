@@ -56,6 +56,12 @@ from ..cache import CacheResult
 from ..conform import ConformResult
 from ..process_one import find_source_problem, SourceProblem
 
+def touch_first_arg_file(path, *args, **kwargs):
+    ''' Write a short dummy file for the first argument.
+    '''
+    with open(path, 'w') as file:
+        file.write('yo')
+
 def touch_second_arg_file(_, path, *args, **kwargs):
     ''' Write a short dummy file for the second argument.
     '''
@@ -340,9 +346,12 @@ class TestOA (unittest.TestCase):
              mock.patch('openaddr.preview.render') as preview_ren, \
              mock.patch('openaddr.slippymap.generate') as slippymap_gen:
             preview_ren.side_effect = touch_second_arg_file
-            slippymap_gen.side_effect = touch_second_arg_file
+            slippymap_gen.side_effect = touch_first_arg_file
             state_path = process_one.process(source, self.testdir, True, mapzen_key='mapzen-XXXX')
         
+        self.assertTrue(slippymap_gen.mock_calls[0][1][0].endswith('.mbtiles'))
+        self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
+
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
@@ -393,9 +402,12 @@ class TestOA (unittest.TestCase):
              mock.patch('openaddr.preview.render') as preview_ren, \
              mock.patch('openaddr.slippymap.generate') as slippymap_gen:
             preview_ren.side_effect = touch_second_arg_file
-            slippymap_gen.side_effect = touch_second_arg_file
+            slippymap_gen.side_effect = touch_first_arg_file
             state_path = process_one.process(source, self.testdir, True, mapzen_key='mapzen-XXXX')
         
+        self.assertTrue(slippymap_gen.mock_calls[0][1][0].endswith('.mbtiles'))
+        self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
+
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
@@ -442,9 +454,12 @@ class TestOA (unittest.TestCase):
              mock.patch('openaddr.preview.render') as preview_ren, \
              mock.patch('openaddr.slippymap.generate') as slippymap_gen:
             preview_ren.side_effect = touch_second_arg_file
-            slippymap_gen.side_effect = touch_second_arg_file
+            slippymap_gen.side_effect = touch_first_arg_file
             state_path = process_one.process(source, self.testdir, True, mapzen_key='mapzen-XXXX')
         
+        self.assertTrue(slippymap_gen.mock_calls[0][1][0].endswith('.mbtiles'))
+        self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
+
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
@@ -494,9 +509,12 @@ class TestOA (unittest.TestCase):
              mock.patch('openaddr.preview.render') as preview_ren, \
              mock.patch('openaddr.slippymap.generate') as slippymap_gen:
             preview_ren.side_effect = touch_second_arg_file
-            slippymap_gen.side_effect = touch_second_arg_file
+            slippymap_gen.side_effect = touch_first_arg_file
             state_path = process_one.process(source, self.testdir, True, mapzen_key='mapzen-XXXX')
         
+        self.assertTrue(slippymap_gen.mock_calls[0][1][0].endswith('.mbtiles'))
+        self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
+
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
         
