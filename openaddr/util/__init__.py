@@ -15,9 +15,6 @@ import shlex, re
 from boto.exception import EC2ResponseError
 from boto.ec2 import blockdevicemapping
 
-# http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html
-block_device_sizes = {'r3.large': 32, 'r3.xlarge': 80, 'r3.2xlarge': 160, 'r3.4xlarge': 320}
-
 RESOURCE_LOG_INTERVAL = timedelta(seconds=30)
 RESOURCE_LOG_FORMAT = 'Resource usage: {{ user: {user:.0f}%, system: {system:.0f}%, ' \
     'memory: {memory:.0f}MB, read: {read:.0f}KB, written: {written:.0f}KB, ' \
@@ -63,7 +60,7 @@ def set_autoscale_capacity(autoscale, cloudwatch, cloudwatch_ns, capacity):
     if measure['Maximum'] > .9:
         group.set_capacity(capacity)
 
-def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, command, bucket, aws_sns_arn):
+def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, command, bucket, aws_sns_arn, tempsize=None):
     '''
     '''
     group_name = 'CI Workers {0}.x'.format(*get_version().split('.'))
@@ -99,10 +96,9 @@ def request_task_instance(ec2, autoscale, instance_type, chef_role, lifespan, co
     
         device_map = blockdevicemapping.BlockDeviceMapping()
 
-        if instance_type in block_device_sizes:
-            device_map = blockdevicemapping.BlockDeviceMapping()
-            dev_sdb = blockdevicemapping.BlockDeviceType()
-            dev_sdb.size = block_device_sizes[instance_type]
+        if tempsize:
+            dev_sdb = blockdevicemapping.BlockDeviceType(delete_on_termination=True)
+            dev_sdb.size = tempsize
             device_map['/dev/sdb'] = dev_sdb
 
         run_kwargs = dict(instance_type=instance_type, security_groups=['default'],
