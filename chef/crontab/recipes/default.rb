@@ -88,10 +88,10 @@ file "/etc/cron.d/openaddr_crontab-index-tiles" do
     content <<-CRONTAB
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 LC_ALL=C.UTF-8
-# Index into tiles, every third day at 11am UTC (4am PDT)
-0 11	*/3 * *	#{username}	\
+# Index into tiles, every seventh day at 11am UTC (4am PDT)
+0 11	*/7 * *	#{username}	\
   openaddr-run-ec2-command \
-  --hours 12 \
+  --hours 16 \
   -b "#{aws_s3_bucket}" \
   --sns-arn "#{aws_sns_arn}" \
   --verbose \
