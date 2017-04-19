@@ -180,6 +180,7 @@ LC_ALL=C.UTF-8
     -d "#{database_url}" \
     -b "#{aws_s3_bucket}" \
     --sns-arn "#{aws_sns_arn}" \
+    --quiet \
   >> /var/log/openaddr_crontab/sum-up-data.log 2>&1
 CRONTAB
 end
