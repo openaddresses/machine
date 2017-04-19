@@ -1,3 +1,6 @@
+2017-04-19: 4.10.3
+- Turned off verbose logging for cronjobs.
+
 2017-04-18: 4.10.2
 - Started logging to Cloudwatch for testing. (#609)
 
