@@ -1,0 +1,14 @@
+machine-test:
+  build: .
+  volumes:
+    - .:/machine
+  dockerfile: Dockerfile.test
+  environment:
+    - DATABASE_URL=postgresql://openaddr:openaddr@postgres/openaddr
+  links:
+    - postgres
+postgres:
+  image: mdillon/postgis
+  environment:
+    - POSTGRES_USER=openaddr
+    - POSTGRES_PASSWORD=openaddr
