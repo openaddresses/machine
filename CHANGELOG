@@ -1,3 +1,6 @@
+2017-04-50: 5.0.0
+- Added Docker configuration and soft-deprectated Chef. (#587)
+
 2017-04-19: 4.10.3
 - Turned off verbose logging for cronjobs.
 
