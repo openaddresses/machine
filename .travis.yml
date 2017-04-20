@@ -2,9 +2,9 @@ sudo: required
 services:
   - docker
 before_install:
-  - docker pull openaddr/prereqs || true
-  - docker build -f Dockerfile-prereqs -t openaddr/prereqs:latest .
-  - docker build -f Dockerfile-machine -t openaddr/machine:latest .
+  - docker pull openaddr/prereqs:`cut -f1 -d. openaddr/VERSION`.x || true
+  - docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cut -f1 -d. openaddr/VERSION`.x .
+  - docker build -f Dockerfile-machine -t openaddr/machine:`cut -f1 -d. openaddr/VERSION`.x .
 script:
   # Postgres needs a little time
   - docker-compose up -d && sleep 15
