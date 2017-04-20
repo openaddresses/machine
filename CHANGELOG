@@ -1,4 +1,7 @@
-2017-04-50: 5.0.0
+2017-04-20: 5.0.1
+- Fixed accidental use of task queue #2 from testing.
+
+2017-04-20: 5.0.0
 - Added Docker configuration and soft-deprectated Chef. (#587)
 
 2017-04-19: 4.10.3
