@@ -1,3 +1,6 @@
+2017-04-20: 4.10.4
+- Fixed accidental use of task queue #2 from testing.
+
 2017-04-19: 4.10.3
 - Turned off verbose logging for cronjobs.
 
