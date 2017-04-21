@@ -17,7 +17,7 @@ test:
 
 deployment:
   hub:
-    branch: [master, migurski/docker-docker-docker]
+    branch: [5.x]
     commands:
       - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
       - docker tag openaddr/prereqs:`cut -f1 -d. openaddr/VERSION`.x openaddr/prereqs:`cat openaddr/VERSION`

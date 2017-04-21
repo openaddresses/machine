@@ -1,3 +1,6 @@
+2017-04-20: 5.0.2
+- Fixed remaining references to version 4.x machine images.
+
 2017-04-20: 5.0.1
 - Fixed accidental use of task queue #2 from testing.
 
