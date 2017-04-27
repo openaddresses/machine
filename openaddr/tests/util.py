@@ -134,20 +134,17 @@ class TestUtilities (unittest.TestCase):
         reservation.instances = [Mock()]
         
         args = 'dotmap', 60, ['sleep'], 'bucket-name', 'arn:aws:sns:null-island:etc.'
+
+        # Check for no block device mappings without requested temp size.
+        util.request_task_instance(ec2, autoscale, 'm3.medium', *args)
+        image_run_kwargs = image.run.mock_calls[-1][2]
+        self.assertEqual(len(image_run_kwargs['block_device_map']), 0)
         
-        # Check for block device mappings for known instance types.
-        # Reference list at http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html
-        for (instance_type, size) in util.block_device_sizes.items():
-            util.request_task_instance(ec2, autoscale, instance_type, *args)
-            image_run_kwargs = image.run.mock_calls[-1][2]
-            self.assertEqual(len(image_run_kwargs['block_device_map']), 1)
-            self.assertEqual(image_run_kwargs['block_device_map']['/dev/sdb'].size, size)
-        
-        # Check for no block device mappings for some other instance types.
-        for instance_type in ('m3.medium', 't2.nano', 't2.small'):
-            util.request_task_instance(ec2, autoscale, instance_type, *args)
-            image_run_kwargs = image.run.mock_calls[-1][2]
-            self.assertEqual(len(image_run_kwargs['block_device_map']), 0)
+        # Check for block device mappings for requested temp size.
+        util.request_task_instance(ec2, autoscale, 'm3.medium', *args, tempsize=99)
+        image_run_kwargs = image.run.mock_calls[-1][2]
+        self.assertEqual(len(image_run_kwargs['block_device_map']), 1)
+        self.assertEqual(image_run_kwargs['block_device_map']['/dev/sdb'].size, 99)
     
     def test_summarize_result_licenses(self):
         '''

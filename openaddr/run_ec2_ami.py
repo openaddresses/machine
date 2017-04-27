@@ -31,6 +31,9 @@ parser.add_argument('--hours', default=12, type=float,
 parser.add_argument('--instance-type', default='m3.medium',
                     help='EC2 instance type. Defaults to "m3.medium".')
 
+parser.add_argument('--temp-size', default=0,
+                    help='Optional size of EBS volume to map to /tmp.')
+
 parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
                     action='store_const', dest='loglevel',
                     const=logging.DEBUG, default=logging.INFO)
@@ -53,7 +56,8 @@ def main():
     autoscale = connect_autoscale(None, None)
     instance = request_task_instance(ec2, autoscale, args.instance_type,
                                      args.role, lifespan, args.command,
-                                     args.bucket, args.sns_arn)
+                                     args.bucket, args.sns_arn,
+                                     tempsize=args.temp_size)
     
     _L.info('instance {} is off to the races.'.format(instance))
 
