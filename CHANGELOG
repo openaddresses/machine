@@ -1,3 +1,6 @@
+2017-04-27: 5.1.0
+- Switched to using Docker runs for cron-driven processes. (#614)
+
 2017-04-20: 5.0.2
 - Fixed remaining references to version 4.x machine images.
 
