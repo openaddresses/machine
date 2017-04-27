@@ -1,3 +1,7 @@
+2017-04-27: 5.2.0
+- Added new temp space option to openaddr-run-ec2-command for dotmap. (#611)
+- Reformatted log stream name with PID. (#615)
+
 2017-04-27: 5.1.0
 - Switched to using Docker runs for cron-driven processes. (#614)
 
