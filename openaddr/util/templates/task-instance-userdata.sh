@@ -39,13 +39,9 @@ if [ -b /dev/xvdb ]; then
 fi
 
 # (Re)install machine.
-cd /home/ubuntu/machine
-sudo -u ubuntu git fetch origin {version}
-sudo -u ubuntu git checkout FETCH_HEAD
-
-chef/run.sh prereqs
-aws s3 cp s3://{bucket}/config/databag-4.json chef/data/local.json
-chef/run.sh {role}
+docker pull openaddr/machine:{version}
+aws s3 cp s3://data.openaddresses.io/config/environment-5.txt /tmp/environment
 
 # Run the actual command
-LC_ALL="C.UTF-8" {command} && shutdown_with_log 0 || shutdown_with_log 1 2>&1
+docker run --env-file /tmp/environment --volume /tmp:/tmp --net="host" openaddr/machine:{version} \
+    {command} && shutdown_with_log 0 || shutdown_with_log 1 2>&1

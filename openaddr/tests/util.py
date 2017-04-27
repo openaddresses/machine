@@ -86,7 +86,6 @@ class TestUtilities (unittest.TestCase):
         group, config, image = Mock(), Mock(), Mock()
         keypair, reservation, instance = Mock(), Mock(), Mock()
         
-        chef_role = 'good-times'
         command = 'openaddr-good-times', '--yo', 'b', 'd\\d', 'a"a', "s's", 'a:a'
         
         expected_group_name = 'CI Workers {0}.x'.format(*__version__.split('.'))
@@ -100,7 +99,7 @@ class TestUtilities (unittest.TestCase):
         image.run.return_value = reservation
         reservation.instances = [instance]
         
-        util.request_task_instance(ec2, autoscale, 'm3.medium', chef_role, 60, command, 'bucket-name', 'arn:aws:sns:null-island:etc.')
+        util.request_task_instance(ec2, autoscale, 'm3.medium', None, 60, command, 'bucket-name', 'arn:aws:sns:null-island:etc.')
         
         autoscale.get_all_groups.assert_called_once_with([expected_group_name])
         autoscale.get_all_launch_configurations.assert_called_once_with(names=[group.launch_config_name])
@@ -112,7 +111,6 @@ class TestUtilities (unittest.TestCase):
         self.assertEqual(image_run_kwargs['instance_initiated_shutdown_behavior'], 'terminate')
         self.assertEqual(image_run_kwargs['key_name'], keypair.name)
         
-        self.assertIn('chef/run.sh {}'.format(quote(chef_role)), image_run_kwargs['user_data'])
         self.assertIn('s3://bucket-name/logs/', image_run_kwargs['user_data'])
         self.assertIn("notify_sns 'Starting openaddr-good-times...'", image_run_kwargs['user_data'])
         self.assertIn('aws --region null-island sns publish --topic-arn arn:aws:sns:null-island:etc.',

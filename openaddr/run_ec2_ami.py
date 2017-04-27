@@ -23,7 +23,7 @@ parser.add_argument('--sns-arn', default=environ.get('AWS_SNS_ARN', None),
                     help='Optional AWS Simple Notification Service (SNS) resource. Defaults to value of AWS_SNS_ARN environment variable.')
 
 parser.add_argument('--role', default='openaddr',
-                    help='Machine chef role to execute. Defaults to "openaddr".')
+                    help='Deprecated Machine chef role to execute. Defaults to "openaddr".')
 
 parser.add_argument('--hours', default=12, type=float,
                     help='Number of hours to allow before giving up. Defaults to 12 hours.')
