@@ -2,6 +2,7 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 
 DROP TABLE IF EXISTS gpwv4_2015;
 DROP TABLE IF EXISTS ne_50m_admin_0_countries;
+DROP TABLE IF EXISTS cb_2013_us_state_20m;
 DROP TABLE IF EXISTS boxes;
 DROP TABLE IF EXISTS areas;
 
@@ -50,6 +51,14 @@ CREATE TABLE ne_50m_admin_0_countries
     name_long   VARCHAR(80),
     iso_a2      VARCHAR(80),
     iso_a3      VARCHAR(80),
+    geom        GEOMETRY(MultiPolygon, 4326)
+);
+
+CREATE TABLE cb_2013_us_state_20m
+(
+    gid         SERIAL PRIMARY KEY,
+    name        VARCHAR(100),
+    usps_code   VARCHAR(2),
     geom        GEOMETRY(MultiPolygon, 4326)
 );
 

@@ -113,8 +113,10 @@ def insert_coverage_feature(db, feature):
                   VALUES(%s, %s, ST_Multi(ST_SetSRID(%s::geometry, 4326)))''',
                (iso_a2, feature.GetField('address count'), geom_wkt))
     
-    if iso_a2 == 'US':
-        pass
+    if iso_a2 == 'US' and state_abbrev:
+        db.execute('''INSERT INTO rendered_usa (state, count, geom)
+                      VALUES(%s, %s, ST_Multi(ST_SetSRID(%s::geometry, 4326)))''',
+                   (state_abbrev, feature.GetField('address count'), geom_wkt))
     
     return iso_a2, state_abbrev
 
@@ -217,6 +219,13 @@ def calculate(DATABASE_URL):
                 CREATE TEMPORARY TABLE rendered_world
                 (
                     iso_a2  VARCHAR(2),
+                    count   INTEGER,
+                    geom    GEOMETRY(MultiPolygon, 4326)
+                );
+
+                CREATE TEMPORARY TABLE rendered_usa
+                (
+                    state   VARCHAR(2),
                     count   INTEGER,
                     geom    GEOMETRY(MultiPolygon, 4326)
                 );
