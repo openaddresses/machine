@@ -114,7 +114,7 @@ def insert_coverage_feature(db, feature):
                (iso_a2, feature.GetField('address count'), geom_wkt))
     
     if iso_a2 == 'US' and state_abbrev:
-        db.execute('''INSERT INTO rendered_usa (state, count, geom)
+        db.execute('''INSERT INTO rendered_usa (usps_code, count, geom)
                       VALUES(%s, %s, ST_Multi(ST_SetSRID(%s::geometry, 4326)))''',
                    (state_abbrev, feature.GetField('address count'), geom_wkt))
     
@@ -172,6 +172,58 @@ def summarize_country_coverage(db, iso_a2):
                   pop_total = %s, pop_pct = %s WHERE iso_a2 = %s''',
                (name, area_total, area_pct, pop_total, pop_pct, iso_a2))
 
+def summarize_us_state_coverage(db, usps_code):
+    ''' Populate area and population columns in areas table from gpwv4_2015_us table.
+    '''
+    db.execute('''
+        WITH
+            --
+            -- 1x1 boxes of Natural Earth coverage, with GPWv4 population and area.
+            --
+            cb_boxes AS (
+            SELECT box.id, cb.name, gpw.area, gpw.population,
+                ST_Intersection(cb.geom, box.geom) AS geom
+            FROM cb_2013_us_state_20m as cb, gpwv4_2015_us as gpw, boxes as box
+            WHERE cb.usps_code = %s
+              AND cb.usps_code = gpw.usps_code
+              AND gpw.box_id = box.id
+              AND box.size = 1.0
+            ),
+            --
+            -- 1x1 boxes of OpenAddresses coverage, shapes only.
+            --
+            oa_boxes AS (
+            SELECT box.id, ST_Intersection(oa.geom, box.geom) AS geom
+            FROM areas_us as oa, gpwv4_2015_us as gpw, boxes as box
+            WHERE oa.usps_code = %s
+              AND oa.usps_code = gpw.usps_code
+              AND gpw.box_id = box.id
+              AND box.size = 1.0
+            )
+
+        SELECT
+            --
+            -- Compare OA area coverage with census area coverage for
+            -- each 1x1 degree box to estimate area and population.
+            --
+            SUM(cb_boxes.area * ST_Area(ST_Intersection(oa_boxes.geom, cb_boxes.geom)) / ST_Area(cb_boxes.geom)) AS area_total,
+            SUM(cb_boxes.population * ST_Area(ST_Intersection(oa_boxes.geom, cb_boxes.geom)) / ST_Area(cb_boxes.geom)) AS population_total,
+            SUM(cb_boxes.area * ST_Area(ST_Intersection(oa_boxes.geom, cb_boxes.geom)) / ST_Area(cb_boxes.geom)) / SUM(cb_boxes.area) AS area_pct,
+            SUM(cb_boxes.population * ST_Area(ST_Intersection(oa_boxes.geom, cb_boxes.geom)) / ST_Area(cb_boxes.geom)) / SUM(cb_boxes.population) AS population_pct,
+            MIN(cb_boxes.name) AS name
+
+        FROM cb_boxes LEFT JOIN oa_boxes
+        ON cb_boxes.id = oa_boxes.id
+        WHERE ST_Area(cb_boxes.geom) > 0;
+        ''',
+        (usps_code, usps_code))
+    
+    (area_total, pop_total, area_pct, pop_pct, name) = db.fetchone()
+    
+    db.execute('''UPDATE areas_us SET name = %s, area_total = %s, area_pct = %s,
+                  pop_total = %s, pop_pct = %s WHERE usps_code = %s''',
+               (name, area_total, area_pct, pop_total, pop_pct, usps_code))
+
 START_URL = 'https://results.openaddresses.io/index.json'
 
 parser = ArgumentParser(description='Calculate current worldwide address coverage.')
@@ -212,7 +264,7 @@ def calculate(DATABASE_URL):
         with conn.cursor() as db:
 
             ogr.UseExceptions()
-            iso_a2s = set()
+            iso_a2s, usps_codes = set(), set()
             rendered_ds = ogr.Open(filename)
 
             db.execute('''
@@ -225,18 +277,19 @@ def calculate(DATABASE_URL):
 
                 CREATE TEMPORARY TABLE rendered_usa
                 (
-                    state   VARCHAR(2),
-                    count   INTEGER,
-                    geom    GEOMETRY(MultiPolygon, 4326)
+                    usps_code   VARCHAR(2),
+                    count       INTEGER,
+                    geom        GEOMETRY(MultiPolygon, 4326)
                 );
                 ''')
 
             for feature in rendered_ds.GetLayer(0):
-                iso_a2, state_abbrev = insert_coverage_feature(db, feature)
+                iso_a2, usps_code = insert_coverage_feature(db, feature)
                 iso_a2s.add(iso_a2)
                 
-                if state_abbrev:
-                    print('{} - {} addresses from {}/{}'.format(iso_a2, feature.GetField('address count'), feature.GetField('source paths'), state_abbrev))
+                if usps_code:
+                    usps_codes.add(usps_code)
+                    print('{}/{} - {} addresses from {}'.format(iso_a2, usps_code, feature.GetField('address count'), feature.GetField('source paths')))
                 else:
                     _L.debug('{} - {} addresses from {}'.format(iso_a2, feature.GetField('address count'), feature.GetField('source paths')))
         
@@ -246,10 +299,20 @@ def calculate(DATABASE_URL):
                 INSERT INTO areas (iso_a2, addr_count, buffer_km, geom)
                 SELECT iso_a2, SUM(count), 10, ST_Multi(ST_Union(ST_Buffer(geom, 0.00001)))
                 FROM rendered_world GROUP BY iso_a2;
+
+                DELETE FROM areas_us;
+            
+                INSERT INTO areas_us (usps_code, addr_count, buffer_km, geom)
+                SELECT usps_code, SUM(count), 10, ST_Multi(ST_Union(ST_Buffer(geom, 0.00001)))
+                FROM rendered_usa GROUP BY usps_code;
                 ''')
         
             for (index, iso_a2) in enumerate(sorted(iso_a2s)):
                 _L.info('Counting up {} ({}/{})...'.format(iso_a2, index+1, len(iso_a2s)))
                 summarize_country_coverage(db, iso_a2)
+
+            for (index, usps_code) in enumerate(sorted(usps_codes)):
+                print('Counting up US:{} ({}/{})...'.format(usps_code, index+1, len(usps_code)))
+                summarize_us_state_coverage(db, usps_code)
 
     os.remove(filename)
