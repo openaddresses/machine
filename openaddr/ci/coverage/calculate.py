@@ -286,10 +286,9 @@ def calculate(DATABASE_URL):
             for feature in rendered_ds.GetLayer(0):
                 iso_a2, usps_code = insert_coverage_feature(db, feature)
                 iso_a2s.add(iso_a2)
-                
                 if usps_code:
                     usps_codes.add(usps_code)
-                    print('{}/{} - {} addresses from {}'.format(iso_a2, usps_code, feature.GetField('address count'), feature.GetField('source paths')))
+                    _L.debug('{}/{} - {} addresses from {}'.format(iso_a2, usps_code, feature.GetField('address count'), feature.GetField('source paths')))
                 else:
                     _L.debug('{} - {} addresses from {}'.format(iso_a2, feature.GetField('address count'), feature.GetField('source paths')))
         
