@@ -1,9 +1,12 @@
 CREATE EXTENSION IF NOT EXISTS postgis;
 
 DROP TABLE IF EXISTS gpwv4_2015;
+DROP TABLE IF EXISTS acs5yr_2015;
 DROP TABLE IF EXISTS ne_50m_admin_0_countries;
+DROP TABLE IF EXISTS cb_2013_us_state_20m;
 DROP TABLE IF EXISTS boxes;
 DROP TABLE IF EXISTS areas;
+DROP TABLE IF EXISTS us_states;
 
 CREATE TABLE boxes
 (
@@ -34,10 +37,38 @@ CREATE TABLE areas
     cpp_stddev  FLOAT
 );
 
+CREATE TABLE us_states
+(
+    usps_code   VARCHAR(2) PRIMARY KEY,
+    addr_count  INTEGER,
+    buffer_km   FLOAT,
+    geom        GEOMETRY(MultiPolygon, 4326),
+
+    name        TEXT,
+    area_total  INTEGER,
+    area_pct    FLOAT,
+    pop_total   INTEGER,
+    pop_pct     FLOAT,
+    
+    cpp_min     FLOAT,
+    cpp_avg     FLOAT,
+    cpp_max     FLOAT,
+    cpp_med     FLOAT,
+    cpp_stddev  FLOAT
+);
+
 CREATE TABLE gpwv4_2015
 (
     iso_a2      VARCHAR(2),
     iso_a3      VARCHAR(3),
+    box_id      INTEGER REFERENCES boxes(id),
+    population  FLOAT,
+    area        FLOAT
+);
+
+CREATE TABLE acs5yr_2015
+(
+    usps_code   VARCHAR(2),
     box_id      INTEGER REFERENCES boxes(id),
     population  FLOAT,
     area        FLOAT
@@ -50,6 +81,14 @@ CREATE TABLE ne_50m_admin_0_countries
     name_long   VARCHAR(80),
     iso_a2      VARCHAR(80),
     iso_a3      VARCHAR(80),
+    geom        GEOMETRY(MultiPolygon, 4326)
+);
+
+CREATE TABLE cb_2013_us_state_20m
+(
+    gid         SERIAL PRIMARY KEY,
+    name        VARCHAR(100),
+    usps_code   VARCHAR(2),
     geom        GEOMETRY(MultiPolygon, 4326)
 );
 

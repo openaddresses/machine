@@ -8,7 +8,8 @@ from . import setup_logger, webcommon
 
 webcoverage = Blueprint('webcoverage', __name__)
 
-@webcoverage.route('/coverage')
+@webcoverage.route('/coverage/')
+@webcoverage.route('/coverage/world/')
 @webcommon.log_application_errors
 def get_coverage():
     with psycopg2.connect(os.environ['DATABASE_URL']) as conn:
@@ -28,7 +29,30 @@ def get_coverage():
         else:
             empty_areas.append(area)
     
-    return render_template('coverage.html', best_areas=best_areas,
+    return render_template('coverage-world.html', best_areas=best_areas,
+                           okay_areas=okay_areas, empty_areas=empty_areas)
+
+@webcoverage.route('/coverage/us/')
+@webcommon.log_application_errors
+def get_us_coverage():
+    with psycopg2.connect(os.environ['DATABASE_URL']) as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as db:
+            db.execute('''SELECT usps_code, name, addr_count, area_total,
+                                 area_pct, pop_total, pop_pct
+                          FROM us_states WHERE name IS NOT NULL ORDER BY name''')
+            areas = db.fetchall()
+            
+    best_areas, okay_areas, empty_areas = list(), list(), list()
+    
+    for area in areas:
+        if area['pop_pct'] > 0.98:
+            best_areas.append(area)
+        elif area['pop_pct'] > 0.15:
+            okay_areas.append(area)
+        else:
+            empty_areas.append(area)
+    
+    return render_template('coverage-us.html', best_areas=best_areas,
                            okay_areas=okay_areas, empty_areas=empty_areas)
 
 def filter_nice_flag(iso_a2):
