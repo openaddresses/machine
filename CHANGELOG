@@ -1,3 +1,6 @@
+2017-04-27: 5.2.2
+- Expanded list of dotmap properties to number, street, and unit. (#620)
+
 2017-04-27: 5.2.1
 - Adjusted Cloudwatch logs to handle throttling. (#619)
 
