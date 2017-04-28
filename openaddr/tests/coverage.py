@@ -32,7 +32,7 @@ class TestCalculate (unittest.TestCase):
                 db.execute("insert into gpwv4_2015 (iso_a2, box_id, population, area) values ('XX', 3, 6000, 400)")
                 db.execute("insert into gpwv4_2015 (iso_a2, box_id, population, area) values ('XX', 4, 8000, 200)")
                 db.execute("insert into gpwv4_2015 (iso_a2, box_id, population, area) values ('US', 5, 17907, 9540)")
-                db.execute("insert into gpwv4_2015_us (usps_code, box_id, population, area) values ('KS', 5, 17907, 9540)")
+                db.execute("insert into acs5yr_2015 (usps_code, box_id, population, area) values ('KS', 5, 17907, 9540)")
                     
     def test_guess_iso_a2(self):
         get_iso3166 = lambda n: 'XX' if (n == 'ISO 3166') else None

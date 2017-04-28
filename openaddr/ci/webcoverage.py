@@ -39,7 +39,7 @@ def get_us_coverage():
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as db:
             db.execute('''SELECT usps_code, name, addr_count, area_total,
                                  area_pct, pop_total, pop_pct
-                          FROM areas_us WHERE name IS NOT NULL ORDER BY name''')
+                          FROM us_states WHERE name IS NOT NULL ORDER BY name''')
             areas = db.fetchall()
             
     best_areas, okay_areas, empty_areas = list(), list(), list()

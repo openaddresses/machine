@@ -1,12 +1,12 @@
 CREATE EXTENSION IF NOT EXISTS postgis;
 
 DROP TABLE IF EXISTS gpwv4_2015;
-DROP TABLE IF EXISTS gpwv4_2015_us;
+DROP TABLE IF EXISTS acs5yr_2015;
 DROP TABLE IF EXISTS ne_50m_admin_0_countries;
 DROP TABLE IF EXISTS cb_2013_us_state_20m;
 DROP TABLE IF EXISTS boxes;
 DROP TABLE IF EXISTS areas;
-DROP TABLE IF EXISTS areas_us;
+DROP TABLE IF EXISTS us_states;
 
 CREATE TABLE boxes
 (
@@ -37,7 +37,7 @@ CREATE TABLE areas
     cpp_stddev  FLOAT
 );
 
-CREATE TABLE areas_us
+CREATE TABLE us_states
 (
     usps_code   VARCHAR(2) PRIMARY KEY,
     addr_count  INTEGER,
@@ -66,7 +66,7 @@ CREATE TABLE gpwv4_2015
     area        FLOAT
 );
 
-CREATE TABLE gpwv4_2015_us
+CREATE TABLE acs5yr_2015
 (
     usps_code   VARCHAR(2),
     box_id      INTEGER REFERENCES boxes(id),

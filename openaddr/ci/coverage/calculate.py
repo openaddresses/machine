@@ -173,7 +173,7 @@ def summarize_country_coverage(db, iso_a2):
                (name, area_total, area_pct, pop_total, pop_pct, iso_a2))
 
 def summarize_us_state_coverage(db, usps_code):
-    ''' Populate area and population columns in areas table from gpwv4_2015_us table.
+    ''' Populate area and population columns in areas table from acs5yr_2015 table.
     '''
     db.execute('''
         WITH
@@ -181,12 +181,12 @@ def summarize_us_state_coverage(db, usps_code):
             -- 1x1 boxes of Natural Earth coverage, with GPWv4 population and area.
             --
             cb_boxes AS (
-            SELECT box.id, cb.name, gpw.area, gpw.population,
+            SELECT box.id, cb.name, acs.area, acs.population,
                 ST_Intersection(cb.geom, box.geom) AS geom
-            FROM cb_2013_us_state_20m as cb, gpwv4_2015_us as gpw, boxes as box
+            FROM cb_2013_us_state_20m as cb, acs5yr_2015 as acs, boxes as box
             WHERE cb.usps_code = %s
-              AND cb.usps_code = gpw.usps_code
-              AND gpw.box_id = box.id
+              AND cb.usps_code = acs.usps_code
+              AND acs.box_id = box.id
               AND box.size = 1.0
             ),
             --
@@ -194,10 +194,10 @@ def summarize_us_state_coverage(db, usps_code):
             --
             oa_boxes AS (
             SELECT box.id, ST_Intersection(oa.geom, box.geom) AS geom
-            FROM areas_us as oa, gpwv4_2015_us as gpw, boxes as box
+            FROM us_states as oa, acs5yr_2015 as acs, boxes as box
             WHERE oa.usps_code = %s
-              AND oa.usps_code = gpw.usps_code
-              AND gpw.box_id = box.id
+              AND oa.usps_code = acs.usps_code
+              AND acs.box_id = box.id
               AND box.size = 1.0
             )
 
@@ -220,7 +220,7 @@ def summarize_us_state_coverage(db, usps_code):
     
     (area_total, pop_total, area_pct, pop_pct, name) = db.fetchone()
     
-    db.execute('''UPDATE areas_us SET name = %s, area_total = %s, area_pct = %s,
+    db.execute('''UPDATE us_states SET name = %s, area_total = %s, area_pct = %s,
                   pop_total = %s, pop_pct = %s WHERE usps_code = %s''',
                (name, area_total, area_pct, pop_total, pop_pct, usps_code))
 
@@ -299,9 +299,9 @@ def calculate(DATABASE_URL):
                 SELECT iso_a2, SUM(count), 10, ST_Multi(ST_Union(ST_Buffer(geom, 0.00001)))
                 FROM rendered_world GROUP BY iso_a2;
 
-                DELETE FROM areas_us;
+                DELETE FROM us_states;
             
-                INSERT INTO areas_us (usps_code, addr_count, buffer_km, geom)
+                INSERT INTO us_states (usps_code, addr_count, buffer_km, geom)
                 SELECT usps_code, SUM(count), 10, ST_Multi(ST_Union(ST_Buffer(geom, 0.00001)))
                 FROM rendered_usa GROUP BY usps_code;
                 ''')
