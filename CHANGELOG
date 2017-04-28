@@ -1,3 +1,6 @@
+2017-04-28: 5.3.0
+- Added new U.S. coverage page with supporting database objects. (#621)
+
 2017-04-27: 5.2.2
 - Expanded list of dotmap properties to number, street, and unit. (#620)
 
