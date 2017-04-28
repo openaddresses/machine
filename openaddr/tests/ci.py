@@ -4376,9 +4376,19 @@ class TestLogging (unittest.TestCase):
             logs = connect_logs.return_value
         
         logs.create_log_stream.assert_called_once_with('group', 'stream')
+        logs.put_log_events.return_value = {'nextSequenceToken': 'token'}
+
         handler._send('Yo')
+        handler._send('Again')
         
-        print(logs.put_log_events.mock_calls)
+        send1, send2 = logs.put_log_events.mock_calls[-2:]
+        self.assertEqual(send1[1][:2], ('group', 'stream'))
+        self.assertEqual(send1[1][2][0]['message'], 'Yo')
+        self.assertIsNone(send1[1][3])
+        
+        self.assertEqual(send2[1][:2], ('group', 'stream'))
+        self.assertEqual(send2[1][2][0]['message'], 'Again')
+        self.assertEqual(send2[1][3], 'token')
 
 if __name__ == '__main__':
     unittest.main()
