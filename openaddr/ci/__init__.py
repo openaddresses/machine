@@ -27,9 +27,8 @@ from requests import get, post, ConnectionError
 from uritemplate import expand as expand_uri
 from dateutil.tz import tzutc
 from psycopg2 import connect
-from boto import connect_sns
-from boto import connect_logs
 from pq import PQ
+import boto
 
 # Ask Python 2 to get real unicode from the database.
 # http://initd.org/psycopg/docs/usage.html#unicode-handling
@@ -1131,7 +1130,7 @@ class SnsHandler(logging.Handler):
     '''
     def __init__(self, arn, *args, **kwargs):
         super(SnsHandler, self).__init__(*args, **kwargs)
-        self.arn, self.sns = arn, connect_sns()
+        self.arn, self.sns = arn, boto.connect_sns()
 
     def emit(self, record):
         subject = u'OpenAddr: {}: {}'.format(record.levelname, record.name)
@@ -1147,7 +1146,7 @@ class CloudwatchHandler(logging.Handler):
     def __init__(self, group_name, stream_name, *args, **kwargs):
         super(CloudwatchHandler, self).__init__(*args, **kwargs)
         self.group, self.stream = group_name, stream_name
-        self.logs, self.token = connect_logs(), None
+        self.logs, self.token = boto.connect_logs(), None
         self.logs.create_log_stream(self.group, self.stream)
     
     def _send(self, message):

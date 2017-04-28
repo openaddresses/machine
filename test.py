@@ -35,7 +35,7 @@ from openaddr.tests.coverage import TestCalculate
 
 from openaddr.tests.ci import (
     TestHook, TestRuns, TestWorker, TestBatch, TestObjects, TestCollect,
-    TestAPI, TestQueue, TestAuth, TestTileIndex
+    TestAPI, TestQueue, TestAuth, TestTileIndex, TestLogging
     )
 
 if __name__ == '__main__':

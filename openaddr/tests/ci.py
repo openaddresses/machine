@@ -31,7 +31,7 @@ from ..ci import (
     is_merged_to_master, get_commit_info, HEARTBEAT_QUEUE, flush_heartbeat_queue,
     get_recent_workers, load_config, get_batch_run_times, webauth, webcoverage,
     process_github_payload, skip_payload, is_rerun_payload, update_job_comments,
-    reset_logger
+    reset_logger, CloudwatchHandler
     )
 
 from ..ci.objects import (
@@ -4367,6 +4367,18 @@ class TestTileIndex (unittest.TestCase):
         
         license = zipfile.read('LICENSE.txt').decode('utf8')
         self.assertEqual(license, summarize_result_licenses.return_value)
+
+class TestLogging (unittest.TestCase):
+    
+    def test_cloudwatch(self):
+        with patch('boto.connect_logs') as connect_logs:
+            handler = CloudwatchHandler('group', 'stream')
+            logs = connect_logs.return_value
+        
+        logs.create_log_stream.assert_called_once_with('group', 'stream')
+        handler._send('Yo')
+        
+        print(logs.put_log_events.mock_calls)
 
 if __name__ == '__main__':
     unittest.main()
