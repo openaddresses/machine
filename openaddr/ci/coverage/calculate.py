@@ -83,10 +83,13 @@ def guess_state_abbrev(feature):
     elif feature.GetField('source paths'):
         # Read from paths, like "sources/xx/place.json"
         paths = feature.GetField('source paths')
-        _, iso_a2, state_abbrev, _ = paths.upper().split(os.path.sep, 3)
-        
-        if iso_a2 != 'US':
-            state_abbrev = None
+        try:
+            _, iso_a2, state_abbrev, _ = paths.upper().split(os.path.sep, 3)
+        except ValueError:
+            pass
+        else:
+            if iso_a2 != 'US':
+                state_abbrev = None
 
     return state_abbrev
 
@@ -94,7 +97,7 @@ def insert_coverage_feature(db, feature):
     ''' Add a feature of coverage to temporary rendered_world table.
     '''
     geom = validate_geometry(feature.GetGeometryRef())
-    iso_a2 = guess_iso_a2(feature)
+    iso_a2, state_abbrev = guess_iso_a2(feature), guess_state_abbrev(feature)
 
     if not geom:
         return
@@ -110,7 +113,10 @@ def insert_coverage_feature(db, feature):
                   VALUES(%s, %s, ST_Multi(ST_SetSRID(%s::geometry, 4326)))''',
                (iso_a2, feature.GetField('address count'), geom_wkt))
     
-    return iso_a2
+    if iso_a2 == 'US':
+        pass
+    
+    return iso_a2, state_abbrev
 
 def summarize_country_coverage(db, iso_a2):
     ''' Populate area and population columns in areas table from gpwv4_2015 table.
@@ -217,9 +223,13 @@ def calculate(DATABASE_URL):
                 ''')
 
             for feature in rendered_ds.GetLayer(0):
-                iso_a2 = insert_coverage_feature(db, feature)
+                iso_a2, state_abbrev = insert_coverage_feature(db, feature)
                 iso_a2s.add(iso_a2)
-                _L.debug('{} - {} addresses from {}'.format(iso_a2, feature.GetField('address count'), feature.GetField('source paths')))
+                
+                if state_abbrev:
+                    print('{} - {} addresses from {}/{}'.format(iso_a2, feature.GetField('address count'), feature.GetField('source paths'), state_abbrev))
+                else:
+                    _L.debug('{} - {} addresses from {}'.format(iso_a2, feature.GetField('address count'), feature.GetField('source paths')))
         
             db.execute('''
                 DELETE FROM areas;
