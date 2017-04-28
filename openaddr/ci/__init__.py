@@ -1148,11 +1148,21 @@ class CloudwatchHandler(logging.Handler):
         self.group, self.stream = group_name, stream_name
         self.logs, self.token = boto.connect_logs(), None
         self.logs.create_log_stream(self.group, self.stream)
+        self.events = []
     
     def _send(self, message):
-        event = dict(timestamp=int(time()*1000), message=message)
-        response = self.logs.put_log_events(self.group, self.stream, [event], self.token)
-        self.token = response['nextSequenceToken']
+        self.events.append(dict(timestamp=int(time()*1000), message=message))
+        try:
+            events = self.events[-10:]
+            response = self.logs.put_log_events(self.group, self.stream, events, self.token)
+        except boto.exception.JSONResponseError as e:
+            if e.body['message'] == 'Rate exceeded':
+                # Try this log message again another time
+                return
+            raise
+        else:
+            self.events = []
+            self.token = response['nextSequenceToken']
 
     def emit(self, record):
         self._send(self.format(record))

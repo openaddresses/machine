@@ -20,6 +20,7 @@ import unittest, json, os, sys, itertools, logging
 from flask import Flask
 from requests import get, ConnectionError
 from httmock import HTTMock, response
+import boto.exception
 
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
 
@@ -4381,14 +4382,42 @@ class TestLogging (unittest.TestCase):
         handler._send('Yo')
         handler._send('Again')
         
-        send1, send2 = logs.put_log_events.mock_calls[-2:]
-        self.assertEqual(send1[1][:2], ('group', 'stream'))
-        self.assertEqual(send1[1][2][0]['message'], 'Yo')
-        self.assertIsNone(send1[1][3])
+        (_, args1, _), (_, args2, _) = logs.put_log_events.mock_calls[-2:]
+        self.assertEqual(args1[:2], ('group', 'stream'))
+        self.assertEqual(args1[2][0]['message'], 'Yo')
+        self.assertEqual(len(args1[2]), 1)
+        self.assertIsNone(args1[3])
         
-        self.assertEqual(send2[1][:2], ('group', 'stream'))
-        self.assertEqual(send2[1][2][0]['message'], 'Again')
-        self.assertEqual(send2[1][3], 'token')
+        self.assertEqual(args2[:2], ('group', 'stream'))
+        self.assertEqual(args2[2][0]['message'], 'Again')
+        self.assertEqual(len(args2[2]), 1)
+        self.assertEqual(args2[3], 'token')
+    
+    def test_cloudwatch_too_fast(self):
+        with patch('boto.connect_logs') as connect_logs:
+            handler = CloudwatchHandler('group', 'stream')
+            logs = connect_logs.return_value
+        
+        def raises(*args, **kwargs):
+            raise boto.exception.JSONResponseError(400, 'Bad Request',
+                {'message': 'Rate exceeded', '__type': 'ThrottlingException'})
+        
+        logs.put_log_events.return_value = {'nextSequenceToken': 'token1'}
+        logs.put_log_events.side_effect = raises
+        
+        for i in range(10):
+            handler._send('Yo {}'.format(i))
+        
+        logs.put_log_events.return_value = {'nextSequenceToken': 'token2'}
+        logs.put_log_events.side_effect = None
+        handler._send('Again')
+        
+        args = logs.put_log_events.mock_calls[-1][1]
+        self.assertEqual(args[:2], ('group', 'stream'))
+        self.assertEqual(args[2][0]['message'], 'Yo 1')
+        self.assertEqual(args[2][-1]['message'], 'Again')
+        self.assertEqual(len(args[2]), 10)
+        self.assertIsNone(args[3])
 
 if __name__ == '__main__':
     unittest.main()
