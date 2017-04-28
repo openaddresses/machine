@@ -20,6 +20,7 @@ import unittest, json, os, sys, itertools, logging
 from flask import Flask
 from requests import get, ConnectionError
 from httmock import HTTMock, response
+import boto.exception
 
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgres:///hooked_on_sources')
 
@@ -31,7 +32,7 @@ from ..ci import (
     is_merged_to_master, get_commit_info, HEARTBEAT_QUEUE, flush_heartbeat_queue,
     get_recent_workers, load_config, get_batch_run_times, webauth, webcoverage,
     process_github_payload, skip_payload, is_rerun_payload, update_job_comments,
-    reset_logger
+    reset_logger, CloudwatchHandler
     )
 
 from ..ci.objects import (
@@ -4367,6 +4368,56 @@ class TestTileIndex (unittest.TestCase):
         
         license = zipfile.read('LICENSE.txt').decode('utf8')
         self.assertEqual(license, summarize_result_licenses.return_value)
+
+class TestLogging (unittest.TestCase):
+    
+    def test_cloudwatch(self):
+        with patch('boto.connect_logs') as connect_logs:
+            handler = CloudwatchHandler('group', 'stream')
+            logs = connect_logs.return_value
+        
+        logs.create_log_stream.assert_called_once_with('group', 'stream')
+        logs.put_log_events.return_value = {'nextSequenceToken': 'token'}
+
+        handler._send('Yo')
+        handler._send('Again')
+        
+        (_, args1, _), (_, args2, _) = logs.put_log_events.mock_calls[-2:]
+        self.assertEqual(args1[:2], ('group', 'stream'))
+        self.assertEqual(args1[2][0]['message'], 'Yo')
+        self.assertEqual(len(args1[2]), 1)
+        self.assertIsNone(args1[3])
+        
+        self.assertEqual(args2[:2], ('group', 'stream'))
+        self.assertEqual(args2[2][0]['message'], 'Again')
+        self.assertEqual(len(args2[2]), 1)
+        self.assertEqual(args2[3], 'token')
+    
+    def test_cloudwatch_too_fast(self):
+        with patch('boto.connect_logs') as connect_logs:
+            handler = CloudwatchHandler('group', 'stream')
+            logs = connect_logs.return_value
+        
+        def raises(*args, **kwargs):
+            raise boto.exception.JSONResponseError(400, 'Bad Request',
+                {'message': 'Rate exceeded', '__type': 'ThrottlingException'})
+        
+        logs.put_log_events.return_value = {'nextSequenceToken': 'token1'}
+        logs.put_log_events.side_effect = raises
+        
+        for i in range(10):
+            handler._send('Yo {}'.format(i))
+        
+        logs.put_log_events.return_value = {'nextSequenceToken': 'token2'}
+        logs.put_log_events.side_effect = None
+        handler._send('Again')
+        
+        args = logs.put_log_events.mock_calls[-1][1]
+        self.assertEqual(args[:2], ('group', 'stream'))
+        self.assertEqual(args[2][0]['message'], 'Yo 1')
+        self.assertEqual(args[2][-1]['message'], 'Again')
+        self.assertEqual(len(args[2]), 10)
+        self.assertIsNone(args[3])
 
 if __name__ == '__main__':
     unittest.main()

@@ -27,9 +27,8 @@ from requests import get, post, ConnectionError
 from uritemplate import expand as expand_uri
 from dateutil.tz import tzutc
 from psycopg2 import connect
-from boto import connect_sns
-from boto import connect_logs
 from pq import PQ
+import boto
 
 # Ask Python 2 to get real unicode from the database.
 # http://initd.org/psycopg/docs/usage.html#unicode-handling
@@ -1131,7 +1130,7 @@ class SnsHandler(logging.Handler):
     '''
     def __init__(self, arn, *args, **kwargs):
         super(SnsHandler, self).__init__(*args, **kwargs)
-        self.arn, self.sns = arn, connect_sns()
+        self.arn, self.sns = arn, boto.connect_sns()
 
     def emit(self, record):
         subject = u'OpenAddr: {}: {}'.format(record.levelname, record.name)
@@ -1147,13 +1146,23 @@ class CloudwatchHandler(logging.Handler):
     def __init__(self, group_name, stream_name, *args, **kwargs):
         super(CloudwatchHandler, self).__init__(*args, **kwargs)
         self.group, self.stream = group_name, stream_name
-        self.logs, self.token = connect_logs(), None
+        self.logs, self.token = boto.connect_logs(), None
         self.logs.create_log_stream(self.group, self.stream)
+        self.events = []
     
     def _send(self, message):
-        event = dict(timestamp=int(time()*1000), message=message)
-        response = self.logs.put_log_events(self.group, self.stream, [event], self.token)
-        self.token = response['nextSequenceToken']
+        self.events.append(dict(timestamp=int(time()*1000), message=message))
+        try:
+            events = self.events[-10:]
+            response = self.logs.put_log_events(self.group, self.stream, events, self.token)
+        except boto.exception.JSONResponseError as e:
+            if e.body['message'] == 'Rate exceeded':
+                # Try this log message again another time
+                return
+            raise
+        else:
+            self.events = []
+            self.token = response['nextSequenceToken']
 
     def emit(self, record):
         self._send(self.format(record))
