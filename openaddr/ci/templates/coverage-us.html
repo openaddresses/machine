@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}U.S. Coverage{% endblock %}
+{% block main %}
+<p>
+    OpenAddresses data is constantly improving through the efforts of our
+    volunteer community. The table on this page shows the latest coverage
+    details on a state-by-state basis in the United States. Puerto Rico
+    and Washington D.C. are both counted as states.
+</p>
+<style lang="text/css">
+
+    dl dt { font-style: italic }
+
+</style>
+<dl>
+    <dt>Coverage Group</dt>
+    <dd>
+        States are divided into two groups below:
+        {{ best_areas|length }} states with complete land area coverage
+        and {{ okay_areas|length }} states with substantial coverage.
+    </dd>
+    <dt>Land Area</dt>
+    <dd>
+        <a href="https://github.com/openaddresses/openaddresses/blob/master/CONTRIBUTING.md#coverage-object">Source coverage information</a>
+        is given as U.S. FIPS codes or simple point and polygon geometries.
+    </dd>
+    <dt>Population Covered</dt>
+    <dd>
+        Number of people covered by given U.S. FIPS codes or
+        simple point and polygon geometries, according to
+        <a href="#acs5">2011-2015 American Community Survey 5-Year Estimates</a>
+        from the U.S. Census.
+    </dd>
+    <dt>Addresses per 1,000 People</dt>
+    <dd>
+        We compare raw counts of address points in each country to Census
+        adjusted population numbers.
+    </dd>
+</dl>
+<style lang="text/css">
+
+    #coverage { border-collapse: collapse }
+    
+    #coverage tr th,
+    #coverage tr td.group,
+    #coverage tr td.area-detail,
+    #coverage tr td.population-detail
+    {
+        font-size: 65%;
+    }
+    
+    #coverage tr th.numeric,
+    #coverage tr td.numeric
+    {
+        text-align: right;
+    }
+    
+    #coverage tr th, #coverage tr td
+    {
+        text-align: left;
+        padding: 3px 10px;
+        border: none;
+    }
+    
+    #coverage tr th
+    {
+        padding-top: 2em;
+    }
+    
+    #coverage tr td.flag
+    {
+        text-align: right;
+        padding-right: 0;
+    }
+    
+    #coverage tr td.name
+    {
+        padding-left: .5em;
+    }
+    
+    #coverage tr td.usps code
+    {
+        border: none;
+        background-color: transparent;
+    }
+    
+    #coverage tr:nth-child(2n+0)>* { background-color: #f8f8f8 }
+    #coverage tr:nth-child(2n+1)>* { background-color: #ffffff }
+
+</style>
+<table id="coverage">
+    {% for areas in [best_areas, okay_areas] %}
+        <tr>
+            <th colspan="2">State</th>
+            <th>Coverage Group</th>
+            <th colspan="2" class="numeric">Land Area Covered</th>
+            <th colspan="2" class="numeric">Population Covered</th>
+            <th class="numeric">Addresses per 1,000 People</th>
+        </tr>
+        {% for area in areas %}
+            <tr>
+                <td class="name">{{ area.name }}</td>
+                <td class="usps"><code>{{ area.usps_code }}</code></td>
+                <td class="group">
+                    {% if areas == best_areas %}
+                        Complete
+                    {% elif areas == okay_areas %}
+                        Substantial
+                    {% elif areas == empty_areas %}
+                        Minimal
+                    {% endif %}
+                </td>
+                <td class="numeric">
+                    {{ area.area_pct|nice_percentage }}
+                </td>
+                <td class="numeric area-detail">
+                    {{ area.area_total|nice_big_number }} km²
+                </td>
+                <td class="numeric">
+                    {{ area.pop_pct|nice_percentage }}
+                </td>
+                <td class="numeric population-detail">
+                    {{ area.pop_total|nice_big_number }} people
+                </td>
+                <td class="numeric">
+                    {% if area.pop_total > 0 %}
+                        {{ (1000 * area.addr_count / area.pop_total)|nice_coverage_integer }}
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+    {% endfor %}
+</table>
+<h3 id="acs5">American Community Survey (ACS) 5-Year Estimates</h3>
+<p>
+    <a href="https://www.census.gov/programs-surveys/acs/">The American Community Survey (ACS)</a>
+    is an ongoing survey that provides vital information on a yearly basis
+    about our nation and its people. Information from the survey generates data
+    that help determine how more than $400 billion in federal and state funds
+    are distributed each year.
+</p>
+{% endblock main %}

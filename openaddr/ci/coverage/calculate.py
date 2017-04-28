@@ -312,7 +312,7 @@ def calculate(DATABASE_URL):
                 summarize_country_coverage(db, iso_a2)
 
             for (index, usps_code) in enumerate(sorted(usps_codes)):
-                print('Counting up US:{} ({}/{})...'.format(usps_code, index+1, len(usps_code)))
+                print('Counting up US:{} ({}/{})...'.format(usps_code, index+1, len(usps_codes)))
                 summarize_us_state_coverage(db, usps_code)
 
     os.remove(filename)
