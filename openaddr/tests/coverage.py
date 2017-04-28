@@ -1,4 +1,5 @@
 import unittest
+import unittest.mock
 import os
 
 import psycopg2
@@ -28,6 +29,38 @@ class TestCalculate (unittest.TestCase):
                 db.execute("insert into gpwv4_2015 (iso_a2, box_id, population, area) values ('XX', 3, 6000, 400)")
                 db.execute("insert into gpwv4_2015 (iso_a2, box_id, population, area) values ('XX', 4, 8000, 200)")
                     
+    def test_guess_iso_a2(self):
+        get_iso3166 = lambda n: 'XX' if (n == 'ISO 3166') else None
+        get_iso3166_2 = lambda n: 'YY-YY' if (n == 'ISO 3166-2') else None
+        get_us_census = lambda n: '06001' if (n == 'US Census GEOID') else None
+        get_src_path = lambda n: 'sources/xx/yy.json' if (n == 'source paths') else None
+    
+        feature = unittest.mock.Mock()
+        
+        feature.GetField = get_iso3166
+        self.assertEqual(calculate.guess_iso_a2(feature), 'XX')
+        
+        feature.GetField = get_iso3166_2
+        self.assertEqual(calculate.guess_iso_a2(feature), 'YY')
+        
+        feature.GetField = get_us_census
+        self.assertEqual(calculate.guess_iso_a2(feature), 'US')
+        
+        feature.GetField = get_src_path
+        self.assertEqual(calculate.guess_iso_a2(feature), 'XX')
+    
+    def test_guess_state_abbrev(self):
+        get_us_census = lambda n: '06001' if (n == 'US Census GEOID') else None
+        get_src_path = lambda n: 'sources/us/ca/oakland.json' if (n == 'source paths') else None
+    
+        feature = unittest.mock.Mock()
+        
+        feature.GetField = get_us_census
+        self.assertEqual(calculate.guess_state_abbrev(feature), 'CA')
+        
+        feature.GetField = get_src_path
+        self.assertEqual(calculate.guess_state_abbrev(feature), 'CA')
+    
     def test_calculate(self):
 
         def response_geojson(url, request):

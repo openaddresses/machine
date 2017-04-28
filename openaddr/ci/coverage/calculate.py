@@ -10,6 +10,18 @@ from osgeo import ogr
 
 from .. import setup_logger
 
+state_codes = {
+    '01': 'AL', '31': 'NE', '02': 'AK', '32': 'NV', '04': 'AZ', '33': 'NH',
+    '05': 'AR', '34': 'NJ', '06': 'CA', '35': 'NM', '08': 'CO', '36': 'NY',
+    '09': 'CT', '37': 'NC', '10': 'DE', '38': 'ND', '11': 'DC', '39': 'OH',
+    '12': 'FL', '40': 'OK', '13': 'GA', '41': 'OR', '15': 'HI', '42': 'PA',
+    '16': 'ID', '72': 'PR', '17': 'IL', '44': 'RI', '18': 'IN', '45': 'SC',
+    '19': 'IA', '46': 'SD', '20': 'KS', '47': 'TN', '21': 'KY', '48': 'TX',
+    '22': 'LA', '49': 'UT', '23': 'ME', '50': 'VT', '24': 'MD', '51': 'VA',
+    '25': 'MA', '78': 'VI', '26': 'MI', '53': 'WA', '27': 'MN', '54': 'WV',
+    '28': 'MS', '55': 'WI', '29': 'MO', '56': 'WY', '30': 'MT'
+    } 	
+
 is_point = lambda geom: bool(geom.GetGeometryType() in (ogr.wkbPoint, ogr.wkbMultiPoint))
 is_polygon = lambda geom: bool(geom.GetGeometryType() in (ogr.wkbPolygon, ogr.wkbMultiPolygon))
 
@@ -55,6 +67,28 @@ def guess_iso_a2(feature):
         _, iso_a2, _ = paths.upper().split(os.path.sep, 2)
 
     return iso_a2
+
+def guess_state_abbrev(feature):
+    '''
+    '''
+    state_abbrev = None
+
+    if feature.GetField('US Census GEOID'):
+        # Assume US based on Census GEOID
+        state_fips = feature.GetField('US Census GEOID')[:2].upper()
+        
+        if state_fips in state_codes:
+            state_abbrev = state_codes[state_fips]
+
+    elif feature.GetField('source paths'):
+        # Read from paths, like "sources/xx/place.json"
+        paths = feature.GetField('source paths')
+        _, iso_a2, state_abbrev, _ = paths.upper().split(os.path.sep, 3)
+        
+        if iso_a2 != 'US':
+            state_abbrev = None
+
+    return state_abbrev
 
 def insert_coverage_feature(db, feature):
     ''' Add a feature of coverage to temporary rendered_world table.
