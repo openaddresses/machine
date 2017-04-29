@@ -30,10 +30,6 @@ rotation = <<-ROTATION
 }
 ROTATION
 
-file "/etc/logrotate.d/openaddr_crontab-collect-extracts" do
-    content "/var/log/openaddr_crontab/collect-extracts.log\n#{rotation}\n"
-end
-
 file "/etc/logrotate.d/openaddr_crontab-index-tiles" do
     content "/var/log/openaddr_crontab/index-tiles.log\n#{rotation}\n"
 end
@@ -62,26 +58,6 @@ directory '/etc/cron.d'
 directory "/var/log/openaddr_crontab" do
   owner username
   mode "0755"
-end
-
-file "/etc/cron.d/openaddr_crontab-collect-extracts" do
-    content <<-CRONTAB
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-LC_ALL=C.UTF-8
-# Archive collection, every other day at 11am UTC (4am PDT)
-0 11	*/2 * *	#{username}	\
-  openaddr-run-ec2-command \
-  --hours 18 \
-  -b "#{aws_s3_bucket}" \
-  --sns-arn "#{aws_sns_arn}" \
-  --verbose \
-  -- \
-    openaddr-collect-extracts \
-    -d "#{database_url}" \
-    -b "#{aws_s3_bucket}" \
-    --sns-arn "#{aws_sns_arn}" \
-  >> /var/log/openaddr_crontab/collect-extracts.log 2>&1
-CRONTAB
 end
 
 file "/etc/cron.d/openaddr_crontab-index-tiles" do
