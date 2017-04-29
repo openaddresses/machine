@@ -1,3 +1,6 @@
+2017-04-29: 5.3.2
+- Switched worker ID to socket.gethostname() (#623)
+
 2017-04-29: 5.3.1
 - Moved openaddr-collect-extracts task to AWS. (#622)
 
