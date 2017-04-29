@@ -1,3 +1,6 @@
+2017-04-29: 5.3.1
+- Moved openaddr-collect-extracts task to AWS. (#622)
+
 2017-04-28: 5.3.0
 - Added new U.S. coverage page with supporting database objects. (#621)
 
