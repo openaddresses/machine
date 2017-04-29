@@ -2,12 +2,12 @@
 import boto3, json, sys
 
 COLLECT_RULE = 'OA-Collect-Extracts'
-COLLECT_RULE_TARGET_ID = 'OA-EC2-Run-Task'
+EC2_RUN_TARGET_ID = 'OA-EC2-Run-Task'
 
 def main():
     client = boto3.client('events')
     
-    print('Updating rule', COLLECT_RULE, 'with target', COLLECT_RULE_TARGET_ID, '...', file=sys.stderr)
+    print('Updating rule', COLLECT_RULE, 'with target', EC2_RUN_TARGET_ID, '...', file=sys.stderr)
     rule = client.describe_rule(Name=COLLECT_RULE)
 
     client.put_rule(
@@ -18,15 +18,15 @@ def main():
     
     client.put_targets(
         Rule = COLLECT_RULE,
-        Targets = [{
-            'Id': COLLECT_RULE_TARGET_ID,
-            'Arn': 'arn:aws:lambda:us-east-1:847904970422:function:OA-EC2-Run-Task',
-            'Input': json.dumps({
+        Targets = [dict(
+            Id = EC2_RUN_TARGET_ID,
+            Arn = 'arn:aws:lambda:us-east-1:847904970422:function:OA-EC2-Run-Task',
+            Input = json.dumps({
                 "command": ["openaddr-collect-extracts"], 
                 "hours": 18, "bucket": "data.openaddresses.io",
                 "sns-arn": "arn:aws:sns:us-east-1:847904970422:CI-Events"
                 })
-            }]
+            )]
         )
 
 if __name__ == '__main__':
