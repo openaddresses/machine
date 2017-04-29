@@ -11,7 +11,7 @@ from . import objects, work, queuedata
 
 from os.path import relpath, splitext, join, basename
 from datetime import timedelta, datetime
-from uuid import uuid4, getnode
+from uuid import uuid4
 from urllib.parse import urljoin
 from base64 import b64decode
 from tempfile import mkdtemp
@@ -904,7 +904,7 @@ def is_merged_to_master(db, set_id, job_id, commit_sha, github_auth):
         return None
 
 def _worker_id():
-    return hex(getnode()).rstrip('L')
+    return socket.gethostname()
 
 def _wait_for_work_lock(lock, heartbeat_queue):
     ''' Wait around for worker while sending heartbeat pings.
