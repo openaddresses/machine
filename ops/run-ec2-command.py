@@ -1,16 +1,24 @@
 #!/usr/bin/env python3
 import logging; _L = logging.getLogger(__name__)
 
-import boto, shlex
+import boto, shlex, os, time
 from boto.ec2 import blockdevicemapping
-from os.path import join, dirname
+from boto.exception import EC2ResponseError
+from os.path import join, dirname, exists
 from datetime import datetime
+
+version_paths = ['../openaddr/VERSION', 'VERSION']
+userdata_paths = ['../openaddr/util/templates/task-instance-userdata.sh', 'task-instance-userdata.sh']
+
+def first_file(paths):
+    for path in paths:
+        if exists(join(dirname(__file__), path)):
+            return join(dirname(__file__), path)
 
 def get_version():
     '''
     '''
-    path = join(dirname(__file__), 'VERSION')
-    with open(path) as file:
+    with open(first_file(version_paths)) as file:
         return next(file).strip()
 
 def request_task_instance(ec2, autoscale, instance_type, lifespan, command, bucket, aws_sns_arn, tempsize=None):
@@ -25,7 +33,7 @@ def request_task_instance(ec2, autoscale, instance_type, lifespan, command, buck
 
     yyyymmdd = datetime.utcnow().strftime('%Y-%m-%d-%H-%M')
     
-    with open(join(dirname(__file__), 'task-instance-userdata.sh')) as file:
+    with open(first_file(userdata_paths)) as file:
         userdata_kwargs = dict(
             command = ' '.join(map(shlex.quote, command)),
             lifespan = shlex.quote(str(lifespan)),
@@ -78,9 +86,8 @@ def request_task_instance(ec2, autoscale, instance_type, lifespan, command, buck
     return instance
 
 def main():
+    ec2, autoscale = boto.connect_ec2(), boto.connect_autoscale()
     kwargs = dict(
-        ec2 = boto.connect_ec2(),
-        autoscale = boto.connect_autoscale(),
         instance_type = 't2.nano',
         lifespan = 600,
         command = 'sleep 600'.split(),
@@ -88,10 +95,21 @@ def main():
         aws_sns_arn = 'arn:aws:sns:us-east-1:847904970422:CI-Events',
         )
     
-    return request_task_instance(**kwargs)
+    return request_task_instance(ec2, autoscale, **kwargs)
 
 def lambda_func(event, context):
-    return main()
+    ''' Request a task instance inside AWS Lambda context.
+    '''
+    ec2, autoscale = boto.connect_ec2(), boto.connect_autoscale()
+    kwargs = dict(
+        instance_type = event.get('instance-type', 'm3.medium'),
+        lifespan = int(event.get('hours', 12)) * 3600,
+        command = event.get('command', ['sleep', '300']),
+        bucket = event.get('bucket', os.environ.get('AWS_S3_BUCKET')),
+        aws_sns_arn = event.get('sns-arn', os.environ.get('AWS_SNS_ARN')),
+        )
+    
+    return str(request_task_instance(ec2, autoscale, **kwargs))
 
 if __name__ == '__main__':
     exit(main())

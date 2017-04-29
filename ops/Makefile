@@ -6,4 +6,4 @@ run-ec2-command.zip: run-ec2-command.py
 	rm -rf temp-boto
 	pip3 install -t temp-boto 'boto == 2.43.0'
 	find temp-boto -name __pycache__ | xargs rm -rf
-	cd temp-boto && zip -r ../$@ boto
+	cd temp-boto && zip -qr ../$@ boto
