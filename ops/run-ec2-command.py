@@ -21,10 +21,10 @@ def get_version():
     with open(first_file(version_paths)) as file:
         return next(file).strip()
 
-def request_task_instance(ec2, autoscale, instance_type, lifespan, command, bucket, aws_sns_arn, tempsize=None):
+def request_task_instance(ec2, autoscale, instance_type, lifespan, command, bucket, aws_sns_arn, version, tempsize=None):
     '''
     '''
-    group_name = 'CI Workers {0}.x'.format(*get_version().split('.'))
+    group_name = 'CI Workers {0}.x'.format(*version.split('.'))
 
     (group, ) = autoscale.get_all_groups([group_name])
     (config, ) = autoscale.get_all_launch_configurations(names=[group.launch_config_name])
@@ -37,7 +37,7 @@ def request_task_instance(ec2, autoscale, instance_type, lifespan, command, buck
         userdata_kwargs = dict(
             command = ' '.join(map(shlex.quote, command)),
             lifespan = shlex.quote(str(lifespan)),
-            version = shlex.quote(get_version()),
+            version = shlex.quote(version),
             log_prefix = shlex.quote('logs/{}-{}'.format(yyyymmdd, command[0])),
             bucket = shlex.quote(bucket or 'data.openaddresses.io'),
             aws_sns_arn = '', aws_region = '',
@@ -93,6 +93,7 @@ def main():
         command = 'sleep 600'.split(),
         bucket = 'data.openaddresses.io',
         aws_sns_arn = 'arn:aws:sns:us-east-1:847904970422:CI-Events',
+        version = get_version(),
         )
     
     return request_task_instance(ec2, autoscale, **kwargs)
@@ -107,6 +108,7 @@ def lambda_func(event, context):
         command = event.get('command', ['sleep', '300']),
         bucket = event.get('bucket', os.environ.get('AWS_S3_BUCKET')),
         aws_sns_arn = event.get('sns-arn', os.environ.get('AWS_SNS_ARN')),
+        version = event.get('version', get_version()),
         )
     
     return str(request_task_instance(ec2, autoscale, **kwargs))
