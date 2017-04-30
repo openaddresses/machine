@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-import logging; _L = logging.getLogger(__name__)
-
-import boto, shlex, os, time
+import boto, shlex, os, time, pprint, sys
 from boto.ec2 import blockdevicemapping
 from boto.exception import EC2ResponseError
 from os.path import join, dirname, exists
@@ -63,10 +61,15 @@ def request_task_instance(ec2, autoscale, instance_type, lifespan, command, buck
 
         run_kwargs = dict(instance_type=instance_type, security_groups=['default'],
                           instance_initiated_shutdown_behavior='terminate',
-                          user_data=file.read().format(**userdata_kwargs),
                           # TODO: use current role from http://169.254.169.254/latest/meta-data/iam/info
                           instance_profile_name='machine-communication',
                           key_name=keypair.name, block_device_map=device_map)
+        
+        print('Configured with run kwargs:\n{}'.format(pprint.pformat(run_kwargs)), file=sys.stderr)
+        
+        run_kwargs.update(user_data=file.read().format(**userdata_kwargs))
+        
+        print('Configured with user data:\n{}'.format(run_kwargs['user_data']), file=sys.stderr)
         
     reservation = image.run(**run_kwargs)
     (instance, ) = reservation.instances
@@ -81,7 +84,7 @@ def request_task_instance(ec2, autoscale, instance_type, lifespan, command, buck
             time.sleep(10)
             instance.add_tag('Name', 'Scheduled {} {}'.format(yyyymmdd, command[0]))
     
-    _L.info('Started EC2 instance {} from AMI {}'.format(instance, image))
+    print('Started EC2 instance {} from AMI {}'.format(instance, image), file=sys.stderr)
     
     return instance
 
