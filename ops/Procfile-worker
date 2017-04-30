@@ -1,0 +1,2 @@
+# Used by Workers EC2 launch configuration
+worker: openaddr-ci-worker
