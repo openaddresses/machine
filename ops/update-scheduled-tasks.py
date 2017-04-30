@@ -2,7 +2,10 @@
 import boto3, json, sys
 
 COLLECT_RULE = 'OA-Collect-Extracts'
+CALCULATE_RULE = 'OA-Calculate-Coverage'
 EC2_RUN_TARGET_ID = 'OA-EC2-Run-Task'
+EC2_RUN_TARGET_ARN = 'arn:aws:lambda:us-east-1:847904970422:function:OA-EC2-Run-Task'
+SNS_ARN = "arn:aws:sns:us-east-1:847904970422:CI-Events"
 
 def main():
     client = boto3.client('events')
@@ -20,11 +23,32 @@ def main():
         Rule = COLLECT_RULE,
         Targets = [dict(
             Id = EC2_RUN_TARGET_ID,
-            Arn = 'arn:aws:lambda:us-east-1:847904970422:function:OA-EC2-Run-Task',
+            Arn = EC2_RUN_TARGET_ARN,
             Input = json.dumps({
-                "command": ["openaddr-collect-extracts"], 
-                "hours": 18, "bucket": "data.openaddresses.io",
-                "sns-arn": "arn:aws:sns:us-east-1:847904970422:CI-Events"
+                "command": ["openaddr-collect-extracts"], "hours": 18,
+                "bucket": "data.openaddresses.io", "sns-arn": SNS_ARN
+                })
+            )]
+        )
+    
+    print('Updating rule', CALCULATE_RULE, 'with target', EC2_RUN_TARGET_ID, '...', file=sys.stderr)
+    rule = client.describe_rule(Name=CALCULATE_RULE)
+
+    client.put_rule(
+        Name = CALCULATE_RULE,
+        Description = 'Update coverage page data, every third day at 11am UTC (4am PDT)',
+        ScheduleExpression = 'cron(0 11 */3 * ? *)', State = 'ENABLED',
+        )
+    
+    client.put_targets(
+        Rule = CALCULATE_RULE,
+        Targets = [dict(
+            Id = EC2_RUN_TARGET_ID,
+            Arn = EC2_RUN_TARGET_ARN,
+            Input = json.dumps({
+                "command": ["openaddr-calculate-coverage"],
+                "hours": 3, "instance-type": "t2.nano",
+                "bucket": "data.openaddresses.io", "sns-arn": SNS_ARN
                 })
             )]
         )
