@@ -1,5 +1,8 @@
-2017-05-01: 5.3.7
+2017-05-01: 5.3.8
 - Reduced list of dotmap properties to none.
+
+2017-05-01: 5.3.7
+- Attempted to reduce list of dotmap properties but screwed up the release.
 
 2017-05-01: 5.3.6
 - Moved openaddr-calculate-coverage task to AWS. (#624)
