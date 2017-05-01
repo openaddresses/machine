@@ -41,8 +41,7 @@ def call_tippecanoe(mbtiles_filename):
     '''
     '''
     cmd = 'tippecanoe', '-r', '2', '-l', 'openaddresses', \
-          '-y', 'NUMBER', '-y', 'STREET', '-y', 'UNIT', \
-          '-n', 'OpenAddresses {}'.format(str(date.today())), '-f', \
+          '-X', '-n', 'OpenAddresses {}'.format(str(date.today())), '-f', \
           '-t', gettempdir(), '-o', mbtiles_filename
     
     _L.info('Running tippcanoe: {}'.format(' '.join(cmd)))
