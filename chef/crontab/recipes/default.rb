@@ -42,10 +42,6 @@ file "/etc/logrotate.d/openaddr_crontab-enqueue-sources" do
     content "/var/log/openaddr_crontab/enqueue-sources.log\n#{rotation}\n"
 end
 
-file "/etc/logrotate.d/openaddr_crontab-calculate-coverage" do
-    content "/var/log/openaddr_crontab/calculate-coverage.log\n#{rotation}\n"
-end
-
 file "/etc/logrotate.d/openaddr_crontab-sum-up-data" do
     content "/var/log/openaddr_crontab/sum-up-data.log\n#{rotation}\n"
 end
@@ -123,26 +119,6 @@ LC_ALL=C.UTF-8
     --sns-arn "#{aws_sns_arn}" \
     --cloudwatch-ns "#{aws_cloudwatch_ns}" \
   >> /var/log/openaddr_crontab/enqueue-sources.log 2>&1
-CRONTAB
-end
-
-file "/etc/cron.d/openaddr_crontab-calculate-coverage" do
-    content <<-CRONTAB
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-LC_ALL=C.UTF-8
-# Update coverage page data, every third day at 11am UTC (4am PDT)
-0 11	*/3 * *	#{username}	\
-  openaddr-run-ec2-command \
-  --hours 3 \
-  --instance-type t2.nano \
-  -b "#{aws_s3_bucket}" \
-  --sns-arn "#{aws_sns_arn}" \
-  --verbose \
-  -- \
-    openaddr-calculate-coverage \
-    -d "#{database_url}" \
-    --sns-arn "#{aws_sns_arn}" \
-  >> /var/log/openaddr_crontab/calculate-coverage.log 2>&1
 CRONTAB
 end
 

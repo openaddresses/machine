@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-import logging; _L = logging.getLogger(__name__)
-
-import boto, shlex, os, time
+import boto, shlex, os, time, pprint, sys
 from boto.ec2 import blockdevicemapping
 from boto.exception import EC2ResponseError
 from os.path import join, dirname, exists
@@ -21,10 +19,10 @@ def get_version():
     with open(first_file(version_paths)) as file:
         return next(file).strip()
 
-def request_task_instance(ec2, autoscale, instance_type, lifespan, command, bucket, aws_sns_arn, tempsize=None):
+def request_task_instance(ec2, autoscale, instance_type, lifespan, command, bucket, aws_sns_arn, version, tempsize=None):
     '''
     '''
-    group_name = 'CI Workers {0}.x'.format(*get_version().split('.'))
+    group_name = 'CI Workers {0}.x'.format(*version.split('.'))
 
     (group, ) = autoscale.get_all_groups([group_name])
     (config, ) = autoscale.get_all_launch_configurations(names=[group.launch_config_name])
@@ -37,7 +35,7 @@ def request_task_instance(ec2, autoscale, instance_type, lifespan, command, buck
         userdata_kwargs = dict(
             command = ' '.join(map(shlex.quote, command)),
             lifespan = shlex.quote(str(lifespan)),
-            version = shlex.quote(get_version()),
+            version = shlex.quote(version),
             log_prefix = shlex.quote('logs/{}-{}'.format(yyyymmdd, command[0])),
             bucket = shlex.quote(bucket or 'data.openaddresses.io'),
             aws_sns_arn = '', aws_region = '',
@@ -63,10 +61,15 @@ def request_task_instance(ec2, autoscale, instance_type, lifespan, command, buck
 
         run_kwargs = dict(instance_type=instance_type, security_groups=['default'],
                           instance_initiated_shutdown_behavior='terminate',
-                          user_data=file.read().format(**userdata_kwargs),
                           # TODO: use current role from http://169.254.169.254/latest/meta-data/iam/info
                           instance_profile_name='machine-communication',
                           key_name=keypair.name, block_device_map=device_map)
+        
+        print('Configured with run kwargs:\n{}'.format(pprint.pformat(run_kwargs)), file=sys.stderr)
+        
+        run_kwargs.update(user_data=file.read().format(**userdata_kwargs))
+        
+        print('Configured with user data:\n{}'.format(run_kwargs['user_data']), file=sys.stderr)
         
     reservation = image.run(**run_kwargs)
     (instance, ) = reservation.instances
@@ -81,7 +84,7 @@ def request_task_instance(ec2, autoscale, instance_type, lifespan, command, buck
             time.sleep(10)
             instance.add_tag('Name', 'Scheduled {} {}'.format(yyyymmdd, command[0]))
     
-    _L.info('Started EC2 instance {} from AMI {}'.format(instance, image))
+    print('Started EC2 instance {} from AMI {}'.format(instance, image), file=sys.stderr)
     
     return instance
 
@@ -93,6 +96,7 @@ def main():
         command = 'sleep 600'.split(),
         bucket = 'data.openaddresses.io',
         aws_sns_arn = 'arn:aws:sns:us-east-1:847904970422:CI-Events',
+        version = get_version(),
         )
     
     return request_task_instance(ec2, autoscale, **kwargs)
@@ -107,6 +111,7 @@ def lambda_func(event, context):
         command = event.get('command', ['sleep', '300']),
         bucket = event.get('bucket', os.environ.get('AWS_S3_BUCKET')),
         aws_sns_arn = event.get('sns-arn', os.environ.get('AWS_SNS_ARN')),
+        version = event.get('version', get_version()),
         )
     
     return str(request_task_instance(ec2, autoscale, **kwargs))
