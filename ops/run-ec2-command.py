@@ -19,7 +19,7 @@ def get_version():
     with open(first_file(version_paths)) as file:
         return next(file).strip()
 
-def request_task_instance(ec2, autoscale, instance_type, lifespan, command, bucket, aws_sns_arn, version, tempsize=None):
+def request_task_instance(ec2, autoscale, instance_type, lifespan, command, bucket, aws_sns_arn, version, tempsize):
     '''
     '''
     group_name = 'CI Workers {0}.x'.format(*version.split('.'))
@@ -97,6 +97,7 @@ def main():
         bucket = 'data.openaddresses.io',
         aws_sns_arn = 'arn:aws:sns:us-east-1:847904970422:CI-Events',
         version = get_version(),
+        tempsize = None,
         )
     
     return request_task_instance(ec2, autoscale, **kwargs)
@@ -112,6 +113,7 @@ def lambda_func(event, context):
         bucket = event.get('bucket', os.environ.get('AWS_S3_BUCKET')),
         aws_sns_arn = event.get('sns-arn', os.environ.get('AWS_SNS_ARN')),
         version = event.get('version', get_version()),
+        tempsize = event.get('temp_size', None),
         )
     
     return str(request_task_instance(ec2, autoscale, **kwargs))
