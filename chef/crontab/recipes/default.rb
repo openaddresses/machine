@@ -34,10 +34,6 @@ file "/etc/logrotate.d/openaddr_crontab-index-tiles" do
     content "/var/log/openaddr_crontab/index-tiles.log\n#{rotation}\n"
 end
 
-file "/etc/logrotate.d/openaddr_crontab-dotmap" do
-    content "/var/log/openaddr_crontab/dotmap.log\n#{rotation}\n"
-end
-
 file "/etc/logrotate.d/openaddr_crontab-enqueue-sources" do
     content "/var/log/openaddr_crontab/enqueue-sources.log\n#{rotation}\n"
 end
@@ -73,29 +69,6 @@ LC_ALL=C.UTF-8
     -b "#{aws_s3_bucket}" \
     --sns-arn "#{aws_sns_arn}" \
   >> /var/log/openaddr_crontab/index-tiles.log 2>&1
-CRONTAB
-end
-
-file "/etc/cron.d/openaddr_crontab-dotmap" do
-    content <<-CRONTAB
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-LC_ALL=C.UTF-8
-# Generate OpenAddresses dot map, every fifth day at 11am UTC (4am PDT)
-0 11	*/5 * *	#{username}	\
-  openaddr-run-ec2-command \
-  --role dotmap \
-  --hours 16 \
-  --instance-type r3.large \
-  --temp-size 256 \
-  -b "#{aws_s3_bucket}" \
-  --sns-arn "#{aws_sns_arn}" \
-  --verbose \
-  -- \
-    openaddr-update-dotmap \
-    -d "#{database_url}" \
-    -m "#{mapbox_key}" \
-    --sns-arn "#{aws_sns_arn}" \
-  >> /var/log/openaddr_crontab/dotmap.log 2>&1
 CRONTAB
 end
 
