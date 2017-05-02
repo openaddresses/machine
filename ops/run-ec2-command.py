@@ -113,7 +113,7 @@ def lambda_func(event, context):
         bucket = event.get('bucket', os.environ.get('AWS_S3_BUCKET')),
         aws_sns_arn = event.get('sns-arn', os.environ.get('AWS_SNS_ARN')),
         version = event.get('version', get_version()),
-        tempsize = event.get('temp_size', None),
+        tempsize = event.get('temp-size', None),
         )
     
     return str(request_task_instance(ec2, autoscale, **kwargs))
