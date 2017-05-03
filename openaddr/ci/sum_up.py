@@ -3,6 +3,7 @@ import logging; _L = logging.getLogger('openaddr.ci.collect')
 from argparse import ArgumentParser
 from urllib.parse import urlparse
 from datetime import date
+from time import sleep
 from os import environ
 
 from .objects import read_latest_set, read_completed_runs_to_date
@@ -26,6 +27,9 @@ parser.add_argument('-d', '--database-url', default=environ.get('DATABASE_URL', 
 parser.add_argument('--sns-arn', default=environ.get('AWS_SNS_ARN', None),
                     help='Optional AWS Simple Notification Service (SNS) resource. Defaults to value of AWS_SNS_ARN environment variable.')
 
+parser.add_argument('--hourly', default=False, action='store_true',
+                    help='Run hourly forever instead of just once.')
+
 parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
                     action='store_const', dest='loglevel',
                     const=logging.DEBUG, default=logging.INFO)
@@ -42,15 +46,22 @@ def main():
     setup_logger(args.sns_arn, None, log_level=args.loglevel)
     s3 = S3(None, None, args.bucket)
     db_args = util.prepare_db_kwargs(args.database_url)
+    
+    while True:
+        with db_connect(**db_args) as conn:
+            with db_cursor(conn) as db:
+                set = read_latest_set(db, args.owner, args.repository)
+                runs = read_completed_runs_to_date(db, set.id)
+                stats = dashboard_stats.make_stats(db)
 
-    with db_connect(**db_args) as conn:
-        with db_cursor(conn) as db:
-            set = read_latest_set(db, args.owner, args.repository)
-            runs = read_completed_runs_to_date(db, set.id)
-            stats = dashboard_stats.make_stats(db)
-
-    render_index_maps(s3, runs)
-    dashboard_stats.upload_stats(s3, stats)
+        render_index_maps(s3, runs)
+        dashboard_stats.upload_stats(s3, stats)
+        
+        if args.hourly:
+            _L.info('Sleeping for one hour')
+            sleep(3600)
+        else:
+            return
 
 if __name__ == '__main__':
     exit(main())
