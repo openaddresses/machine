@@ -30,10 +30,6 @@ rotation = <<-ROTATION
 }
 ROTATION
 
-file "/etc/logrotate.d/openaddr_crontab-sum-up-data" do
-    content "/var/log/openaddr_crontab/sum-up-data.log\n#{rotation}\n"
-end
-
 #
 # Place crontab scripts.
 #
@@ -42,19 +38,4 @@ directory '/etc/cron.d'
 directory "/var/log/openaddr_crontab" do
   owner username
   mode "0755"
-end
-
-file "/etc/cron.d/openaddr_crontab-sum-up-data" do
-    content <<-CRONTAB
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-LC_ALL=C.UTF-8
-# Sum up current data, hourly
-0 *	* * *	#{username}	\
-  openaddr-sum-up-data \
-    -d "#{database_url}" \
-    -b "#{aws_s3_bucket}" \
-    --sns-arn "#{aws_sns_arn}" \
-    --quiet \
-  >> /var/log/openaddr_crontab/sum-up-data.log 2>&1
-CRONTAB
 end
