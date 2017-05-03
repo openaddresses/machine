@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import boto3, json, sys
+from os.path import join, dirname, exists
 
 COLLECT_RULE = 'OA-Collect-Extracts'
 CALCULATE_RULE = 'OA-Calculate-Coverage'
@@ -7,16 +8,29 @@ DOTMAP_RULE = 'OA-Update-Dotmap'
 TILEINDEX_RULE = 'OA-Index-Tiles'
 EC2_RUN_TARGET_ID = 'OA-EC2-Run-Task'
 EC2_RUN_TARGET_ARN = 'arn:aws:lambda:us-east-1:847904970422:function:OA-EC2-Run-Task'
+LOG_BUCKET = "data.openaddresses.io"
 SNS_ARN = "arn:aws:sns:us-east-1:847904970422:CI-Events"
 
+version_paths = ['../openaddr/VERSION', 'VERSION']
+
+def first_file(paths):
+    for path in paths:
+        if exists(join(dirname(__file__), path)):
+            return join(dirname(__file__), path)
+
 def main():
+    with open(first_file(version_paths)) as file:
+        version = file.read().strip()
+    
+    print('Found version', version)
+
     rules = {
         COLLECT_RULE: dict(
             cron = 'cron(0 11 */2 * ? *)',
             description = 'Archive collection, every other day at 11am UTC (4am PDT)',
             input = {
                 "command": ["openaddr-collect-extracts"], "hours": 18,
-                "bucket": "data.openaddresses.io", "sns-arn": SNS_ARN
+                "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
                 }),
         CALCULATE_RULE: dict(
             cron = 'cron(0 11 */3 * ? *)',
@@ -24,7 +38,7 @@ def main():
             input = {
                 "command": ["openaddr-calculate-coverage"],
                 "hours": 3, "instance-type": "t2.nano",
-                "bucket": "data.openaddresses.io", "sns-arn": SNS_ARN
+                "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
                 }),
         DOTMAP_RULE: dict(
             cron = 'cron(0 11 */5 * ? *)',
@@ -32,15 +46,14 @@ def main():
             input = {
                 "command": ["openaddr-update-dotmap"],
                 "hours": 16, "instance-type": "r3.large", "temp-size": 256,
-                "bucket": "data.openaddresses.io", "sns-arn": SNS_ARN
+                "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
                 }),
         TILEINDEX_RULE: dict(
             cron = 'cron(0 11 */7 * ? *)',
             description = 'Index into tiles, every seventh day at 11am UTC (4am PDT)',
             input = {
-                "command": ["openaddr-index-tiles"],
-                "hours": 16,
-                "bucket": "data.openaddresses.io", "sns-arn": SNS_ARN
+                "command": ["openaddr-index-tiles"], "hours": 16,
+                "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
                 }),
         }
     
