@@ -2,6 +2,7 @@
 import boto3, json, sys
 from os.path import join, dirname, exists
 
+ENQUEUE_RULE = 'OA-Enqueue-Sources'
 COLLECT_RULE = 'OA-Collect-Extracts'
 CALCULATE_RULE = 'OA-Calculate-Coverage'
 DOTMAP_RULE = 'OA-Update-Dotmap'
@@ -25,6 +26,14 @@ def main():
     print('Found version', version)
 
     rules = {
+        ENQUEUE_RULE: dict(
+            cron = 'cron(0 23 ? * fri *)',
+            description = 'Enqueue sources, Fridays 11pm UTC (4pm PDT)',
+            input = {
+                "command": ["openaddr-enqueue-sources"],
+                "hours": 60, "instance-type": "t2.nano",
+                "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
+                }),
         COLLECT_RULE: dict(
             cron = 'cron(0 11 */2 * ? *)',
             description = 'Archive collection, every other day at 11am UTC (4am PDT)',
