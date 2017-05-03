@@ -4,77 +4,66 @@ import boto3, json, sys
 COLLECT_RULE = 'OA-Collect-Extracts'
 CALCULATE_RULE = 'OA-Calculate-Coverage'
 DOTMAP_RULE = 'OA-Update-Dotmap'
+TILEINDEX_RULE = 'OA-Index-Tiles'
 EC2_RUN_TARGET_ID = 'OA-EC2-Run-Task'
 EC2_RUN_TARGET_ARN = 'arn:aws:lambda:us-east-1:847904970422:function:OA-EC2-Run-Task'
 SNS_ARN = "arn:aws:sns:us-east-1:847904970422:CI-Events"
 
 def main():
-    client = boto3.client('events')
-    
-    print('Updating rule', COLLECT_RULE, 'with target', EC2_RUN_TARGET_ID, '...', file=sys.stderr)
-    rule = client.describe_rule(Name=COLLECT_RULE)
-
-    client.put_rule(
-        Name = COLLECT_RULE,
-        Description = 'Archive collection, every other day at 11am UTC (4am PDT)',
-        ScheduleExpression = 'cron(0 11 */2 * ? *)', State = 'ENABLED',
-        )
-    
-    client.put_targets(
-        Rule = COLLECT_RULE,
-        Targets = [dict(
-            Id = EC2_RUN_TARGET_ID,
-            Arn = EC2_RUN_TARGET_ARN,
-            Input = json.dumps({
+    rules = {
+        COLLECT_RULE: dict(
+            cron = 'cron(0 11 */2 * ? *)',
+            description = 'Archive collection, every other day at 11am UTC (4am PDT)',
+            input = {
                 "command": ["openaddr-collect-extracts"], "hours": 18,
                 "bucket": "data.openaddresses.io", "sns-arn": SNS_ARN
-                })
-            )]
-        )
-    
-    print('Updating rule', CALCULATE_RULE, 'with target', EC2_RUN_TARGET_ID, '...', file=sys.stderr)
-    rule = client.describe_rule(Name=CALCULATE_RULE)
-
-    client.put_rule(
-        Name = CALCULATE_RULE,
-        Description = 'Update coverage page data, every third day at 11am UTC (4am PDT)',
-        ScheduleExpression = 'cron(0 11 */3 * ? *)', State = 'ENABLED',
-        )
-    
-    client.put_targets(
-        Rule = CALCULATE_RULE,
-        Targets = [dict(
-            Id = EC2_RUN_TARGET_ID,
-            Arn = EC2_RUN_TARGET_ARN,
-            Input = json.dumps({
+                }),
+        CALCULATE_RULE: dict(
+            cron = 'cron(0 11 */3 * ? *)',
+            description = 'Update coverage page data, every third day at 11am UTC (4am PDT)',
+            input = {
                 "command": ["openaddr-calculate-coverage"],
                 "hours": 3, "instance-type": "t2.nano",
                 "bucket": "data.openaddresses.io", "sns-arn": SNS_ARN
-                })
-            )]
-        )
-
-    print('Updating rule', DOTMAP_RULE, 'with target', EC2_RUN_TARGET_ID, '...', file=sys.stderr)
-    rule = client.describe_rule(Name=DOTMAP_RULE)
-
-    client.put_rule(
-        Name = DOTMAP_RULE,
-        Description = 'Generate OpenAddresses dot map, every fifth day at 11am UTC (4am PDT)',
-        ScheduleExpression = 'cron(0 11 */5 * ? *)', State = 'ENABLED',
-        )
-    
-    client.put_targets(
-        Rule = DOTMAP_RULE,
-        Targets = [dict(
-            Id = EC2_RUN_TARGET_ID,
-            Arn = EC2_RUN_TARGET_ARN,
-            Input = json.dumps({
+                }),
+        DOTMAP_RULE: dict(
+            cron = 'cron(0 11 */5 * ? *)',
+            description = 'Generate OpenAddresses dot map, every fifth day at 11am UTC (4am PDT)',
+            input = {
                 "command": ["openaddr-update-dotmap"],
                 "hours": 16, "instance-type": "r3.large", "temp-size": 256,
                 "bucket": "data.openaddresses.io", "sns-arn": SNS_ARN
-                })
-            )]
-        )
+                }),
+        TILEINDEX_RULE: dict(
+            cron = 'cron(0 11 */7 * ? *)',
+            description = 'Index into tiles, every seventh day at 11am UTC (4am PDT)',
+            input = {
+                "command": ["openaddr-index-tiles"],
+                "hours": 16,
+                "bucket": "data.openaddresses.io", "sns-arn": SNS_ARN
+                }),
+        }
+    
+    client = boto3.client('events')
+    
+    for (rule_name, details) in rules.items():
+        print('Updating rule', rule_name, 'with target', EC2_RUN_TARGET_ID, '...', file=sys.stderr)
+        rule = client.describe_rule(Name=rule_name)
+
+        client.put_rule(
+            Name = rule_name,
+            Description = details['description'],
+            ScheduleExpression = details['cron'], State = 'ENABLED',
+            )
+    
+        client.put_targets(
+            Rule = rule_name,
+            Targets = [dict(
+                Id = EC2_RUN_TARGET_ID,
+                Arn = EC2_RUN_TARGET_ARN,
+                Input = json.dumps(details['input'])
+                )]
+            )
 
 if __name__ == '__main__':
     exit(main())

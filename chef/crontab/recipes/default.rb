@@ -30,10 +30,6 @@ rotation = <<-ROTATION
 }
 ROTATION
 
-file "/etc/logrotate.d/openaddr_crontab-index-tiles" do
-    content "/var/log/openaddr_crontab/index-tiles.log\n#{rotation}\n"
-end
-
 file "/etc/logrotate.d/openaddr_crontab-enqueue-sources" do
     content "/var/log/openaddr_crontab/enqueue-sources.log\n#{rotation}\n"
 end
@@ -50,26 +46,6 @@ directory '/etc/cron.d'
 directory "/var/log/openaddr_crontab" do
   owner username
   mode "0755"
-end
-
-file "/etc/cron.d/openaddr_crontab-index-tiles" do
-    content <<-CRONTAB
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-LC_ALL=C.UTF-8
-# Index into tiles, every seventh day at 11am UTC (4am PDT)
-0 11	*/7 * *	#{username}	\
-  openaddr-run-ec2-command \
-  --hours 16 \
-  -b "#{aws_s3_bucket}" \
-  --sns-arn "#{aws_sns_arn}" \
-  --verbose \
-  -- \
-    openaddr-index-tiles \
-    -d "#{database_url}" \
-    -b "#{aws_s3_bucket}" \
-    --sns-arn "#{aws_sns_arn}" \
-  >> /var/log/openaddr_crontab/index-tiles.log 2>&1
-CRONTAB
 end
 
 file "/etc/cron.d/openaddr_crontab-enqueue-sources" do
