@@ -1,3 +1,6 @@
+2017-05-03: 5.3.11
+- Moved openaddr-enqueue-sources task to AWS. (#628)
+
 2017-05-03: 5.3.10
 - Moved openaddr-index-tiles task to AWS. (#627)
 
