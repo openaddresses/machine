@@ -21,9 +21,6 @@ except ImportError:
     # http://stackoverflow.com/questions/11491268/install-pycairo-in-virtualenv
     import cairocffi as cairo
 
-# Deprecated location for sources from old batch mode.
-SOURCES_DIR = '/var/opt/openaddresses'
-
 # Areas
 WORLD, USA, EUROPE = 54029, 2163, 'Europe'
 
@@ -269,9 +266,7 @@ parser.add_argument('--width', dest='width', type=int,
 parser.add_argument('--use-state', dest='use_state', action='store_const',
                     const=True, default=False, help='Use live state from https://results.openaddresses.io/state.txt.')
 
-parser.add_argument('--sources-dir', dest='sources_dir',
-                    default=SOURCES_DIR, help='Directory of sources.')
-
+parser.add_argument('sources_dir', help='Directory of sources.')
 parser.add_argument('filename', help='Output PNG filename.')
 
 parser.add_argument('--world', dest='area', action='store_const', const=WORLD,
