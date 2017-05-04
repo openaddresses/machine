@@ -37,16 +37,34 @@ def connect_db(dsn):
 
     return db_connect(**kwargs)
 
-def call_tippecanoe(mbtiles_filename):
+def call_tippecanoe(mbtiles_filename, include_properties=True):
     '''
     '''
     cmd = 'tippecanoe', '-r', '2', '-l', 'openaddresses', \
-          '-X', '-n', 'OpenAddresses {}'.format(str(date.today())), '-f', \
+          '-n', 'OpenAddresses {}'.format(str(date.today())), '-f', \
           '-t', gettempdir(), '-o', mbtiles_filename
     
-    _L.info('Running tippcanoe: {}'.format(' '.join(cmd)))
+    if include_properties:
+        full_cmd = cmd + (
+            '--include', 'NUMBER', '--include', 'STREET', '--include', 'UNIT',
+            '--maximum-zoom', '14', '--minimum-zoom', '14'
+            )
+    else:
+        full_cmd = cmd + ('--exclude-all', '--maximum-zoom', '13')
     
-    return subprocess.Popen(cmd, stdin=subprocess.PIPE, bufsize=1)
+    _L.info('Running tippcanoe: {}'.format(' '.join(full_cmd)))
+    
+    return subprocess.Popen(full_cmd, stdin=subprocess.PIPE, bufsize=1)
+
+def join_tilesets(out_filename, in1_filename, in2_filename):
+    '''
+    '''
+    cmd = 'tile-join', '-f', '-o', out_filename, in1_filename, in2_filename
+    
+    _L.info('Running tile-join: {}'.format(' '.join(cmd)))
+    
+    proc = subprocess.Popen(cmd, bufsize=1)
+    proc.wait()
 
 def mapbox_upload(mbtiles_path, tileset, username, api_key):
     ''' Upload MBTiles file to a tileset on Mapbox API.
@@ -163,19 +181,29 @@ def main():
             set = read_latest_set(db, args.owner, args.repository)
             runs = read_completed_runs_to_date(db, set.id)
     
+    handle_hi, mbtiles_filename_hi = mkstemp(prefix='oa-', suffix='.mbtiles')
+    handle_lo, mbtiles_filename_lo = mkstemp(prefix='oa-', suffix='.mbtiles')
     handle, mbtiles_filename = mkstemp(prefix='oa-', suffix='.mbtiles')
+    close(handle_hi)
+    close(handle_lo)
     close(handle)
     
-    tippecanoe = call_tippecanoe(mbtiles_filename)
+    tippecanoe_hi = call_tippecanoe(mbtiles_filename_hi, True)
+    tippecanoe_lo = call_tippecanoe(mbtiles_filename_lo, False)
     results = iterate_local_processed_files(runs)
     
     for feature in stream_all_features(results):
-        tippecanoe.stdin.write(json.dumps(feature).encode('utf8'))
-        tippecanoe.stdin.write(b'\n')
+        tippecanoe_hi.stdin.write(json.dumps(feature).encode('utf8'))
+        tippecanoe_lo.stdin.write(json.dumps(feature).encode('utf8'))
+        tippecanoe_hi.stdin.write(b'\n')
+        tippecanoe_lo.stdin.write(b'\n')
     
-    tippecanoe.stdin.close()
-    tippecanoe.wait()
-    
+    tippecanoe_hi.stdin.close()
+    tippecanoe_lo.stdin.close()
+    tippecanoe_hi.wait()
+    tippecanoe_lo.wait()
+
+    join_tilesets(mbtiles_filename, mbtiles_filename_hi, mbtiles_filename_lo)
     mapbox_upload(mbtiles_filename, args.tileset_id, args.mapbox_user, args.mapbox_key)
 
 def stream_all_features(results):
