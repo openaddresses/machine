@@ -33,8 +33,6 @@ def main():
     print('Raising desired capacity of group', group_name, 'to', 2, file=sys.stderr)
     asg_client.set_desired_capacity(AutoScalingGroupName=group_name, DesiredCapacity=2)
     
-    from pprint import pprint as pp
-    
     while True:
         response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=[group_name])
         instances = response['AutoScalingGroups'][0]['Instances']
