@@ -15,22 +15,6 @@ from httmock import HTTMock, response
 
 class TestRender (unittest.TestCase):
 
-    def test_render(self):
-        sources_dir, good_sources, width, resolution, area \
-            = Mock(), Mock(), Mock(), Mock(), Mock()
-
-        with patch('openaddr.render.render_png') as render_png:
-            render.render(sources_dir, good_sources, width, resolution, 'output.png', area)
-            
-        with patch('openaddr.render.render_geojson') as render_geojson:
-            render.render(sources_dir, good_sources, width, resolution, 'output.geojson', area)
-            
-        with self.assertRaises(ValueError):
-            render.render(sources_dir, good_sources, width, resolution, 'output.gif', area)
-            
-        render_png.assert_called_once_with(sources_dir, good_sources, width, resolution, 'output.png', area)
-        render_geojson.assert_called_once_with(sources_dir, good_sources, 'output.geojson', area)
-
     def test_render_png(self):
         sources = join(dirname(__file__), 'sources')
         handle, filename = tempfile.mkstemp(prefix='render-', suffix='.png')

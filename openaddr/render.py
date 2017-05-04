@@ -348,18 +348,6 @@ def open_datasources(area):
         admin1s_features, us_state_features, us_county_features
         )
 
-def render(sources_dir, good_sources, width, resolution, filename, area=WORLD):
-    ''' Deprecated wrapper for render_png and render_geojson.
-    '''
-    _, ext = splitext(filename.lower())
-    
-    if ext == '.png':
-        return render_png(sources_dir, good_sources, width, resolution, filename, area)
-    elif ext == '.geojson':
-        return render_geojson(sources_dir, good_sources, filename, area)
-    else:
-        raise ValueError('Unknown rendered filename extension {}'.format(repr(ext)))
-
 def render_png(sources_dir, good_sources, width, resolution, filename, area):
     ''' Resolution: 1 for 100%, 2 for 200%, etc.
     '''
