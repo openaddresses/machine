@@ -38,10 +38,11 @@ if [ -b /dev/xvdb ]; then
     mount /dev/xvdb /tmp
 fi
 
-# (Re)install machine.
-docker pull openaddr/machine:{version}
-aws s3 cp s3://data.openaddresses.io/config/environment-5.txt /tmp/environment
+# Install machine
+docker pull openaddr/machine:{patch_version}
+aws s3 cp s3://data.openaddresses.io/config/environment-{major_version}.txt /etc/environment
 
 # Run the actual command
-docker run --env-file /tmp/environment --volume /tmp:/tmp --net="host" openaddr/machine:{version} \
+docker run --env-file /etc/environment \
+    --volume /tmp:/tmp --net="host" openaddr/machine:{patch_version} \
     {command} && shutdown_with_log 0 || shutdown_with_log 1 2>&1
