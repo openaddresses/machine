@@ -66,6 +66,9 @@ def join_tilesets(out_filename, in1_filename, in2_filename):
     proc = subprocess.Popen(cmd, bufsize=1)
     proc.wait()
 
+    if proc.returncode != 0:
+        raise RuntimeError('Tile-join command returned {}'.format(proc.returncode))
+
 def mapbox_upload(mbtiles_path, tileset, username, api_key):
     ''' Upload MBTiles file to a tileset on Mapbox API.
     
@@ -202,6 +205,11 @@ def main():
     tippecanoe_lo.stdin.close()
     tippecanoe_hi.wait()
     tippecanoe_lo.wait()
+    
+    if tippecanoe_hi.returncode != 0:
+        raise RuntimeError('High-zoom Tippecanoe command returned {}'.format(tippecanoe_hi.returncode))
+    elif tippecanoe_lo.returncode != 0:
+        raise RuntimeError('Low-zoom Tippecanoe command returned {}'.format(tippecanoe_lo.returncode))
 
     join_tilesets(mbtiles_filename, mbtiles_filename_hi, mbtiles_filename_lo)
     mapbox_upload(mbtiles_filename, args.tileset_id, args.mapbox_user, args.mapbox_key)
