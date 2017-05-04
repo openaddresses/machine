@@ -1,11 +1,11 @@
 FROM ubuntu:14.04
 
+ENV LC_ALL=C.UTF-8
+
 # Install packages additional Ubuntu PPAs.
 RUN apt-get update -y && \
     apt-get install -y software-properties-common python-software-properties && \
     add-apt-repository -y ppa:openaddresses/gdal2
-
-ENV LC_ALL=C.UTF-8
 
 # Install needed binary packages for pip installation, openaddr requirements, and Tippecanoe.
 RUN apt-get update -y && \
@@ -23,5 +23,5 @@ RUN git clone -b 1.15.1 https://github.com/mapbox/tippecanoe.git /tmp/tippecanoe
     PREFIX=/usr/local make install && \
     rm -rf /tmp/tippecanoe
 
-# Honcho is expected by EC2 user data scripts.
-RUN pip3 install 'honcho == 1.0.1'
+# Pip modules for EC2 user data scripts and docs.
+RUN pip3 install 'honcho == 1.0.1' 'virtualenv == 15.1.0'
