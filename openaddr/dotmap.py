@@ -40,17 +40,21 @@ def connect_db(dsn):
 def call_tippecanoe(mbtiles_filename, include_properties=True):
     '''
     '''
-    cmd = 'tippecanoe', '-r', '2', '-l', 'openaddresses', \
-          '-n', 'OpenAddresses {}'.format(str(date.today())), '-f', \
-          '-t', gettempdir(), '-o', mbtiles_filename
+    zoom = 14
+    
+    cmd = 'tippecanoe', '--drop-rate', '2', '--layer', 'openaddresses', \
+          '--name', 'OpenAddresses {}'.format(str(date.today())), '--force', \
+          '--temporary-directory', gettempdir(), '--output', mbtiles_filename
     
     if include_properties:
         full_cmd = cmd + (
             '--include', 'NUMBER', '--include', 'STREET', '--include', 'UNIT',
-            '--maximum-zoom', '14', '--minimum-zoom', '14'
+            '--maximum-zoom', str(zoom), '--minimum-zoom', str(zoom)
             )
     else:
-        full_cmd = cmd + ('--exclude-all', '--maximum-zoom', '13')
+        full_cmd = cmd + (
+            '--exclude-all', '--maximum-zoom', str(zoom - 1), '--base-zoom', str(zoom)
+            )
     
     _L.info('Running tippcanoe: {}'.format(' '.join(full_cmd)))
     

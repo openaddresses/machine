@@ -83,12 +83,14 @@ class TestDotmap (unittest.TestCase):
         
         self.assertEqual('tippecanoe', cmd1[0])
         self.assertEqual('tippecanoe', cmd2[0])
-        self.assertEqual(('-o', 'oa.mbtiles'), cmd1[10:12])
-        self.assertEqual(('-o', 'oa.mbtiles'), cmd2[10:12])
+        self.assertEqual(('--output', 'oa.mbtiles'), cmd1[10:12])
+        self.assertEqual(('--output', 'oa.mbtiles'), cmd2[10:12])
         self.assertIn('OpenAddresses {}'.format(str(date.today())), cmd1)
         self.assertIn('OpenAddresses {}'.format(str(date.today())), cmd2)
         
-        self.assertEqual(cmd1[-3:], ('--exclude-all', '--maximum-zoom', '13'))
+        self.assertEqual(cmd1[-5:], (
+            '--exclude-all', '--maximum-zoom', '13', '--base-zoom', '14'
+            ))
         self.assertEqual(cmd2[-10:], (
             '--include', 'NUMBER', '--include', 'STREET', '--include', 'UNIT',
             '--maximum-zoom', '14', '--minimum-zoom', '14'
