@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+''' Invokes a fresh, single-use task runner on EC2 for OpenAddresses tasks.
+
+This code lives in AWS Lambda, and is invoked from AWS Cloudwatch event rules
+described in update-scheduled-tasks.py.
+'''
 import boto, shlex, os, time, pprint, sys
 from boto.ec2 import blockdevicemapping
 from boto.exception import EC2ResponseError
