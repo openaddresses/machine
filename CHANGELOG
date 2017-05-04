@@ -1,3 +1,6 @@
+2017-05-04: 6.0.1
+- Updated references to Docker machine images for new major version.
+
 2017-05-04: 6.0.0
 - Deleted Chef and Vagrant configurations and code. (#632)
 - Updated documentation to reflect new usage. (#632)

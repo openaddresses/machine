@@ -11,7 +11,7 @@ using [OpenAddresses from Docker Hub](https://hub.docker.com/r/openaddr/).
 
 1.  Get the latest [OpenAddresses image from Docker Hub](https://hub.docker.com/r/openaddr/machine/tags/):
     
-        docker pull openaddr/machine:5.x
+        docker pull openaddr/machine:6.x
 
 2.  Download a source from [OpenAdresses/openaddresses on Github](https://github.com/openaddresses/openaddresses). [Berkeley, California](https://results.openaddresses.io/sources/us/ca/berkeley) is a small, reliable source that’s good to test with:
 
