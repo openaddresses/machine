@@ -200,10 +200,9 @@ def main():
     results = iterate_local_processed_files(runs)
     
     for feature in stream_all_features(results):
-        tippecanoe_hi.stdin.write(json.dumps(feature).encode('utf8'))
-        tippecanoe_lo.stdin.write(json.dumps(feature).encode('utf8'))
-        tippecanoe_hi.stdin.write(b'\n')
-        tippecanoe_lo.stdin.write(b'\n')
+        line = json.dumps(feature).encode('utf8') + b'\n'
+        tippecanoe_hi.stdin.write(line)
+        tippecanoe_lo.stdin.write(line)
     
     tippecanoe_hi.stdin.close()
     tippecanoe_lo.stdin.close()
