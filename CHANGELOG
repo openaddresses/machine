@@ -1,3 +1,8 @@
+2017-05-04: 6.0.0
+- Deleted Chef and Vagrant configurations and code. (#632)
+- Updated documentation to reflect new usage. (#632)
+- Removed deprecated code and scripts. (#632)
+
 2017-05-03: 5.3.12
 - Moved openaddr-sum-up-data task to webhooks. (#629)
 
