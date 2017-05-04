@@ -11,7 +11,7 @@ from os.path import join, dirname, exists
 from datetime import datetime
 
 version_paths = ['../openaddr/VERSION', 'VERSION']
-userdata_paths = ['../openaddr/util/templates/task-instance-userdata.sh', 'task-instance-userdata.sh']
+userdata_paths = ['run-ec2-command-userdata.sh']
 
 def first_file(paths):
     for path in paths:
