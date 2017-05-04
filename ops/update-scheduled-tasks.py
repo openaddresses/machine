@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+''' Update descriptions, timing, and targets for OpenAddresses scheduled tasks.
+
+Periodic tasks in OpenAddresses are implemented as a series of event rules in
+AWS Cloudwatch. They invoke a single EC2 task instance runner in AWS Lambda,
+which instantiates a fresh EC2 instance that lasts only for the duration of the
+task. This script modifies the description, schedule expression, and Lambda
+target for each event rule.
+'''
 import boto3, json, sys
 from os.path import join, dirname, exists
 

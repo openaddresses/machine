@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-import subprocess, json, itertools
+import boto3, itertools
 
-data = subprocess.check_output('aws ec2 describe-instances', shell=True)
+ec2_client = boto3.client('ec2')
 
 instances = itertools.chain(*[
     reservation['Instances'] for reservation
-    in json.loads(data.decode('utf8'))['Reservations']
+    in ec2_client.describe_instances()['Reservations']
     ])
 
 for instance in sorted(instances, key=lambda inst: inst['State']['Code']):

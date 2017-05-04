@@ -1,7 +1,6 @@
 run-ec2-command.zip: run-ec2-command.py
 	rm -f $@
-	zip -j $@ ../openaddr/VERSION run-ec2-command.py \
-		../openaddr/util/templates/task-instance-userdata.sh
+	zip -j $@ ../openaddr/VERSION run-ec2-command.py run-ec2-command-userdata.sh
 
 	rm -rf temp-boto
 	pip3 install -t temp-boto 'boto == 2.43.0'

@@ -1,4 +1,10 @@
 #!/usr/bin/env python2.7
+''' Echo AWS SNS notifications to OpenAddresses Slack.
+
+This function runs under AWS Lambda, where it waits for notifications from
+AWS SNS and passes them along to our team Slack instance. The environment
+variable "SLACK_URL" is the only configuration.
+'''
 from __future__ import print_function
 import json
 import os

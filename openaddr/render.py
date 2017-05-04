@@ -21,9 +21,6 @@ except ImportError:
     # http://stackoverflow.com/questions/11491268/install-pycairo-in-virtualenv
     import cairocffi as cairo
 
-# Deprecated location for sources from old batch mode.
-SOURCES_DIR = '/var/opt/openaddresses'
-
 # Areas
 WORLD, USA, EUROPE = 54029, 2163, 'Europe'
 
@@ -269,9 +266,7 @@ parser.add_argument('--width', dest='width', type=int,
 parser.add_argument('--use-state', dest='use_state', action='store_const',
                     const=True, default=False, help='Use live state from https://results.openaddresses.io/state.txt.')
 
-parser.add_argument('--sources-dir', dest='sources_dir',
-                    default=SOURCES_DIR, help='Directory of sources.')
-
+parser.add_argument('sources_dir', help='Directory of sources.')
 parser.add_argument('filename', help='Output PNG filename.')
 
 parser.add_argument('--world', dest='area', action='store_const', const=WORLD,
@@ -347,18 +342,6 @@ def open_datasources(area):
         lakes_features, countries_features, countries_borders_features,
         admin1s_features, us_state_features, us_county_features
         )
-
-def render(sources_dir, good_sources, width, resolution, filename, area=WORLD):
-    ''' Deprecated wrapper for render_png and render_geojson.
-    '''
-    _, ext = splitext(filename.lower())
-    
-    if ext == '.png':
-        return render_png(sources_dir, good_sources, width, resolution, filename, area)
-    elif ext == '.geojson':
-        return render_geojson(sources_dir, good_sources, filename, area)
-    else:
-        raise ValueError('Unknown rendered filename extension {}'.format(repr(ext)))
 
 def render_png(sources_dir, good_sources, width, resolution, filename, area):
     ''' Resolution: 1 for 100%, 2 for 200%, etc.

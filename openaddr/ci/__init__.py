@@ -1,6 +1,6 @@
 import logging; _L = logging.getLogger('openaddr.ci')
 
-from .. import jobs, render, util
+from .. import jobs, render, util, __version__
 
 from .objects import (
     add_job, write_job, read_job, complete_set, update_set_renders,
@@ -1226,13 +1226,13 @@ def setup_logger(sns_arn, log_group, log_level=logging.DEBUG):
             openaddr_logger.addHandler(handler2)
             logger_state['aws sns handler'] = handler2
     
-        stream_name = '{command} {hostname} ({pid}) {datetime}'.format(
-            command=os.path.basename(sys.argv[0]),
+        stream_name = '{command} {version} {hostname} ({pid}) {datetime}'.format(
+            command=os.path.basename(sys.argv[0]), version=__version__,
             hostname=socket.gethostname(), pid=os.getpid(),
             datetime=datetime.utcnow().strftime('%Y-%m-%d-%H-%M-%S'))
 
         try:
-            handler3 = CloudwatchHandler(log_group or 'testing-logs', stream_name)
+            handler3 = CloudwatchHandler(log_group or 'OA-Machine-Logs', stream_name)
         except:
             openaddr_logger.warning('Failed to authenticate Cloudwatch handler')
         else:

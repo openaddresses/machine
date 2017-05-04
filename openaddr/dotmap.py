@@ -151,9 +151,6 @@ parser.add_argument('-m', '--mapbox-key', default=environ.get('MAPBOX_KEY', None
 parser.add_argument('-t', '--tileset-id', default='open-addresses.lec54np1',
                     help='Mapbox tileset ID. Defaults to "open-addresses.lec54np1".')
 
-parser.add_argument('-a', '--access-key', help='Deprecated option provided for backwards compatibility.')
-parser.add_argument('-s', '--secret-key', help='Deprecated option provided for backwards compatibility.')
-
 parser.add_argument('--sns-arn', default=environ.get('AWS_SNS_ARN', None),
                     help='Optional AWS Simple Notification Service (SNS) resource. Defaults to value of AWS_SNS_ARN environment variable.')
 

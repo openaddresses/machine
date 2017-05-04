@@ -23,7 +23,6 @@ setup(
             'openaddr-enqueue-sources = openaddr.ci.enqueue:main',
             'openaddr-collect-extracts = openaddr.ci.collect:main',
             'openaddr-index-tiles = openaddr.ci.tileindex:main',
-            'openaddr-run-ec2-command = openaddr.run_ec2_ami:main',
             'openaddr-update-dotmap = openaddr.dotmap:main',
             'openaddr-sum-up-data = openaddr.ci.sum_up:main',
             'openaddr-calculate-coverage = openaddr.ci.coverage.calculate:main',

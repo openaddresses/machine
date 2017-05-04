@@ -34,9 +34,6 @@ parser.add_argument('-d', '--database-url', default=environ.get('DATABASE_URL', 
 parser.add_argument('-b', '--bucket', default=environ.get('AWS_S3_BUCKET', None),
                     help='S3 bucket name. Defaults to value of AWS_S3_BUCKET environment variable.')
 
-parser.add_argument('-a', '--access-key', help='Deprecated option provided for backwards compatibility.')
-parser.add_argument('-s', '--secret-key', help='Deprecated option provided for backwards compatibility.')
-
 parser.add_argument('--sns-arn', default=environ.get('AWS_SNS_ARN', None),
                     help='Optional AWS Simple Notification Service (SNS) resource. Defaults to value of AWS_SNS_ARN environment variable.')
 

@@ -1,9 +1,0 @@
-{
-    "run_list":
-    [
-        "openaddr-prereqs",
-        "openaddr",
-        "account",
-        "crontab"
-    ]
-}
