@@ -40,7 +40,7 @@ def connect_db(dsn):
 def call_tippecanoe(mbtiles_filename, include_properties=True):
     '''
     '''
-    zoom = 14
+    base_zoom = 15
     
     cmd = 'tippecanoe', '--drop-rate', '2', '--layer', 'openaddresses', \
           '--name', 'OpenAddresses {}'.format(str(date.today())), '--force', \
@@ -49,11 +49,11 @@ def call_tippecanoe(mbtiles_filename, include_properties=True):
     if include_properties:
         full_cmd = cmd + (
             '--include', 'NUMBER', '--include', 'STREET', '--include', 'UNIT',
-            '--maximum-zoom', str(zoom), '--minimum-zoom', str(zoom)
+            '--maximum-zoom', str(base_zoom), '--minimum-zoom', str(base_zoom)
             )
     else:
         full_cmd = cmd + (
-            '--exclude-all', '--maximum-zoom', str(zoom - 1), '--base-zoom', str(zoom)
+            '--exclude-all', '--maximum-zoom', str(base_zoom - 1), '--base-zoom', str(base_zoom)
             )
     
     _L.info('Running tippcanoe: {}'.format(' '.join(full_cmd)))
@@ -209,10 +209,14 @@ def main():
     tippecanoe_hi.wait()
     tippecanoe_lo.wait()
     
-    if tippecanoe_hi.returncode != 0:
-        raise RuntimeError('High-zoom Tippecanoe command returned {}'.format(tippecanoe_hi.returncode))
-    elif tippecanoe_lo.returncode != 0:
-        raise RuntimeError('Low-zoom Tippecanoe command returned {}'.format(tippecanoe_lo.returncode))
+    status_hi, status_lo = tippecanoe_hi.returncode, tippecanoe_lo.returncode
+    
+    if status_hi != 0 and status_lo != 0:
+        raise RuntimeError('High- and low-zoom Tippecanoe commands returned {} and {}'.format(status_hi, status_lo))
+    elif status_hi != 0:
+        raise RuntimeError('High-zoom Tippecanoe command returned {}'.format(status_hi))
+    elif status_lo != 0:
+        raise RuntimeError('Low-zoom Tippecanoe command returned {}'.format(status_lo))
 
     join_tilesets(mbtiles_filename, mbtiles_filename_hi, mbtiles_filename_lo)
     mapbox_upload(mbtiles_filename, args.tileset_id, args.mapbox_user, args.mapbox_key)

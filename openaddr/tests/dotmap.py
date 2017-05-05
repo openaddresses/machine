@@ -89,11 +89,11 @@ class TestDotmap (unittest.TestCase):
         self.assertIn('OpenAddresses {}'.format(str(date.today())), cmd2)
         
         self.assertEqual(cmd1[-5:], (
-            '--exclude-all', '--maximum-zoom', '13', '--base-zoom', '14'
+            '--exclude-all', '--maximum-zoom', '14', '--base-zoom', '15'
             ))
         self.assertEqual(cmd2[-10:], (
             '--include', 'NUMBER', '--include', 'STREET', '--include', 'UNIT',
-            '--maximum-zoom', '14', '--minimum-zoom', '14'
+            '--maximum-zoom', '15', '--minimum-zoom', '15'
             ))
     
     def response_content(self, url, request):
