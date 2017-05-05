@@ -91,6 +91,9 @@ def request_task_instance(ec2, autoscale, instance_type, lifespan, command, buck
             time.sleep(10)
             instance.add_tag('Name', 'Scheduled {} {}'.format(yyyymmdd, command[0]))
     
+    instance.add_tag('Command', command[0])
+    instance.add_tag('Trigger', 'run-ec2-command')
+
     print('Started EC2 instance {} from AMI {}'.format(instance, image), file=sys.stderr)
     
     return instance
