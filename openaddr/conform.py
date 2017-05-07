@@ -1072,9 +1072,25 @@ def row_fxn_format(sd, row, key, fxn):
 
 def row_fxn_chain(sd, row, key, fxn):
     functions = fxn["functions"]
+    var = fxn.get("variable")
+
+    original_key = key
+
+    if var and var not in attrib_types and var.lstrip('OA:') not in attrib_types and var not in row:
+        attrib_types[var] = var
+        row[attrib_types[var]] = u''
+        key = var
+    else:
+        var = None
 
     for func in functions:
         row = row_function(sd, row, key, func)
+
+    row[attrib_types[original_key]] = row[attrib_types[key]]
+
+    if var:
+        row.pop(attrib_types[var])
+        attrib_types.pop(var)
 
     return row
 
