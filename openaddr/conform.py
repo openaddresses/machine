@@ -60,6 +60,8 @@ attrib_types = {
     'id':       'OA:id'
 }
 
+var_types = attrib_types.copy()
+
 UNZIPPED_DIRNAME = 'unzipped'
 
 geometry_types = {
@@ -920,7 +922,7 @@ def row_transform_and_convert(sd, row):
     row = row_smash_case(sd, row)
 
     c = sd["conform"]
-    
+
     "Attribute tags can utilize processing fxns"
     for k, v in c.items():
         if k in attrib_types and type(v) is list:
@@ -975,7 +977,7 @@ def row_smash_case(sd, input):
 def row_merge(sd, row, key):
     "Merge multiple columns like 'Maple','St' to 'Maple St'"
     merge_data = [row[field] for field in sd["conform"][key]]
-    row[attrib_types[key]] = ' '.join(merge_data)
+    row[var_types[key]] = ' '.join(merge_data)
     return row
 
 def row_fxn_join(sd, row, key, fxn):
@@ -983,7 +985,7 @@ def row_fxn_join(sd, row, key, fxn):
     separator = fxn.get("separator", " ")
     try:
         fields = [(row[n] or u'').strip() for n in fxn["fields"]]
-        row[attrib_types[key]] = separator.join([f for f in fields if f])
+        row[var_types[key]] = separator.join([f for f in fields if f])
     except Exception as e:
         _L.debug("Failure to merge row %r %s", e, row)
     return row
@@ -994,17 +996,17 @@ def row_fxn_regexp(sd, row, key, fxn):
     replace = fxn.get('replace', False)
     if replace:
         match = re.sub(pattern, convert_regexp_replace(replace), row[fxn["field"]])
-        row[attrib_types[key]] = match;
+        row[var_types[key]] = match;
     else:
         match = pattern.search(row[fxn["field"]])
-        row[attrib_types[key]] = ''.join(match.groups()) if match else '';
+        row[var_types[key]] = ''.join(match.groups()) if match else '';
     return row
 
 def row_fxn_prefixed_number(sd, row, key, fxn):
     "Extract '123' from '123 Maple St'"
 
     match = prefixed_number_pattern.search(row[fxn["field"]])
-    row[attrib_types[key]] = ''.join(match.groups()) if match else '';
+    row[var_types[key]] = ''.join(match.groups()) if match else '';
 
     return row
 
@@ -1012,25 +1014,25 @@ def row_fxn_postfixed_street(sd, row, key, fxn):
     "Extract 'Maple St' from '123 Maple St'"
 
     match = postfixed_street_pattern.search(row[fxn["field"]])
-    row[attrib_types[key]] = ''.join(match.groups()) if match else '';
+    row[var_types[key]] = ''.join(match.groups()) if match else '';
 
     return row
 
 def row_fxn_remove_prefix(sd, row, key, fxn):
     "Remove a 'field_to_remove' from the beginning of 'field' if it is a prefix"
     if row[fxn["field"]].startswith(row[fxn["field_to_remove"]]):
-        row[attrib_types[key]] = row[fxn["field"]][len(row[fxn["field_to_remove"]]):].lstrip(' ')
+        row[var_types[key]] = row[fxn["field"]][len(row[fxn["field_to_remove"]]):].lstrip(' ')
     else:
-        row[attrib_types[key]] = row[fxn["field"]]
+        row[var_types[key]] = row[fxn["field"]]
 
     return row
 
 def row_fxn_remove_postfix(sd, row, key, fxn):
     "Remove a 'field_to_remove' from the end of 'field' if it is a postfix"
     if row[fxn["field_to_remove"]] != "" and row[fxn["field"]].endswith(row[fxn["field_to_remove"]]):
-        row[attrib_types[key]] = row[fxn["field"]][0:len(row[fxn["field_to_remove"]])*-1].rstrip(' ')
+        row[var_types[key]] = row[fxn["field"]][0:len(row[fxn["field_to_remove"]])*-1].rstrip(' ')
     else:
-        row[attrib_types[key]] = row[fxn["field"]]
+        row[var_types[key]] = row[fxn["field"]]
 
     return row
 
@@ -1064,9 +1066,9 @@ def row_fxn_format(sd, row, key, fxn):
 
     if num_fields_added > 0:
         parts.append(format_str[idx:])
-        row[attrib_types[key]] = u''.join(parts)
+        row[var_types[key]] = u''.join(parts)
     else:
-        row[attrib_types[key]] = u''
+        row[var_types[key]] = u''
 
     return row
 
@@ -1077,8 +1079,8 @@ def row_fxn_chain(sd, row, key, fxn):
     original_key = key
 
     if var and var not in attrib_types and var.lstrip('OA:') not in attrib_types and var not in row:
-        attrib_types[var] = var
-        row[attrib_types[var]] = u''
+        var_types[var] = var
+        row[var_types[var]] = u''
         key = var
     else:
         var = None
@@ -1086,11 +1088,7 @@ def row_fxn_chain(sd, row, key, fxn):
     for func in functions:
         row = row_function(sd, row, key, func)
 
-    row[attrib_types[original_key]] = row[attrib_types[key]]
-
-    if var:
-        row.pop(attrib_types[var])
-        attrib_types.pop(var)
+    row[var_types[original_key]] = row[var_types[key]]
 
     return row
 
