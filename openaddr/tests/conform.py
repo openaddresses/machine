@@ -143,6 +143,48 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_chain(c, d, "number", c["conform"]["number"])
         self.assertEqual(d.get("OA:number", ""), "12-56")
 
+
+    def test_row_fxn_chain_nested(self):
+        c = { "conform": {
+            "number": {
+                "function": "chain",
+                "variable": "foo",
+                "functions": [
+                    {
+                        "function": "format",
+                        "fields": ["a1", "a2"],
+                        "format": "$1-$2"
+                    },
+                    {
+                        "function": "chain",
+                        "variable": "bar",
+                        "functions": [
+                            {
+                                "function": "format",
+                                "fields": ["foo", "a3"],
+                                "format": "$1-$2"
+                            },
+                            {
+                                "function": "remove_postfix",
+                                "field": "bar",
+                                "field_to_remove": "b1"
+                            }
+                        ]
+                    }
+                ]
+            }
+        } }
+
+        d = {"a1": "12", "a2": "34", "a3": "56 UNIT 5", "b1": "UNIT 5"}
+        e = copy.deepcopy(d)
+        d = row_fxn_chain(c, d, "number", c["conform"]["number"])
+        self.assertEqual(d.get("OA:number", ""), "12-34-56")
+
+        d = copy.deepcopy(e)
+        d["a2"] = None
+        d = row_fxn_chain(c, d, "number", c["conform"]["number"])
+        self.assertEqual(d.get("OA:number", ""), "12-56")
+
     def test_row_fxn_regexp(self):
         "Regex split - replace"
         c = { "conform": {
