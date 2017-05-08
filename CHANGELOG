@@ -1,3 +1,6 @@
+2017-05-05: 6.0.2
+- Increased batch frequency but lengthened ci.RUN_REUSE_TIMEOUT.
+
 2017-05-04: 6.0.1
 - Updated references to Docker machine images for new major version.
 

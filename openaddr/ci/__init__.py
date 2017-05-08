@@ -61,7 +61,7 @@ TASK_QUEUE, DONE_QUEUE, DUE_QUEUE, HEARTBEAT_QUEUE = 'tasks', 'finished', 'due',
 DUETASK_DELAY = timedelta(minutes=5)
 
 # Amount of time to reuse run results.
-RUN_REUSE_TIMEOUT = timedelta(days=5)
+RUN_REUSE_TIMEOUT = timedelta(days=10)
 
 # Time to chill out in pop_task_from_taskqueue() after sending Done task.
 WORKER_COOLDOWN = timedelta(seconds=5)

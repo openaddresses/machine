@@ -35,8 +35,8 @@ def main():
 
     rules = {
         ENQUEUE_RULE: dict(
-            cron = 'cron(0 23 ? * fri *)',
-            description = 'Enqueue sources, Fridays 11pm UTC (4pm PDT)',
+            cron = 'cron(0 23 ? * mon,fri *)',
+            description = 'Enqueue sources, Mondays and Fridays 11pm UTC (4pm PDT)',
             input = {
                 "command": ["openaddr-enqueue-sources"],
                 "hours": 60, "instance-type": "t2.nano",
