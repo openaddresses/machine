@@ -60,6 +60,8 @@ attrib_types = {
     'id':       'OA:id'
 }
 
+var_types = attrib_types.copy()
+
 UNZIPPED_DIRNAME = 'unzipped'
 
 geometry_types = {
@@ -886,6 +888,30 @@ def row_extract_and_reproject(source_definition, source_row):
     out_row[Y_FIELDNAME] = out_y
     return out_row
 
+
+def row_function(sd, row, key, fxn):
+    function = fxn["function"]
+    if function == "join":
+        row = row_fxn_join(sd, row, key, fxn)
+    elif function == "regexp":
+        row = row_fxn_regexp(sd, row, key, fxn)
+    elif function == "format":
+        row = row_fxn_format(sd, row, key, fxn)
+    elif function == "prefixed_number":
+        row = row_fxn_prefixed_number(sd, row, key, fxn)
+    elif function == "postfixed_street":
+        row = row_fxn_postfixed_street(sd, row, key, fxn)
+    elif function == "remove_prefix":
+        row = row_fxn_remove_prefix(sd, row, key, fxn)
+    elif function == "remove_postfix":
+        row = row_fxn_remove_postfix(sd, row, key, fxn)
+    elif function == "chain":
+        row = row_fxn_chain(sd, row, key, fxn)
+
+    return row
+
+
+
 ### Row-level conform code. Inputs and outputs are individual rows in a CSV file.
 ### The input row may or may not be modified in place. The output row is always returned.
 
@@ -896,28 +922,15 @@ def row_transform_and_convert(sd, row):
     row = row_smash_case(sd, row)
 
     c = sd["conform"]
-    
+
     "Attribute tags can utilize processing fxns"
     for k, v in c.items():
-        if k in attrib_types and type(c[k]) is list:
+        if k in attrib_types and type(v) is list:
             "Lists are a concat shortcut to concat fields with spaces"
             row = row_merge(sd, row, k)
-        if k in attrib_types and type(c[k]) is dict:
+        if k in attrib_types and type(v) is dict:
             "Dicts are custom processing functions"
-            if c[k]["function"] == "join":
-                row = row_fxn_join(sd, row, k) 
-            elif c[k]["function"] == "regexp":
-                row = row_fxn_regexp(sd, row, k)
-            elif c[k]["function"] == "format":
-                row = row_fxn_format(sd, row, k)
-            elif c[k]["function"] == "prefixed_number":
-                row = row_fxn_prefixed_number(sd, row, k)
-            elif c[k]["function"] == "postfixed_street":
-                row = row_fxn_postfixed_street(sd, row, k)
-            elif c[k]["function"] == "remove_prefix":
-                row = row_fxn_remove_prefix(sd, row, k)
-            elif c[k]["function"] == "remove_postfix":
-                row = row_fxn_remove_postfix(sd, row, k)
+            row = row_function(sd, row, k, v)
 
     if "advanced_merge" in c:
         raise ValueError('Found unsupported "advanced_merge" option in conform')
@@ -964,77 +977,67 @@ def row_smash_case(sd, input):
 def row_merge(sd, row, key):
     "Merge multiple columns like 'Maple','St' to 'Maple St'"
     merge_data = [row[field] for field in sd["conform"][key]]
-    row[attrib_types[key]] = ' '.join(merge_data)
+    row[var_types[key]] = ' '.join(merge_data)
     return row
 
-def row_fxn_join(sd, row, key):
+def row_fxn_join(sd, row, key, fxn):
     "Create new columns by merging arbitrary other columns with a separator"
-    fxn = sd["conform"][key]
     separator = fxn.get("separator", " ")
     try:
         fields = [(row[n] or u'').strip() for n in fxn["fields"]]
-        row[attrib_types[key]] = separator.join([f for f in fields if f])
+        row[var_types[key]] = separator.join([f for f in fields if f])
     except Exception as e:
         _L.debug("Failure to merge row %r %s", e, row)
     return row
 
-def row_fxn_regexp(sd, row, key):
+def row_fxn_regexp(sd, row, key, fxn):
     "Split addresses like '123 Maple St' into '123' and 'Maple St'"
-    fxn = sd["conform"][key]
     pattern = re.compile(fxn.get("pattern", False))
     replace = fxn.get('replace', False)
     if replace:
         match = re.sub(pattern, convert_regexp_replace(replace), row[fxn["field"]])
-        row[attrib_types[key]] = match;
+        row[var_types[key]] = match;
     else:
         match = pattern.search(row[fxn["field"]])
-        row[attrib_types[key]] = ''.join(match.groups()) if match else '';
+        row[var_types[key]] = ''.join(match.groups()) if match else '';
     return row
 
-def row_fxn_prefixed_number(sd, row, key):
+def row_fxn_prefixed_number(sd, row, key, fxn):
     "Extract '123' from '123 Maple St'"
-    fxn = sd["conform"][key]
 
     match = prefixed_number_pattern.search(row[fxn["field"]])
-    row[attrib_types[key]] = ''.join(match.groups()) if match else '';
+    row[var_types[key]] = ''.join(match.groups()) if match else '';
 
     return row
 
-def row_fxn_postfixed_street(sd, row, key):
+def row_fxn_postfixed_street(sd, row, key, fxn):
     "Extract 'Maple St' from '123 Maple St'"
-    fxn = sd["conform"][key]
 
     match = postfixed_street_pattern.search(row[fxn["field"]])
-    row[attrib_types[key]] = ''.join(match.groups()) if match else '';
+    row[var_types[key]] = ''.join(match.groups()) if match else '';
 
     return row
 
-def row_fxn_remove_prefix(sd, row, key):
+def row_fxn_remove_prefix(sd, row, key, fxn):
     "Remove a 'field_to_remove' from the beginning of 'field' if it is a prefix"
-    fxn = sd["conform"][key]
-
     if row[fxn["field"]].startswith(row[fxn["field_to_remove"]]):
-        row[attrib_types[key]] = row[fxn["field"]][len(row[fxn["field_to_remove"]]):].lstrip(' ')
+        row[var_types[key]] = row[fxn["field"]][len(row[fxn["field_to_remove"]]):].lstrip(' ')
     else:
-        row[attrib_types[key]] = row[fxn["field"]]
+        row[var_types[key]] = row[fxn["field"]]
 
     return row
 
-def row_fxn_remove_postfix(sd, row, key):
+def row_fxn_remove_postfix(sd, row, key, fxn):
     "Remove a 'field_to_remove' from the end of 'field' if it is a postfix"
-    fxn = sd["conform"][key]
-
     if row[fxn["field_to_remove"]] != "" and row[fxn["field"]].endswith(row[fxn["field_to_remove"]]):
-        row[attrib_types[key]] = row[fxn["field"]][0:len(row[fxn["field_to_remove"]])*-1].rstrip(' ')
+        row[var_types[key]] = row[fxn["field"]][0:len(row[fxn["field_to_remove"]])*-1].rstrip(' ')
     else:
-        row[attrib_types[key]] = row[fxn["field"]]
+        row[var_types[key]] = row[fxn["field"]]
 
     return row
 
-def row_fxn_format(sd, row, key):
+def row_fxn_format(sd, row, key, fxn):
     "Format multiple fields using a user-specified format string"
-    fxn = sd["conform"][key]
-
     format_var_pattern = re.compile('\$([0-9]+)')
 
     fields = [(row[n] or u'').strip() for n in fxn["fields"]]
@@ -1063,9 +1066,29 @@ def row_fxn_format(sd, row, key):
 
     if num_fields_added > 0:
         parts.append(format_str[idx:])
-        row[attrib_types[key]] = u''.join(parts)
+        row[var_types[key]] = u''.join(parts)
     else:
-        row[attrib_types[key]] = u''
+        row[var_types[key]] = u''
+
+    return row
+
+def row_fxn_chain(sd, row, key, fxn):
+    functions = fxn["functions"]
+    var = fxn.get("variable")
+
+    original_key = key
+
+    if var and var not in attrib_types and var.lstrip('OA:') not in attrib_types and var not in row:
+        var_types[var] = var
+        row[var_types[var]] = u''
+        key = var
+    else:
+        var = None
+
+    for func in functions:
+        row = row_function(sd, row, key, func)
+
+    row[var_types[original_key]] = row[var_types[key]]
 
     return row
 

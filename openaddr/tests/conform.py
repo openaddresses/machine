@@ -18,7 +18,7 @@ from ..conform import (
     row_fxn_regexp, row_smash_case, row_round_lat_lon, row_merge,
     row_extract_and_reproject, row_convert_to_out, row_fxn_join, row_fxn_format,
     row_fxn_prefixed_number, row_fxn_postfixed_street,
-    row_fxn_remove_prefix, row_fxn_remove_postfix,
+    row_fxn_remove_prefix, row_fxn_remove_postfix, row_fxn_chain,
     row_canonicalize_unit_and_number, conform_smash_case, conform_cli,
     convert_regexp_replace, conform_license,
     conform_attribution, conform_sharealike, normalize_ogr_filename_case,
@@ -75,14 +75,14 @@ class TestConformTransforms (unittest.TestCase):
         d = { "a1": "va1", "b1": "vb1", "b2": "vb2" }
         e = copy.deepcopy(d)
         e.update({ "OA:number": "va1", "OA:street": "vb1-vb2" })
-        d = row_fxn_join(c, d, "number")
-        d = row_fxn_join(c, d, "street")
+        d = row_fxn_join(c, d, "number", c["conform"]["number"])
+        d = row_fxn_join(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
         d = { "a1": "va1", "b1": "vb1", "b2": None}
         e = copy.deepcopy(d)
         e.update({ "OA:number": "va1", "OA:street": "vb1" })
-        d = row_fxn_join(c, d, "number")
-        d = row_fxn_join(c, d, "street")
+        d = row_fxn_join(c, d, "number", c["conform"]["number"])
+        d = row_fxn_join(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
     def test_row_fxn_format(self):
@@ -101,18 +101,89 @@ class TestConformTransforms (unittest.TestCase):
 
         d = {"a1": "12", "a2": "34", "a3": "56", "b1": "1", "b2": "B", "b3": "3"}
         e = copy.deepcopy(d)
-        d = row_fxn_format(c, d, "number")
-        d = row_fxn_format(c, d, "street")
+        d = row_fxn_format(c, d, "number", c["conform"]["number"])
+        d = row_fxn_format(c, d, "street", c["conform"]["street"])
         self.assertEqual(d.get("OA:number", ""), "12-34-56")
         self.assertEqual(d.get("OA:street", ""), "foo 1B-3 bar")
 
         d = copy.deepcopy(e)
         d["a2"] = None
         d["b3"] = None
-        d = row_fxn_format(c, d, "number")
-        d = row_fxn_format(c, d, "street")
+        d = row_fxn_format(c, d, "number", c["conform"]["number"])
+        d = row_fxn_format(c, d, "street", c["conform"]["street"])
         self.assertEqual(d.get("OA:number", ""), "12-56")
         self.assertEqual(d.get("OA:street", ""), "foo 1B bar")
+
+    def test_row_fxn_chain(self):
+        c = { "conform": {
+            "number": {
+                "function": "chain",
+                "functions": [
+                    {
+                        "function": "format",
+                        "fields": ["a1", "a2", "a3"],
+                        "format": "$1-$2-$3"
+                    },
+                    {
+                        "function": "remove_postfix",
+                        "field": "OA:number",
+                        "field_to_remove": "b1"
+                    }
+                ]
+            }
+        } }
+
+        d = {"a1": "12", "a2": "34", "a3": "56 UNIT 5", "b1": "UNIT 5"}
+        e = copy.deepcopy(d)
+        d = row_fxn_chain(c, d, "number", c["conform"]["number"])
+        self.assertEqual(d.get("OA:number", ""), "12-34-56")
+
+        d = copy.deepcopy(e)
+        d["a2"] = None
+        d = row_fxn_chain(c, d, "number", c["conform"]["number"])
+        self.assertEqual(d.get("OA:number", ""), "12-56")
+
+
+    def test_row_fxn_chain_nested(self):
+        c = { "conform": {
+            "number": {
+                "function": "chain",
+                "variable": "foo",
+                "functions": [
+                    {
+                        "function": "format",
+                        "fields": ["a1", "a2"],
+                        "format": "$1-$2"
+                    },
+                    {
+                        "function": "chain",
+                        "variable": "bar",
+                        "functions": [
+                            {
+                                "function": "format",
+                                "fields": ["foo", "a3"],
+                                "format": "$1-$2"
+                            },
+                            {
+                                "function": "remove_postfix",
+                                "field": "bar",
+                                "field_to_remove": "b1"
+                            }
+                        ]
+                    }
+                ]
+            }
+        } }
+
+        d = {"a1": "12", "a2": "34", "a3": "56 UNIT 5", "b1": "UNIT 5"}
+        e = copy.deepcopy(d)
+        d = row_fxn_chain(c, d, "number", c["conform"]["number"])
+        self.assertEqual(d.get("OA:number", ""), "12-34-56")
+
+        d = copy.deepcopy(e)
+        d["a2"] = None
+        d = row_fxn_chain(c, d, "number", c["conform"]["number"])
+        self.assertEqual(d.get("OA:number", ""), "12-56")
 
     def test_row_fxn_regexp(self):
         "Regex split - replace"
@@ -134,8 +205,8 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123", "OA:street": "MAPLE ST" })
         
-        d = row_fxn_regexp(c, d, "number")
-        d = row_fxn_regexp(c, d, "street")
+        d = row_fxn_regexp(c, d, "number", c["conform"]["number"])
+        d = row_fxn_regexp(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
         
         "Regex split - no replace - good match"
@@ -155,8 +226,8 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123", "OA:street": "MAPLE ST" })
         
-        d = row_fxn_regexp(c, d, "number")
-        d = row_fxn_regexp(c, d, "street")
+        d = row_fxn_regexp(c, d, "number", c["conform"]["number"])
+        d = row_fxn_regexp(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
         "regex split - no replace - bad match"
@@ -176,8 +247,8 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123", "OA:street": "" })
         
-        d = row_fxn_regexp(c, d, "number")
-        d = row_fxn_regexp(c, d, "street")
+        d = row_fxn_regexp(c, d, "number", c["conform"]["number"])
+        d = row_fxn_regexp(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
         
     def test_transform_and_convert(self):
@@ -293,8 +364,8 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123", "OA:street": "MAPLE ST" })
 
-        d = row_fxn_prefixed_number(c, d, "number")
-        d = row_fxn_postfixed_street(c, d, "street")
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
         "Regex prefixed_number and postfixed_street - no number"
@@ -312,8 +383,8 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "", "OA:street": "MAPLE ST" })
 
-        d = row_fxn_prefixed_number(c, d, "number")
-        d = row_fxn_postfixed_street(c, d, "street")
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
         "Regex prefixed_number and postfixed_street - empty input"
@@ -331,8 +402,8 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "", "OA:street": "" })
 
-        d = row_fxn_prefixed_number(c, d, "number")
-        d = row_fxn_postfixed_street(c, d, "street")
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
         "Regex prefixed_number and postfixed_street - no spaces after number"
@@ -350,8 +421,8 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "", "OA:street": "123MAPLE ST" })
 
-        d = row_fxn_prefixed_number(c, d, "number")
-        d = row_fxn_postfixed_street(c, d, "street")
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
         "Regex prefixed_number and postfixed_street - excess whitespace"
@@ -369,8 +440,8 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123", "OA:street": "MAPLE ST" })
 
-        d = row_fxn_prefixed_number(c, d, "number")
-        d = row_fxn_postfixed_street(c, d, "street")
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
     
         "Regex prefixed_number and postfixed_number - ordinal street w/house number"
@@ -388,8 +459,8 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "12", "OA:street": "3RD ST" })
 
-        d = row_fxn_prefixed_number(c, d, "number")
-        d = row_fxn_postfixed_street(c, d, "street")
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
         "Regex prefixed_number and postfixed_number - ordinal street w/o house number"
@@ -407,8 +478,8 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "", "OA:street": "3RD ST" })
 
-        d = row_fxn_prefixed_number(c, d, "number")
-        d = row_fxn_postfixed_street(c, d, "street")
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
         "Regex prefixed_number and postfixed_number - combined house number and suffix"
@@ -426,8 +497,8 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123A", "OA:street": "3RD ST" })
 
-        d = row_fxn_prefixed_number(c, d, "number")
-        d = row_fxn_postfixed_street(c, d, "street")
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
         "Regex prefixed_number and postfixed_number - hyphenated house number and suffix"
@@ -445,8 +516,8 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123-A", "OA:street": "3RD ST" })
 
-        d = row_fxn_prefixed_number(c, d, "number")
-        d = row_fxn_postfixed_street(c, d, "street")
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
         "Regex prefixed_number and postfixed_number - queens-style house number"
@@ -464,8 +535,8 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123-45", "OA:street": "3RD ST" })
 
-        d = row_fxn_prefixed_number(c, d, "number")
-        d = row_fxn_postfixed_street(c, d, "street")
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
         "Regex prefixed_number and postfixed_number - should be case-insenstive"
@@ -483,8 +554,8 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123-a", "OA:street": "3rD St" })
 
-        d = row_fxn_prefixed_number(c, d, "number")
-        d = row_fxn_postfixed_street(c, d, "street")
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
     def test_row_fxn_remove_prefix(self):
@@ -500,7 +571,7 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:street": "MAPLE ST" })
 
-        d = row_fxn_remove_prefix(c, d, "street")
+        d = row_fxn_remove_prefix(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
         "remove_prefix - field_to_remove is not a prefix"
@@ -515,7 +586,7 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:street": "123 MAPLE ST" })
 
-        d = row_fxn_remove_prefix(c, d, "street")
+        d = row_fxn_remove_prefix(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
         "remove_prefix - field_to_remove value is empty string"
@@ -530,7 +601,7 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:street": "123 MAPLE ST" })
 
-        d = row_fxn_remove_prefix(c, d, "street")
+        d = row_fxn_remove_prefix(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
     def test_row_fxn_remove_postfix(self):
@@ -546,7 +617,7 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:street": "MAPLE ST" })
 
-        d = row_fxn_remove_postfix(c, d, "street")
+        d = row_fxn_remove_postfix(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
         "remove_postfix - field_to_remove is not a postfix"
@@ -561,7 +632,7 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:street": "123 MAPLE ST" })
 
-        d = row_fxn_remove_postfix(c, d, "street")
+        d = row_fxn_remove_postfix(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
         "remove_postfix - field_to_remove value is empty string"
@@ -576,7 +647,7 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:street": "123 MAPLE ST" })
 
-        d = row_fxn_remove_postfix(c, d, "street")
+        d = row_fxn_remove_postfix(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
 class TestConformCli (unittest.TestCase):
