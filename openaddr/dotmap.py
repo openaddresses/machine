@@ -79,10 +79,10 @@ def split_tilesets(all_hi, all_lo, nw_hi, nw_lo, nw_out, ne_hi, ne_lo, ne_out, s
     '''
     '''
     quadrants = [
-        ('Northwest', nw_hi, nw_lo, nw_out, '-122.2707,37.8044,13'), # Oakland
-        ('Northeast', ne_hi, ne_lo, ne_out, '139.7731,35.6793,13'),  # Tokyo
-        ('Southeast', se_hi, se_lo, se_out, '151.2073,-33.8686,13'), # Sydney
-        ('Southwest', sw_hi, sw_lo, sw_out, '-56.1975,-34.9057,13'), # Montevideo
+        ('northwest', nw_hi, nw_lo, nw_out, '-122.2707,37.8044,13'), # Oakland
+        ('northeast', ne_hi, ne_lo, ne_out, '139.7731,35.6793,13'),  # Tokyo
+        ('southeast', se_hi, se_lo, se_out, '151.2073,-33.8686,13'), # Sydney
+        ('southwest', sw_hi, sw_lo, sw_out, '-56.1975,-34.9057,13'), # Montevideo
         ]
     
     zooms_cutoffs = [(zoom + 1, 2**zoom) for zoom in range(15)]
@@ -95,9 +95,9 @@ def split_tilesets(all_hi, all_lo, nw_hi, nw_lo, nw_out, ne_hi, ne_lo, ne_out, s
         for filename in (quad_hi, quad_lo):
             with sqlite3.connect(filename) as db:
                 for (zoom, cutoff) in zooms_cutoffs:
-                    if 'North' in quadrant:
+                    if 'north' in quadrant:
                         db.execute('delete from tiles where zoom_level = ? and tile_row < ?', (zoom, cutoff))
-                    if 'South' in quadrant:
+                    if 'south' in quadrant:
                         db.execute('delete from tiles where zoom_level = ? and tile_row >= ?', (zoom, cutoff))
                     if 'east' in quadrant:
                         db.execute('delete from tiles where zoom_level = ? and tile_column < ?', (zoom, cutoff))
@@ -111,15 +111,17 @@ def split_tilesets(all_hi, all_lo, nw_hi, nw_lo, nw_out, ne_hi, ne_lo, ne_out, s
         with sqlite3.connect(quad_out) as db:
             db.execute("update metadata set value = ? where name = 'center'", (center, ))
             db.execute("update metadata set value = ? where name in ('name', 'description')",
-                       ('OpenAddresses {} {}'.format(str(date.today()), quadrant), ))
-            if quadrant == 'Northwest':
-                db.execute("update metadata set value = ? where name = 'bounds'", ('-180.000000,0,0,85.051129', ))
-            if quadrant == 'Sortheast':
-                db.execute("update metadata set value = ? where name = 'bounds'", ('0,0,180.000000,85.051129', ))
-            if quadrant == 'Southeast':
-                db.execute("update metadata set value = ? where name = 'bounds'", ('0,-85.051129,180.000000,0', ))
-            if quadrant == 'Southwest':
-                db.execute("update metadata set value = ? where name = 'bounds'", ('-180.000000,-85.051129,0,0', ))
+                       ('OpenAddresses {} {}'.format(str(date.today()), quadrant.capitalize()), ))
+            if quadrant == 'northwest':
+                db.execute("update metadata set value = ? where name = 'bounds'", ('-180,0,0,85.05', ))
+            if quadrant == 'northeast':
+                db.execute("update metadata set value = ? where name = 'bounds'", ('0,0,180,85.05', ))
+            if quadrant == 'southeast':
+                db.execute("update metadata set value = ? where name = 'bounds'", ('0,-85.05,180,0', ))
+            if quadrant == 'southwest':
+                db.execute("update metadata set value = ? where name = 'bounds'", ('-180,-85.05,0,0', ))
+        
+        yield quadrant, quad_out
 
 def mapbox_upload(mbtiles_path, tileset, username, api_key):
     ''' Upload MBTiles file to a tileset on Mapbox API.
@@ -236,15 +238,17 @@ def main():
             set = read_latest_set(db, args.owner, args.repository)
             runs = read_completed_runs_to_date(db, set.id)
     
-    handle_hi, mbtiles_filename_hi = mkstemp(prefix='oa-', suffix='.mbtiles')
-    handle_lo, mbtiles_filename_lo = mkstemp(prefix='oa-', suffix='.mbtiles')
-    handle, mbtiles_filename = mkstemp(prefix='oa-', suffix='.mbtiles')
-    close(handle_hi)
-    close(handle_lo)
-    close(handle)
+    mbtiles_filenames = list()
     
-    tippecanoe_hi = call_tippecanoe(mbtiles_filename_hi, True)
-    tippecanoe_lo = call_tippecanoe(mbtiles_filename_lo, False)
+    # Prepare 14 temporary files for use in preparing and cutting MBTiles output.
+    for i in range(14):
+        handle, mbtiles_filename = mkstemp(prefix='oa-{:02d}-'.format(i), suffix='.mbtiles')
+        mbtiles_filenames.append(mbtiles_filename)
+        close(handle)
+    
+    # Stream all features to two tilesets: high-zoom and low-zoom.
+    tippecanoe_hi = call_tippecanoe(mbtiles_filenames[0], True)
+    tippecanoe_lo = call_tippecanoe(mbtiles_filenames[1], False)
     results = iterate_local_processed_files(runs)
     
     for feature in stream_all_features(results):
@@ -265,9 +269,11 @@ def main():
         raise RuntimeError('High-zoom Tippecanoe command returned {}'.format(status_hi))
     elif status_lo != 0:
         raise RuntimeError('Low-zoom Tippecanoe command returned {}'.format(status_lo))
-
-    join_tilesets(mbtiles_filename, mbtiles_filename_hi, mbtiles_filename_lo)
-    mapbox_upload(mbtiles_filename, args.tileset_id, args.mapbox_user, args.mapbox_key)
+    
+    # Split world tilesets into quadrants and upload them to Mapbox.
+    for (quadrant, mbtiles_filename) in split_tilesets(*mbtiles_filenames):
+        mapbox_upload(mbtiles_filename, '{}-{}'.format(args.tileset_id, quadrant),
+                      args.mapbox_user, args.mapbox_key)
 
 def stream_all_features(results):
     ''' Generate a stream of all locations as GeoJSON features.
