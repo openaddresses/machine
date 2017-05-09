@@ -4,14 +4,16 @@ import logging; _L = logging.getLogger('openaddr.dotmap')
 from sys import stderr
 from datetime import date
 from zipfile import ZipFile
+from itertools import product
 from os.path import splitext, basename
 from argparse import ArgumentParser
 from urllib.parse import urlparse, parse_qsl, urljoin
 from tempfile import mkstemp, gettempdir
-from os import environ, close
+from os import environ, close, remove
+from shutil import copyfile
 from time import sleep
-import json, subprocess, csv
 from io import TextIOWrapper
+import json, subprocess, csv, sqlite3
 
 from uritemplate import expand
 import requests, boto3
@@ -72,6 +74,52 @@ def join_tilesets(out_filename, in1_filename, in2_filename):
 
     if proc.returncode != 0:
         raise RuntimeError('Tile-join command returned {}'.format(proc.returncode))
+
+def split_tilesets(all_hi, all_lo, nw_hi, nw_lo, nw_out, ne_hi, ne_lo, ne_out, se_hi, se_lo, se_out, sw_hi, sw_lo, sw_out):
+    '''
+    '''
+    quadrants = [
+        ('Northwest', nw_hi, nw_lo, nw_out, '-122.2707,37.8044,13'), # Oakland
+        ('Northeast', ne_hi, ne_lo, ne_out, '139.7731,35.6793,13'),  # Tokyo
+        ('Southeast', se_hi, se_lo, se_out, '151.2073,-33.8686,13'), # Sydney
+        ('Southwest', sw_hi, sw_lo, sw_out, '-56.1975,-34.9057,13'), # Montevideo
+        ]
+    
+    zooms_cutoffs = [(zoom + 1, 2**zoom) for zoom in range(15)]
+    
+    for (quadrant, quad_hi, quad_lo, quad_out, center) in quadrants:
+        _L.info('Preparing {} quadrant...'.format(quadrant))
+        copyfile(all_hi, quad_hi)
+        copyfile(all_lo, quad_lo)
+        
+        for filename in (quad_hi, quad_lo):
+            with sqlite3.connect(filename) as db:
+                for (zoom, cutoff) in zooms_cutoffs:
+                    if 'North' in quadrant:
+                        db.execute('delete from tiles where zoom_level = ? and tile_row < ?', (zoom, cutoff))
+                    if 'South' in quadrant:
+                        db.execute('delete from tiles where zoom_level = ? and tile_row >= ?', (zoom, cutoff))
+                    if 'east' in quadrant:
+                        db.execute('delete from tiles where zoom_level = ? and tile_column < ?', (zoom, cutoff))
+                    if 'west' in quadrant:
+                        db.execute('delete from tiles where zoom_level = ? and tile_column >= ?', (zoom, cutoff))
+        
+        join_tilesets(quad_out, quad_hi, quad_lo)
+        remove(quad_hi)
+        remove(quad_lo)
+        
+        with sqlite3.connect(quad_out) as db:
+            db.execute("update metadata set value = ? where name = 'center'", (center, ))
+            db.execute("update metadata set value = ? where name in ('name', 'description')",
+                       ('OpenAddresses {} {}'.format(str(date.today()), quadrant), ))
+            if quadrant == 'Northwest':
+                db.execute("update metadata set value = ? where name = 'bounds'", ('-180.000000,0,0,85.051129', ))
+            if quadrant == 'Sortheast':
+                db.execute("update metadata set value = ? where name = 'bounds'", ('0,0,180.000000,85.051129', ))
+            if quadrant == 'Southeast':
+                db.execute("update metadata set value = ? where name = 'bounds'", ('0,-85.051129,180.000000,0', ))
+            if quadrant == 'Southwest':
+                db.execute("update metadata set value = ? where name = 'bounds'", ('-180.000000,-85.051129,0,0', ))
 
 def mapbox_upload(mbtiles_path, tileset, username, api_key):
     ''' Upload MBTiles file to a tileset on Mapbox API.
