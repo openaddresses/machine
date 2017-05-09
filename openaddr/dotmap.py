@@ -75,7 +75,7 @@ def join_tilesets(out_filename, in1_filename, in2_filename):
     if proc.returncode != 0:
         raise RuntimeError('Tile-join command returned {}'.format(proc.returncode))
 
-def split_tilesets(all_hi, all_lo, nw_hi, nw_lo, nw_out, ne_hi, ne_lo, ne_out, se_hi, se_lo, se_out, sw_hi, sw_lo, sw_out):
+def split_tilesets(name_prefix, all_hi, all_lo, nw_hi, nw_lo, nw_out, ne_hi, ne_lo, ne_out, se_hi, se_lo, se_out, sw_hi, sw_lo, sw_out):
     '''
     '''
     quadrants = [
@@ -109,9 +109,11 @@ def split_tilesets(all_hi, all_lo, nw_hi, nw_lo, nw_out, ne_hi, ne_lo, ne_out, s
         remove(quad_lo)
         
         with sqlite3.connect(quad_out) as db:
+            tileset_name = '{} {}'.format(name_prefix.capitalize(), quadrant.capitalize()).lstrip()
             db.execute("update metadata set value = ? where name = 'center'", (center, ))
             db.execute("update metadata set value = ? where name in ('name', 'description')",
-                       ('OpenAddresses {} {}'.format(str(date.today()), quadrant.capitalize()), ))
+                       ('OpenAddresses {} {}'.format(str(date.today()), tileset_name), ))
+
             if quadrant == 'northwest':
                 db.execute("update metadata set value = ? where name = 'bounds'", ('-180,0,0,85.05', ))
             if quadrant == 'northeast':
@@ -223,8 +225,8 @@ parser.add_argument('-u', '--mapbox-user', default='open-addresses',
 parser.add_argument('-m', '--mapbox-key', default=environ.get('MAPBOX_KEY', None),
                     help='Mapbox account key. Defaults to value of MAPBOX_KEY environment variable.')
 
-parser.add_argument('-t', '--tileset-id', default='open-addresses.lec54np1',
-                    help='Mapbox tileset ID. Defaults to "open-addresses.lec54np1".')
+parser.add_argument('-n', '--name-prefix', default='',
+                    help='Optional Mapbox tileset name prefix.')
 
 parser.add_argument('--sns-arn', default=environ.get('AWS_SNS_ARN', None),
                     help='Optional AWS Simple Notification Service (SNS) resource. Defaults to value of AWS_SNS_ARN environment variable.')
@@ -271,9 +273,10 @@ def main():
         raise RuntimeError('Low-zoom Tippecanoe command returned {}'.format(status_lo))
     
     # Split world tilesets into quadrants and upload them to Mapbox.
-    for (quadrant, mbtiles_filename) in split_tilesets(*mbtiles_filenames):
-        mapbox_upload(mbtiles_filename, '{}-{}'.format(args.tileset_id, quadrant),
-                      args.mapbox_user, args.mapbox_key)
+    for (quadrant, mbtiles_filename) in split_tilesets(args.name_prefix, *mbtiles_filenames):
+        tileset_name = '{}-{}'.format(args.name_prefix, quadrant).lstrip('-')
+        tileset_id = '{}.{}'.format(args.mapbox_user, tileset_name)
+        mapbox_upload(mbtiles_filename, tileset_id, args.mapbox_user, args.mapbox_key)
 
 def stream_all_features(results):
     ''' Generate a stream of all locations as GeoJSON features.
