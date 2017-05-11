@@ -58,11 +58,11 @@ def main():
                 "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
                 }),
         DOTMAP_RULE: dict(
-            cron = 'cron(0 11 */5 * ? *)',
-            description = 'Generate OpenAddresses dot map, every fifth day at 11am UTC (4am PDT)',
+            cron = 'cron(0 11 1-30/10 * ? *)',
+            description = 'Generate OpenAddresses dot map, every tenth day at 11am UTC (4am PDT)',
             input = {
                 "command": ["openaddr-update-dotmap"],
-                "hours": 16, "instance-type": "r3.large", "temp-size": 256,
+                "hours": 48, "instance-type": "r3.large", "temp-size": 256,
                 "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
                 }),
         TILEINDEX_RULE: dict(

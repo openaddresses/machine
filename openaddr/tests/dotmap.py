@@ -73,15 +73,28 @@ class TestDotmap (unittest.TestCase):
         '''
         '''
         with mock.patch('subprocess.Popen') as Popen:
-            call_tippecanoe('oa.mbtiles')
+            call_tippecanoe('oa.mbtiles', False)
+            call_tippecanoe('oa.mbtiles', True)
         
-        self.assertEqual(len(Popen.mock_calls), 1)
+        self.assertEqual(len(Popen.mock_calls), 2)
         
-        cmd = Popen.mock_calls[0][1][0]
+        cmd1 = Popen.mock_calls[0][1][0]
+        cmd2 = Popen.mock_calls[1][1][0]
         
-        self.assertEqual('tippecanoe', cmd[0])
-        self.assertEqual(('-o', 'oa.mbtiles'), cmd[-2:])
-        self.assertIn('OpenAddresses {}'.format(str(date.today())), cmd)
+        self.assertEqual('tippecanoe', cmd1[0])
+        self.assertEqual('tippecanoe', cmd2[0])
+        self.assertEqual(('--output', 'oa.mbtiles'), cmd1[10:12])
+        self.assertEqual(('--output', 'oa.mbtiles'), cmd2[10:12])
+        self.assertIn('OpenAddresses {}'.format(str(date.today())), cmd1)
+        self.assertIn('OpenAddresses {}'.format(str(date.today())), cmd2)
+        
+        self.assertEqual(cmd1[-5:], (
+            '--exclude-all', '--maximum-zoom', '14', '--base-zoom', '15'
+            ))
+        self.assertEqual(cmd2[-10:], (
+            '--include', 'NUMBER', '--include', 'STREET', '--include', 'UNIT',
+            '--maximum-zoom', '15', '--minimum-zoom', '15'
+            ))
     
     def response_content(self, url, request):
         '''

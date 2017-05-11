@@ -4,14 +4,16 @@ import logging; _L = logging.getLogger('openaddr.dotmap')
 from sys import stderr
 from datetime import date
 from zipfile import ZipFile
+from itertools import product
 from os.path import splitext, basename
 from argparse import ArgumentParser
 from urllib.parse import urlparse, parse_qsl, urljoin
 from tempfile import mkstemp, gettempdir
-from os import environ, close
+from os import environ, close, remove
+from shutil import copyfile
 from time import sleep
-import json, subprocess, csv
 from io import TextIOWrapper
+import json, subprocess, csv, sqlite3
 
 from uritemplate import expand
 import requests, boto3
@@ -37,16 +39,91 @@ def connect_db(dsn):
 
     return db_connect(**kwargs)
 
-def call_tippecanoe(mbtiles_filename):
+def call_tippecanoe(mbtiles_filename, include_properties=True):
     '''
     '''
-    cmd = 'tippecanoe', '-r', '2', '-l', 'openaddresses', \
-          '-X', '-n', 'OpenAddresses {}'.format(str(date.today())), '-f', \
-          '-t', gettempdir(), '-o', mbtiles_filename
+    base_zoom = 15
     
-    _L.info('Running tippcanoe: {}'.format(' '.join(cmd)))
+    cmd = 'tippecanoe', '--drop-rate', '2', '--layer', 'openaddresses', \
+          '--name', 'OpenAddresses {}'.format(str(date.today())), '--force', \
+          '--temporary-directory', gettempdir(), '--output', mbtiles_filename
     
-    return subprocess.Popen(cmd, stdin=subprocess.PIPE, bufsize=1)
+    if include_properties:
+        full_cmd = cmd + (
+            '--include', 'NUMBER', '--include', 'STREET', '--include', 'UNIT',
+            '--maximum-zoom', str(base_zoom), '--minimum-zoom', str(base_zoom)
+            )
+    else:
+        full_cmd = cmd + (
+            '--exclude-all', '--maximum-zoom', str(base_zoom - 1), '--base-zoom', str(base_zoom)
+            )
+    
+    _L.info('Running tippcanoe: {}'.format(' '.join(full_cmd)))
+    
+    return subprocess.Popen(full_cmd, stdin=subprocess.PIPE, bufsize=1)
+
+def join_tilesets(out_filename, in1_filename, in2_filename):
+    '''
+    '''
+    cmd = 'tile-join', '-f', '-o', out_filename, in1_filename, in2_filename
+    
+    _L.info('Running tile-join: {}'.format(' '.join(cmd)))
+    
+    proc = subprocess.Popen(cmd, bufsize=1)
+    proc.wait()
+
+    if proc.returncode != 0:
+        raise RuntimeError('Tile-join command returned {}'.format(proc.returncode))
+
+def split_tilesets(name_prefix, all_hi, all_lo, nw_hi, nw_lo, nw_out, ne_hi, ne_lo, ne_out, se_hi, se_lo, se_out, sw_hi, sw_lo, sw_out):
+    '''
+    '''
+    quadrants = [
+        ('northwest', nw_hi, nw_lo, nw_out, '-122.2707,37.8044,13'), # Oakland
+        ('northeast', ne_hi, ne_lo, ne_out, '139.7731,35.6793,13'),  # Tokyo
+        ('southeast', se_hi, se_lo, se_out, '151.2073,-33.8686,13'), # Sydney
+        ('southwest', sw_hi, sw_lo, sw_out, '-56.1975,-34.9057,13'), # Montevideo
+        ]
+    
+    zooms_cutoffs = [(zoom + 1, 2**zoom) for zoom in range(15)]
+    
+    for (quadrant, quad_hi, quad_lo, quad_out, center) in quadrants:
+        _L.info('Preparing {} quadrant...'.format(quadrant))
+        copyfile(all_hi, quad_hi)
+        copyfile(all_lo, quad_lo)
+        
+        for filename in (quad_hi, quad_lo):
+            with sqlite3.connect(filename) as db:
+                for (zoom, cutoff) in zooms_cutoffs:
+                    if 'north' in quadrant:
+                        db.execute('delete from tiles where zoom_level = ? and tile_row < ?', (zoom, cutoff))
+                    if 'south' in quadrant:
+                        db.execute('delete from tiles where zoom_level = ? and tile_row >= ?', (zoom, cutoff))
+                    if 'east' in quadrant:
+                        db.execute('delete from tiles where zoom_level = ? and tile_column < ?', (zoom, cutoff))
+                    if 'west' in quadrant:
+                        db.execute('delete from tiles where zoom_level = ? and tile_column >= ?', (zoom, cutoff))
+        
+        join_tilesets(quad_out, quad_hi, quad_lo)
+        remove(quad_hi)
+        remove(quad_lo)
+        
+        with sqlite3.connect(quad_out) as db:
+            tileset_name = '{} {}'.format(name_prefix.capitalize(), quadrant.capitalize()).lstrip()
+            db.execute("update metadata set value = ? where name = 'center'", (center, ))
+            db.execute("update metadata set value = ? where name in ('name', 'description')",
+                       ('OpenAddresses {} {}'.format(str(date.today()), tileset_name), ))
+
+            if quadrant == 'northwest':
+                db.execute("update metadata set value = ? where name = 'bounds'", ('-180,0,0,85.05', ))
+            if quadrant == 'northeast':
+                db.execute("update metadata set value = ? where name = 'bounds'", ('0,0,180,85.05', ))
+            if quadrant == 'southeast':
+                db.execute("update metadata set value = ? where name = 'bounds'", ('0,-85.05,180,0', ))
+            if quadrant == 'southwest':
+                db.execute("update metadata set value = ? where name = 'bounds'", ('-180,-85.05,0,0', ))
+        
+        yield quadrant, quad_out
 
 def mapbox_upload(mbtiles_path, tileset, username, api_key):
     ''' Upload MBTiles file to a tileset on Mapbox API.
@@ -133,6 +210,8 @@ def _mapbox_wait_for_upload(id, username, api_key):
 
 parser = ArgumentParser(description='Make a dot map.')
 
+parser.add_argument('-t', '--tileset-id', help='Deprecated option kept for backward-compatibility.')
+
 parser.add_argument('-o', '--owner', default='openaddresses',
                     help='Github repository owner. Defaults to "openaddresses".')
 
@@ -148,8 +227,8 @@ parser.add_argument('-u', '--mapbox-user', default='open-addresses',
 parser.add_argument('-m', '--mapbox-key', default=environ.get('MAPBOX_KEY', None),
                     help='Mapbox account key. Defaults to value of MAPBOX_KEY environment variable.')
 
-parser.add_argument('-t', '--tileset-id', default='open-addresses.lec54np1',
-                    help='Mapbox tileset ID. Defaults to "open-addresses.lec54np1".')
+parser.add_argument('-n', '--name-prefix', default='',
+                    help='Optional Mapbox tileset name prefix.')
 
 parser.add_argument('--sns-arn', default=environ.get('AWS_SNS_ARN', None),
                     help='Optional AWS Simple Notification Service (SNS) resource. Defaults to value of AWS_SNS_ARN environment variable.')
@@ -163,20 +242,43 @@ def main():
             set = read_latest_set(db, args.owner, args.repository)
             runs = read_completed_runs_to_date(db, set.id)
     
-    handle, mbtiles_filename = mkstemp(prefix='oa-', suffix='.mbtiles')
-    close(handle)
+    mbtiles_filenames = list()
     
-    tippecanoe = call_tippecanoe(mbtiles_filename)
+    # Prepare 14 temporary files for use in preparing and cutting MBTiles output.
+    for i in range(14):
+        handle, mbtiles_filename = mkstemp(prefix='oa-{:02d}-'.format(i), suffix='.mbtiles')
+        mbtiles_filenames.append(mbtiles_filename)
+        close(handle)
+    
+    # Stream all features to two tilesets: high-zoom and low-zoom.
+    tippecanoe_hi = call_tippecanoe(mbtiles_filenames[0], True)
+    tippecanoe_lo = call_tippecanoe(mbtiles_filenames[1], False)
     results = iterate_local_processed_files(runs)
     
     for feature in stream_all_features(results):
-        tippecanoe.stdin.write(json.dumps(feature).encode('utf8'))
-        tippecanoe.stdin.write(b'\n')
+        line = json.dumps(feature).encode('utf8') + b'\n'
+        tippecanoe_hi.stdin.write(line)
+        tippecanoe_lo.stdin.write(line)
     
-    tippecanoe.stdin.close()
-    tippecanoe.wait()
+    tippecanoe_hi.stdin.close()
+    tippecanoe_lo.stdin.close()
+    tippecanoe_hi.wait()
+    tippecanoe_lo.wait()
     
-    mapbox_upload(mbtiles_filename, args.tileset_id, args.mapbox_user, args.mapbox_key)
+    status_hi, status_lo = tippecanoe_hi.returncode, tippecanoe_lo.returncode
+    
+    if status_hi != 0 and status_lo != 0:
+        raise RuntimeError('High- and low-zoom Tippecanoe commands returned {} and {}'.format(status_hi, status_lo))
+    elif status_hi != 0:
+        raise RuntimeError('High-zoom Tippecanoe command returned {}'.format(status_hi))
+    elif status_lo != 0:
+        raise RuntimeError('Low-zoom Tippecanoe command returned {}'.format(status_lo))
+    
+    # Split world tilesets into quadrants and upload them to Mapbox.
+    for (quadrant, mbtiles_filename) in split_tilesets(args.name_prefix, *mbtiles_filenames):
+        tileset_name = '{}-{}'.format(args.name_prefix, quadrant).lstrip('-')
+        tileset_id = '{}.{}'.format(args.mapbox_user, tileset_name)
+        mapbox_upload(mbtiles_filename, tileset_id, args.mapbox_user, args.mapbox_key)
 
 def stream_all_features(results):
     ''' Generate a stream of all locations as GeoJSON features.
