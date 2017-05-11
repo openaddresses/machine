@@ -1,3 +1,6 @@
+2017-05-11: 6.2.2
+- Closing worker database connections explicitly. (#638)
+
 2017-05-11: 6.2.1
 - Improved axis names on dashboard charts. (#637)
 - Improved log output and EC2 task behaviors.
