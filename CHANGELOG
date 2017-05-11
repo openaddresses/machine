@@ -1,3 +1,6 @@
+2017-05-11: 6.2.3
+- Sending worker heartbeat pings slightly earlier. (#639)
+
 2017-05-11: 6.2.2
 - Closing worker database connections explicitly. (#638)
 
