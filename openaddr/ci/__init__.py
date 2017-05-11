@@ -904,7 +904,7 @@ def is_merged_to_master(db, set_id, job_id, commit_sha, github_auth):
         return None
 
 def _worker_id():
-    return socket.gethostname()
+    return '{}/{}'.format(socket.gethostname(), os.getpid())
 
 def _wait_for_work_lock(lock, heartbeat_queue):
     ''' Wait around for worker while sending heartbeat pings.
@@ -1226,9 +1226,9 @@ def setup_logger(sns_arn, log_group, log_level=logging.DEBUG):
             openaddr_logger.addHandler(handler2)
             logger_state['aws sns handler'] = handler2
     
-        stream_name = '{command} {version} {hostname} ({pid}) {datetime}'.format(
-            command=os.path.basename(sys.argv[0]), version=__version__,
-            hostname=socket.gethostname(), pid=os.getpid(),
+        stream_name = '{command} {version} {worker_id} {datetime}'.format(
+            command=os.path.basename(sys.argv[0]),
+            version=__version__, worker_id=_worker_id(),
             datetime=datetime.utcnow().strftime('%Y-%m-%d-%H-%M-%S'))
 
         try:
