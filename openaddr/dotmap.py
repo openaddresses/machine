@@ -210,6 +210,8 @@ def _mapbox_wait_for_upload(id, username, api_key):
 
 parser = ArgumentParser(description='Make a dot map.')
 
+parser.add_argument('-t', '--tileset-id', help='Deprecated option kept for backward-compatibility.')
+
 parser.add_argument('-o', '--owner', default='openaddresses',
                     help='Github repository owner. Defaults to "openaddresses".')
 
