@@ -72,27 +72,27 @@ def request_task_instance(ec2, autoscale, instance_type, lifespan, command, buck
                           instance_profile_name='machine-communication',
                           key_name=keypair.name, block_device_map=device_map)
         
-        print('Configured with run kwargs:\n{}'.format(pprint.pformat(run_kwargs)), file=sys.stderr)
-        
+        print('Running with keyword args:', pprint.pformat(run_kwargs), sep='\n', file=sys.stderr)
         run_kwargs.update(user_data=file.read().format(**userdata_kwargs))
-        
-        print('Configured with user data:\n{}'.format(run_kwargs['user_data']), file=sys.stderr)
         
     reservation = image.run(**run_kwargs)
     (instance, ) = reservation.instances
     
     try:
         instance.add_tag('Name', 'Scheduled {} {}'.format(yyyymmdd, command[0]))
+        instance.add_tag('Command', command[0])
+        instance.add_tag('Trigger', 'run-ec2-command')
     except EC2ResponseError:
         time.sleep(10)
         try:
             instance.add_tag('Name', 'Scheduled {} {}'.format(yyyymmdd, command[0]))
+            instance.add_tag('Command', command[0])
+            instance.add_tag('Trigger', 'run-ec2-command')
         except EC2ResponseError:
-            time.sleep(10)
+            time.sleep(30)
             instance.add_tag('Name', 'Scheduled {} {}'.format(yyyymmdd, command[0]))
-    
-    instance.add_tag('Command', command[0])
-    instance.add_tag('Trigger', 'run-ec2-command')
+            instance.add_tag('Command', command[0])
+            instance.add_tag('Trigger', 'run-ec2-command')
 
     print('Started EC2 instance {} from AMI {}'.format(instance, image), file=sys.stderr)
     
@@ -126,7 +126,12 @@ def lambda_func(event, context):
         tempsize = event.get('temp-size', None),
         )
     
-    return str(request_task_instance(ec2, autoscale, **kwargs))
+    try:
+        print('Requesting with keyword args:', pprint.pformat(kwargs), sep='\n', file=sys.stderr)
+        return str(request_task_instance(ec2, autoscale, **kwargs))
+    except Exception as e:
+        print('Failed with exception:', e, sep='\n', file=sys.stderr)
+        return None
 
 if __name__ == '__main__':
     exit(main())
