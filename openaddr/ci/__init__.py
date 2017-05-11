@@ -935,6 +935,10 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
         if task is None:
             return
         
+        # On the case!
+        beatdata = queuedata.Heartbeat(_worker_id())
+        heartbeat_queue.put(beatdata.asdata())
+
         taskdata = queuedata.Task(**task.data)
         _L.info(u'Got file {} from task queue'.format(taskdata.name))
         passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'commit_sha', 'set_id', 'rerun'
@@ -977,8 +981,6 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
         work_wait = threading.Thread(target=_wait_for_work_lock, args=work_args)
 
         with work_lock:
-            beatdata = queuedata.Heartbeat(_worker_id())
-            heartbeat_queue.put(beatdata.asdata())
             work_wait.start()
 
             source_name, _ = splitext(relpath(passed_on_kwargs['name'], 'sources'))
