@@ -1,3 +1,7 @@
+2017-05-10: 6.2.0
+- Added point properties at zoom 15 to openaddr-update-dotmap. (#631)
+- Reduced frequency of openaddr-update-dotmap schedule. (#631)
+
 2017-05-07: 6.1.0
 - Added support for chained functions in sources. (#633)
 
