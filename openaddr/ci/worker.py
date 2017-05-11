@@ -54,13 +54,15 @@ def main():
         worker_dir = tempfile.mkdtemp(prefix='worker-')
     
         try:
-            with db_connect(args.database_url) as conn:
+            connection = db_connect(args.database_url)
+            with connection as conn:
                 task_Q = db_queue(conn, TASK_QUEUE)
                 done_Q = db_queue(conn, DONE_QUEUE)
                 due_Q = db_queue(conn, DUE_QUEUE)
                 beat_Q = db_queue(conn, HEARTBEAT_QUEUE)
                 pop_task_from_taskqueue(s3, task_Q, done_Q, due_Q, beat_Q,
                                         worker_dir, args.mapzen_key)
+            connection.close()
         except:
             _L.error('Error in worker main()', exc_info=True)
             time.sleep(2)
