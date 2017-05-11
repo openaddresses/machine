@@ -1,3 +1,7 @@
+2017-05-11: 6.2.1
+- Improved axis names on dashboard charts. (#637)
+- Improved log output and EC2 task behaviors.
+
 2017-05-10: 6.2.0
 - Added point properties at zoom 15 to openaddr-update-dotmap. (#631)
 - Reduced frequency of openaddr-update-dotmap schedule. (#631)
