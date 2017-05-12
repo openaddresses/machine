@@ -14,9 +14,9 @@ notify_sns 'Starting {command_name}...'
 function shutdown_with_log
 {{
     if [ $1 = 0 ]; then
-        notify_sns 'Completed {command_name}'
+        notify_sns "Completed {command_name} - `uptime --pretty`"
     else
-        notify_sns 'Failed {command_name}'
+        notify_sns "Failed {command_name} - `uptime --pretty`"
     fi
     
     mkdir /tmp/task
