@@ -4107,7 +4107,7 @@ class TestCollect (unittest.TestCase):
         output.writestr.side_effect = remember_writestr_contents
         
         # Addresses that should trigger expansion.
-        input1 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH\n-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77,h4sh\n-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11,h4sh\n-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,74-1033-146,h4sh\n-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,74-1033-122,h4sh\n-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26,h4sh\n-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222,h4sh\n'
+        input1 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH,SRC_HASH\n-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77,h4sh,s0rc\n-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11,h4sh,s0rc\n-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,74-1033-146,h4sh,s0rc\n-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,74-1033-122,h4sh,s0rc\n-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26,h4sh,s0rc\n-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222,h4sh,s0rc\n'
         add_csv_to_zipfile(output, u'us/ca/älameda.csv', BytesIO(input1.encode('utf8')))
 
         # Collections with missing columns and non-ASCII characters.
@@ -4121,7 +4121,7 @@ class TestCollect (unittest.TestCase):
         add_csv_to_zipfile(output, u'us/ca/älameda.csv', BytesIO(input4.encode('utf8')))
         
         # Collection with illegal lat/lon value.
-        input5 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH\n-104.6843547,39.5793748,26050,E JAMISON CIR N,, CO,,,80016-2056,,629e0367e92b4c47\n-1.79769313486e+308,-1.79769313486e+308,26900,E COLFAX AVE,428,,,,,,8764a6de3c9f688c\n-104.1139093,39.6761295,2050,S PEORIA CROSSING RD,, CO,,,,,28b370f54c8e40ef\n'
+        input5 = u'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH,SRC_HASH\n-104.6843547,39.5793748,26050,E JAMISON CIR N,, CO,,,80016-2056,,629e0367e92b4c47,s0rc1\n-1.79769313486e+308,-1.79769313486e+308,26900,E COLFAX AVE,428,,,,,,8764a6de3c9f688c,s0rc2\n-104.1139093,39.6761295,2050,S PEORIA CROSSING RD,, CO,,,,,28b370f54c8e40ef,s0rc3\n'
         add_csv_to_zipfile(output, u'us/co/arapahoe.csv', BytesIO(input5.encode('utf8')))
         
         self.assertEqual(len(output.write.mock_calls), 10)
@@ -4143,13 +4143,13 @@ class TestCollect (unittest.TestCase):
         # input1
         self.assertEqual(output_write_contents[0],
             [
-            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH',
-            '-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77,h4sh',
-            '-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11,h4sh',
-            '-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,74-1033-146,h4sh',
-            '-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,74-1033-122,h4sh',
-            '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26,h4sh',
-            '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222,h4sh',
+            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH,SRC_HASH',
+            '-122.2359742,37.7362507,85,MAITLAND DR,A,ALAMEDA,,,94502,74-1035-77,h4sh,s0rc',
+            '-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,74-1339-11,h4sh,s0rc',
+            '-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,74-1033-146,h4sh,s0rc',
+            '-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,74-1033-122,h4sh,s0rc',
+            '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,74-1036-26,h4sh,s0rc',
+            '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,74-1075-222,h4sh,s0rc',
             ])
         self.assertEqual(output_write_contents[1],
             [
@@ -4160,22 +4160,22 @@ class TestCollect (unittest.TestCase):
         # input2
         self.assertEqual(output_write_contents[2],
             [
-            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH',
-            '-122.2359742,37.7362507,85,MAITLAND DR,,ALAMEDA,,,94502,,',
-            '-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,,',
-            '-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,,',
-            '-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,,',
-            '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,,',
-            '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,,',
+            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH,SRC_HASH',
+            '-122.2359742,37.7362507,85,MAITLAND DR,,ALAMEDA,,,94502,,,',
+            '-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,,,',
+            '-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,,,',
+            '-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,,,',
+            '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,,,',
+            '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,,,',
             ])
         self.assertEqual(output_write_contents[3], output_write_contents[1])
         
         # input3
         self.assertEqual(output_write_contents[4],
             [
-            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH',
-            '8.6885893,50.1042197,12,Abtsgäßchen,,Frankfurt am Main,,,60594,,',
-            '8.6885485,50.1041506,14,Abtsgäßchen,,Frankfurt am Main,,,60594,,',
+            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH,SRC_HASH',
+            '8.6885893,50.1042197,12,Abtsgäßchen,,Frankfurt am Main,,,60594,,,',
+            '8.6885485,50.1041506,14,Abtsgäßchen,,Frankfurt am Main,,,60594,,,',
             ])
         self.assertEqual(output_write_contents[5],
             [
@@ -4186,21 +4186,21 @@ class TestCollect (unittest.TestCase):
         # input4
         self.assertEqual(output_write_contents[6],
             [
-            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH',
-            '-122.2359742,37.7362507,85,MAITLAND DR,,ALAMEDA,,,94502,,',
-            '-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,,',
-            '-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,,',
-            '-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,,',
-            '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,,',
-            '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,,',
+            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH,SRC_HASH',
+            '-122.2359742,37.7362507,85,MAITLAND DR,,ALAMEDA,,,94502,,,',
+            '-122.2353881,37.7223605,1360,S LOOP RD,,ALAMEDA,,,94502,,,',
+            '-122.2385597,37.7284071,3508,CATALINA AV,,ALAMEDA,,,94502,,,',
+            '-122.2368942,37.7305041,3512,MCSHERRY WY,,ALAMEDA,,,94502,,,',
+            '-122.2349371,37.7357455,514,FLOWER LA,,ALAMEDA,,,94502,,,',
+            '-122.2367819,37.7342157,1014,HOLLY ST,,ALAMEDA,,,94502,,,',
             ])
         
         # input5
         self.assertEqual(output_write_contents[8],
             [
-            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH',
-            '-104.6843547,39.5793748,26050,E JAMISON CIR N,, CO,,,80016-2056,,629e0367e92b4c47',
-            '-104.1139093,39.6761295,2050,S PEORIA CROSSING RD,, CO,,,,,28b370f54c8e40ef'
+            'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH,SRC_HASH',
+            '-104.6843547,39.5793748,26050,E JAMISON CIR N,, CO,,,80016-2056,,629e0367e92b4c47,s0rc1',
+            '-104.1139093,39.6761295,2050,S PEORIA CROSSING RD,, CO,,,,,28b370f54c8e40ef,s0rc3'
             ])
         self.assertEqual(output_write_contents[9],
             [
@@ -4364,7 +4364,7 @@ class TestTileIndex (unittest.TestCase):
         self.assertEqual(names, ['addresses.csv', 'LICENSE.txt'])
         
         lines = zipfile.read('addresses.csv').decode('utf8').split()
-        self.assertEqual(lines[0], 'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH,OA:Source')
+        self.assertEqual(lines[0], 'LON,LAT,NUMBER,STREET,UNIT,CITY,DISTRICT,REGION,POSTCODE,ID,HASH,SRC_HASH,OA:Source')
         
         license = zipfile.read('LICENSE.txt').decode('utf8')
         self.assertEqual(license, summarize_result_licenses.return_value)

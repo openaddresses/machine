@@ -43,7 +43,8 @@ gdal.PushErrorHandler(gdal_error_handler)
 
 # The canonical output schema for conform
 OPENADDR_CSV_SCHEMA = ['LON', 'LAT', 'NUMBER', 'STREET', 'UNIT', 'CITY',
-                       'DISTRICT', 'REGION', 'POSTCODE', 'ID', 'HASH']
+                       'DISTRICT', 'REGION', 'POSTCODE', 'ID', 'HASH',
+                       'SRC_HASH']
 
 # Field names for use in cached CSV files.
 # We add columns to the extracted CSV with our own data with these names.
@@ -920,6 +921,7 @@ def row_transform_and_convert(sd, row):
 
     # Some conform specs have fields named with a case different from the source
     row = row_smash_case(sd, row)
+    row = row_calculate_source_hash(row)
 
     c = sd["conform"]
 
@@ -940,10 +942,10 @@ def row_transform_and_convert(sd, row):
     # Make up a random fingerprint if none exists
     cache_fingerprint = sd.get('fingerprint', str(uuid4()))
     
-    row2 = row_convert_to_out(sd, row)
+    row2 = dict(row_convert_to_out(sd, row), SRC_HASH=row['SRC_HASH'])
     row3 = row_canonicalize_unit_and_number(sd, row2)
     row4 = row_round_lat_lon(sd, row3)
-    row5 = row_calculate_hash(cache_fingerprint, row4)
+    row5 = row_calculate_output_hash(cache_fingerprint, row4)
     return row5
 
 def conform_smash_case(source_definition):
@@ -1113,13 +1115,25 @@ def row_round_lat_lon(sd, row):
     row["LAT"] = _round_wgs84_to_7(row["LAT"])
     return row
 
-def row_calculate_hash(cache_fingerprint, row):
+def row_calculate_source_hash(row):
+    ''' Calculate row hash based on content.
+    
+        4 chars of SHA-1 gives a 16-bit value, probably okay for nearby addresses.
+    '''
+    hash = sha1(json.dumps(sorted(row.items()), separators=(',', ':')).encode('utf8'))
+    row.update(SRC_HASH=hash.hexdigest()[:4])
+    
+    return row
+
+def row_calculate_output_hash(cache_fingerprint, row):
     ''' Calculate row hash based on content and existing fingerprint.
     
         16 chars of SHA-1 gives a 64-bit value, plenty for all addresses.
     '''
+    hashed = sorted([(k, v) for (k, v) in row.items() if k != 'SRC_HASH'])
+    
     hash = sha1(cache_fingerprint.encode('utf8'))
-    hash.update(json.dumps(sorted(row.items()), separators=(',', ':')).encode('utf8'))
+    hash.update(json.dumps(hashed, separators=(',', ':')).encode('utf8'))
     row.update(HASH=hash.hexdigest()[:16])
     
     return row
