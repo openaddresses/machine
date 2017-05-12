@@ -35,39 +35,39 @@ def main():
 
     rules = {
         ENQUEUE_RULE: dict(
-            cron = 'cron(0 23 ? * mon,fri *)',
-            description = 'Enqueue sources, Mondays and Fridays 11pm UTC (4pm PDT)',
+            cron = 'cron(0 21 ? * mon,fri *)',
+            description = 'Enqueue sources, Mondays and Fridays 9pm UTC (2pm PDT)',
             input = {
                 "command": ["openaddr-enqueue-sources"],
                 "hours": 60, "instance-type": "t2.nano",
                 "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
                 }),
         COLLECT_RULE: dict(
-            cron = 'cron(0 11 */2 * ? *)',
-            description = 'Archive collection, every other day at 11am UTC (4am PDT)',
+            cron = 'cron(0 15 */2 * ? *)',
+            description = 'Archive collection, every other day at 3pm UTC (8am PDT)',
             input = {
                 "command": ["openaddr-collect-extracts"], "hours": 18,
                 "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
                 }),
         CALCULATE_RULE: dict(
-            cron = 'cron(0 11 */3 * ? *)',
-            description = 'Update coverage page data, every third day at 11am UTC (4am PDT)',
+            cron = 'cron(0 15 */3 * ? *)',
+            description = 'Update coverage page data, every third day at 3pm UTC (8am PDT)',
             input = {
                 "command": ["openaddr-calculate-coverage"],
                 "hours": 3, "instance-type": "t2.nano",
                 "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
                 }),
         DOTMAP_RULE: dict(
-            cron = 'cron(0 11 1-30/10 * ? *)',
-            description = 'Generate OpenAddresses dot map, every tenth day at 11am UTC (4am PDT)',
+            cron = 'cron(0 15 1-30/10 * ? *)',
+            description = 'Generate OpenAddresses dot map, every tenth day at 3pm UTC (8am PDT)',
             input = {
                 "command": ["openaddr-update-dotmap"],
                 "hours": 48, "instance-type": "r3.large", "temp-size": 256,
                 "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
                 }),
         TILEINDEX_RULE: dict(
-            cron = 'cron(0 11 */7 * ? *)',
-            description = 'Index into tiles, every seventh day at 11am UTC (4am PDT)',
+            cron = 'cron(0 15 */7 * ? *)',
+            description = 'Index into tiles, every seventh day at 3pm UTC (8am PDT)',
             input = {
                 "command": ["openaddr-index-tiles"], "hours": 16,
                 "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
