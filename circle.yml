@@ -23,21 +23,15 @@ deployment:
       - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
       - docker tag openaddr/prereqs:`cat /tmp/MAJOR`.x openaddr/prereqs:`cat openaddr/VERSION`
       - docker tag openaddr/machine:`cat /tmp/MAJOR`.x openaddr/machine:`cat openaddr/VERSION`
-      - docker tag openaddr/prereqs:`cat openaddr/VERSION` openaddr/prereqs:latest
-      - docker tag openaddr/machine:`cat openaddr/VERSION` openaddr/machine:latest
-      - docker push openaddr/prereqs:`cat /tmp/MAJOR`.x
-      - docker push openaddr/machine:`cat /tmp/MAJOR`.x
-      - docker push openaddr/prereqs:`cat openaddr/VERSION`
-      - docker push openaddr/machine:`cat openaddr/VERSION`
-      - docker push openaddr/prereqs:latest
-      - docker push openaddr/machine:latest
-  fiddling:
-    branch: [migurski/fiddle-docker-tags]
-    commands:
-      - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
-      - docker tag openaddr/prereqs:`cat /tmp/MAJOR`.x openaddr/prereqs:`cat openaddr/VERSION`
-      - docker tag openaddr/machine:`cat /tmp/MAJOR`.x openaddr/machine:`cat openaddr/VERSION`
       - docker tag openaddr/prereqs:`cat /tmp/MAJOR`.x openaddr/prereqs:`cat /tmp/MAJOR`
       - docker tag openaddr/machine:`cat /tmp/MAJOR`.x openaddr/machine:`cat /tmp/MAJOR`
       - docker tag openaddr/prereqs:`cat /tmp/MAJOR`.x openaddr/prereqs:latest
       - docker tag openaddr/machine:`cat /tmp/MAJOR`.x openaddr/machine:latest
+      - docker push openaddr/prereqs:`cat /tmp/MAJOR`.x
+      - docker push openaddr/machine:`cat /tmp/MAJOR`.x
+      - docker push openaddr/prereqs:`cat openaddr/VERSION`
+      - docker push openaddr/machine:`cat openaddr/VERSION`
+      - docker push openaddr/prereqs:`cat /tmp/MAJOR`
+      - docker push openaddr/machine:`cat /tmp/MAJOR`
+      - docker push openaddr/prereqs:latest
+      - docker push openaddr/machine:latest
