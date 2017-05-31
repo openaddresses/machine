@@ -4,10 +4,11 @@ machine:
 
 dependencies:
   pre:
-    - docker pull openaddr/prereqs:`cut -f1 -d. openaddr/VERSION`.x || true
+    - cut -f1 -d. openaddr/VERSION > /tmp/MAJOR
+    - docker pull openaddr/prereqs:`cat /tmp/MAJOR`.x || true
   override:
-    - docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cut -f1 -d. openaddr/VERSION`.x .
-    - docker build -f Dockerfile-machine -t openaddr/machine:`cut -f1 -d. openaddr/VERSION`.x .
+    - docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat /tmp/MAJOR`.x .
+    - docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/MAJOR`.x .
 
 test:
   override:
@@ -20,12 +21,12 @@ deployment:
     branch: [6.x]
     commands:
       - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
-      - docker tag openaddr/prereqs:`cut -f1 -d. openaddr/VERSION`.x openaddr/prereqs:`cat openaddr/VERSION`
-      - docker tag openaddr/machine:`cut -f1 -d. openaddr/VERSION`.x openaddr/machine:`cat openaddr/VERSION`
+      - docker tag openaddr/prereqs:`cat /tmp/MAJOR`.x openaddr/prereqs:`cat openaddr/VERSION`
+      - docker tag openaddr/machine:`cat /tmp/MAJOR`.x openaddr/machine:`cat openaddr/VERSION`
       - docker tag openaddr/prereqs:`cat openaddr/VERSION` openaddr/prereqs:latest
       - docker tag openaddr/machine:`cat openaddr/VERSION` openaddr/machine:latest
-      - docker push openaddr/prereqs:`cut -f1 -d. openaddr/VERSION`.x
-      - docker push openaddr/machine:`cut -f1 -d. openaddr/VERSION`.x
+      - docker push openaddr/prereqs:`cat /tmp/MAJOR`.x
+      - docker push openaddr/machine:`cat /tmp/MAJOR`.x
       - docker push openaddr/prereqs:`cat openaddr/VERSION`
       - docker push openaddr/machine:`cat openaddr/VERSION`
       - docker push openaddr/prereqs:latest
