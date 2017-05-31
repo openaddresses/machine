@@ -10,8 +10,8 @@ Run a single source without installing Python or other packages locally
 using [OpenAddresses from Docker Hub](https://hub.docker.com/r/openaddr/).
 
 1.  Get the latest [OpenAddresses image from Docker Hub](https://hub.docker.com/r/openaddr/machine/tags/):
-    
-        docker pull openaddr/machine:6.x
+
+        docker pull openaddr/machine
 
 2.  Download a source from [OpenAdresses/openaddresses on Github](https://github.com/openaddresses/openaddresses). [Berkeley, California](https://results.openaddresses.io/sources/us/ca/berkeley) is a small, reliable source that’s good to test with:
 
@@ -37,36 +37,36 @@ This process should take 5-10 minutes depending on download speed.
     run `apt-get install docker.io` or follow [Docker’s own directions](https://docs.docker.com/engine/installation/linux/ubuntu/).
 
 2.  Build the required image, which includes binary packages like GDAL and Postgres.
-    
+
         VERSION=`cut -f1 -d. openaddr/VERSION`.x
         docker build -f Dockerfile-machine -t openaddr/machine:$VERSION .
-    
+
 3.  Run everything in detached mode:
-    
+
         docker-compose up -d
-    
+
     Run `docker ps -a` to see output like this:
-    
+
             IMAGE                STATUS                        NAMES
         ... openaddr/machine ... Exited (0) 44 seconds ago ... openaddressesmachine_machine_1
             mdillon/postgis      Up 45 seconds                 openaddressesmachine_postgres_1
 
 4.  Connect to the OpenAddresses image `openaddr/machine` with a bash shell
     and the current working directory mapped to `/vol`:
-    
+
         docker-compose run machine bash
-    
+
 5.  Build the OpenAddresses packages using
     [virtualenv](https://packaging.python.org/installing/#creating-virtual-environments)
     and [pip](https://packaging.python.org/installing/#use-pip-for-installing).
     The `-e` flag to `pip install` insures that your local copy of OpenAddresses
     is used, so that you can test changes to the code made in your own editor:
-    
+
         pip3 install virtualenv
         virtualenv -p python3 --system-site-packages venv
         source venv/bin/activate
         pip3 install -e file:///vol
-    
+
 You should now be able to make changes and test them.
 If you exit the Docker container, changes made in step 5 above will be lost.
 Use [Docker commit](https://docs.docker.com/engine/reference/commandline/commit/)
