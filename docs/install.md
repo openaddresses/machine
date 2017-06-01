@@ -38,8 +38,7 @@ This process should take 5-10 minutes depending on download speed.
 
 2.  Build the required image, which includes binary packages like GDAL and Postgres.
 
-        VERSION=`cut -f1 -d. openaddr/VERSION`.x
-        docker build -f Dockerfile-machine -t openaddr/machine:$VERSION .
+        docker build -f Dockerfile-machine -t openaddr/machine:`cut -f1 -d. openaddr/VERSION` .
 
 3.  Run everything in detached mode:
 
