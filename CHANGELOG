@@ -1,3 +1,6 @@
+2017-06-01: 6.3.1
+- Updated to use new-style Docker Hub tags. (#644)
+
 2017-05-31: 6.3.0
 - Added new integer-only major version and latest Docker Hub tags. (#642, #643)
 
