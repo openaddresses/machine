@@ -1,3 +1,6 @@
+2017-06-07: 6.3.2
+- Muffled GDAL warnings in openaddr-calculate-coverage. (#646)
+
 2017-06-01: 6.3.1
 - Updated to use new-style Docker Hub tags. (#644)
 
