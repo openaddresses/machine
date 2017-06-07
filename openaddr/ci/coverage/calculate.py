@@ -6,7 +6,7 @@ from urllib.parse import urljoin
 
 import requests
 import psycopg2
-from osgeo import ogr
+from osgeo import ogr, gdal
 
 from .. import setup_logger
 
@@ -245,6 +245,9 @@ parser.add_argument('-q', '--quiet', help='Turn off most logging',
 def main():
     '''
     '''
+    # This should silence OGR's annoying geometry warnings.
+    gdal.PushErrorHandler('CPLQuietErrorHandler')
+
     args = parser.parse_args()
     setup_logger(args.sns_arn, None, log_level=args.loglevel)
     calculate(args.database_url)
