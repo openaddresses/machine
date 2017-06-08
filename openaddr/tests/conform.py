@@ -557,6 +557,158 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
+        
+        "Regex prefixed_number and postfixed_street - should honor space+1/2"
+        c = { "conform": {
+            "number": {
+                "function": "prefixed_number",
+                "field": "ADDRESS"
+            },
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "123 1/2 3rD St" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123 1/2", "OA:street": "3rD St" })
+        
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "Regex prefixed_number and postfixed_street - should honor hyphen+1/2"
+        c = { "conform": {
+            "number": {
+                "function": "prefixed_number",
+                "field": "ADDRESS"
+            },
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "123-1/2 3rD St" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123-1/2", "OA:street": "3rD St" })
+        
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "Regex prefixed_number and postfixed_street - should honor space+1/3"
+        c = { "conform": {
+            "number": {
+                "function": "prefixed_number",
+                "field": "ADDRESS"
+            },
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "123 1/3 3rD St" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123 1/3", "OA:street": "3rD St" })
+        
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "Regex prefixed_number and postfixed_street - should honor hyphen+1/3"
+        c = { "conform": {
+            "number": {
+                "function": "prefixed_number",
+                "field": "ADDRESS"
+            },
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "123-1/3 3rD St" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123-1/3", "OA:street": "3rD St" })
+        
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "Regex prefixed_number and postfixed_street - should honor space+1/4"
+        c = { "conform": {
+            "number": {
+                "function": "prefixed_number",
+                "field": "ADDRESS"
+            },
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "123 1/4 3rD St" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123 1/4", "OA:street": "3rD St" })
+        
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "Regex prefixed_number and postfixed_street - should honor hyphen+1/4"
+        c = { "conform": {
+            "number": {
+                "function": "prefixed_number",
+                "field": "ADDRESS"
+            },
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "123-1/4 3rD St" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123-1/4", "OA:street": "3rD St" })
+        
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "Regex prefixed_number and postfixed_street - should honor space+3/4"
+        c = { "conform": {
+            "number": {
+                "function": "prefixed_number",
+                "field": "ADDRESS"
+            },
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "123 3/4 3rD St" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123 3/4", "OA:street": "3rD St" })
+        
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "Regex prefixed_number and postfixed_street - should honor hyphen+3/4"
+        c = { "conform": {
+            "number": {
+                "function": "prefixed_number",
+                "field": "ADDRESS"
+            },
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "123-3/4 3rD St" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123-3/4", "OA:street": "3rD St" })
+        
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
 
     def test_row_fxn_remove_prefix(self):
         "remove_prefix - field_to_remove is a prefix"
