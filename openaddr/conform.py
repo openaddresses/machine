@@ -85,17 +85,30 @@ geometry_types = {
 
 # extracts:
 # - '123' from '123 Main St'
+# - '123 1/2' from '123 1/2 Main St'
+# - '123-1/2' from '123-1/2 Main St'
+# - '123-1' from '123-1 Main St'
 # - '123a' from '123a Main St'
 # - '123-a' from '123-a Main St'
 # - '' from '3rd St' (the 3 belongs to the street, it's not a house number)
-prefixed_number_pattern = re.compile("^\s*(\d+-?(?:[A-Z]|\d+)?\\b)", re.IGNORECASE)
+# 
+# this regex can be optimized but number scenarios are much cleaner this way:
+# - just digits with optional fractional
+# - two groups of digits separated by a hyphen (for queens-style addresses, eg - 69-15 51st Ave) 
+# - digits and a letter, optionally separated by a hyphen
+prefixed_number_pattern = re.compile("^\s*(\d+(?:[ -]\d/\d)?|\d+-\d+|\d+-?[A-Z])\s+", re.IGNORECASE)
 
 # extracts:
 # - 'Main St' from '123 Main St'
+# - 'Main St' from '123 1/2 Main St'
+# - 'Main St' from '123-1/2 Main St'
+# - 'Main St' from '123-1 Main St'
 # - 'Main St' from '123a Main St'
 # - 'Main St' from '123-a Main St'
 # - 'Main St' from 'Main St'
-postfixed_street_pattern = re.compile("^\s*(?:\d+-?(?:[A-Z]|\d+)?\\b)?\s*(.*)", re.IGNORECASE)
+#
+# like prefixed_number_pattern, this regex can be optimized but this is cleaner
+postfixed_street_pattern = re.compile("^(?:\s*(?:\d+(?:[ -]\d/\d)?|\d+-\d+|\d+-?[A-Z])\s+)?(.*)", re.IGNORECASE)
 
 def mkdirsp(path):
     try:
