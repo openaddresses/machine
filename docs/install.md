@@ -58,7 +58,7 @@ This process should take 5-10 minutes depending on download speed.
 5.  Build the OpenAddresses packages using
     [virtualenv](https://packaging.python.org/installing/#creating-virtual-environments)
     and [pip](https://packaging.python.org/installing/#use-pip-for-installing).
-    The `-e` flag to `pip install` insures that your local copy of OpenAddresses
+    The `-e` flag to `pip install` ensures that your local copy of OpenAddresses
     is used, so that you can test changes to the code made in your own editor:
 
         pip3 install virtualenv
