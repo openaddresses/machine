@@ -99,7 +99,7 @@ class TestConformTransforms (unittest.TestCase):
             }
         } }
 
-        d = {"a1": "12", "a2": "34", "a3": "56", "b1": "1", "b2": "B", "b3": "3"}
+        d = {"a1": "12.0", "a2": "34", "a3": "56", "b1": "1", "b2": "B", "b3": "3"}
         e = copy.deepcopy(d)
         d = row_fxn_format(c, d, "number", c["conform"]["number"])
         d = row_fxn_format(c, d, "street", c["conform"]["street"])

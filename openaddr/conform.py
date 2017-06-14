@@ -1072,6 +1072,14 @@ def row_fxn_format(sd, row, key, fxn):
                 parts.append(format_str[idx:start])
 
             if field:
+                # if the value being added ends with '.0', remove it
+                # certain fields ending with '.0' are normalized by removing that 
+                #  suffix in row_canonicalize_unit_and_number but this isn't 
+                #  possible when not-the-last component fields submitted to the format 
+                #  function end with '.0'
+                if field.endswith(".0"):
+                    field = field[:-2]
+
                 parts.append(field)
                 num_fields_added += 1
 
