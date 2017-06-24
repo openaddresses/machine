@@ -1,4 +1,4 @@
-FROM openaddr/prereqs:6
+FROM openaddr/prereqs:v6
 
 # From chef/openaddr/recipes/default.rb
 COPY . /usr/local/src/openaddr
