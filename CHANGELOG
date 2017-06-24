@@ -1,3 +1,7 @@
+2017-06-24: 6.4.0
+- Added new "v"-prefixed Docker machine tags. (#654)
+- Fixed retry handling for run sample requests. (#653)
+
 2017-06-15: 6.3.3
 - Added support for fractional house numbers in prefixed_number and postfixed_street regexes. (#647)
 - Corrected spelling in install.md (#648)
