@@ -10,7 +10,7 @@ from datetime import datetime
 from dateutil.tz import tzutc
 from csv import DictWriter
 import json, os, base64
-import hashlib, hmac
+import hashlib, hmac, time
 
 import memcache, requests
 from jinja2 import Environment, FileSystemLoader
@@ -271,7 +271,18 @@ def app_get_run_sample(run_id):
         return Response('Run {} does not exist'.format(run_id), 404)
     
     sample_url = run.state.get('sample')
-    sample_data = requests.get(sample_url).json()
+    
+    try:
+        # Failed sample data requests sometimes result in S3 or HTTP errors.
+        sample_data = requests.get(sample_url).json()
+    except:
+        try:
+            # Try again in case of transient S3 or HTTP problem.
+            sample_data = requests.get(sample_url).json()
+        except:
+            # Try a third and last time after a short sleep.
+            time.sleep(.2)
+            sample_data = requests.get(sample_url).json()
     
     return render_template('run-sample.html', sample_data=sample_data or [])
 
