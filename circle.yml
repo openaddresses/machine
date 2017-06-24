@@ -5,6 +5,7 @@ machine:
 dependencies:
   pre:
     - cut -f1 -d. openaddr/VERSION > /tmp/MAJOR
+    - exit 1
     - docker pull openaddr/prereqs:v`cat /tmp/MAJOR` || true
   override:
     - docker build -f Dockerfile-prereqs -t openaddr/prereqs:v`cat /tmp/MAJOR` .
