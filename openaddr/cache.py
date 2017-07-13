@@ -312,9 +312,10 @@ class EsriRestDownloadTask(DownloadTask):
                 return set(v['fields'])
             elif v['function'] == 'chain':
                 fields = set()
+                user_vars = set([v['variable']])
                 for func in v['functions']:
                     if isinstance(func, dict) and 'function' in func:
-                        fields |= cls.fields_from_conform_value(func)
+                        fields |= cls.fields_from_conform_function(func) - user_vars
                 return fields
             else:
                 return set([v.get('field')])
