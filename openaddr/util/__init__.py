@@ -148,7 +148,7 @@ def get_pidlist(start_pid):
     
     for path in glob.glob('/proc/*/status'):
         _, _, pid, _ = path.split('/', 3)
-        if pid == 'self':
+        if pid in ['thread-self', 'self']:
             continue
         with open(path) as file:
             for line in file:
@@ -272,8 +272,11 @@ def log_current_usage(start_time, usercpu_prev, syscpu_prev, totcpu_prev, read_p
         megabytes_used = get_memory_usage(pidlist)
         user_cpu = (usercpu_curr - usercpu_prev) / (totcpu_curr - totcpu_prev)
         sys_cpu = (syscpu_curr - syscpu_prev) / (totcpu_curr - totcpu_prev)
-        read, written = read_curr - read_prev, written_curr - written_prev
-        sent, received = sent_curr - sent_prev, received_curr - received_prev
+        if read_curr is None or read_prev is None or written_curr is None or written_prev is None:
+            read = written = sent = received = 0
+        else:
+            read, written = read_curr - read_prev, written_curr - written_prev
+            sent, received = sent_curr - sent_prev, received_curr - received_prev
 
         percent, K = .01, 1024
         _L.info(RESOURCE_LOG_FORMAT.format(
