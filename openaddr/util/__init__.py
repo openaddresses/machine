@@ -148,7 +148,7 @@ def get_pidlist(start_pid):
     
     for path in glob.glob('/proc/*/status'):
         _, _, pid, _ = path.split('/', 3)
-        if pid in ['thread-self', 'self']:
+        if pid in ('thread-self', 'self'):
             continue
         with open(path) as file:
             for line in file:
