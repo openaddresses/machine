@@ -1,3 +1,6 @@
+2017-08-11: 6.4.1
+- Fixed bug in util.get_pidlist (#662)
+
 2017-06-24: 6.4.0
 - Added new "v"-prefixed Docker machine tags. (#654)
 - Fixed retry handling for run sample requests. (#653)
