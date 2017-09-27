@@ -107,11 +107,21 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual(d.get("OA:street", ""), "foo 1B-3 bar")
 
         d = copy.deepcopy(e)
+        d["a1"] = "12.0000000000"
         d["a2"] = None
         d["b3"] = None
         d = row_fxn_format(c, d, "number", c["conform"]["number"])
         d = row_fxn_format(c, d, "street", c["conform"]["street"])
         self.assertEqual(d.get("OA:number", ""), "12-56")
+        self.assertEqual(d.get("OA:street", ""), "foo 1B bar")
+
+        d = copy.deepcopy(e)
+        d["a1"] = "12.0000000000A"
+        d["a2"] = None
+        d["b3"] = None
+        d = row_fxn_format(c, d, "number", c["conform"]["number"])
+        d = row_fxn_format(c, d, "street", c["conform"]["street"])
+        self.assertEqual(d.get("OA:number", ""), "12A-56")
         self.assertEqual(d.get("OA:street", ""), "foo 1B bar")
 
     def test_row_fxn_chain(self):
@@ -279,6 +289,8 @@ class TestConformTransforms (unittest.TestCase):
         # Tests for integer conversion
         for e, a in (("324", " 324.0  "),
                      ("", ""),
+                     ("324", "324.0000000"),
+                     ("324A", "324.00000000A"),
                      ("3240", "3240"),
                      ("INVALID", "INVALID"),
                      ("324.5", "324.5")):
