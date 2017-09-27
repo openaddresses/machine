@@ -60,7 +60,7 @@ attrib_types = {
     'id':       'OA:id'
 }
 
-float_pattern = re.compile('(?<=[0-9])\.0+')
+float_pattern = re.compile('(?<=[0-9])\.0+(?![0-9])')
 
 var_types = attrib_types.copy()
 
