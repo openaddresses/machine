@@ -60,6 +60,8 @@ attrib_types = {
     'id':       'OA:id'
 }
 
+float_pattern = re.compile('(?<=[0-9])\.0+')
+
 var_types = attrib_types.copy()
 
 UNZIPPED_DIRNAME = 'unzipped'
@@ -1072,13 +1074,12 @@ def row_fxn_format(sd, row, key, fxn):
                 parts.append(format_str[idx:start])
 
             if field:
-                # if the value being added ends with '.0', remove it
-                # certain fields ending with '.0' are normalized by removing that 
+                # if the value being added ends with '.0+', remove it
+                # certain fields ending with '.0+' are normalized by removing that
                 #  suffix in row_canonicalize_unit_and_number but this isn't 
                 #  possible when not-the-last component fields submitted to the format 
-                #  function end with '.0'
-                if field.endswith(".0"):
-                    field = field[:-2]
+                #  function end with '.0+'
+                field = float_pattern.sub('', field)
 
                 parts.append(field)
                 num_fields_added += 1
@@ -1116,9 +1117,7 @@ def row_fxn_chain(sd, row, key, fxn):
 def row_canonicalize_unit_and_number(sd, row):
     "Canonicalize address unit and number"
     row["UNIT"] = (row["UNIT"] or '').strip()
-    row["NUMBER"] = (row["NUMBER"] or '').strip()
-    if row["NUMBER"].endswith(".0"):
-        row["NUMBER"] = row["NUMBER"][:-2]
+    row["NUMBER"] = float_pattern.sub('', (row["NUMBER"] or '').strip())
     row["STREET"] = (row["STREET"] or '').strip()
     return row
 
