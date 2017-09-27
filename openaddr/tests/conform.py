@@ -70,19 +70,26 @@ class TestConformTransforms (unittest.TestCase):
                 "function": "join",
                 "fields": ["b1","b2"],
                 "separator": "-"
+            },
+            "unit": {
+                "function": "join",
+                "fields": ["c1", "c2"],
+                "separator": ""
             }
         } }
-        d = { "a1": "va1", "b1": "vb1", "b2": "vb2" }
+        d = { "a1": "val1", "b1": "vb1", "b2": "vb2", "c1": "12.0", "c2": "A"}
         e = copy.deepcopy(d)
-        e.update({ "OA:number": "va1", "OA:street": "vb1-vb2" })
+        e.update({ "OA:number": "val1", "OA:street": "vb1-vb2", "OA:unit": "12A" })
         d = row_fxn_join(c, d, "number", c["conform"]["number"])
         d = row_fxn_join(c, d, "street", c["conform"]["street"])
+        d = row_fxn_join(c, d, "unit", c["conform"]["unit"])
         self.assertEqual(e, d)
-        d = { "a1": "va1", "b1": "vb1", "b2": None}
+        d = { "a1": "va1", "b1": "vb1", "b2": None, "c1": "12.00000", "c2": None}
         e = copy.deepcopy(d)
-        e.update({ "OA:number": "va1", "OA:street": "vb1" })
+        e.update({ "OA:number": "va1", "OA:street": "vb1", "OA:unit": "12"})
         d = row_fxn_join(c, d, "number", c["conform"]["number"])
         d = row_fxn_join(c, d, "street", c["conform"]["street"])
+        d = row_fxn_join(c, d, "unit", c["conform"]["unit"])
         self.assertEqual(e, d)
 
     def test_row_fxn_format(self):

@@ -999,7 +999,7 @@ def row_fxn_join(sd, row, key, fxn):
     "Create new columns by merging arbitrary other columns with a separator"
     separator = fxn.get("separator", " ")
     try:
-        fields = [(row[n] or u'').strip() for n in fxn["fields"]]
+        fields = [float_pattern.sub(u'', (row[n] or u'').strip()) for n in fxn["fields"]]
         row[var_types[key]] = separator.join([f for f in fields if f])
     except Exception as e:
         _L.debug("Failure to merge row %r %s", e, row)
@@ -1079,7 +1079,7 @@ def row_fxn_format(sd, row, key, fxn):
                 #  suffix in row_canonicalize_unit_and_number but this isn't 
                 #  possible when not-the-last component fields submitted to the format 
                 #  function end with '.0+'
-                field = float_pattern.sub('', field)
+                field = float_pattern.sub(u'', field)
 
                 parts.append(field)
                 num_fields_added += 1
@@ -1117,7 +1117,7 @@ def row_fxn_chain(sd, row, key, fxn):
 def row_canonicalize_unit_and_number(sd, row):
     "Canonicalize address unit and number"
     row["UNIT"] = (row["UNIT"] or '').strip()
-    row["NUMBER"] = float_pattern.sub('', (row["NUMBER"] or '').strip())
+    row["NUMBER"] = float_pattern.sub(u'', (row["NUMBER"] or u'').strip())
     row["STREET"] = (row["STREET"] or '').strip()
     return row
 
