@@ -110,6 +110,40 @@ prefixed_number_pattern = re.compile("^\s*(\d+(?:[ -]\d/\d)?|\d+-\d+|\d+-?[A-Z])
 # like prefixed_number_pattern, this regex can be optimized but this is cleaner
 postfixed_street_pattern = re.compile("^(?:\s*(?:\d+(?:[ -]\d/\d)?|\d+-\d+|\d+-?[A-Z])\s+)?(.*)", re.IGNORECASE)
 
+# extracts:
+# - 'Main Street' from '123 Main Street Unit 3'
+# - 'Main Street' from '123 Main Street Apartment 3'
+# - 'Main Street' from '123 Main Street Apt 3'
+# - 'Main Street' from '123 Main Street Apt. 3'
+# - 'Main Street' from '123 Main Street Suite 3'
+# - 'Main Street' from '123 Main Street Ste 3'
+# - 'Main Street' from '123 Main Street Ste. 3'
+# - 'Main Street' from '123 Main Street Building 3'
+# - 'Main Street' from '123 Main Street Bldg 3'
+# - 'Main Street' from '123 Main Street Bldg. 3'
+# - 'Main Street' from '123 Main Street Lot 3'
+# - 'Main Street' from '123 Main Street #3'
+# - 'Main Street' from '123 Main Street # 3'
+# This regex contains 3 groups: optional house number, street, optional unit
+# only street is a matching group, house number and unit are non-matching
+postfixed_street_with_units_pattern = re.compile("^(?:\s*(?:\d+(?:[ -]\d/\d)?|\d+-\d+|\d+-?[A-Z])\s+)?(.+?)(?:\s+(?:(?:UNIT|APARTMENT|APT\.?|SUITE|STE\.?|BUILDING|BLDG\.?|LOT)\s+|#).+)?$", re.IGNORECASE)
+
+# extracts:
+# - 'Unit 3' from 'Main Street Unit 3'
+# - 'Apartment 3' from 'Main Street Apartment 3'
+# - 'Apt 3' from 'Main Street Apt 3'
+# - 'Apt. 3' from 'Main Street Apt. 3'
+# - 'Suite 3' from 'Main Street Suite 3'
+# - 'Ste 3' from 'Main Street Ste 3'
+# - 'Ste. 3' from 'Main Street Ste. 3'
+# - 'Building 3' from 'Main Street Building 3'
+# - 'Bldg 3' from 'Main Street Bldg 3'
+# - 'Bldg. 3' from 'Main Street Bldg. 3'
+# - 'Lot 3' from 'Main Street Lot 3'
+# - '#3' from 'Main Street #3'
+# - '# 3' from 'Main Street # 3'
+postfixed_unit_pattern = re.compile("\s((?:(?:UNIT|APARTMENT|APT\.?|SUITE|STE\.?|BUILDING|BLDG\.?|LOT)\s+|#).+)$", re.IGNORECASE)
+
 def mkdirsp(path):
     try:
         os.makedirs(path)
@@ -914,6 +948,8 @@ def row_function(sd, row, key, fxn):
         row = row_fxn_prefixed_number(sd, row, key, fxn)
     elif function == "postfixed_street":
         row = row_fxn_postfixed_street(sd, row, key, fxn)
+    elif function == "postfixed_unit":
+        row = row_fxn_postfixed_unit(sd, row, key, fxn)
     elif function == "remove_prefix":
         row = row_fxn_remove_prefix(sd, row, key, fxn)
     elif function == "remove_postfix":
@@ -1026,7 +1062,21 @@ def row_fxn_prefixed_number(sd, row, key, fxn):
 def row_fxn_postfixed_street(sd, row, key, fxn):
     "Extract 'Maple St' from '123 Maple St'"
 
-    match = postfixed_street_pattern.search(row[fxn["field"]])
+    may_contain_units = fxn.get('may_contain_units', False)
+
+    if may_contain_units:
+        match = postfixed_street_with_units_pattern.search(row[fxn["field"]])
+    else:
+        match = postfixed_street_pattern.search(row[fxn["field"]])
+    
+    row[var_types[key]] = ''.join(match.groups()) if match else '';
+
+    return row
+
+def row_fxn_postfixed_unit(sd, row, key, fxn):
+    "Extract 'Suite 300' from '123 Maple St Suite 300'"
+
+    match = postfixed_unit_pattern.search(row[fxn["field"]])
     row[var_types[key]] = ''.join(match.groups()) if match else '';
 
     return row
