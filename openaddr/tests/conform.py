@@ -766,7 +766,6 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)        
 
-
         "APARTMENT-style unit"
         c = { "conform": {
             "street": {
@@ -781,7 +780,6 @@ class TestConformTransforms (unittest.TestCase):
 
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)        
-
 
         "APT-style unit"
         c = { "conform": {
@@ -798,7 +796,6 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)        
 
-
         "APT.-style unit"
         c = { "conform": {
             "street": {
@@ -813,7 +810,6 @@ class TestConformTransforms (unittest.TestCase):
 
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)        
-
 
         "SUITE-style unit"
         c = { "conform": {
@@ -830,7 +826,6 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)        
 
-
         "STE-style unit"
         c = { "conform": {
             "street": {
@@ -845,7 +840,6 @@ class TestConformTransforms (unittest.TestCase):
 
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)        
-
 
         "STE.-style unit"
         c = { "conform": {
@@ -862,7 +856,6 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)        
 
-
         "BUILDING-style unit"
         c = { "conform": {
             "street": {
@@ -877,7 +870,6 @@ class TestConformTransforms (unittest.TestCase):
 
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)        
-
 
         "BLDG-style unit"
         c = { "conform": {
@@ -894,7 +886,6 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)        
 
-
         "BLDG.-style unit"
         c = { "conform": {
             "street": {
@@ -909,7 +900,6 @@ class TestConformTransforms (unittest.TestCase):
 
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)        
-
 
         "LOT-style unit"
         c = { "conform": {
@@ -926,7 +916,6 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)        
 
-
         "#-style unit"
         c = { "conform": {
             "street": {
@@ -942,6 +931,20 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)        
 
+        "no unit"
+        c = { "conform": {
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS",
+                "may_contain_units": True
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "MAPLE ST" })
+
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
 
     def test_row_fxn_postfixed_unit(self): 
         "postfixed_unit - UNIT-style"
@@ -955,6 +958,9 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "Unit 300" })
         
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+
         "postfixed_unit - UNIT is word ending"
         c = { "conform": {
             "unit": {
@@ -966,6 +972,9 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "" })
         
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+                
         "postfixed_unit - APARTMENT-style"
         c = { "conform": {
             "unit": {
@@ -1047,6 +1056,9 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "Ste 300" })
         
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+                
         "postfixed_unit - STE is word ending"
         c = { "conform": {
             "unit": {
@@ -1128,6 +1140,9 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "Lot 300" })
         
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+                
         "postfixed_unit - LOT is word ending"
         c = { "conform": {
             "unit": {
@@ -1166,6 +1181,20 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street #300" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "#300" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+
+        "postfixed_unit - no unit"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "" })
         
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
         self.assertEqual(e, d)        
