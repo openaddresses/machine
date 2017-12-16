@@ -86,7 +86,7 @@ setup(
         'pq == 1.4',
         
         # http://initd.org/psycopg/
-        'psycopg2 == 2.6.2',
+        'psycopg2 == 2.7.3.2',
         
         # http://docs.python-requests.org/en/master/
         'requests == 2.11.1',
@@ -108,7 +108,7 @@ setup(
         'itsdangerous == 0.24',
 
         # https://pypi.python.org/pypi/python-memcached
-        'python3-memcached == 1.51',
+        'python-memcached == 1.59',
 
         ]
 )
