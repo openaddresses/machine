@@ -1014,6 +1014,18 @@ def conform_smash_case(source_definition):
             if "field_to_remove" in conform[k]:
                 conform[k]["field_to_remove"] = conform[k]["field_to_remove"].lower()
 
+            if "functions" in conform[k] and type(conform[k]["functions"]) is list:
+                for function in conform[k]["functions"]:
+                    if type(function) is dict:
+                        if "field" in function:
+                            function["field"] = function["field"].lower()
+
+                        if "fields" in function:
+                            function["fields"] = [s.lower() for s in function["fields"]]
+
+                        if "field_to_remove" in function:
+                            function["field_to_remove"] = function["field_to_remove"].lower()
+
     if "advanced_merge" in conform:
         raise ValueError('Found unsupported "advanced_merge" option in conform')
     return new_sd
