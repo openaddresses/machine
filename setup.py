@@ -107,6 +107,9 @@ setup(
         # http://pythonhosted.org/itsdangerous/
         'itsdangerous == 0.24',
 
+        # http://ftfy.readthedocs.io/en/latest/
+        'ftfy == 4.3.1',
+
         # https://pypi.python.org/pypi/python-memcached
         'python-memcached == 1.59',
 
