@@ -198,12 +198,25 @@ def get_mapbox_features(xmin, ymin, xmax, ymax, resolution, scale, mapbox_key):
     
     landuse_geoms, water_geoms, roads_geoms = list(), list(), list()
     
-    def get_transform(extent, ulx, uly, lrx, lry):
-        mx, bx = (lrx - ulx) / extent, ulx
-        my, by = (lry - uly) / extent, uly
+    def tile_bounds(row, col, zoom):
+        ''' Get Mercator points for corners of this tile.
+        '''
+        ulx = EARTH_DIAMETER * (col / 2**zoom - 1/2)
+        uly = EARTH_DIAMETER * (1/2 - row / 2**zoom)
+        lrx = EARTH_DIAMETER * ((col + 1) / 2**zoom - 1/2)
+        lry = EARTH_DIAMETER * (1/2 - (row + 1) / 2**zoom)
+        return ulx, uly, lrx, lry
+    
+    def get_transform(extent, xmin, uly, lrx, lry):
+        ''' Get scale and offset coefficients for tile coordinates.
+        '''
+        mx, bx = (lrx - xmin) / extent, xmin
+        my, by = (uly - lry) / extent, lry
         return mx, bx, my, by
 
     def projected_geom(geometry, mx, bx, my, by):
+        ''' Get an OGR geometry for a tiled GeoJSON-like geometry.
+        '''
         if geometry['type'] in ('MultiPolygon', ):
             coordinates = [[[(mx * x + bx, my * y + by)
                 for (x, y) in ring] for ring in part] for part in geometry['coordinates']]
@@ -219,35 +232,32 @@ def get_mapbox_features(xmin, ymin, xmax, ymax, resolution, scale, mapbox_key):
         return geom
     
     for (row, col) in row_cols:
-        # Mercator point for upper-left corner of this tile
-        ulx = EARTH_DIAMETER * (col / 2**zoom - 1/2)
-        uly = EARTH_DIAMETER * (1/2 - row / 2**zoom)
-        lrx = EARTH_DIAMETER * ((col + 1) / 2**zoom - 1/2)
-        lry = EARTH_DIAMETER * (1/2 - (row + 1) / 2**zoom)
-    
         url = uritemplate.expand(MAPBOX_TILE_URL, dict(z=zoom, x=col, y=row, access_token=mapbox_key))
         got = requests.get(url)
-        geodata = mapbox_vector_tile.decode(got.content)
+        tile = mapbox_vector_tile.decode(got.content)
+        bounds = tile_bounds(row, col, zoom)
         
-        landuse_xform = get_transform(geodata['landuse']['extent'], ulx, uly, lrx, lry)
-
-        for feature in geodata['landuse']['features']:
-            if 'Polygon' in feature['geometry']['type']:
-                if feature['properties'].get('class') in ('cemetery', 'forest', 'golf_course', 'grave_yard', 'meadow', 'park', 'pitch', 'wood'):
-                    landuse_geoms.append(projected_geom(feature['geometry'], *landuse_xform))
+        if 'landuse' in tile:
+            landuse_xform = get_transform(tile['landuse']['extent'], *bounds)
+            for feature in tile['landuse']['features']:
+                if 'Polygon' in feature['geometry']['type']:
+                    if feature['properties'].get('class') in ('cemetery', 'forest', 'golf_course', 'grave_yard', 'meadow', 'park', 'pitch', 'wood'):
+                        landuse_geoms.append(projected_geom(feature['geometry'], *landuse_xform))
     
-        water_xform = get_transform(geodata['water']['extent'], ulx, uly, lrx, lry)
+        if 'water' in tile:
+            water_xform = get_transform(tile['water']['extent'], *bounds)
+            for feature in tile['water']['features']:
+                if 'Polygon' in feature['geometry']['type']:
+                    water_geoms.append(projected_geom(feature['geometry'], *water_xform))
 
-        for feature in geodata['water']['features']:
-            if 'Polygon' in feature['geometry']['type']:
-                water_geoms.append(projected_geom(feature['geometry'], *water_xform))
+        if 'road' in tile:
+            road_xform = get_transform(tile['road']['extent'], *bounds)
+            for feature in tile['road']['features']:
+                if 'LineString' in feature['geometry']['type']:
+                    if feature['properties'].get('class') in ('motorway', 'motorway_link', 'trunk', 'primary', 'secondary', 'tertiary', 'link', 'street', 'street_limited', 'pedestrian', 'construction', 'track', 'service', 'major_rail', 'minor_rail'):
+                        roads_geoms.append(projected_geom(feature['geometry'], *road_xform))
 
-        road_xform = get_transform(geodata['road']['extent'], ulx, uly, lrx, lry)
-
-        for feature in geodata['road']['features']:
-            if 'LineString' in feature['geometry']['type']:
-                if feature['properties'].get('class') in ('motorway', 'motorway_link', 'trunk', 'primary', 'secondary', 'tertiary', 'link', 'street', 'street_limited', 'pedestrian', 'construction', 'track', 'service', 'major_rail', 'minor_rail'):
-                    roads_geoms.append(projected_geom(feature['geometry'], *road_xform))
+        _L.debug('Getting tile {}'.format(url))
 
     return landuse_geoms, water_geoms, roads_geoms
 
