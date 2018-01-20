@@ -20,8 +20,7 @@ except ImportError:
     # http://stackoverflow.com/questions/11491268/install-pycairo-in-virtualenv
     import cairocffi as cairo
 
-TILE_URL = 'http://tile.mapzen.com/mapzen/vector/v1/all/{z}/{x}/{y}.json{?api_key}'
-MAPBOX_TILE_URL = 'http://a.tiles.mapbox.com/v4/mapbox.mapbox-streets-v7/{z}/{x}/{y}.mvt{?access_token}'
+TILE_URL = 'http://a.tiles.mapbox.com/v4/mapbox.mapbox-streets-v7/{z}/{x}/{y}.mvt{?access_token}'
 EARTH_DIAMETER = 6378137 * 2 * pi
 FORMAT = 'ff'
 
@@ -31,7 +30,7 @@ EPSG4326 = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs'
 # Web Mercator, https://trac.osgeo.org/openlayers/wiki/SphericalMercator
 EPSG900913 = '+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs'
 
-def render(filename_or_url, png_filename, width, resolution, mapzen_key):
+def render(filename_or_url, png_filename, width, resolution, mapbox_key):
     '''
     '''
     src_filename = get_local_filename(filename_or_url)
@@ -69,7 +68,7 @@ def render(filename_or_url, png_filename, width, resolution, mapzen_key):
     context.fill()
     
     landuse_geoms, water_geoms, roads_geoms = \
-        get_map_features(xmin, ymin, xmax, ymax, resolution, scale, mapzen_key)
+        get_map_features(xmin, ymin, xmax, ymax, resolution, scale, mapbox_key)
     
     fill_geometries(context, landuse_geoms, muppx, park_fill)
     fill_geometries(context, water_geoms, muppx, water_fill)
@@ -141,50 +140,7 @@ def iterate_file_lonlats(filename):
             if -180 <= lon <= 180 and -90 <= lat <= 90:
                 yield (lon, lat)
 
-def get_map_features(xmin, ymin, xmax, ymax, resolution, scale, mapzen_key):
-    '''
-    '''
-    zoom = round(calculate_zoom(scale, resolution))
-    mincol = 2**zoom * (xmin + EARTH_DIAMETER/2) / EARTH_DIAMETER
-    minrow = 2**zoom * (EARTH_DIAMETER/2 - ymax) / EARTH_DIAMETER
-    maxcol = 2**zoom * (xmax + EARTH_DIAMETER/2) / EARTH_DIAMETER
-    maxrow = 2**zoom * (EARTH_DIAMETER/2 - ymin) / EARTH_DIAMETER
-    
-    row_cols = itertools.product(range(int(minrow), int(maxrow) + 1),
-                                 range(int(mincol), int(maxcol) + 1))
-
-    landuse_geoms, water_geoms, roads_geoms = list(), list(), list()
-    project = get_projection()
-    
-    def projected_geom(feature):
-        geom = ogr.CreateGeometryFromJson(json.dumps(feature['geometry']))
-        geom.Transform(project)
-        return geom
-    
-    for (row, col) in row_cols:
-        url = uritemplate.expand(TILE_URL, dict(z=zoom, x=col, y=row, api_key=mapzen_key))
-        got = requests.get(url)
-
-        for feature in got.json()['landuse']['features']:
-            if 'Polygon' in feature['geometry']['type']:
-                if feature['properties'].get('kind') in ('cemetery', 'forest', 'golf_course', 'grave_yard', 'meadow', 'park', 'pitch', 'wood'):
-                    landuse_geoms.append(projected_geom(feature))
-
-        for feature in got.json()['water']['features']:
-            if 'Polygon' in feature['geometry']['type']:
-                if feature['properties']['kind'] in ('basin', 'lake', 'ocean', 'riverbank', 'water'):
-                    water_geoms.append(projected_geom(feature))
-
-        for feature in got.json()['roads']['features']:
-            if 'LineString' in feature['geometry']['type']:
-                if feature['properties']['kind'] in ('highway', 'major_road', 'minor_road', 'rail', 'path'):
-                    roads_geoms.append(projected_geom(feature))
-
-        _L.debug('Getting tile {}'.format(url))
-    
-    return landuse_geoms, water_geoms, roads_geoms
-
-def get_mapbox_features(xmin, ymin, xmax, ymax, resolution, scale, mapbox_key):
+def get_map_features(xmin, ymin, xmax, ymax, resolution, scale, mapbox_key):
     '''
     '''
     zoom = round(calculate_zoom(scale, resolution))
@@ -232,7 +188,7 @@ def get_mapbox_features(xmin, ymin, xmax, ymax, resolution, scale, mapbox_key):
         return geom
     
     for (row, col) in row_cols:
-        url = uritemplate.expand(MAPBOX_TILE_URL, dict(z=zoom, x=col, y=row, access_token=mapbox_key))
+        url = uritemplate.expand(TILE_URL, dict(z=zoom, x=col, y=row, access_token=mapbox_key))
         got = requests.get(url)
         tile = mapbox_vector_tile.decode(got.content)
         bounds = tile_bounds(row, col, zoom)
@@ -469,8 +425,8 @@ parser.add_argument('--1x', dest='resolution', action='store_const', const=1,
 parser.add_argument('--width', dest='width', type=int,
                     help='Width in pixels.')
 
-parser.add_argument('--mapzen-key', dest='mapzen_key',
-                    help='Mapzen API Key. See: https://mapzen.com/documentation/overview/')
+parser.add_argument('--mapbox-key', dest='mapbox_key',
+                    help='Mapbox API Key. See: https://mapbox.com/')
 
 parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
                     action='store_const', dest='loglevel',
@@ -484,7 +440,7 @@ def main():
     args = parser.parse_args()
     from .ci import setup_logger
     setup_logger(None, None, log_level=args.loglevel)
-    render(args.src_filename, args.png_filename, args.width, args.resolution, args.mapzen_key)
+    render(args.src_filename, args.png_filename, args.width, args.resolution, args.mapbox_key)
 
 if __name__ == '__main__':
     exit(main())

@@ -45,11 +45,11 @@ class TestPreview (unittest.TestCase):
         '''
         '''
         def response_content(url, request):
-            if url.hostname == 'tile.mapzen.com' and url.path.startswith('/mapzen/vector/v1'):
-                if 'api_key=mapzen-XXXX' not in url.query:
+            if url.hostname == 'a.tiles.mapbox.com' and url.path.startswith('/v4/mapbox.mapbox-streets-v7'):
+                if 'access_token=mapbox-XXXX' not in url.query:
                     raise ValueError('Missing or wrong API key')
-                data = b'{"landuse": {"features": []}, "water": {"features": []}, "roads": {"features": []}}'
-                return response(200, data, headers={'Content-Type': 'application/json'})
+                data = b'\x1a\'x\x02\n\x05water(\x80 \x12\x19\x18\x03"\x13\t\xe0\x7f\xff\x1f\x1a\x00\xe0\x9f\x01\xdf\x9f\x01\x00\x00\xdf\x9f\x01\x0f\x08\x00'
+                return response(200, data, headers={'Content-Type': 'application/vnd.mapbox-vector-tile'})
             raise Exception("Uknown URL")
 
         zip_filename = join(dirname(__file__), 'outputs', 'alameda.zip')
@@ -58,7 +58,7 @@ class TestPreview (unittest.TestCase):
 
         try:
             with HTTMock(response_content):
-                preview.render(zip_filename, png_filename, 668, 1, 'mapzen-XXXX')
+                preview.render(zip_filename, png_filename, 668, 1, 'mapbox-XXXX')
             info = str(subprocess.check_output(('file', png_filename)))
 
             self.assertTrue('PNG image data' in info)
@@ -71,11 +71,11 @@ class TestPreview (unittest.TestCase):
         '''
         '''
         def response_content(url, request):
-            if url.hostname == 'tile.mapzen.com' and url.path.startswith('/mapzen/vector/v1'):
-                if 'api_key=mapzen-XXXX' not in url.query:
+            if url.hostname == 'a.tiles.mapbox.com' and url.path.startswith('/v4/mapbox.mapbox-streets-v7'):
+                if 'access_token=mapbox-XXXX' not in url.query:
                     raise ValueError('Missing or wrong API key')
-                data = b'{"landuse": {"features": []}, "water": {"features": []}, "roads": {"features": []}}'
-                return response(200, data, headers={'Content-Type': 'application/json'})
+                data = b'\x1a\'x\x02\n\x05water(\x80 \x12\x19\x18\x03"\x13\t\xe0\x7f\xff\x1f\x1a\x00\xe0\x9f\x01\xdf\x9f\x01\x00\x00\xdf\x9f\x01\x0f\x08\x00'
+                return response(200, data, headers={'Content-Type': 'application/vnd.mapbox-vector-tile'})
             raise Exception("Uknown URL")
 
         zip_filename = join(dirname(__file__), 'outputs', 'portland_metro.zip')
@@ -91,7 +91,7 @@ class TestPreview (unittest.TestCase):
                 csv_filename = file.name
         
             with HTTMock(response_content):
-                preview.render(csv_filename, png_filename, 668, 1, 'mapzen-XXXX')
+                preview.render(csv_filename, png_filename, 668, 1, 'mapbox-XXXX')
             info = str(subprocess.check_output(('file', png_filename)))
 
             self.assertTrue('PNG image data' in info)
@@ -102,7 +102,7 @@ class TestPreview (unittest.TestCase):
             os.remove(csv_filename)
             os.rmdir(temp_dir)
     
-    def test_get_mapbox_features(self):
+    def test_get_map_features(self):
         '''
         '''
         def response_content(url, request):
@@ -119,7 +119,7 @@ class TestPreview (unittest.TestCase):
         
         with HTTMock(response_content):
             landuse_geoms, water_geoms, roads_geoms = \
-                preview.get_mapbox_features(xmin, ymin, xmax, ymax, 2, scale, 'mapbox-XXXX')
+                preview.get_map_features(xmin, ymin, xmax, ymax, 2, scale, 'mapbox-XXXX')
         
         self.assertEqual(len(landuse_geoms), 90, 'Should have 90 landuse geometries')
         self.assertEqual(len(water_geoms), 1, 'Should have 1 water geometry')
