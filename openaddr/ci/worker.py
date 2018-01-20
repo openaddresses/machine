@@ -30,8 +30,8 @@ parser.add_argument('-d', '--database-url', default=os.environ.get('DATABASE_URL
 parser.add_argument('--sns-arn', default=os.environ.get('AWS_SNS_ARN', None),
                     help='Optional AWS Simple Notification Service (SNS) resource. Defaults to value of AWS_SNS_ARN environment variable.')
 
-parser.add_argument('--mapzen-key', default=os.environ.get('MAPZEN_KEY', None),
-                    help='Mapzen API Key. Defaults to value of MAPZEN_KEY environment variable. See: https://mapzen.com/documentation/overview/')
+parser.add_argument('--mapbox-key', default=os.environ.get('MAPBOX_KEY', None),
+                    help='Mapbox API Key. Defaults to value of MAPBOX_KEY environment variable. See: https://mapbox.com/')
 
 parser.add_argument('-v', '--verbose', help='Turn on verbose logging',
                     action='store_const', dest='loglevel',
@@ -61,7 +61,7 @@ def main():
                 due_Q = db_queue(conn, DUE_QUEUE)
                 beat_Q = db_queue(conn, HEARTBEAT_QUEUE)
                 pop_task_from_taskqueue(s3, task_Q, done_Q, due_Q, beat_Q,
-                                        worker_dir, args.mapzen_key)
+                                        worker_dir, args.mapbox_key)
             connection.close()
         except:
             _L.error('Error in worker main()', exc_info=True)
