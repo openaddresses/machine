@@ -10,7 +10,7 @@ from argparse import ArgumentParser
 from urllib.parse import urlparse
 import json, itertools, os, struct
 
-import requests, uritemplate
+import requests, uritemplate, mapbox_vector_tile
 
 from osgeo import osr, ogr
 
@@ -21,6 +21,7 @@ except ImportError:
     import cairocffi as cairo
 
 TILE_URL = 'http://tile.mapzen.com/mapzen/vector/v1/all/{z}/{x}/{y}.json{?api_key}'
+MAPBOX_TILE_URL = 'http://a.tiles.mapbox.com/v4/mapbox.mapbox-streets-v7/{z}/{x}/{y}.mvt{?access_token}'
 EARTH_DIAMETER = 6378137 * 2 * pi
 FORMAT = 'ff'
 
@@ -181,6 +182,73 @@ def get_map_features(xmin, ymin, xmax, ymax, resolution, scale, mapzen_key):
 
         _L.debug('Getting tile {}'.format(url))
     
+    return landuse_geoms, water_geoms, roads_geoms
+
+def get_mapbox_features(xmin, ymin, xmax, ymax, resolution, scale, mapbox_key):
+    '''
+    '''
+    zoom = round(calculate_zoom(scale, resolution))
+    mincol = 2**zoom * (xmin + EARTH_DIAMETER/2) / EARTH_DIAMETER
+    minrow = 2**zoom * (EARTH_DIAMETER/2 - ymax) / EARTH_DIAMETER
+    maxcol = 2**zoom * (xmax + EARTH_DIAMETER/2) / EARTH_DIAMETER
+    maxrow = 2**zoom * (EARTH_DIAMETER/2 - ymin) / EARTH_DIAMETER
+    
+    row_cols = itertools.product(range(int(minrow), int(maxrow) + 1),
+                                 range(int(mincol), int(maxcol) + 1))
+    
+    landuse_geoms, water_geoms, roads_geoms = list(), list(), list()
+    
+    def get_transform(extent, ulx, uly, lrx, lry):
+        mx, bx = (lrx - ulx) / extent, ulx
+        my, by = (lry - uly) / extent, uly
+        return mx, bx, my, by
+
+    def projected_geom(geometry, mx, bx, my, by):
+        if geometry['type'] in ('MultiPolygon', ):
+            coordinates = [[[(mx * x + bx, my * y + by)
+                for (x, y) in ring] for ring in part] for part in geometry['coordinates']]
+        elif geometry['type'] in ('Polygon', 'MultiLineString'):
+            coordinates = [[(mx * x + bx, my * y + by)
+                for (x, y) in part] for part in geometry['coordinates']]
+        elif geometry['type'] in ('LineString'):
+            coordinates = [(mx * x + bx, my * y + by)
+                for (x, y) in geometry['coordinates']]
+        else:
+            raise ValueError(geometry['type'])
+        geom = ogr.CreateGeometryFromJson(json.dumps(dict(type=geometry['type'], coordinates=coordinates)))
+        return geom
+    
+    for (row, col) in row_cols:
+        # Mercator point for upper-left corner of this tile
+        ulx = EARTH_DIAMETER * (col / 2**zoom - 1/2)
+        uly = EARTH_DIAMETER * (1/2 - row / 2**zoom)
+        lrx = EARTH_DIAMETER * ((col + 1) / 2**zoom - 1/2)
+        lry = EARTH_DIAMETER * (1/2 - (row + 1) / 2**zoom)
+    
+        url = uritemplate.expand(MAPBOX_TILE_URL, dict(z=zoom, x=col, y=row, access_token=mapbox_key))
+        got = requests.get(url)
+        geodata = mapbox_vector_tile.decode(got.content)
+        
+        landuse_xform = get_transform(geodata['landuse']['extent'], ulx, uly, lrx, lry)
+
+        for feature in geodata['landuse']['features']:
+            if 'Polygon' in feature['geometry']['type']:
+                if feature['properties'].get('class') in ('cemetery', 'forest', 'golf_course', 'grave_yard', 'meadow', 'park', 'pitch', 'wood'):
+                    landuse_geoms.append(projected_geom(feature['geometry'], *landuse_xform))
+    
+        water_xform = get_transform(geodata['water']['extent'], ulx, uly, lrx, lry)
+
+        for feature in geodata['water']['features']:
+            if 'Polygon' in feature['geometry']['type']:
+                water_geoms.append(projected_geom(feature['geometry'], *water_xform))
+
+        road_xform = get_transform(geodata['road']['extent'], ulx, uly, lrx, lry)
+
+        for feature in geodata['road']['features']:
+            if 'LineString' in feature['geometry']['type']:
+                if feature['properties'].get('class') in ('motorway', 'motorway_link', 'trunk', 'primary', 'secondary', 'tertiary', 'link', 'street', 'street_limited', 'pedestrian', 'construction', 'track', 'service', 'major_rail', 'minor_rail'):
+                    roads_geoms.append(projected_geom(feature['geometry'], *road_xform))
+
     return landuse_geoms, water_geoms, roads_geoms
 
 def get_projection():

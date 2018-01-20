@@ -101,3 +101,28 @@ class TestPreview (unittest.TestCase):
             os.remove(png_filename)
             os.remove(csv_filename)
             os.rmdir(temp_dir)
+    
+    def test_get_mapbox_features(self):
+        '''
+        '''
+        def response_content(url, request):
+            if url.hostname == 'a.tiles.mapbox.com' and url.path.startswith('/v4/mapbox.mapbox-streets-v7'):
+                if 'access_token=mapbox-XXXX' not in url.query:
+                    raise ValueError('Missing or wrong API key')
+                with open(join(dirname(__file__), 'data', 'mapbox-tile.mvt'), 'rb') as file:
+                    data = file.read()
+                return response(200, data, headers={'Content-Type': 'application/vnd.mapbox-vector-tile'})
+            raise Exception("Uknown URL")
+        
+        xmin, ymin, xmax, ymax = -13611952, 4551290, -13609564, 4553048
+        scale = 100 / (xmax - xmin)
+        
+        with HTTMock(response_content):
+            landuse_geoms, water_geoms, roads_geoms = \
+                preview.get_mapbox_features(xmin, ymin, xmax, ymax, 2, scale, 'mapbox-XXXX')
+        
+        self.assertEqual(len(landuse_geoms), 90, 'Should have 90 landuse geometries')
+        self.assertEqual(len(water_geoms), 1, 'Should have 1 water geometry')
+        self.assertEqual(len(roads_geoms), 792, 'Should have 792 road geometries')
+        
+        
