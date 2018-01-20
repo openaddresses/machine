@@ -1,3 +1,6 @@
+2017-01-19: 6.5.0
+- Replace Mapzen vector tiles with Mapbox vector tiles for Github preview images. (#678)
+
 2017-12-16: 6.4.3
 - Updated Python dependencies. (#676)
 - Ensured compound functions are conform smash cased. (#677)
