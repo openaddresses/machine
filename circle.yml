@@ -6,7 +6,7 @@ dependencies:
   pre:
     - cut -f1 -d. openaddr/VERSION > /tmp/MAJOR
     - docker pull ubuntu:14.04
-    - aws s3 cp s3://data.openaddresses.io/docker/openaddr-prereqs-`cat /tmp/MAJOR`.tar.gz /tmp/img && gunzip -c /tmp/img | docker load || true
+    - aws s3 cp --quiet s3://data.openaddresses.io/docker/openaddr-prereqs-`cat /tmp/MAJOR`.tar.gz /tmp/img && gunzip -c /tmp/img | docker load || true
   override:
     - docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat /tmp/MAJOR` .
     - docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/MAJOR` .
@@ -19,7 +19,7 @@ test:
 
 deployment:
   hub:
-    branch: [migurski/stop-using-dockerhub]
+    branch: [6.x]
     commands:
       - docker save openaddr/prereqs:`cat /tmp/MAJOR` | gzip -c --fast > /tmp/img-p
       - docker save openaddr/machine:`cat /tmp/MAJOR` | gzip -c --fast > /tmp/img-m
@@ -30,4 +30,4 @@ deployment:
       - ln /tmp/img-m /tmp/images/openaddr-machine-`cat /tmp/MAJOR`.tar.gz
       - ln /tmp/img-p /tmp/images/openaddr-prereqs-latest.tar.gz
       - ln /tmp/img-m /tmp/images/openaddr-machine-latest.tar.gz
-      - aws s3 cp --recursive --acl public-read /tmp/images/ s3://data.openaddresses.io/docker/
+      - aws s3 cp --quiet --recursive --acl public-read /tmp/images/ s3://data.openaddresses.io/docker/
