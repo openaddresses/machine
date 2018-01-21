@@ -3,11 +3,15 @@ machine:
     - docker
 
 dependencies:
+  pre:
+    - docker pull nate/dockviz
   override:
     - cut -f1 -d. openaddr/VERSION > /tmp/MAJOR
     - aws s3 cp s3://data.openaddresses.io/docker/openaddr-prereqs-`cat /tmp/MAJOR`.tar.bz2 /tmp/img
     - bzcat /tmp/img | docker load
+    - docker run --rm -v /var/run/docker.sock:/var/run/docker.sock nate/dockviz images -t
     - docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat /tmp/MAJOR` .
+    - docker run --rm -v /var/run/docker.sock:/var/run/docker.sock nate/dockviz images -t
     #- docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/MAJOR` .
 
 test:
