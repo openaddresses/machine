@@ -22,22 +22,14 @@ test:
     #- docker-compose run machine python3 /usr/local/src/openaddr/test.py
 
 deployment:
-  nohub:
+  hub:
     branch: [migurski/stop-using-dockerhub]
     commands:
-      - docker save openaddr/prereqs:`cat /tmp/MAJOR` | gzip -c --fast > /tmp/img
-      - aws s3 cp /tmp/img s3://data.openaddresses.io/docker/openaddr-prereqs-`cat /tmp/MAJOR`.tar.gz
-  hub:
-    branch: [6.x]
-    commands:
-      - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
-      - docker tag openaddr/prereqs:`cat /tmp/MAJOR` openaddr/prereqs:`cat openaddr/VERSION`
-      - docker tag openaddr/machine:`cat /tmp/MAJOR` openaddr/machine:`cat openaddr/VERSION`
-      - docker tag openaddr/prereqs:`cat /tmp/MAJOR` openaddr/prereqs:latest
-      - docker tag openaddr/machine:`cat /tmp/MAJOR` openaddr/machine:latest
-      - docker push openaddr/prereqs:`cat openaddr/VERSION`
-      - docker push openaddr/machine:`cat openaddr/VERSION`
-      - docker push openaddr/prereqs:`cat /tmp/MAJOR`
-      - docker push openaddr/machine:`cat /tmp/MAJOR`
-      - docker push openaddr/prereqs:latest
-      - docker push openaddr/machine:latest
+      - docker save openaddr/prereqs:`cat /tmp/MAJOR` | gzip -c --fast > /tmp/prereqs-img
+      - docker save openaddr/machine:`cat /tmp/MAJOR` | gzip -c --fast > /tmp/machine-img
+      - aws s3 cp /tmp/prereqs-img s3://data.openaddresses.io/docker/openaddr-prereqs-`cat openaddr/VERSION`.tar.gz
+      - aws s3 cp /tmp/machine-img s3://data.openaddresses.io/docker/openaddr-machine-`cat openaddr/VERSION`.tar.gz
+      - aws s3 cp /tmp/prereqs-img s3://data.openaddresses.io/docker/openaddr-prereqs-`cat /tmp/MAJOR`.tar.gz
+      - aws s3 cp /tmp/machine-img s3://data.openaddresses.io/docker/openaddr-machine-`cat /tmp/MAJOR`.tar.gz
+      - aws s3 cp /tmp/prereqs-img s3://data.openaddresses.io/docker/openaddr-prereqs-latest.tar.gz
+      - aws s3 cp /tmp/machine-img s3://data.openaddresses.io/docker/openaddr-machine-latest.tar.gz
