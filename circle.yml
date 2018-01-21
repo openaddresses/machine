@@ -8,13 +8,14 @@ dependencies:
     - aws s3 cp s3://data.openaddresses.io/docker/openaddr-prereqs-`cat /tmp/MAJOR`.tar.bz2 /tmp/img
     - bzcat /tmp/img | docker load
     - docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat /tmp/MAJOR` .
-    - docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/MAJOR` .
+    #- docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/MAJOR` .
 
 test:
   override:
+    - echo Do Nothing
     # Postgres needs a little time
-    - docker-compose up -d && sleep 15
-    - docker-compose run machine python3 /usr/local/src/openaddr/test.py
+    #- docker-compose up -d && sleep 15
+    #- docker-compose run machine python3 /usr/local/src/openaddr/test.py
 
 deployment:
   nohub:
