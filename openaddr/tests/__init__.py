@@ -95,12 +95,6 @@ class TestOA (unittest.TestCase):
         if host == 'fake-s3.local':
             return response(200, self.s3._read_fake_key(path))
         
-        if host == 'tile.mapzen.com' and path.startswith('/mapzen/vector/v1'):
-            if 'api_key=mapzen-XXXX' not in url.query:
-                raise ValueError('Missing or wrong API key')
-            data = b'{"landuse": {"features": []}, "water": {"features": []}, "roads": {"features": []}}'
-            return response(200, data, headers={'Content-Type': 'application/json'})
-
         if (host, path) == ('data.acgov.org', '/api/geospatial/8e4s-7f4v'):
             local_path = join(data_dirname, 'us-ca-alameda_county-excerpt.zip')
         
@@ -348,7 +342,7 @@ class TestOA (unittest.TestCase):
              mock.patch('openaddr.slippymap.generate') as slippymap_gen:
             preview_ren.side_effect = touch_second_arg_file
             slippymap_gen.side_effect = touch_first_arg_file
-            state_path = process_one.process(source, self.testdir, True, mapzen_key='mapzen-XXXX')
+            state_path = process_one.process(source, self.testdir, True, mapbox_key='mapbox-XXXX')
         
         self.assertTrue(slippymap_gen.mock_calls[0][1][0].endswith('.mbtiles'))
         self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
@@ -404,7 +398,7 @@ class TestOA (unittest.TestCase):
              mock.patch('openaddr.slippymap.generate') as slippymap_gen:
             preview_ren.side_effect = touch_second_arg_file
             slippymap_gen.side_effect = touch_first_arg_file
-            state_path = process_one.process(source, self.testdir, True, mapzen_key='mapzen-XXXX')
+            state_path = process_one.process(source, self.testdir, True, mapbox_key='mapbox-XXXX')
         
         self.assertTrue(slippymap_gen.mock_calls[0][1][0].endswith('.mbtiles'))
         self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
@@ -456,7 +450,7 @@ class TestOA (unittest.TestCase):
              mock.patch('openaddr.slippymap.generate') as slippymap_gen:
             preview_ren.side_effect = touch_second_arg_file
             slippymap_gen.side_effect = touch_first_arg_file
-            state_path = process_one.process(source, self.testdir, True, mapzen_key='mapzen-XXXX')
+            state_path = process_one.process(source, self.testdir, True, mapbox_key='mapbox-XXXX')
         
         self.assertTrue(slippymap_gen.mock_calls[0][1][0].endswith('.mbtiles'))
         self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
@@ -511,7 +505,7 @@ class TestOA (unittest.TestCase):
              mock.patch('openaddr.slippymap.generate') as slippymap_gen:
             preview_ren.side_effect = touch_second_arg_file
             slippymap_gen.side_effect = touch_first_arg_file
-            state_path = process_one.process(source, self.testdir, True, mapzen_key='mapzen-XXXX')
+            state_path = process_one.process(source, self.testdir, True, mapbox_key='mapbox-XXXX')
         
         self.assertTrue(slippymap_gen.mock_calls[0][1][0].endswith('.mbtiles'))
         self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
