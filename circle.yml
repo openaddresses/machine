@@ -8,8 +8,7 @@ dependencies:
     - docker pull ubuntu:14.04
   override:
     - cut -f1 -d. openaddr/VERSION > /tmp/MAJOR
-    - aws s3 cp s3://data.openaddresses.io/docker/openaddr-prereqs-`cat /tmp/MAJOR`.tar.bz2 /tmp/img
-    - bzcat /tmp/img | docker load
+    - docker pull openaddr/prereqs:`cat /tmp/MAJOR` || true
     - docker run --rm -v /var/run/docker.sock:/var/run/docker.sock nate/dockviz images -t
     - docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat /tmp/MAJOR` .
     - docker run --rm -v /var/run/docker.sock:/var/run/docker.sock nate/dockviz images -t
@@ -26,8 +25,8 @@ deployment:
   nohub:
     branch: [migurski/stop-using-dockerhub]
     commands:
-      - docker save openaddr/prereqs:`cat /tmp/MAJOR` | bzip2 > /tmp/img
-      - aws s3 cp /tmp/img s3://data.openaddresses.io/docker/openaddr-prereqs-`cat /tmp/MAJOR`.tar.bz2
+      - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+      - docker push openaddr/prereqs:`cat /tmp/MAJOR`
   hub:
     branch: [6.x]
     commands:
