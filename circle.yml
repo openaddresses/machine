@@ -6,7 +6,7 @@ dependencies:
   pre:
     - cut -f1 -d. openaddr/VERSION > /tmp/MAJOR
     - aws s3 cp s3://data.openaddresses.io/docker/openaddr-prereqs-`cat /tmp/MAJOR`.tar.bz2 /tmp/img
-    - bzcat /tmp/img | docker load openaddr/prereqs:`cat /tmp/MAJOR`
+    - bzcat /tmp/img | docker load
   override:
     - docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat /tmp/MAJOR` .
     - docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/MAJOR` .
