@@ -17,6 +17,11 @@ test:
     - docker-compose run machine python3 /usr/local/src/openaddr/test.py
 
 deployment:
+  nohub:
+    branch: [migurski/stop-using-dockerhub]
+    commands:
+      - docker save openaddr/prereqs:`cat /tmp/MAJOR` | bzip2 > openaddr-prereqs-`cat /tmp/MAJOR`.tar.bz2
+      - aws s3 cp openaddr-prereqs-`cat /tmp/MAJOR`.tar.bz2 s3://data.openaddresses.io/docker/
   hub:
     branch: [6.x]
     commands:
