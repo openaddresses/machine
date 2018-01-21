@@ -5,6 +5,7 @@ machine:
 dependencies:
   pre:
     - docker pull nate/dockviz
+    - docker pull ubuntu:14.04
   override:
     - cut -f1 -d. openaddr/VERSION > /tmp/MAJOR
     - aws s3 cp s3://data.openaddresses.io/docker/openaddr-prereqs-`cat /tmp/MAJOR`.tar.bz2 /tmp/img
