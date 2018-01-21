@@ -1,3 +1,6 @@
+2017-01-21: 6.7.0
+- Fixed Docker cache issues to speed up testing and deployment. (#680)
+
 2017-01-20: 6.6.0
 - Replace remaining Mapzen keys with Mapbox keys. (#679)
 
