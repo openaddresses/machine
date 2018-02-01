@@ -20,6 +20,7 @@ from ..conform import (
     row_fxn_prefixed_number, row_fxn_postfixed_street,
     row_fxn_postfixed_unit,
     row_fxn_remove_prefix, row_fxn_remove_postfix, row_fxn_chain,
+    row_fxn_first_non_empty,
     row_canonicalize_unit_and_number, conform_smash_case, conform_cli,
     convert_regexp_replace, conform_license,
     conform_attribution, conform_sharealike, normalize_ogr_filename_case,
@@ -1289,6 +1290,91 @@ class TestConformTransforms (unittest.TestCase):
         e.update({ "OA:street": "123 MAPLE ST" })
 
         d = row_fxn_remove_postfix(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)
+
+    def test_row_first_non_empty(self):
+        "first_non_empty - fields array is empty"
+        c = { "conform": {
+            "street": {
+                "function": "first_non_empty",
+                "fields": []
+            }
+        } }
+        d = { }
+        e = copy.deepcopy(d)
+        e.update({ })
+
+        d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)
+        
+        "first_non_empty - both fields are non-empty"
+        c = { "conform": {
+            "street": {
+                "function": "first_non_empty",
+                "fields": ["FIELD1", "FIELD2"]
+            }
+        } }
+        d = { "FIELD1": "field1 value", "FIELD2": "field2 value" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "field1 value" })
+
+        d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)
+        
+        "first_non_empty - first field is null"
+        c = { "conform": {
+            "street": {
+                "function": "first_non_empty",
+                "fields": ["FIELD1", "FIELD2"]
+            }
+        } }
+        d = { "FIELD1": None, "FIELD2": "field2 value" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "field2 value" })
+        
+        d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)
+        
+        "first_non_empty - first field is 0-length string"
+        c = { "conform": {
+            "street": {
+                "function": "first_non_empty",
+                "fields": ["FIELD1", "FIELD2"]
+            }
+        } }
+        d = { "FIELD1": "", "FIELD2": "field2 value" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "field2 value" })
+        
+        d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)
+        
+        "first_non_empty - first field is trimmable to a 0-length string"
+        c = { "conform": {
+            "street": {
+                "function": "first_non_empty",
+                "fields": ["FIELD1", "FIELD2"]
+            }
+        } }
+        d = { "FIELD1": " \t ", "FIELD2": "field2 value" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "field2 value" })
+        
+        d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)
+        
+        "first_non_empty - all field values are trimmable to a 0-length string"
+        c = { "conform": {
+            "street": {
+                "function": "first_non_empty",
+                "fields": ["FIELD1", "FIELD2"]
+            }
+        } }
+        d = { "FIELD1": " \t ", "FIELD2": " \t " }
+        e = copy.deepcopy(d)
+        e.update({ })
+        
+        d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
 class TestConformCli (unittest.TestCase):

@@ -956,6 +956,8 @@ def row_function(sd, row, key, fxn):
         row = row_fxn_remove_postfix(sd, row, key, fxn)
     elif function == "chain":
         row = row_fxn_chain(sd, row, key, fxn)
+    elif function == "first_non_empty":
+        row = row_fxn_first_non_empty(sd, row, key, fxn)
 
     return row
 
@@ -1173,6 +1175,15 @@ def row_fxn_chain(sd, row, key, fxn):
 
     row[var_types[original_key]] = row[var_types[key]]
 
+    return row
+
+def row_fxn_first_non_empty(sd, row, key, fxn):
+    "Iterate all fields looking for first that has a non-empty value"
+    for field in fxn.get('fields', []):
+        if row[field] and row[field].strip():
+            row[var_types[key]] = row[field]
+            break
+            
     return row
 
 def row_canonicalize_unit_and_number(sd, row):
