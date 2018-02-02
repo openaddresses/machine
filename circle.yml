@@ -18,25 +18,12 @@ test:
     - docker-compose run machine python3 /usr/local/src/openaddr/test.py
 
 deployment:
-  dev:
-    branch: [migurski/fiddle-with-docker-tags]
+  hub:
+    branch: [6.x]
     commands:
       - docker tag openaddr/machine:`cat /tmp/MAJOR` openaddr/machine:`cat openaddr/VERSION`
       - mkdir /tmp/images
       - docker save openaddr/prereqs:`cat /tmp/MAJOR` | gzip -c --fast > /tmp/images/openaddr-prereqs-`cat /tmp/MAJOR`.tar.gz
       - docker save openaddr/machine:`cat /tmp/MAJOR` | gzip -c --fast > /tmp/images/openaddr-machine-`cat /tmp/MAJOR`.tar.gz
       - docker save openaddr/machine:`cat openaddr/VERSION` | gzip -c --fast > /tmp/images/openaddr-machine-`cat openaddr/VERSION`.tar.gz
-      - aws s3 cp --quiet --recursive --acl public-read /tmp/images/ s3://data.openaddresses.io/docker/
-  hub:
-    branch: [6.x]
-    commands:
-      - docker save openaddr/prereqs:`cat /tmp/MAJOR` | gzip -c --fast > /tmp/img-p
-      - docker save openaddr/machine:`cat /tmp/MAJOR` | gzip -c --fast > /tmp/img-m
-      - mkdir /tmp/images
-      - ln /tmp/img-p /tmp/images/openaddr-prereqs-`cat openaddr/VERSION`.tar.gz
-      - ln /tmp/img-m /tmp/images/openaddr-machine-`cat openaddr/VERSION`.tar.gz
-      - ln /tmp/img-p /tmp/images/openaddr-prereqs-`cat /tmp/MAJOR`.tar.gz
-      - ln /tmp/img-m /tmp/images/openaddr-machine-`cat /tmp/MAJOR`.tar.gz
-      - ln /tmp/img-p /tmp/images/openaddr-prereqs-latest.tar.gz
-      - ln /tmp/img-m /tmp/images/openaddr-machine-latest.tar.gz
       - aws s3 cp --quiet --recursive --acl public-read /tmp/images/ s3://data.openaddresses.io/docker/
