@@ -45,5 +45,5 @@ gunzip -c /tmp/img.tgz | docker load
 
 # Run the actual command
 docker run --env-file /etc/environment \
-    --volume /tmp:/tmp --net="host" openaddr/machine:{patch_version} \
+    --volume /tmp:/tmp --net="host" openaddr/machine \
     {command} && shutdown_with_log 0 || shutdown_with_log 1 2>&1
