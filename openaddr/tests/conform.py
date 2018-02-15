@@ -18,7 +18,9 @@ from ..conform import (
     row_fxn_regexp, row_smash_case, row_round_lat_lon, row_merge,
     row_extract_and_reproject, row_convert_to_out, row_fxn_join, row_fxn_format,
     row_fxn_prefixed_number, row_fxn_postfixed_street,
+    row_fxn_postfixed_unit,
     row_fxn_remove_prefix, row_fxn_remove_postfix, row_fxn_chain,
+    row_fxn_first_non_empty,
     row_canonicalize_unit_and_number, conform_smash_case, conform_cli,
     convert_regexp_replace, conform_license,
     conform_attribution, conform_sharealike, normalize_ogr_filename_case,
@@ -348,7 +350,7 @@ class TestConformTransforms (unittest.TestCase):
         r = row_extract_and_reproject(d, {"LONG_WGS84": "-21,77", "LAT_WGS84": "64,11"})
         self.assertEqual({Y_FIELDNAME: "64.11", X_FIELDNAME: "-21.77"}, r)
 
-    def test_row_fxn_prefixed_number_and_postfixed_street(self):
+    def test_row_fxn_prefixed_number_and_postfixed_street_no_units(self):
         "Regex prefixed_number and postfix_street - both fields present"
         c = { "conform": {
             "number": {
@@ -710,6 +712,494 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)        
 
+        "contains unit but may_contain_units is not present"
+        c = { "conform": {
+            "number": {
+                "function": "prefixed_number",
+                "field": "ADDRESS"
+            },
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST UNIT 3" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123", "OA:street": "MAPLE ST UNIT 3" })
+        
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "contains unit but may_contain_units is explicitly false"
+        c = { "conform": {
+            "number": {
+                "function": "prefixed_number",
+                "field": "ADDRESS"
+            },
+            "street": {
+                "function": "postfixed_street",
+                "may_contain_units": False,
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST UNIT 3" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:number": "123", "OA:street": "MAPLE ST UNIT 3" })
+        
+        d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+    def test_row_fxn_prefixed_number_and_postfixed_street_may_contain_units(self):
+        "UNIT-style unit"
+        c = { "conform": {
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS",
+                "may_contain_units": True
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST UNIT 3" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "MAPLE ST" })
+
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "APARTMENT-style unit"
+        c = { "conform": {
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS",
+                "may_contain_units": True
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST APARTMENT 3" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "MAPLE ST" })
+
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "APT-style unit"
+        c = { "conform": {
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS",
+                "may_contain_units": True
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST APT 3" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "MAPLE ST" })
+
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "APT.-style unit"
+        c = { "conform": {
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS",
+                "may_contain_units": True
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST APT. 3" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "MAPLE ST" })
+
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "SUITE-style unit"
+        c = { "conform": {
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS",
+                "may_contain_units": True
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST SUITE 3" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "MAPLE ST" })
+
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "STE-style unit"
+        c = { "conform": {
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS",
+                "may_contain_units": True
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST STE 3" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "MAPLE ST" })
+
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "STE.-style unit"
+        c = { "conform": {
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS",
+                "may_contain_units": True
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST STE. 3" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "MAPLE ST" })
+
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "BUILDING-style unit"
+        c = { "conform": {
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS",
+                "may_contain_units": True
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST BUILDING 3" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "MAPLE ST" })
+
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "BLDG-style unit"
+        c = { "conform": {
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS",
+                "may_contain_units": True
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST BLDG 3" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "MAPLE ST" })
+
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "BLDG.-style unit"
+        c = { "conform": {
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS",
+                "may_contain_units": True
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST BLDG. 3" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "MAPLE ST" })
+
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "LOT-style unit"
+        c = { "conform": {
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS",
+                "may_contain_units": True
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST LOT 3" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "MAPLE ST" })
+
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "#-style unit"
+        c = { "conform": {
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS",
+                "may_contain_units": True
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST #3" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "MAPLE ST" })
+
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+        "no unit"
+        c = { "conform": {
+            "street": {
+                "function": "postfixed_street",
+                "field": "ADDRESS",
+                "may_contain_units": True
+            }
+        } }
+        d = { "ADDRESS": "123 MAPLE ST" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "MAPLE ST" })
+
+        d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)        
+
+    def test_row_fxn_postfixed_unit(self): 
+        "postfixed_unit - UNIT-style"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street Unit 300" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "Unit 300" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+
+        "postfixed_unit - UNIT is word ending"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street runit 300" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+                
+        "postfixed_unit - APARTMENT-style"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street Apartment 300" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "Apartment 300" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+        
+        "postfixed_unit - APT-style"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street Apt 300" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "Apt 300" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+        
+        "postfixed_unit - APT is word ending"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street rapt 300" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+        
+        "postfixed_unit - APT.-style"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street Apt. 300" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "Apt. 300" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+        
+        "postfixed_unit - SUITE-style"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street Suite 300" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "Suite 300" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+
+        "postfixed_unit - STE-style"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street Ste 300" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "Ste 300" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+                
+        "postfixed_unit - STE is word ending"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street Haste 300" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+        
+        "postfixed_unit - STE.-style"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street Ste. 300" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "Ste. 300" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+        
+        "postfixed_unit - BUILDING-style"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street Building 300" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "Building 300" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+
+        "postfixed_unit - BLDG-style"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street Bldg 300" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "Bldg 300" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+        
+        "postfixed_unit - BLDG.-style"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street Bldg. 300" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "Bldg. 300" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+        
+        "postfixed_unit - LOT-style"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street Lot 300" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "Lot 300" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+                
+        "postfixed_unit - LOT is word ending"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street alot 300" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+        
+        "postfixed_unit - #-style with spaces"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street # 300" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "# 300" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+        
+        "postfixed_unit - #-style without spaces"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street #300" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "#300" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+
+        "postfixed_unit - no unit"
+        c = { "conform": {
+            "unit": {
+                "function": "postfixed_unit",
+                "field": "ADDRESS"
+            }
+        } }
+        d = { "ADDRESS": "Main Street" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:unit": "" })
+        
+        d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
+        self.assertEqual(e, d)        
+
     def test_row_fxn_remove_prefix(self):
         "remove_prefix - field_to_remove is a prefix"
         c = { "conform": {
@@ -800,6 +1290,91 @@ class TestConformTransforms (unittest.TestCase):
         e.update({ "OA:street": "123 MAPLE ST" })
 
         d = row_fxn_remove_postfix(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)
+
+    def test_row_first_non_empty(self):
+        "first_non_empty - fields array is empty"
+        c = { "conform": {
+            "street": {
+                "function": "first_non_empty",
+                "fields": []
+            }
+        } }
+        d = { }
+        e = copy.deepcopy(d)
+        e.update({ })
+
+        d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)
+        
+        "first_non_empty - both fields are non-empty"
+        c = { "conform": {
+            "street": {
+                "function": "first_non_empty",
+                "fields": ["FIELD1", "FIELD2"]
+            }
+        } }
+        d = { "FIELD1": "field1 value", "FIELD2": "field2 value" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "field1 value" })
+
+        d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)
+        
+        "first_non_empty - first field is null"
+        c = { "conform": {
+            "street": {
+                "function": "first_non_empty",
+                "fields": ["FIELD1", "FIELD2"]
+            }
+        } }
+        d = { "FIELD1": None, "FIELD2": "field2 value" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "field2 value" })
+        
+        d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)
+        
+        "first_non_empty - first field is 0-length string"
+        c = { "conform": {
+            "street": {
+                "function": "first_non_empty",
+                "fields": ["FIELD1", "FIELD2"]
+            }
+        } }
+        d = { "FIELD1": "", "FIELD2": "field2 value" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "field2 value" })
+        
+        d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)
+        
+        "first_non_empty - first field is trimmable to a 0-length string"
+        c = { "conform": {
+            "street": {
+                "function": "first_non_empty",
+                "fields": ["FIELD1", "FIELD2"]
+            }
+        } }
+        d = { "FIELD1": " \t ", "FIELD2": "field2 value" }
+        e = copy.deepcopy(d)
+        e.update({ "OA:street": "field2 value" })
+        
+        d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
+        self.assertEqual(e, d)
+        
+        "first_non_empty - all field values are trimmable to a 0-length string"
+        c = { "conform": {
+            "street": {
+                "function": "first_non_empty",
+                "fields": ["FIELD1", "FIELD2"]
+            }
+        } }
+        d = { "FIELD1": " \t ", "FIELD2": " \t " }
+        e = copy.deepcopy(d)
+        e.update({ })
+        
+        d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
 class TestConformCli (unittest.TestCase):

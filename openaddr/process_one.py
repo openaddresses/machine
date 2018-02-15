@@ -47,7 +47,7 @@ def boolstr(value):
     
     raise ValueError(repr(value))
 
-def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
+def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
     ''' Process a single source and destination, return path to JSON state file.
     
         Creates a new directory and files under destination.
@@ -105,8 +105,8 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
                 else:
                     _L.info('Processed data in {}'.format(conform_result.path))
                 
-                    if do_preview and mapzen_key:
-                        preview_path = render_preview(conform_result.path, temp_dir, mapzen_key)
+                    if do_preview and mapbox_key:
+                        preview_path = render_preview(conform_result.path, temp_dir, mapbox_key)
                 
                     if do_preview:
                         slippymap_path = render_slippymap(conform_result.path, temp_dir)
@@ -141,11 +141,11 @@ def process(source, destination, do_preview, mapzen_key=None, extras=dict()):
 
     return state_path
 
-def render_preview(csv_filename, temp_dir, mapzen_key):
+def render_preview(csv_filename, temp_dir, mapbox_key):
     '''
     '''
     png_filename = join(temp_dir, 'preview.png')
-    preview.render(csv_filename, png_filename, 668, 2, mapzen_key)
+    preview.render(csv_filename, png_filename, 668, 2, mapbox_key)
 
     return png_filename
 
@@ -328,8 +328,8 @@ parser.add_argument('--skip-preview', help="Don't render a map preview",
                     action='store_const', dest='render_preview',
                     const=False, default=False)
 
-parser.add_argument('--mapzen-key', dest='mapzen_key',
-                    help='Mapzen API Key. See: https://mapzen.com/documentation/overview/')
+parser.add_argument('--mapbox-key', dest='mapbox_key',
+                    help='Mapbox API Key. See: https://mapbox.com/')
 
 parser.add_argument('-l', '--logfile', help='Optional log file name.')
 
@@ -353,7 +353,7 @@ def main():
     csv.field_size_limit(sys.maxsize)
     
     try:
-        file_path = process(args.source, args.destination, args.render_preview, mapzen_key=args.mapzen_key)
+        file_path = process(args.source, args.destination, args.render_preview, mapbox_key=args.mapbox_key)
     except Exception as e:
         _L.error(e, exc_info=True)
         return 1

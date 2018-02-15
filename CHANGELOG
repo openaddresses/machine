@@ -1,3 +1,23 @@
+2017-02-01: 6.8.0
+- Added first_non_empty helper function. (#681)
+- Further fiddled with Docker image tagging. (#682)
+
+2017-01-21: 6.7.0
+- Fixed Docker cache issues to speed up testing and deployment. (#680)
+
+2017-01-20: 6.6.0
+- Replace remaining Mapzen keys with Mapbox keys. (#679)
+
+2017-01-19: 6.5.0
+- Replace Mapzen vector tiles with Mapbox vector tiles for Github preview images. (#678)
+
+2017-12-16: 6.4.3
+- Updated Python dependencies. (#676)
+- Ensured compound functions are conform smash cased. (#677)
+
+2017-11-10: 6.4.2
+- Fixed sources page title in template (#675)
+
 2017-08-11: 6.4.1
 - Fixed bug in util.get_pidlist (#662)
 

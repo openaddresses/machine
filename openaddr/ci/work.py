@@ -80,7 +80,7 @@ def assemble_runstate(s3, input, source_name, run_id, index_dirname):
     
     return RunState(output)
 
-def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_dir, mapzen_key=None):
+def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_dir, mapbox_key=None):
     ''' Do the actual work of running a source file in job_contents.
     '''
     _L.info('Doing work on source {}'.format(repr(source_name)))
@@ -101,8 +101,8 @@ def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_di
     logfile_path = os.path.join(workdir, 'logfile.txt')
     cmd = 'openaddr-process-one', '-l', logfile_path, out_fn, oa_dir
     
-    if render_preview and mapzen_key:
-        cmd += ('--render-preview', '--mapzen-key', mapzen_key)
+    if render_preview and mapbox_key:
+        cmd += ('--render-preview', '--mapbox-key', mapbox_key)
     else:
         cmd += ('--skip-preview', )
 

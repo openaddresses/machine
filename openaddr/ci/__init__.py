@@ -925,7 +925,7 @@ def _wait_for_work_lock(lock, heartbeat_queue):
             next_put += HEARTBEAT_INTERVAL.seconds + HEARTBEAT_INTERVAL.days * 86400
 
 def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_queue,
-                            output_dir, mapzen_key):
+                            output_dir, mapbox_key):
     '''
     '''
     with task_queue as db:
@@ -987,7 +987,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
             result = work.do_work(s3, passed_on_kwargs['run_id'], source_name,
                                   passed_on_kwargs['content_b64'],
                                   taskdata.render_preview, output_dir,
-                                  mapzen_key)
+                                  mapbox_key)
         
         work_wait.join()
 

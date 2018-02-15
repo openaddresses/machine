@@ -5,7 +5,8 @@ machine:
 dependencies:
   pre:
     - cut -f1 -d. openaddr/VERSION > /tmp/MAJOR
-    - docker pull openaddr/prereqs:`cat /tmp/MAJOR` || true
+    - docker pull ubuntu:14.04
+    - aws s3 cp --quiet s3://data.openaddresses.io/docker/openaddr-prereqs-`cat /tmp/MAJOR`.tar.gz /tmp/img && gunzip -c /tmp/img | docker load || true
   override:
     - docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat /tmp/MAJOR` .
     - docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/MAJOR` .
@@ -20,22 +21,9 @@ deployment:
   hub:
     branch: [6.x]
     commands:
-      - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
-      - docker tag openaddr/prereqs:`cat /tmp/MAJOR` openaddr/prereqs:`cat openaddr/VERSION`
       - docker tag openaddr/machine:`cat /tmp/MAJOR` openaddr/machine:`cat openaddr/VERSION`
-      - docker tag openaddr/prereqs:`cat /tmp/MAJOR` openaddr/prereqs:`cat /tmp/MAJOR`.x
-      - docker tag openaddr/machine:`cat /tmp/MAJOR` openaddr/machine:`cat /tmp/MAJOR`.x
-      - docker tag openaddr/prereqs:`cat /tmp/MAJOR` openaddr/prereqs:v`cat /tmp/MAJOR`
-      - docker tag openaddr/machine:`cat /tmp/MAJOR` openaddr/machine:v`cat /tmp/MAJOR`
-      - docker tag openaddr/prereqs:`cat /tmp/MAJOR` openaddr/prereqs:latest
-      - docker tag openaddr/machine:`cat /tmp/MAJOR` openaddr/machine:latest
-      - docker push openaddr/prereqs:`cat /tmp/MAJOR`.x
-      - docker push openaddr/machine:`cat /tmp/MAJOR`.x
-      - docker push openaddr/prereqs:v`cat /tmp/MAJOR`
-      - docker push openaddr/machine:v`cat /tmp/MAJOR`
-      - docker push openaddr/prereqs:`cat openaddr/VERSION`
-      - docker push openaddr/machine:`cat openaddr/VERSION`
-      - docker push openaddr/prereqs:`cat /tmp/MAJOR`
-      - docker push openaddr/machine:`cat /tmp/MAJOR`
-      - docker push openaddr/prereqs:latest
-      - docker push openaddr/machine:latest
+      - mkdir /tmp/images
+      - docker save openaddr/prereqs:`cat /tmp/MAJOR` | gzip -c --fast > /tmp/images/openaddr-prereqs-`cat /tmp/MAJOR`.tar.gz
+      - docker save openaddr/machine:`cat /tmp/MAJOR` | gzip -c --fast > /tmp/images/openaddr-machine-`cat /tmp/MAJOR`.tar.gz
+      - docker save openaddr/machine:`cat openaddr/VERSION` | gzip -c --fast > /tmp/images/openaddr-machine-`cat openaddr/VERSION`.tar.gz
+      - aws s3 cp --quiet --recursive --acl public-read /tmp/images/ s3://data.openaddresses.io/docker/

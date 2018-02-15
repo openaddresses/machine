@@ -39,8 +39,9 @@ if [ -b /dev/xvdb ]; then
 fi
 
 # Install machine
-docker pull openaddr/machine:{patch_version}
 aws s3 cp s3://data.openaddresses.io/config/environment-{major_version}.txt /etc/environment
+aws s3 cp s3://data.openaddresses.io/docker/openaddr-machine-{patch_version}.tar.gz /tmp/img.tgz
+gunzip -c /tmp/img.tgz | docker load
 
 # Run the actual command
 docker run --env-file /etc/environment \

@@ -2399,7 +2399,7 @@ class TestRuns (unittest.TestCase):
         
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
         
-        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
+        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapbox_key):
             return dict(message=MAGIC_OK_MESSAGE, state=RunState({"source": "user_input.txt"}))
         
         do_work.side_effect = returns_plausible_result
@@ -2524,7 +2524,7 @@ class TestRuns (unittest.TestCase):
     def test_overdue_run(self, do_work):
         ''' Test a run that succeeds past its due date.
         '''
-        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
+        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapbox_key):
             return dict(message=MAGIC_OK_MESSAGE, state=RunState({"source": "user_input.txt"}))
 
         do_work.side_effect = returns_plausible_result
@@ -2689,7 +2689,7 @@ class TestRuns (unittest.TestCase):
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
         fprint = itertools.count(1)
         
-        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
+        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapbox_key):
             return dict(message='Something went wrong', result_code=0, result_stdout='...',
                         state=RunState({"source": "user_input.txt", "fingerprint": next(fprint)}))
         
@@ -2796,7 +2796,7 @@ class TestRuns (unittest.TestCase):
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
         fprint = itertools.count(1)
         
-        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
+        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapbox_key):
             return dict(message=MAGIC_OK_MESSAGE, state=RunState({"source": "user_input.txt", "fingerprint": next(fprint)}))
         
         fake_queued_job_args = list(self.fake_queued_job_args[:])
@@ -2871,7 +2871,7 @@ class TestRuns (unittest.TestCase):
         source_id, source_path = '0xDEADBEEF', 'sources/us-ca-oakland.json'
         fprint = itertools.count(1)
         
-        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
+        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapbox_key):
             return dict(message=MAGIC_OK_MESSAGE, result_code=0, result_stdout='...',
                         state=RunState({"source": "user_input.txt", "fingerprint": next(fprint)}))
         
@@ -3073,7 +3073,7 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
         
         job_id, content = task_data['id'], task_data['content']
-        result = work.do_work(self.s3, -1, u'so/exalté', content, True, self.output_dir, mapzen_key='mapzen-XXXX')
+        result = work.do_work(self.s3, -1, u'so/exalté', content, True, self.output_dir, mapbox_key='mapbox-XXXX')
         
         self.assertEqual(check_output.mock_calls[-1][1][0], (
             'openaddr-process-one', '-l',
@@ -3081,7 +3081,7 @@ class TestWorker (unittest.TestCase):
             os.path.join(self.output_dir, u'work/so--exalté.txt'),
             os.path.join(self.output_dir, 'work/out'),
             '--render-preview',
-            '--mapzen-key', 'mapzen-XXXX'
+            '--mapbox-key', 'mapbox-XXXX'
             ))
         
         self.assertEqual(check_output.mock_calls[-1][2]['timeout'],
@@ -3132,7 +3132,7 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
         
         job_id, content = task_data['id'], task_data['content']
-        result = work.do_work(self.s3, -1, 'angry', content, True, self.output_dir, mapzen_key=None)
+        result = work.do_work(self.s3, -1, 'angry', content, True, self.output_dir, mapbox_key=None)
         
         self.assertEqual(check_output.mock_calls[-1][1][0], (
             'openaddr-process-one', '-l',
@@ -3177,7 +3177,7 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
         
         job_id, content = task_data['id'], task_data['content']
-        result = work.do_work(self.s3, -1, u'so/exalté', content, True, self.output_dir, mapzen_key='mapzen-XXXX')
+        result = work.do_work(self.s3, -1, u'so/exalté', content, True, self.output_dir, mapbox_key='mapbox-XXXX')
         
         self.assertEqual(check_output.mock_calls[-1][1][0], (
             'openaddr-process-one', '-l',
@@ -3185,7 +3185,7 @@ class TestWorker (unittest.TestCase):
             os.path.join(self.output_dir, u'work/so--exalté.txt'),
             os.path.join(self.output_dir, 'work/out'),
             '--render-preview',
-            '--mapzen-key', 'mapzen-XXXX'
+            '--mapbox-key', 'mapbox-XXXX'
             ))
         
         self.assertEqual(check_output.mock_calls[-1][2]['timeout'],
@@ -3429,7 +3429,7 @@ class TestBatch (unittest.TestCase):
     def test_single_run(self, do_work):
         ''' Show that the tasks enqueued in a batch context can be run.
         '''
-        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
+        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapbox_key):
             return dict(message=MAGIC_OK_MESSAGE, state=RunState({"source": "user_input.txt"}))
         
         do_work.side_effect = returns_plausible_result
@@ -3490,7 +3490,7 @@ class TestBatch (unittest.TestCase):
     def test_run_with_renders(self, do_work):
         ''' Show that a batch context will result in rendered maps.
         '''
-        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapzen_key):
+        def returns_plausible_result(s3, run_id, source_name, content, render_preview, output_dir, mapbox_key):
             return dict(message=MAGIC_OK_MESSAGE, state=RunState({"source": "user_input.txt", "address count": 999}))
         
         do_work.side_effect = returns_plausible_result

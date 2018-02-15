@@ -86,7 +86,7 @@ setup(
         'pq == 1.4',
         
         # http://initd.org/psycopg/
-        'psycopg2 == 2.6.2',
+        'psycopg2 == 2.7.3.2',
         
         # http://docs.python-requests.org/en/master/
         'requests == 2.11.1',
@@ -108,7 +108,14 @@ setup(
         'itsdangerous == 0.24',
 
         # https://pypi.python.org/pypi/python-memcached
-        'python3-memcached == 1.51',
+        'python-memcached == 1.59',
+
+        # https://github.com/tilezen/mapbox-vector-tile
+        'mapbox-vector-tile==1.2.0',
+        'future==0.16.0',
+        'protobuf==3.5.1',
+        'pyclipper==1.1.0',
+        'six==1.11.0',
 
         ]
 )

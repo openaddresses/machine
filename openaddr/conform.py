@@ -110,6 +110,40 @@ prefixed_number_pattern = re.compile("^\s*(\d+(?:[ -]\d/\d)?|\d+-\d+|\d+-?[A-Z])
 # like prefixed_number_pattern, this regex can be optimized but this is cleaner
 postfixed_street_pattern = re.compile("^(?:\s*(?:\d+(?:[ -]\d/\d)?|\d+-\d+|\d+-?[A-Z])\s+)?(.*)", re.IGNORECASE)
 
+# extracts:
+# - 'Main Street' from '123 Main Street Unit 3'
+# - 'Main Street' from '123 Main Street Apartment 3'
+# - 'Main Street' from '123 Main Street Apt 3'
+# - 'Main Street' from '123 Main Street Apt. 3'
+# - 'Main Street' from '123 Main Street Suite 3'
+# - 'Main Street' from '123 Main Street Ste 3'
+# - 'Main Street' from '123 Main Street Ste. 3'
+# - 'Main Street' from '123 Main Street Building 3'
+# - 'Main Street' from '123 Main Street Bldg 3'
+# - 'Main Street' from '123 Main Street Bldg. 3'
+# - 'Main Street' from '123 Main Street Lot 3'
+# - 'Main Street' from '123 Main Street #3'
+# - 'Main Street' from '123 Main Street # 3'
+# This regex contains 3 groups: optional house number, street, optional unit
+# only street is a matching group, house number and unit are non-matching
+postfixed_street_with_units_pattern = re.compile("^(?:\s*(?:\d+(?:[ -]\d/\d)?|\d+-\d+|\d+-?[A-Z])\s+)?(.+?)(?:\s+(?:(?:UNIT|APARTMENT|APT\.?|SUITE|STE\.?|BUILDING|BLDG\.?|LOT)\s+|#).+)?$", re.IGNORECASE)
+
+# extracts:
+# - 'Unit 3' from 'Main Street Unit 3'
+# - 'Apartment 3' from 'Main Street Apartment 3'
+# - 'Apt 3' from 'Main Street Apt 3'
+# - 'Apt. 3' from 'Main Street Apt. 3'
+# - 'Suite 3' from 'Main Street Suite 3'
+# - 'Ste 3' from 'Main Street Ste 3'
+# - 'Ste. 3' from 'Main Street Ste. 3'
+# - 'Building 3' from 'Main Street Building 3'
+# - 'Bldg 3' from 'Main Street Bldg 3'
+# - 'Bldg. 3' from 'Main Street Bldg. 3'
+# - 'Lot 3' from 'Main Street Lot 3'
+# - '#3' from 'Main Street #3'
+# - '# 3' from 'Main Street # 3'
+postfixed_unit_pattern = re.compile("\s((?:(?:UNIT|APARTMENT|APT\.?|SUITE|STE\.?|BUILDING|BLDG\.?|LOT)\s+|#).+)$", re.IGNORECASE)
+
 def mkdirsp(path):
     try:
         os.makedirs(path)
@@ -914,12 +948,16 @@ def row_function(sd, row, key, fxn):
         row = row_fxn_prefixed_number(sd, row, key, fxn)
     elif function == "postfixed_street":
         row = row_fxn_postfixed_street(sd, row, key, fxn)
+    elif function == "postfixed_unit":
+        row = row_fxn_postfixed_unit(sd, row, key, fxn)
     elif function == "remove_prefix":
         row = row_fxn_remove_prefix(sd, row, key, fxn)
     elif function == "remove_postfix":
         row = row_fxn_remove_postfix(sd, row, key, fxn)
     elif function == "chain":
         row = row_fxn_chain(sd, row, key, fxn)
+    elif function == "first_non_empty":
+        row = row_fxn_first_non_empty(sd, row, key, fxn)
 
     return row
 
@@ -982,6 +1020,18 @@ def conform_smash_case(source_definition):
         if type(conform[k]) is dict:
             fxn_smash_case(conform[k])
 
+            if "functions" in conform[k] and type(conform[k]["functions"]) is list:
+                for function in conform[k]["functions"]:
+                    if type(function) is dict:
+                        if "field" in function:
+                            function["field"] = function["field"].lower()
+
+                        if "fields" in function:
+                            function["fields"] = [s.lower() for s in function["fields"]]
+
+                        if "field_to_remove" in function:
+                            function["field_to_remove"] = function["field_to_remove"].lower()
+
     if "advanced_merge" in conform:
         raise ValueError('Found unsupported "advanced_merge" option in conform')
     return new_sd
@@ -1030,7 +1080,21 @@ def row_fxn_prefixed_number(sd, row, key, fxn):
 def row_fxn_postfixed_street(sd, row, key, fxn):
     "Extract 'Maple St' from '123 Maple St'"
 
-    match = postfixed_street_pattern.search(row[fxn["field"]])
+    may_contain_units = fxn.get('may_contain_units', False)
+
+    if may_contain_units:
+        match = postfixed_street_with_units_pattern.search(row[fxn["field"]])
+    else:
+        match = postfixed_street_pattern.search(row[fxn["field"]])
+    
+    row[var_types[key]] = ''.join(match.groups()) if match else '';
+
+    return row
+
+def row_fxn_postfixed_unit(sd, row, key, fxn):
+    "Extract 'Suite 300' from '123 Maple St Suite 300'"
+
+    match = postfixed_unit_pattern.search(row[fxn["field"]])
     row[var_types[key]] = ''.join(match.groups()) if match else '';
 
     return row
@@ -1115,6 +1179,15 @@ def row_fxn_chain(sd, row, key, fxn):
 
     row[var_types[original_key]] = row[var_types[key]]
 
+    return row
+
+def row_fxn_first_non_empty(sd, row, key, fxn):
+    "Iterate all fields looking for first that has a non-empty value"
+    for field in fxn.get('fields', []):
+        if row[field] and row[field].strip():
+            row[var_types[key]] = row[field]
+            break
+            
     return row
 
 def row_canonicalize_unit_and_number(sd, row):
