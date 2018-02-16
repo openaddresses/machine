@@ -72,19 +72,26 @@ class TestConformTransforms (unittest.TestCase):
                 "function": "join",
                 "fields": ["b1","b2"],
                 "separator": "-"
+            },
+            "unit": {
+                "function": "join",
+                "fields": ["c1", "c2"],
+                "separator": ""
             }
         } }
-        d = { "a1": "va1", "b1": "vb1", "b2": "vb2" }
+        d = { "a1": "val1", "b1": "vb1", "b2": "vb2", "c1": "12.0", "c2": "A"}
         e = copy.deepcopy(d)
-        e.update({ "OA:number": "va1", "OA:street": "vb1-vb2" })
+        e.update({ "OA:number": "val1", "OA:street": "vb1-vb2", "OA:unit": "12A" })
         d = row_fxn_join(c, d, "number", c["conform"]["number"])
         d = row_fxn_join(c, d, "street", c["conform"]["street"])
+        d = row_fxn_join(c, d, "unit", c["conform"]["unit"])
         self.assertEqual(e, d)
-        d = { "a1": "va1", "b1": "vb1", "b2": None}
+        d = { "a1": "va1", "b1": "vb1", "b2": None, "c1": "12.00000", "c2": None}
         e = copy.deepcopy(d)
-        e.update({ "OA:number": "va1", "OA:street": "vb1" })
+        e.update({ "OA:number": "va1", "OA:street": "vb1", "OA:unit": "12"})
         d = row_fxn_join(c, d, "number", c["conform"]["number"])
         d = row_fxn_join(c, d, "street", c["conform"]["street"])
+        d = row_fxn_join(c, d, "unit", c["conform"]["unit"])
         self.assertEqual(e, d)
 
     def test_row_fxn_format(self):
@@ -109,11 +116,21 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual(d.get("OA:street", ""), "foo 1B-3 bar")
 
         d = copy.deepcopy(e)
+        d["a1"] = "12.0000000000"
         d["a2"] = None
         d["b3"] = None
         d = row_fxn_format(c, d, "number", c["conform"]["number"])
         d = row_fxn_format(c, d, "street", c["conform"]["street"])
         self.assertEqual(d.get("OA:number", ""), "12-56")
+        self.assertEqual(d.get("OA:street", ""), "foo 1B bar")
+
+        d = copy.deepcopy(e)
+        d["a1"] = "12.0000000000A"
+        d["a2"] = None
+        d["b3"] = None
+        d = row_fxn_format(c, d, "number", c["conform"]["number"])
+        d = row_fxn_format(c, d, "street", c["conform"]["street"])
+        self.assertEqual(d.get("OA:number", ""), "12A-56")
         self.assertEqual(d.get("OA:street", ""), "foo 1B bar")
 
     def test_row_fxn_chain(self):
@@ -281,6 +298,8 @@ class TestConformTransforms (unittest.TestCase):
         # Tests for integer conversion
         for e, a in (("324", " 324.0  "),
                      ("", ""),
+                     ("324", "324.0000000"),
+                     ("324A", "324.00000000A"),
                      ("3240", "3240"),
                      ("INVALID", "INVALID"),
                      ("324.5", "324.5")):
