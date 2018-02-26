@@ -152,7 +152,11 @@ def app_get_jobs():
             past_id = request.args.get('past', '')
             jobs = read_jobs(db, past_id)
     
-    n = int(request.args.get('n', '1'))
+    
+    try:
+        n = int(request.args.get('n', '1'))
+    except ValueError:
+        return Response('Invalid n {}'.format(repr(request.args.get('n', '1'))), 400)
 
     if jobs:
         next_link = './?n={n}&past={id}'.format(id=jobs[-1].id, n=(n+len(jobs)))
