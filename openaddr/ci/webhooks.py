@@ -12,7 +12,7 @@ from csv import DictWriter
 import json, os, base64
 import hashlib, hmac, time
 
-import memcache, requests
+import memcache, requests, psycopg2
 from jinja2 import Environment, FileSystemLoader
 from flask import (
     Flask, Blueprint, request, Response, current_app, jsonify, render_template,
@@ -152,7 +152,11 @@ def app_get_jobs():
             past_id = request.args.get('past', '')
             jobs = read_jobs(db, past_id)
     
-    n = int(request.args.get('n', '1'))
+    
+    try:
+        n = int(request.args.get('n', '1'))
+    except ValueError:
+        return Response('Invalid n {}'.format(repr(request.args.get('n', '1'))), 400)
 
     if jobs:
         next_link = './?n={n}&past={id}'.format(id=jobs[-1].id, n=(n+len(jobs)))
@@ -196,7 +200,10 @@ def app_get_sets():
     '''
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
-            past_id = int(request.args.get('past', 0)) or None
+            try:
+                past_id = int(request.args.get('past', 0)) or None
+            except ValueError:
+                return Response('Invalid past {}'.format(repr(request.args.get('past', 0))), 400)
             sets = read_sets(db, past_id)
     
     n = int(request.args.get('n', '1'))
@@ -246,7 +253,10 @@ def app_get_set(set_id):
     '''
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
-            set = read_set(db, set_id)
+            try:
+                set = read_set(db, set_id)
+            except psycopg2.DataError:
+                return Response('Invalid set {}'.format(repr(set_id)), 400)
             runs = read_completed_set_runs(db, set.id)
 
     if set is None:
