@@ -200,7 +200,10 @@ def app_get_sets():
     '''
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
-            past_id = int(request.args.get('past', 0)) or None
+            try:
+                past_id = int(request.args.get('past', 0)) or None
+            except ValueError:
+                return Response('Invalid past {}'.format(repr(request.args.get('past', 0))), 400)
             sets = read_sets(db, past_id)
     
     n = int(request.args.get('n', '1'))
