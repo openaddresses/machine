@@ -150,7 +150,10 @@ def app_get_jobs():
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
             past_id = request.args.get('past', '')
-            jobs = read_jobs(db, past_id)
+            try:
+                jobs = read_jobs(db, past_id)
+            except ValueError:
+                return Response('Invalid past {}'.format(repr(request.args.get('past', ''))), 400)
     
     
     try:
