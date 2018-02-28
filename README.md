@@ -1,6 +1,5 @@
-<p align="center">
-    <h1>OA Machine</h1>
-</p>
+<h1 align="center">OA Machine</h1>
+
 
 Scripts for running OpenAddresses on a complete data set and publishing
 the results. Uses [OpenAddresses](https://github.com/openaddresses/openaddresses)
