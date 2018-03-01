@@ -4,25 +4,31 @@
             "alpha2": "FR-75"
         }
     },
-    "website": "http://adresse.data.gouv.fr/download/",
-    "note": "Downloaded and cached 2015-06-18",
-    "data": "http://data.openaddresses.io/cache/fr/BAN_licence_gratuite_repartage_75.zip",
-    "type": "http",
-    "compression": "zip",
-    "conform": {
-        "type": "csv",
-        "csvsplit": ";",
-        "number": "numero",
-        "street": "nom_voie",
-        "lon": "lon",
-        "lat": "lat",
-        "city": "nom_commune",
-        "postcode": "code_post"
-    },
-    "license":
-    {
-        "attribution": true,
-        "attribution name": "Institut National de l'Information Géographique et Forestière",
-        "share-alike": "yes"
+    "layers": {
+        "addresses": [
+            {
+                "type": "http",
+                "data": "http://data.openaddresses.io/cache/fr/BAN_licence_gratuite_repartage_75.zip",
+                "website": "http://adresse.data.gouv.fr/download/",
+                "conform": {
+                    "type": "csv",
+                    "csvsplit": ";",
+                    "number": "numero",
+                    "street": "nom_voie",
+                    "lon": "lon",
+                    "lat": "lat",
+                    "city": "nom_commune",
+                    "postcode": "code_post"
+                },
+                "compression": "zip",
+                "license": {
+                    "attribution": true,
+                    "attribution name": "Institut National de l'Information Géographique et Forestière",
+                    "share-alike": "yes"
+                },
+                "note": "Downloaded and cached 2015-06-18"
+            }
+        ],
+        "buildings": []
     }
 }

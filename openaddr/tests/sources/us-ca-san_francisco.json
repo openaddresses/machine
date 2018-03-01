@@ -4,20 +4,32 @@
         "state": "ca",
         "city": "San Francisco"
     },
-    "data": "https://data.sfgov.org/download/kvej-w5kb/ZIPPED%20SHAPEFILE",
-    "license": { "text": "" },
-    "year": "",
-    "type": "http",
-    "compression": "zip",
-    "conform": {
-        "lon": "x",
-        "lat": "y",
-        "number": {
-            "function": "regexp",
-            "field": "address",
-            "pattern": "^(\\S+)"
-            },
-        "street": ["st_name", "st_type"],
-        "type": "shapefile"
+    "layers": {
+        "addresses": [
+            {
+                "type": "http",
+                "data": "https://data.sfgov.org/download/kvej-w5kb/ZIPPED%20SHAPEFILE",
+                "conform": {
+                    "lon": "x",
+                    "lat": "y",
+                    "number": {
+                        "function": "regexp",
+                        "field": "address",
+                        "pattern": "^(\\S+)"
+                    },
+                    "street": [
+                        "st_name",
+                        "st_type"
+                    ],
+                    "type": "shapefile"
+                },
+                "compression": "zip",
+                "license": {
+                    "text": ""
+                },
+                "year": ""
+            }
+        ],
+        "buildings": []
     }
 }

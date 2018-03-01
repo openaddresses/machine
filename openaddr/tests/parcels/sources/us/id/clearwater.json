@@ -9,15 +9,22 @@
         "state": "id",
         "county": "Clearwater"
     },
-    "data": "http://gis.clearwatercounty.org/arcgis/rest/services/County/MapServer/1",
-    "type": "ESRI",
-    "conform": {
-        "type": "geojson",
-        "number": "Prop_StNum",
-        "unit": "DLVRY_APT",
-        "street": "prop_stree",
-        "city": "prop_city",
-        "postcode": "prop_zip",
-        "region": "prop_state"
+    "layers": {
+        "addresses": [
+            {
+                "type": "ESRI",
+                "data": "http://gis.clearwatercounty.org/arcgis/rest/services/County/MapServer/1",
+                "conform": {
+                    "type": "geojson",
+                    "number": "Prop_StNum",
+                    "unit": "DLVRY_APT",
+                    "street": "prop_stree",
+                    "city": "prop_city",
+                    "postcode": "prop_zip",
+                    "region": "prop_state"
+                }
+            }
+        ],
+        "buildings": []
     }
 }

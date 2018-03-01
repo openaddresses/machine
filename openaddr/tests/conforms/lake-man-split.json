@@ -1,21 +1,27 @@
 {
-    "data": "http://fake-web/lake-man-split.zip",
-    "cache": "http://fake-cache/lake-man-split.zip",
-    "type": "http",
-    "compression": "zip",
-    "conform": {
-        "lon": "X",
-        "lat": "Y",
-        "number": {
-            "function": "regexp",
-            "field": "ADD_RANGE",
-            "pattern": "^(\\S+)"
-            },
-        "street": {
-            "function": "regexp",
-            "field": "ADD_RANGE",
-            "pattern": "^(?:\\S+ )(.*)"
-            },
-        "type": "shapefile"
+    "layers": {
+        "addresses": [
+            {
+                "type": "http",
+                "data": "http://fake-web/lake-man-split.zip",
+                "conform": {
+                    "lon": "X",
+                    "lat": "Y",
+                    "number": {
+                        "function": "regexp",
+                        "field": "ADD_RANGE",
+                        "pattern": "^(\\S+)"
+                    },
+                    "street": {
+                        "function": "regexp",
+                        "field": "ADD_RANGE",
+                        "pattern": "^(?:\\S+ )(.*)"
+                    },
+                    "type": "shapefile"
+                },
+                "compression": "zip"
+            }
+        ],
+        "buildings": []
     }
 }

@@ -1,23 +1,34 @@
 {
     "coverage": {
-        "US Census": {"geoid": "0606000", "place": "Berkeley", "state": "California"},
+        "US Census": {
+            "geoid": "0606000",
+            "place": "Berkeley",
+            "state": "California"
+        },
         "country": "us",
         "state": "ca",
         "place": "Berkeley"
     },
-    "conform": {
-        "id": "APN",
-        "number": "StreetNum",
-        "street": [
-            "StreetName",
-            "StreetSufx",
-            "Direction"
+    "layers": {
+        "addresses": [
+            {
+                "type": "http",
+                "data": "http://www.ci.berkeley.ca.us/uploadedFiles/IT/GIS/Parcels.zip",
+                "website": "http://www.ci.berkeley.ca.us/datacatalog/",
+                "conform": {
+                    "id": "APN",
+                    "number": "StreetNum",
+                    "street": [
+                        "StreetName",
+                        "StreetSufx",
+                        "Direction"
+                    ],
+                    "type": "shapefile-polygon"
+                },
+                "compression": "zip",
+                "note": "Metadata at http://www.ci.berkeley.ca.us/uploadedFiles/IT/GIS/Parcels.shp(1).xml"
+            }
         ],
-        "type": "shapefile-polygon"
-    },
-    "data": "http://www.ci.berkeley.ca.us/uploadedFiles/IT/GIS/Parcels.zip",
-    "website": "http://www.ci.berkeley.ca.us/datacatalog/",
-    "type": "http",
-    "compression": "zip",
-    "note": "Metadata at http://www.ci.berkeley.ca.us/uploadedFiles/IT/GIS/Parcels.shp(1).xml"
+        "buildings": []
+    }
 }

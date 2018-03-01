@@ -8,29 +8,36 @@
         "country": "us",
         "state": "nj"
     },
-    "data": "https://njgin.state.nj.us/download2/Address/ADDR_POINT_NJ_fgdb.zip",
-    "website": "https://njgin.state.nj.us/NJ_NJGINExplorer/ShowMetadata.jsp?docId={EC181B3D-4D15-11E1-A2E4-0003BA2C919E}",
-    "type": "http",
-    "compression": "zip",
-    "conform": {
-        "type": "gdb",
-        "layer": "AddressPoints_NJ",
-        "number": [
-            "PRE_NUM",
-            "ADDR_NUM",
-            "SUF_NUM"
+    "layers": {
+        "addresses": [
+            {
+                "type": "http",
+                "data": "https://njgin.state.nj.us/download2/Address/ADDR_POINT_NJ_fgdb.zip",
+                "website": "https://njgin.state.nj.us/NJ_NJGINExplorer/ShowMetadata.jsp?docId={EC181B3D-4D15-11E1-A2E4-0003BA2C919E}",
+                "conform": {
+                    "type": "gdb",
+                    "layer": "AddressPoints_NJ",
+                    "number": [
+                        "PRE_NUM",
+                        "ADDR_NUM",
+                        "SUF_NUM"
+                    ],
+                    "street": [
+                        "PRE_DIR",
+                        "PRE_TYPE",
+                        "PRE_MOD",
+                        "NAME",
+                        "SUF_TYPE",
+                        "SUF_DIR",
+                        "SUF_MOD"
+                    ],
+                    "postcode": "ZIP_CODE",
+                    "id": "AP_GUID",
+                    "accuracy": 1
+                },
+                "compression": "zip"
+            }
         ],
-        "street": [
-            "PRE_DIR",
-            "PRE_TYPE",
-            "PRE_MOD",
-            "NAME",
-            "SUF_TYPE",
-            "SUF_DIR",
-            "SUF_MOD"
-        ],
-        "postcode": "ZIP_CODE",
-        "id": "AP_GUID",
-        "accuracy": 1
+        "buildings": []
     }
 }
