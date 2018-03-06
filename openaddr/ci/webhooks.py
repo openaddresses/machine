@@ -209,7 +209,10 @@ def app_get_sets():
                 return Response('Invalid past {}'.format(repr(request.args.get('past', 0))), 400)
             sets = read_sets(db, past_id)
     
-    n = int(request.args.get('n', '1'))
+    try:
+        n = int(request.args.get('n', '1'))
+    except ValueError:
+        return Response('Invalid n {}'.format(repr(request.args.get('n', '1'))), 400)
 
     if sets:
         next_link = './?n={n}&past={id}'.format(id=sets[-1].id, n=(n+len(sets)))
