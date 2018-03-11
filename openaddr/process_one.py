@@ -47,8 +47,8 @@ def boolstr(value):
     
     raise ValueError(repr(value))
 
-def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
-    ''' Process a single source and destination, return path to JSON state file.
+def process(jurisdiction, destination, do_preview, mapbox_key=None, extras=dict()):
+    ''' Process a single jurisdiction and destination, return path to JSON state file.
     
         Creates a new directory and files under destination.
     '''
@@ -59,8 +59,8 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
     proc_wait = threading.Thread(target=util.log_process_usage, args=(wait_lock, ))
     
     temp_dir = tempfile.mkdtemp(prefix='process_one-', dir=destination)
-    temp_src = join(temp_dir, basename(source))
-    copy(source, temp_src)
+    temp_src = join(temp_dir, basename(jurisdiction))
+    copy(jurisdiction, temp_src)
     
     log_handler = get_log_handler(temp_dir)
     logging.getLogger('openaddr').addHandler(log_handler)
@@ -72,57 +72,70 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
         tests_passed = None
     
         try:
+            # Convert V1 Schema Files to V2
             with open(temp_src) as file:
-                if json.load(file).get('skip', None):
-                    raise SourceSaysSkip()
-        
-            # Check tests in source data.
+                source = json.load(file) 
+                if source['schema'] == None:
+                    print('NEED TO UPDATE TO V2')
+                    #TODO: CONVERT TO V2
+
             with open(temp_src) as file:
-                tests_passed, failure_details = check_source_tests(json.load(file))
-                if tests_passed is False:
-                    raise SourceTestsFailed(failure_details)
-    
-            # Cache source data.
-            try:
-                cache_result = cache(temp_src, temp_dir, extras)
-            except EsriDownloadError as e:
-                _L.warning('Could not download ESRI source data: {}'.format(e))
-                raise
-            except DownloadError as e:
-                _L.warning('Could not download source data')
-                raise
-    
-            if not cache_result.cache:
-                _L.warning('Nothing cached')
-            else:
-                _L.info(u'Cached data in {}'.format(cache_result.cache))
+                source = json.load(file)
 
-                # Conform cached source data.
-                conform_result = conform(temp_src, temp_dir, cache_result.todict())
-    
-                if not conform_result.path:
-                    _L.warning('Nothing processed')
-                else:
-                    _L.info('Processed data in {}'.format(conform_result.path))
+                for layer, sources in source['layers'].items():
+                    for source in sources:
+                        try: 
+                            if source.get('skip', None):
+                                raise SourceSaysSkip()
+
+                            # Check tests in source data.
+                            with open(temp_src) as file:
+                                tests_passed, failure_details = check_source_tests(json.load(file))
+                                if tests_passed is False:
+                                    raise SourceTestsFailed(failure_details)
+
+            
+                            # Cache source data.
+                            try:
+                                cache_result = cache(temp_src, temp_dir, extras)
+                            except EsriDownloadError as e:
+                                _L.warning('Could not download ESRI source data: {}'.format(e))
+                                raise
+                            except DownloadError as e:
+                                _L.warning('Could not download source data')
+                                raise
+            
+                            if not cache_result.cache:
+                                _L.warning('Nothing cached')
+                            else:
+                                _L.info(u'Cached data in {}'.format(cache_result.cache))
+
+                                # Conform cached source data.
+                                conform_result = conform(temp_src, temp_dir, cache_result.todict())
+                    
+                                if not conform_result.path:
+                                    _L.warning('Nothing processed')
+                                else:
+                                    _L.info('Processed data in {}'.format(conform_result.path))
+                                
+                                    if do_preview and mapbox_key:
+                                        preview_path = render_preview(conform_result.path, temp_dir, mapbox_key)
+                                
+                                    if do_preview:
+                                        slippymap_path = render_slippymap(conform_result.path, temp_dir)
+
+                                    if not preview_path:
+                                        _L.warning('Nothing previewed')
+                                    else:
+                                        _L.info('Preview image in {}'.format(preview_path))
                 
-                    if do_preview and mapbox_key:
-                        preview_path = render_preview(conform_result.path, temp_dir, mapbox_key)
-                
-                    if do_preview:
-                        slippymap_path = render_slippymap(conform_result.path, temp_dir)
+                        except SourceSaysSkip:
+                            _L.info('Source says to skip in process_one.process()')
+                            skipped_source = True
 
-                    if not preview_path:
-                        _L.warning('Nothing previewed')
-                    else:
-                        _L.info('Preview image in {}'.format(preview_path))
-    
-        except SourceSaysSkip:
-            _L.info('Source says to skip in process_one.process()')
-            skipped_source = True
-
-        except SourceTestsFailed as e:
-            _L.warning('A source test failed in process_one.process(): %s', str(e))
-            tests_passed = False
+                        except SourceTestsFailed as e:
+                            _L.warning('A source test failed in process_one.process(): %s', str(e))
+                            tests_passed = False
 
         except Exception:
             _L.warning('Error in process_one.process()', exc_info=True)
@@ -139,7 +152,7 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
         log_handler.close()
         rmtree(temp_dir)
 
-    return state_path
+        return state_path
 
 def render_preview(csv_filename, temp_dir, mapbox_key):
     '''
