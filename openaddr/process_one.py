@@ -47,8 +47,8 @@ def boolstr(value):
     
     raise ValueError(repr(value))
 
-def process(jurisdiction, destination, do_preview, mapbox_key=None, extras=dict()):
-    ''' Process a single jurisdiction and destination, return path to JSON state file.
+def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
+    ''' Process a single source and destination, return path to JSON state file.
     
         Creates a new directory and files under destination.
     '''
@@ -59,8 +59,8 @@ def process(jurisdiction, destination, do_preview, mapbox_key=None, extras=dict(
     proc_wait = threading.Thread(target=util.log_process_usage, args=(wait_lock, ))
     
     temp_dir = tempfile.mkdtemp(prefix='process_one-', dir=destination)
-    temp_src = join(temp_dir, basename(jurisdiction))
-    copy(jurisdiction, temp_src)
+    temp_src = join(temp_dir, basename(source))
+    copy(source, temp_src)
     
     log_handler = get_log_handler(temp_dir)
     logging.getLogger('openaddr').addHandler(log_handler)
@@ -78,22 +78,22 @@ def process(jurisdiction, destination, do_preview, mapbox_key=None, extras=dict(
                 if source.get('schema', None) == None:
                     source = upgrade_source_schema(source)
 
-                for layer, sources in source['layers'].items():
-                    for source in sources:
+                for layer, data_sources in source['layers'].items():
+                    for data_source in data_sources:
                         try: 
-                            if source.get('skip', None):
+                            if data_source.get('skip', None):
                                 raise SourceSaysSkip()
 
-                            # Check tests in source data.
-                            with open(temp_src) as file:
-                                tests_passed, failure_details = check_source_tests(json.load(file))
-                                if tests_passed is False:
-                                    raise SourceTestsFailed(failure_details)
+                            # Check tests in data_source object.
+                            tests_passed, failure_details = check_source_tests(data_source)
+                            if tests_passed is False:
+                                raise SourceTestsFailed(failure_details)
+           
+                            data_source_name = layer + data_source.name
 
-            
                             # Cache source data.
                             try:
-                                cache_result = cache(temp_src, temp_dir, extras)
+                                cache_result = cache(data_source_name, data_source, temp_dir, extras)
                             except EsriDownloadError as e:
                                 _L.warning('Could not download ESRI source data: {}'.format(e))
                                 raise
@@ -107,7 +107,7 @@ def process(jurisdiction, destination, do_preview, mapbox_key=None, extras=dict(
                                 _L.info(u'Cached data in {}'.format(cache_result.cache))
 
                                 # Conform cached source data.
-                                conform_result = conform(temp_src, temp_dir, cache_result.todict())
+                                conform_result = conform(data_source, temp_dir, cache_result.todict())
                     
                                 if not conform_result.path:
                                     _L.warning('Nothing processed')
