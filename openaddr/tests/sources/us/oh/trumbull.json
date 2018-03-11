@@ -9,18 +9,25 @@
         "state": "oh",
         "county": "Trumbull"
     },
-    "data": "http://gis3.oit.ohio.gov/LBRS/_downloads/TRU_ADDS.zip",
-    "type": "http",
-    "compression": "zip",
-    "conform": {
-        "number": "HOUSENUM",
-        "street": [
-            "ST_PREFIX",
-            "ST_NAME",
-            "ST_TYPE",
-            "ST_SUFFIX"
+    "layers": {
+        "addresses": [
+            {
+                "type": "http",
+                "data": "http://gis3.oit.ohio.gov/LBRS/_downloads/TRU_ADDS.zip",
+                "conform": {
+                    "number": "HOUSENUM",
+                    "street": [
+                        "ST_PREFIX",
+                        "ST_NAME",
+                        "ST_TYPE",
+                        "ST_SUFFIX"
+                    ],
+                    "type": "shapefile",
+                    "postcode": "zipcode"
+                },
+                "compression": "zip"
+            }
         ],
-        "type": "shapefile",
-        "postcode": "zipcode"
+        "buildings": []
     }
 }

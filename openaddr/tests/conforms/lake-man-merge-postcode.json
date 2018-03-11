@@ -1,17 +1,23 @@
 {
-    "data": "http://fake-web/lake-man-merge-postcode.zip",
-    "cache": "http://fake-cache/lake-man-merge-postcode.zip",
-    "type": "http",
-    "compression": "zip",
-    "conform": {
-        "street": [
-            "ST_NAME",
-            "ST_TYPE"
+    "layers": {
+        "addresses": [
+            {
+                "type": "http",
+                "data": "http://fake-web/lake-man-merge-postcode.zip",
+                "conform": {
+                    "street": [
+                        "ST_NAME",
+                        "ST_TYPE"
+                    ],
+                    "lon": "X",
+                    "lat": "Y",
+                    "number": "HOUSE_NUM",
+                    "type": "shapefile",
+                    "postcode": "ZIPCODE"
+                },
+                "compression": "zip"
+            }
         ],
-        "lon": "X",
-        "lat": "Y",
-        "number": "HOUSE_NUM",
-        "type": "shapefile",
-        "postcode": "ZIPCODE"
+        "buildings": []
     }
 }

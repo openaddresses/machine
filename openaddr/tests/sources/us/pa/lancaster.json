@@ -9,18 +9,25 @@
         "state": "pa",
         "city": "Lancaster"
     },
-    "data": "http://services1.arcgis.com/I6XnrlnguPDoEObn/arcgis/rest/services/AddressPoints/FeatureServer/0",
-    "type": "ESRI",
-    "conform": {
-        "type": "geojson",
-        "number": "ADRNUM",
-        "unit": "UNITNUM",
-        "street": [
-            "FDPRE",
-            "FNAME",
-            "FTYPE",
-            "FDSUF"
+    "layers": {
+        "addresses": [
+            {
+                "type": "ESRI",
+                "data": "http://services1.arcgis.com/I6XnrlnguPDoEObn/arcgis/rest/services/AddressPoints/FeatureServer/0",
+                "conform": {
+                    "type": "geojson",
+                    "number": "ADRNUM",
+                    "unit": "UNITNUM",
+                    "street": [
+                        "FDPRE",
+                        "FNAME",
+                        "FTYPE",
+                        "FDSUF"
+                    ],
+                    "city": "MUNI"
+                }
+            }
         ],
-        "city": "MUNI"
+        "buildings": []
     }
 }

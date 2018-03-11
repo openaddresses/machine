@@ -1,20 +1,26 @@
 {
-    "data": "http://fake-web/lake-man-split2",
-    "cache": "http://fake-cache/lake-man-split2.json",
-    "type": "ESRI",
-    "conform": {
-        "lon": "NONSENSE",
-        "lat": "Y",
-        "number": {
-            "function": "regexp",
-            "field": "MAILSTREET",
-            "pattern": "^(\\S+)"
-            },
-        "street": {
-            "function": "regexp",
-            "field": "MAILSTREET",
-            "pattern": "^(?:\\S+ )(.*)"
-            },
-        "type": "geojson"
+    "layers": {
+        "addresses": [
+            {
+                "type": "ESRI",
+                "data": "http://fake-web/lake-man-split2",
+                "conform": {
+                    "lon": "NONSENSE",
+                    "lat": "Y",
+                    "number": {
+                        "function": "regexp",
+                        "field": "MAILSTREET",
+                        "pattern": "^(\\S+)"
+                    },
+                    "street": {
+                        "function": "regexp",
+                        "field": "MAILSTREET",
+                        "pattern": "^(?:\\S+ )(.*)"
+                    },
+                    "type": "geojson"
+                }
+            }
+        ],
+        "buildings": []
     }
 }

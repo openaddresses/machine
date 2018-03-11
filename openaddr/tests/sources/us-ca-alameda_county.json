@@ -9,16 +9,28 @@
         "state": "ca",
         "county": "Alameda"
     },
-    "data": "https://data.acgov.org/api/geospatial/8e4s-7f4v?method=export&format=Original",
-    "license": { "url": "http://www.acgov.org/acdata/terms.htm" },
-    "year": "",
-    "type": "http",
-    "compression": "zip",
-    "conform": {
-        "lon": "X",
-        "lat": "Y",
-        "number": "ST_NUM",
-        "street": ["FEANME", "FEATYP"],
-        "type": "shapefile"
+    "layers": {
+        "addresses": [
+            {
+                "type": "http",
+                "data": "https://data.acgov.org/api/geospatial/8e4s-7f4v?method=export&format=Original",
+                "conform": {
+                    "lon": "X",
+                    "lat": "Y",
+                    "number": "ST_NUM",
+                    "street": [
+                        "FEANME",
+                        "FEATYP"
+                    ],
+                    "type": "shapefile"
+                },
+                "compression": "zip",
+                "license": {
+                    "url": "http://www.acgov.org/acdata/terms.htm"
+                },
+                "year": ""
+            }
+        ],
+        "buildings": []
     }
 }

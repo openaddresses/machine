@@ -1,14 +1,25 @@
 {
     "coverage": {
-        "US Census": {"geoid": "0606000", "place": "Berkeley", "state": "California"},
+        "US Census": {
+            "geoid": "0606000",
+            "place": "Berkeley",
+            "state": "California"
+        },
         "country": "us",
         "state": "ca",
         "place": "Berkeley"
     },
-    "data": "http://www.ci.berkeley.ca.us/uploadedFiles/IT/GIS/Parcels.zip",
-    "website": "http://www.ci.berkeley.ca.us/datacatalog/",
-    "license": { },
-    "type": "http",
-    "compression": "zip",
-    "note": "Metadata at http://www.ci.berkeley.ca.us/uploadedFiles/IT/GIS/Parcels.shp(1).xml"
+    "layers": {
+        "addresses": [
+            {
+                "type": "http",
+                "data": "http://www.ci.berkeley.ca.us/uploadedFiles/IT/GIS/Parcels.zip",
+                "website": "http://www.ci.berkeley.ca.us/datacatalog/",
+                "compression": "zip",
+                "license": {},
+                "note": "Metadata at http://www.ci.berkeley.ca.us/uploadedFiles/IT/GIS/Parcels.shp(1).xml"
+            }
+        ],
+        "buildings": []
+    }
 }

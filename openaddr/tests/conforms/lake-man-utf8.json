@@ -1,14 +1,20 @@
 {
-    "data": "http://fake-web/lake-man-utf8",
-    "cache": "http://fake-cache/lake-man-utf8.zip",
-    "type": "http",
-    "compression": "zip",
-    "conform": {
-        "lon": "X",
-        "lat": "Y",
-        "number": "number",
-        "street": "street",
-        "type": "shapefile",
-	"encoding": "utf-8"
+    "layers": {
+        "addresses": [
+            {
+                "type": "http",
+                "data": "http://fake-web/lake-man-utf8",
+                "conform": {
+                    "lon": "X",
+                    "lat": "Y",
+                    "number": "number",
+                    "street": "street",
+                    "type": "shapefile",
+                    "encoding": "utf-8"
+                },
+                "compression": "zip"
+            }
+        ],
+        "buildings": []
     }
 }
