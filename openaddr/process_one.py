@@ -72,15 +72,11 @@ def process(jurisdiction, destination, do_preview, mapbox_key=None, extras=dict(
         tests_passed = None
     
         try:
-            # Convert V1 Schema Files to V2
             with open(temp_src) as file:
                 source = json.load(file) 
-                if source['schema'] == None:
-                    print('NEED TO UPDATE TO V2')
-                    #TODO: CONVERT TO V2
 
-            with open(temp_src) as file:
-                source = json.load(file)
+                if source.get('schema', None) == None:
+                    source = upgrade_source_schema(source)
 
                 for layer, sources in source['layers'].items():
                     for source in sources:
@@ -153,6 +149,20 @@ def process(jurisdiction, destination, do_preview, mapbox_key=None, extras=dict(
         rmtree(temp_dir)
 
         return state_path
+
+def upgrade_source_schema(schema):
+    ''' Temporary Shim to convert a V1 Schema source (layerless) to a V2 schema file (layers)
+    '''
+
+    v2 = { 'layers': { 'addresses': [{ 'name': 'primary' }] } }
+
+    for k, v in schema.items():
+        if (k == 'coverage'):
+            v2['coverage'] = v
+        else:
+            v2['layers']['addresses'][0][k] = v
+
+    return v2
 
 def render_preview(csv_filename, temp_dir, mapbox_key):
     '''
