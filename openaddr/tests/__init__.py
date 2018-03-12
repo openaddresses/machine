@@ -360,7 +360,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'], 'http://www.acgov.org/acdata/terms.htm')
         
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
@@ -368,7 +368,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue('OAKLAND' in sample_data[1])
         self.assertTrue('94612' in sample_data[1])
         
-        output_path = join(dirname(state_path[0]), state['processed'])
+        output_path = join(dirname(state_paths[0]), state['processed'])
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -405,7 +405,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
         
         self.assertIsNotNone(state['cache'])
@@ -417,7 +417,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'], 'http://www.acgov.org/acdata/terms.htm')
         
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
@@ -425,7 +425,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue('OAKLAND' in sample_data[1])
         self.assertTrue('94612' in sample_data[1])
         
-        output_path = join(dirname(state_path[0]), state['processed'])
+        output_path = join(dirname(state_paths[0]), state['processed'])
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -458,7 +458,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
         
         self.assertIsNotNone(state['cache'])
@@ -470,14 +470,14 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'], '')
         
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
         self.assertTrue('ZIPCODE' in sample_data[0])
         self.assertTrue('94102' in sample_data[1])
         
-        output_path = join(dirname(state_path[0]), state['processed'])
+        output_path = join(dirname(state_paths[0]), state['processed'])
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -514,7 +514,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
         
         self.assertIsNotNone(state['cache'])
@@ -527,13 +527,13 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['website'], 'http://ci.carson.ca.us/')
         self.assertIsNone(state['license'])
         
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
         self.assertTrue('SITENUMBER' in sample_data[0])
         
-        with open(join(dirname(state_path[0]), state['processed'])) as file:
+        with open(join(dirname(state_paths[0]), state['processed'])) as file:
             rows = list(DictReader(file, dialect='excel'))
             self.assertEqual(5, len(rows))
             self.assertEqual(rows[0]['NUMBER'], '555')
@@ -554,7 +554,7 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
         
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
         
         self.assertIsNotNone(state['cache'])
@@ -565,13 +565,13 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state['slippymap'])
         self.assertEqual(state['geometry type'], 'Point')
 
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
         self.assertTrue('SITENUMBER' in sample_data[0])
         
-        with open(join(dirname(state_path[0]), state['processed'])) as file:
+        with open(join(dirname(state_paths[0]), state['processed'])) as file:
             self.assertTrue('555,CARSON ST' in file.read())
 
     def test_single_car_old_cached(self):
@@ -583,7 +583,7 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
         
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
         
         self.assertIsNotNone(state['cache'])
@@ -594,13 +594,13 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state['slippymap'])
         self.assertEqual(state['geometry type'], 'Point')
 
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
         self.assertTrue('SITENUMBER' in sample_data[0])
         
-        with open(join(dirname(state_path[0]), state['processed'])) as file:
+        with open(join(dirname(state_paths[0]), state['processed'])) as file:
             self.assertTrue('555,CARSON ST' in file.read())
 
     def test_single_tx_runnels(self):
@@ -612,7 +612,7 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
         
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
 
         self.assertIsNone(state.cache)
@@ -631,7 +631,7 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
         
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
         
         self.assertFalse(state.skipped)
@@ -644,7 +644,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state.website, 'http://data.openoakland.org/dataset/property-parcels/resource/df20b818-0d16-4da8-a9c1-a7b8b720ff49')
         self.assertIsNone(state.license)
         
-        with open(join(dirname(state_path[0]), state.sample)) as file:
+        with open(join(dirname(state_paths[0]), state.sample)) as file:
             sample_data = json.load(file)
         
         self.assertTrue('FID_PARCEL' in sample_data[0])
@@ -658,7 +658,7 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
         
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
         
         # This test data says "skip": True
@@ -678,7 +678,7 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
         
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
         
         self.assertIsNotNone(state.cache)
@@ -690,7 +690,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state.website, 'http://www.ci.berkeley.ca.us/datacatalog/')
         self.assertIsNone(state.license)
         
-        with open(join(dirname(state_path[0]), state.sample)) as file:
+        with open(join(dirname(state_paths[0]), state.sample)) as file:
             sample_data = json.load(file)
         
         self.assertTrue('APN' in sample_data[0])
@@ -704,7 +704,7 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
         
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
         
         self.assertIs(state.source_problem, SourceProblem.download_source_failed)
@@ -722,7 +722,7 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
         
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
         
         self.assertIsNotNone(state['cache'])
@@ -732,7 +732,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['website'], 'http://www.ci.berkeley.ca.us/datacatalog/')
         self.assertIsNone(state['license'])
         
-        output_path = join(dirname(state_path[0]), state['processed'])
+        output_path = join(dirname(state_paths[0]), state['processed'])
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -758,7 +758,7 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
         
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
         
         self.assertIsNotNone(state['cache'])
@@ -772,7 +772,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['share-alike'], 'false')
         self.assertIn('issues/187#issuecomment-63327973', state['license'])
         
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
@@ -789,7 +789,7 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
         
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
         
         self.assertIsNotNone(state['cache'])
@@ -803,7 +803,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['share-alike'], 'false')
         self.assertIn('issues/187#issuecomment-63327973', state['license'])
         
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
@@ -811,7 +811,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(u'Gliwice' in sample_data[1])
         self.assertTrue(u'Ulica Dworcowa ' in sample_data[1])
         
-        output_path = join(dirname(state_path[0]), state['processed'])
+        output_path = join(dirname(state_paths[0]), state['processed'])
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -834,7 +834,7 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
         
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
 
         self.assertIsNotNone(state.sample)
@@ -847,7 +847,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state.attribution_required, 'true')
         self.assertIn('Ministry of Land', state.attribution_name)
         
-        with open(join(dirname(state_path[0]), state.sample)) as file:
+        with open(join(dirname(state_paths[0]), state.sample)) as file:
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
@@ -865,7 +865,7 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
         
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
 
         self.assertIsNotNone(state.sample)
@@ -878,7 +878,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state.attribution_required, 'true')
         self.assertIn('Ministry of Land', state.attribution_name)
         
-        with open(join(dirname(state_path[0]), state.sample)) as file:
+        with open(join(dirname(state_paths[0]), state.sample)) as file:
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
@@ -887,7 +887,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue('37.706391' in sample_data[1])
         self.assertTrue('140.480007' in sample_data[1])
         
-        with open(join(dirname(state_path[0]), state.processed), encoding='utf8') as file:
+        with open(join(dirname(state_paths[0]), state.processed), encoding='utf8') as file:
             rows = list(csv.DictReader(file))
             
         self.assertEqual(len(rows), 6)
@@ -913,7 +913,7 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
@@ -922,7 +922,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state['website'])
         self.assertIsNone(state['license'])
 
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
         self.assertEqual(len(sample_data), 6)
@@ -936,7 +936,7 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNone(state['preview'])
@@ -947,7 +947,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state['website'])
         self.assertIsNotNone(state['license'])
 
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
         self.assertEqual(len(sample_data), 6)
@@ -960,7 +960,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(row3['LONG_WGS84'], '-21,76846217953')
         self.assertEqual(row4['LAT_WGS84'], '64,110044369942')
 
-        with open(join(dirname(state_path[0]), state['processed']), encoding='utf8') as file:
+        with open(join(dirname(state_paths[0]), state['processed']), encoding='utf8') as file:
             rows = list(csv.DictReader(file))
             
         self.assertEqual(len(rows), 15)
@@ -977,7 +977,7 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
@@ -989,7 +989,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['share-alike'], 'true')
         self.assertIn(u'Géographique et Forestière', state['attribution name'])
 
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
         self.assertEqual(len(sample_data), 6)
@@ -1016,7 +1016,7 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
@@ -1028,7 +1028,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['share-alike'], 'true')
         self.assertIn(u'Géographique et Forestière', state['attribution name'])
 
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
         self.assertEqual(len(sample_data), 6)
@@ -1046,14 +1046,14 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
         self.assertIsNone(state['slippymap'])
 
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
         self.assertEqual(len(sample_data), 6)
@@ -1071,14 +1071,14 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
         self.assertIsNone(state['slippymap'])
 
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
         self.assertEqual(len(sample_data), 6)
@@ -1096,14 +1096,14 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
         self.assertIsNone(state['slippymap'])
 
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
         self.assertEqual(len(sample_data), 6)
@@ -1118,14 +1118,14 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
         self.assertIsNone(state['slippymap'])
 
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
         self.assertEqual(len(sample_data), 6)
@@ -1139,7 +1139,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual('4', sample_data[4][6])
         self.assertEqual('5', sample_data[5][6])
         
-        output_path = join(dirname(state_path[0]), state['processed'])
+        output_path = join(dirname(state_paths[0]), state['processed'])
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -1162,14 +1162,14 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
         self.assertIsNone(state['slippymap'])
 
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
         self.assertEqual(len(sample_data), 2)
@@ -1186,14 +1186,14 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
         self.assertIsNone(state['slippymap'])
 
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
             row1 = dict(zip(sample_data[0], sample_data[1]))
             row2 = dict(zip(sample_data[0], sample_data[2]))
@@ -1208,7 +1208,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual('STATE', row2['SITUS_FNAME'])
         self.assertEqual('RD', row2['SITUS_FTYPE'])
         
-        output_path = join(dirname(state_path[0]), state['processed'])
+        output_path = join(dirname(state_paths[0]), state['processed'])
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -1231,14 +1231,14 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
         self.assertIsNone(state['slippymap'])
 
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
         self.assertEqual(len(sample_data), 6)
@@ -1252,7 +1252,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual('23110', sample_data[4][0])
         self.assertEqual(' ', sample_data[5][0])
         
-        output_path = join(dirname(state_path[0]), state['processed'])
+        output_path = join(dirname(state_paths[0]), state['processed'])
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -1278,7 +1278,7 @@ class TestOA (unittest.TestCase):
             csv.field_size_limit(ofs)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
 
         self.assertIsNone(state.sample, 'Sample should be missing when csv.field_size_limit() is too short')
@@ -1294,7 +1294,7 @@ class TestOA (unittest.TestCase):
             csv.field_size_limit(ofs)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
 
         self.assertIsNotNone(state.sample, 'Sample should be present when csv.field_size_limit() is long enough')
@@ -1303,7 +1303,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state.preview)
         self.assertIsNone(state.slippymap)
 
-        output_path = join(dirname(state_path[0]), state.processed)
+        output_path = join(dirname(state_paths[0]), state.processed)
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -1328,13 +1328,13 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
         
         self.assertIsNotNone(state.sample)
         self.assertIsNotNone(state.processed)
 
-        output_path = join(dirname(state_path[0]), state.processed)
+        output_path = join(dirname(state_paths[0]), state.processed)
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -1358,13 +1358,13 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
         
         self.assertIsNotNone(state.sample)
         self.assertIsNotNone(state.processed)
 
-        output_path = join(dirname(state_path[0]), state.processed)
+        output_path = join(dirname(state_paths[0]), state.processed)
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -1388,10 +1388,10 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
-        output_path = join(dirname(state_path[0]), state['processed'])
+        output_path = join(dirname(state_paths[0]), state['processed'])
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -1406,7 +1406,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state['preview'])
         self.assertIsNone(state['slippymap'])
 
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
         self.assertEqual(len(sample_data), 6)
@@ -1424,10 +1424,10 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
-        output_path = join(dirname(state_path[0]), state['processed'])
+        output_path = join(dirname(state_paths[0]), state['processed'])
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -1458,10 +1458,10 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
-        output_path = join(dirname(state_path[0]), state['processed'])
+        output_path = join(dirname(state_paths[0]), state['processed'])
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -1484,10 +1484,10 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
-        output_path = join(dirname(state_path[0]), state['processed'])
+        output_path = join(dirname(state_paths[0]), state['processed'])
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -1517,10 +1517,10 @@ class TestOA (unittest.TestCase):
         with HTTMock(self.response_content):
             state_paths = process_one.process(source, self.testdir, False)
 
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
-        output_path = join(dirname(state_path[0]), state['processed'])
+        output_path = join(dirname(state_paths[0]), state['processed'])
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -1547,10 +1547,10 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
         
-        output_path = join(dirname(state_path[0]), state['processed'])
+        output_path = join(dirname(state_paths[0]), state['processed'])
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -1577,7 +1577,7 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
         
         self.assertIs(state.tests_passed, False)
@@ -1594,7 +1594,7 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
         
         self.assertTrue(state.tests_passed)
@@ -1626,14 +1626,14 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
         self.assertIsNone(state['slippymap'])
         
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
@@ -1641,7 +1641,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(964 in sample_data[1])
         self.assertTrue('FRUITED PLAINS LN' in sample_data[1])
         
-        output_path = join(dirname(state_path[0]), state['processed'])
+        output_path = join(dirname(state_paths[0]), state['processed'])
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -1668,14 +1668,14 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
         self.assertIsNone(state['slippymap'])
         
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
@@ -1683,7 +1683,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(964 in sample_data[1])
         self.assertTrue('FRUITED PLAINS LN' in sample_data[1])
         
-        output_path = join(dirname(state_path[0]), state['processed'])
+        output_path = join(dirname(state_paths[0]), state['processed'])
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
@@ -1710,14 +1710,14 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-        with open(state_path[0]) as file:
+        with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
 
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
         self.assertIsNone(state['slippymap'])
         
-        with open(join(dirname(state_path[0]), state['sample'])) as file:
+        with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
         
         self.assertEqual(len(sample_data), 6)
@@ -1725,7 +1725,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(964 in sample_data[1])
         self.assertTrue('FRUITED PLAINS LN' in sample_data[1])
         
-        output_path = join(dirname(state_path[0]), state['processed'])
+        output_path = join(dirname(state_paths[0]), state['processed'])
         
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
