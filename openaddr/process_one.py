@@ -135,11 +135,6 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
                                     else:
                                         _L.info('Preview image in {}'.format(preview_path))
 
-                                # Write output
-                                state_paths.append(write_state(temp_src, layer, data_source['name'], skipped_source, destination, log_handler,
-                                    tests_passed, cache_result, conform_result, preview_path, slippymap_path,
-                                    temp_dir))
-
                         except SourceSaysSkip:
                             _L.info('Source says to skip in process_one.process()')
                             skipped_source = True
@@ -147,6 +142,15 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
                         except SourceTestsFailed as e:
                             _L.warning('A source test failed in process_one.process(): %s', str(e))
                             tests_passed = False
+
+                        except Exception:
+                            _L.warning('Generic Data Source Failure', exc_info=True)
+
+                        # Write output
+                        state_paths.append(write_state(temp_src, layer, data_source['name'], skipped_source, destination, log_handler,
+                            tests_passed, cache_result, conform_result, preview_path, slippymap_path,
+                            temp_dir))
+
 
         except Exception:
             _L.warning('Error in process_one.process()', exc_info=True)
@@ -319,6 +323,7 @@ def write_state(source, layer, data_source_name, skipped, destination, log_handl
                 source_data = json.load(file)
         else:
             source_data = {}
+
         source_problem = find_source_problem(log_content, source_data)
 
     state = [
