@@ -79,6 +79,11 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
                     source = upgrade_source_schema(source)
 
                 for layer in source['layers'].keys():
+
+                    # Only Address Layers are supported right now
+                    if (layer != 'addresses'):
+                        continue
+
                     for data_source in source['layers'][layer]:
                         try:
                             if data_source.get('skip', None):
