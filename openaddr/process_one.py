@@ -75,11 +75,11 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
             with open(temp_src) as file:
                 source = json.load(file) 
 
-                if source.get('schema', None) == None:
+                if source.get('schema', None) == None and source.get('layers', None) == None:
                     source = upgrade_source_schema(source)
-
-                for layer, data_sources in source['layers'].items():
-                    for data_source in data_sources:
+               
+                for layer in source['layers'].keys():
+                    for data_source in source['layers'][layer]:
                         try: 
                             if data_source.get('skip', None):
                                 raise SourceSaysSkip()
@@ -89,7 +89,11 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
                             if tests_passed is False:
                                 raise SourceTestsFailed(failure_details)
            
-                            data_source_name = layer + data_source.name
+                            if data_source.get('name', None) == None:
+                                _L.warning('name attribute is required on each data source'.format(e))
+                                raise
+
+                            data_source_name = layer + '-' + data_source['name']
 
                             # Cache source data.
                             try:
@@ -107,7 +111,7 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
                                 _L.info(u'Cached data in {}'.format(cache_result.cache))
 
                                 # Conform cached source data.
-                                conform_result = conform(data_source, temp_dir, cache_result.todict())
+                                conform_result = conform(data_source_name, data_source, temp_dir, cache_result.todict())
                     
                                 if not conform_result.path:
                                     _L.warning('Nothing processed')

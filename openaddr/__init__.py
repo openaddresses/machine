@@ -188,8 +188,8 @@ def conform(data_source_name, data_source, destdir, extras):
 
     rmtree(workdir)
     
-    sharealike_flag = conform_sharealike(data.get('license'))
-    attr_flag, attr_name = conform_attribution(data.get('license'), data.get('attribution'))
+    sharealike_flag = conform_sharealike(data_source.get('license'))
+    attr_flag, attr_name = conform_attribution(data_source.get('license'), data_source.get('attribution'))
 
     return ConformResult(data_source.get('processed', None),
                          data_sample,
