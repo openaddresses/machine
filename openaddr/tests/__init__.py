@@ -1570,11 +1570,15 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-mi-grand_traverse.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_paths = process_one.process(source, self.testdir, False)
 
-        with open(state_path) as file:
+        self.assertIs(len(state_paths), 1)
+
+        with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
-        
+
+        print(state.proccessed)
+
         self.assertIsNone(state.processed)
         self.assertIs(state.source_problem, SourceProblem.no_addresses_found)
 
