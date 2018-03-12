@@ -1573,11 +1573,8 @@ class TestOA (unittest.TestCase):
             state_paths = process_one.process(source, self.testdir, False)
 
         self.assertIs(len(state_paths), 1)
-
         with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
-
-        print(state.proccessed)
 
         self.assertIsNone(state.processed)
         self.assertIs(state.source_problem, SourceProblem.no_addresses_found)
