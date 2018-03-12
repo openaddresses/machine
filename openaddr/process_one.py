@@ -263,6 +263,7 @@ def write_state(source, layer, data_source, skipped, destination, log_handler, t
     '''
     source_id, _ = splitext(basename(source))
     statedir = join(destination, source_id)
+
     if not exists(statedir):
         mkdir(statedir)
 
