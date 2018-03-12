@@ -158,8 +158,8 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
         log_handler.close()
         rmtree(temp_dir)
 
-        # TODO Return array
-        return ''
+        # TODO Return List of state paths
+        return state_paths
 
 def upgrade_source_schema(schema):
     ''' Temporary Shim to convert a V1 Schema source (layerless) to a V2 schema file (layers)
