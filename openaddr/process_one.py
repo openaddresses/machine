@@ -71,8 +71,6 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
         preview_path, slippymap_path, skipped_source = None, None, False
         tests_passed = None
 
-        run_state = []
-
         try:
             with open(temp_src) as file:
                 source = json.load(file)
@@ -95,11 +93,9 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
                                 _L.warning('name attribute is required on each data source'.format(e))
                                 raise
 
-                            data_source_name = layer + '-' + data_source['name']
-
                             # Cache source data.
                             try:
-                                cache_result = cache(data_source_name, data_source, temp_dir, extras)
+                                cache_result = cache(layer + '-' + data_source['name'], data_source, temp_dir, extras)
                             except EsriDownloadError as e:
                                 _L.warning('Could not download ESRI source data: {}'.format(e))
                                 raise
@@ -113,7 +109,7 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
                                 _L.info(u'Cached data in {}'.format(cache_result.cache))
 
                                 # Conform cached source data.
-                                conform_result = conform(data_source_name, data_source, temp_dir, cache_result.todict())
+                                conform_result = conform(layer + '-' + data_source['name'], data_source, temp_dir, cache_result.todict())
 
                                 if not conform_result.path:
                                     _L.warning('Nothing processed')
@@ -129,7 +125,12 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
                                     if not preview_path:
                                         _L.warning('Nothing previewed')
                                     else:
-                                        _L.info('Preview image in{}'.format(preview_path))
+                                        _L.info('Preview image in {}'.format(preview_path))
+
+                                # Write output
+                                state_path = write_state(temp_src, layer, data_source, skipped_source, destination, log_handler,
+                                    tests_passed, cache_result, conform_result, preview_path, slippymap_path,
+                                    temp_dir)
 
                         except SourceSaysSkip:
                             _L.info('Source says to skip in process_one.process()')
@@ -139,19 +140,6 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
                             _L.warning('A source test failed in process_one.process(): %s', str(e))
                             tests_passed = False
 
-                        run_state.append({
-                            'data_source': data_source,
-                            'skipped_source': skipped_source,
-                            'destination': destination,
-                            'log_handler': log_handler,
-                            'test_passed': test_passed,
-                            'cache_result': cache_result,
-                            'conform_result': conform_result,
-                            'preview_path': preview_path,
-                            'slippymap_path': slippymap_path,
-                            'temp_dir': temp_dir
-                        });
-
         except Exception:
             _L.warning('Error in process_one.process()', exc_info=True)
 
@@ -159,18 +147,11 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
             # Make sure this gets done no matter what
             logging.getLogger('openaddr').removeHandler(log_handler)
 
-        print(run_state)
-
-        # Write output
-        state_path = write_state(data_source, skipped_source, destination, log_handler,
-            tests_passed, cache_result, conform_result, preview_path, slippymap_path,
-            temp_dir)
-
-
         log_handler.close()
         rmtree(temp_dir)
 
-        return state_path
+        # TODO Return array
+        return ''
 
 def upgrade_source_schema(schema):
     ''' Temporary Shim to convert a V1 Schema source (layerless) to a V2 schema file (layers)
@@ -267,14 +248,21 @@ def find_source_problem(log_contents, source):
 
     return None
 
-def write_state(source, skipped, destination, log_handler, tests_passed,
+def write_state(source, layer, data_source, skipped, destination, log_handler, tests_passed,
                 cache_result, conform_result, preview_path, slippymap_path,
                 temp_dir):
     '''
     '''
     source_id, _ = splitext(basename(source))
     statedir = join(destination, source_id)
+    if not exists(statedir):
+        mkdir(statedir)
 
+    statedir = join(statedir, layer)
+    if not exists(statedir):
+        mkdir(statedir)
+
+    statedir = join(statedir, data_source['name'])
     if not exists(statedir):
         mkdir(statedir)
 
@@ -347,7 +335,7 @@ def write_state(source, skipped, destination, log_handler, tests_passed,
         ('source problem', getattr(source_problem, 'value', None)),
         ('code version', __version__),
         ('tests passed', tests_passed),
-    ]
+        ]
 
     with open(join(statedir, 'index.txt'), 'w', encoding='utf8') as file:
         out = csv.writer(file, dialect='excel-tab')
@@ -403,7 +391,6 @@ def main():
         _L.error(e, exc_info=True)
         return 1
     else:
-        print(file_path)
         return 0
 
 if __name__ == '__main__':
