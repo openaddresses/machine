@@ -98,7 +98,7 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
                                 raise SourceTestsFailed(failure_details)
 
                             if data_source.get('name', None) == None:
-                                _L.warning('name attribute is required on each data source'))
+                                _L.warning('name attribute is required on each data source')
                                 raise
 
                             # Cache source data.
