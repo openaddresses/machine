@@ -71,6 +71,8 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
         preview_path, slippymap_path, skipped_source = None, None, False
         tests_passed = None
 
+        run_state = []
+
         try:
             with open(temp_src) as file:
                 source = json.load(file)
@@ -127,7 +129,7 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
                                     if not preview_path:
                                         _L.warning('Nothing previewed')
                                     else:
-                                        _L.info('Preview image in {}'.format(preview_path))
+                                        _L.info('Preview image in{}'.format(preview_path))
 
                         except SourceSaysSkip:
                             _L.info('Source says to skip in process_one.process()')
@@ -137,6 +139,19 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
                             _L.warning('A source test failed in process_one.process(): %s', str(e))
                             tests_passed = False
 
+                        run_state.append({
+                            'data_source': data_source,
+                            'skipped_source': skipped_source,
+                            'destination': destination,
+                            'log_handler': log_handler,
+                            'test_passed': test_passed,
+                            'cache_result': cache_result,
+                            'conform_result': conform_result,
+                            'preview_path': preview_path,
+                            'slippymap_path': slippymap_path,
+                            'temp_dir': temp_dir
+                        });
+
         except Exception:
             _L.warning('Error in process_one.process()', exc_info=True)
 
@@ -144,10 +159,13 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
             # Make sure this gets done no matter what
             logging.getLogger('openaddr').removeHandler(log_handler)
 
+        print(run_state)
+
         # Write output
-        state_path = write_state(source, skipped_source, destination, log_handler,
+        state_path = write_state(data_source, skipped_source, destination, log_handler,
             tests_passed, cache_result, conform_result, preview_path, slippymap_path,
             temp_dir)
+
 
         log_handler.close()
         rmtree(temp_dir)
@@ -329,7 +347,7 @@ def write_state(source, skipped, destination, log_handler, tests_passed,
         ('source problem', getattr(source_problem, 'value', None)),
         ('code version', __version__),
         ('tests passed', tests_passed),
-        ]
+    ]
 
     with open(join(statedir, 'index.txt'), 'w', encoding='utf8') as file:
         out = csv.writer(file, dialect='excel-tab')
