@@ -136,7 +136,7 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
                                         _L.info('Preview image in {}'.format(preview_path))
 
                                 # Write output
-                                state_paths.append(write_state(temp_src, layer, data_source, skipped_source, destination, log_handler,
+                                state_paths.append(write_state(temp_src, layer, data_source['name'], skipped_source, destination, log_handler,
                                     tests_passed, cache_result, conform_result, preview_path, slippymap_path,
                                     temp_dir))
 
@@ -256,7 +256,7 @@ def find_source_problem(log_contents, source):
 
     return None
 
-def write_state(source, layer, data_source, skipped, destination, log_handler, tests_passed,
+def write_state(source, layer, data_source_name, skipped, destination, log_handler, tests_passed,
                 cache_result, conform_result, preview_path, slippymap_path,
                 temp_dir):
     '''
@@ -271,7 +271,7 @@ def write_state(source, layer, data_source, skipped, destination, log_handler, t
     if not exists(statedir):
         mkdir(statedir)
 
-    statedir = join(statedir, data_source['name'])
+    statedir = join(statedir, data_source_name)
     if not exists(statedir):
         mkdir(statedir)
 

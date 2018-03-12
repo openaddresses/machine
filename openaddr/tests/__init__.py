@@ -1786,7 +1786,8 @@ class TestState (unittest.TestCase):
         #
         # Check result of process_one.write_state().
         #
-        args = dict(source='sources/foo.json', skipped=False,
+        args = dict(source='sources/foo.json', layer='addresses',
+                    data_source_name='open-data', skipped=False,
                     destination=self.output_dir, log_handler=log_handler,
                     cache_result=cache_result, conform_result=conform_result,
                     temp_dir=self.output_dir, preview_path=preview_path,
