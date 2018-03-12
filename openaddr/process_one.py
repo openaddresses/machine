@@ -38,18 +38,18 @@ def boolstr(value):
     '''
     if value is True:
         return 'true'
-    
+
     if value is False:
         return 'false'
-    
+
     if value is None:
         return ''
-    
+
     raise ValueError(repr(value))
 
 def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
     ''' Process a single source and destination, return path to JSON state file.
-    
+
         Creates a new directory and files under destination.
     '''
     # The main processing thread holds wait_lock until it is done.
@@ -57,31 +57,31 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
     # then exits once the main thread releases the lock.
     wait_lock = threading.Lock()
     proc_wait = threading.Thread(target=util.log_process_usage, args=(wait_lock, ))
-    
+
     temp_dir = tempfile.mkdtemp(prefix='process_one-', dir=destination)
     temp_src = join(temp_dir, basename(source))
     copy(source, temp_src)
-    
+
     log_handler = get_log_handler(temp_dir)
     logging.getLogger('openaddr').addHandler(log_handler)
-    
+
     with wait_lock:
         proc_wait.start()
         cache_result, conform_result = CacheResult.empty(), ConformResult.empty()
         preview_path, slippymap_path, skipped_source = None, None, False
         tests_passed = None
-    
+
         try:
             with open(temp_src) as file:
                 if json.load(file).get('skip', None):
                     raise SourceSaysSkip()
-        
+
             # Check tests in source data.
             with open(temp_src) as file:
                 tests_passed, failure_details = check_source_tests(json.load(file))
                 if tests_passed is False:
                     raise SourceTestsFailed(failure_details)
-    
+
             # Cache source data.
             try:
                 cache_result = cache(temp_src, temp_dir, extras)
@@ -91,7 +91,7 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
             except DownloadError as e:
                 _L.warning('Could not download source data')
                 raise
-    
+
             if not cache_result.cache:
                 _L.warning('Nothing cached')
             else:
@@ -99,15 +99,15 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
 
                 # Conform cached source data.
                 conform_result = conform(temp_src, temp_dir, cache_result.todict())
-    
+
                 if not conform_result.path:
                     _L.warning('Nothing processed')
                 else:
                     _L.info('Processed data in {}'.format(conform_result.path))
-                
+
                     if do_preview and mapbox_key:
                         preview_path = render_preview(conform_result.path, temp_dir, mapbox_key)
-                
+
                     if do_preview:
                         slippymap_path = render_slippymap(conform_result.path, temp_dir)
 
@@ -115,7 +115,7 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
                         _L.warning('Nothing previewed')
                     else:
                         _L.info('Preview image in {}'.format(preview_path))
-    
+
         except SourceSaysSkip:
             _L.info('Source says to skip in process_one.process()')
             skipped_source = True
@@ -126,7 +126,7 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
 
         except Exception:
             _L.warning('Error in process_one.process()', exc_info=True)
-    
+
         finally:
             # Make sure this gets done no matter what
             logging.getLogger('openaddr').removeHandler(log_handler)
@@ -167,7 +167,7 @@ class LogFilterCurrentThread:
     def __init__(self):
         # Seems to work as unique ID with multiprocessing.Process() as well as threading.Thread()
         self.thread_id = get_ident()
-    
+
     def filter(self, record):
         return record.thread == self.thread_id
 
@@ -177,14 +177,14 @@ def get_log_handler(directory):
     handle, filename = tempfile.mkstemp(dir=directory, suffix='.log')
     close(handle)
     chmod(filename, 0o644)
-    
+
     handler = logging.FileHandler(filename)
     handler.setFormatter(logging.Formatter(u'%(asctime)s %(levelname)08s: %(message)s'))
     handler.setLevel(logging.DEBUG)
-    
+
     # # Limit log messages to the current thread
     # handler.addFilter(LogFilterCurrentThread())
-    
+
     return handler
 
 def find_source_problem(log_contents, source):
@@ -192,25 +192,25 @@ def find_source_problem(log_contents, source):
     '''
     if 'WARNING: A source test failed' in log_contents:
         return SourceProblem.test_failed
-    
+
     if 'WARNING: Source is missing a conform object' in log_contents:
         return SourceProblem.missing_conform
-    
+
     if 'WARNING: Unknown source conform type' in log_contents:
         return SourceProblem.unknown_conform_type
-    
+
     if 'WARNING: Found no addresses in source data' in log_contents:
         return SourceProblem.no_addresses_found
-    
+
     if 'WARNING: Could not download source data' in log_contents:
         return SourceProblem.download_source_failed
-    
+
     if 'WARNING: Error doing conform; skipping' in log_contents:
         return SourceProblem.conform_source_failed
-    
+
     if 'WARNING: Could not download ESRI source data: Could not retrieve layer metadata: Token Required' in log_contents:
         return SourceProblem.no_esri_token
-    
+
     if 'coverage' in source:
         coverage = source.get('coverage')
         if 'US Census' in coverage or 'ISO 3166' in coverage or 'geometry' in coverage:
@@ -219,7 +219,7 @@ def find_source_problem(log_contents, source):
             return SourceProblem.no_coverage
     else:
         return SourceProblem.no_coverage
-    
+
     return None
 
 def write_state(source, skipped, destination, log_handler, tests_passed,
@@ -229,10 +229,10 @@ def write_state(source, skipped, destination, log_handler, tests_passed,
     '''
     source_id, _ = splitext(basename(source))
     statedir = join(destination, source_id)
-    
+
     if not exists(statedir):
         mkdir(statedir)
-    
+
     if cache_result.cache:
         scheme, _, cache_path1, _, _, _ = urlparse(cache_result.cache)
         if scheme in ('file', ''):
@@ -254,15 +254,15 @@ def write_state(source, skipped, destination, log_handler, tests_passed,
         sample_path = join(statedir, 'sample.json')
         with open(sample_path, 'w') as sample_file:
             json.dump(conform_result.sample, sample_file, indent=2)
-    
+
     if preview_path:
         preview_path2 = join(statedir, 'preview.png')
         copy(preview_path, preview_path2)
-    
+
     if slippymap_path:
         slippymap_path2 = join(statedir, 'slippymap.mbtiles')
         copy(slippymap_path, slippymap_path2)
-    
+
     log_handler.flush()
     output_path = join(statedir, 'output.txt')
     copy(log_handler.stream.name, output_path)
@@ -303,15 +303,15 @@ def write_state(source, skipped, destination, log_handler, tests_passed,
         ('code version', __version__),
         ('tests passed', tests_passed),
         ]
-               
+
     with open(join(statedir, 'index.txt'), 'w', encoding='utf8') as file:
         out = csv.writer(file, dialect='excel-tab')
         for row in zip(*state):
             out.writerow(row)
-    
+
     with open(join(statedir, 'index.json'), 'w') as file:
         json.dump(list(zip(*state)), file, indent=2)
-               
+
         _L.info(u'Wrote to state: {}'.format(file.name))
         return file.name
 
@@ -348,10 +348,10 @@ def main():
 
     args = parser.parse_args()
     setup_logger(logfile=args.logfile, log_level=args.loglevel)
-    
+
     # Allow CSV files with very long fields
     csv.field_size_limit(sys.maxsize)
-    
+
     try:
         file_path = process(args.source, args.destination, args.render_preview, mapbox_key=args.mapbox_key)
     except Exception as e:
