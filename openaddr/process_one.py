@@ -71,6 +71,8 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
         preview_path, slippymap_path, skipped_source = None, None, False
         tests_passed = None
 
+        state_paths = [];
+
         try:
             with open(temp_src) as file:
                 source = json.load(file)
@@ -82,6 +84,7 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
 
                     # Only Address Layers are supported right now
                     if (layer != 'addresses'):
+                        _L.warning('Nothing processed from {} layer, not currently supported'.format(layer))
                         continue
 
                     for data_source in source['layers'][layer]:
@@ -95,7 +98,7 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
                                 raise SourceTestsFailed(failure_details)
 
                             if data_source.get('name', None) == None:
-                                _L.warning('name attribute is required on each data source'.format(e))
+                                _L.warning('name attribute is required on each data source'))
                                 raise
 
                             # Cache source data.
@@ -133,9 +136,9 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
                                         _L.info('Preview image in {}'.format(preview_path))
 
                                 # Write output
-                                state_path = write_state(temp_src, layer, data_source, skipped_source, destination, log_handler,
+                                state_paths.append(write_state(temp_src, layer, data_source, skipped_source, destination, log_handler,
                                     tests_passed, cache_result, conform_result, preview_path, slippymap_path,
-                                    temp_dir)
+                                    temp_dir))
 
                         except SourceSaysSkip:
                             _L.info('Source says to skip in process_one.process()')
