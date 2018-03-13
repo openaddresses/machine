@@ -3062,7 +3062,7 @@ class TestWorker (unittest.TestCase):
                 with open(os.path.join(index_dirname, name), 'w') as file:
                     file.write('Yo')
 
-            return index_filename
+            return json.dumps([ index_filename ])
 
         def same_tempdir_every_time(prefix, dir):
             os.mkdir(join(dir, 'work'))
@@ -3073,7 +3073,7 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
 
         job_id, content = task_data['id'], task_data['content']
-        result = work.do_work(self.s3, -1, u'so/exalté', content, True, self.output_dir, mapbox_key='mapbox-XXXX')
+        results = work.do_work(self.s3, -1, u'so/exalté', content, True, self.output_dir, mapbox_key='mapbox-XXXX')
 
         self.assertEqual(check_output.mock_calls[-1][1][0], (
             'openaddr-process-one', '-l',
@@ -3087,20 +3087,21 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(check_output.mock_calls[-1][2]['timeout'],
                          JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
 
-        self.assertEqual(result['message'], MAGIC_OK_MESSAGE)
-        self.assertEqual(result['result_code'], 0)
+        self.assertEqual(len(results), 1);
+        self.assertEqual(results[0]['message'], MAGIC_OK_MESSAGE)
+        self.assertEqual(results[0]['result_code'], 0)
 
-        self.assertFalse(result['state'].skipped)
-        self.assertTrue(result['state'].cache.endswith('/cache.zip'))
-        self.assertTrue(result['state'].sample.endswith('/sample.json'))
-        self.assertTrue(result['state'].output.endswith('/output.txt'))
-        self.assertTrue(result['state'].preview.endswith('/preview.png'))
-        self.assertTrue(result['state'].processed.endswith(u'/so/exalté.zip'))
-        self.assertEqual(result['state'].website, 'http://example.com')
-        self.assertEqual(result['state'].license, 'GPL')
-        self.assertEqual(result['state'].run_id, -1)
+        self.assertFalse(results[0]['state'].skipped)
+        self.assertTrue(results[0]['state'].cache.endswith('/cache.zip'))
+        self.assertTrue(results[0]['state'].sample.endswith('/sample.json'))
+        self.assertTrue(results[0]['state'].output.endswith('/output.txt'))
+        self.assertTrue(results[0]['state'].preview.endswith('/preview.png'))
+        self.assertTrue(results[0]['state'].processed.endswith(u'/so/exalté.zip'))
+        self.assertEqual(results[0]['state'].website, 'http://example.com')
+        self.assertEqual(results[0]['state'].license, 'GPL')
+        self.assertEqual(results[0]['state'].run_id, -1)
 
-        zip_path = urlparse(result['state'].processed).path
+        zip_path = urlparse(results[0]['state'].processed).path
         zip_bytes = self.s3._read_fake_key(zip_path[len('/fake-bucket'):])
         zip_file = ZipFile(BytesIO(zip_bytes), mode='r')
         self.assertTrue(u'README.txt' in zip_file.namelist())
@@ -3166,7 +3167,7 @@ class TestWorker (unittest.TestCase):
             with open(os.path.join(index_dirname, 'output.txt'), 'w') as file:
                 file.write('Yo')
 
-            return index_filename
+            return json.dumps([index_filename])
 
         def same_tempdir_every_time(prefix, dir):
             os.mkdir(join(dir, 'work'))
@@ -3177,7 +3178,7 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
 
         job_id, content = task_data['id'], task_data['content']
-        result = work.do_work(self.s3, -1, u'so/exalté', content, True, self.output_dir, mapbox_key='mapbox-XXXX')
+        results = work.do_work(self.s3, -1, u'so/exalté', content, True, self.output_dir, mapbox_key='mapbox-XXXX')
 
         self.assertEqual(check_output.mock_calls[-1][1][0], (
             'openaddr-process-one', '-l',
@@ -3191,15 +3192,16 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(check_output.mock_calls[-1][2]['timeout'],
                          JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
 
-        self.assertEqual(result['message'], MAGIC_OK_MESSAGE)
-        self.assertEqual(result['result_code'], 0)
+        self.assertEquals(len(results), 1)
+        self.assertEqual(results[0]['message'], MAGIC_OK_MESSAGE)
+        self.assertEqual(results[0]['result_code'], 0)
 
-        self.assertTrue(result['state'].skipped)
-        self.assertIsNone(result['state'].cache)
-        self.assertIsNone(result['state'].sample)
-        self.assertIsNone(result['state'].license)
-        self.assertIsNone(result['state'].processed)
-        self.assertEqual(result['state'].run_id, -1)
+        self.assertTrue(results[0]['state'].skipped)
+        self.assertIsNone(results[0]['state'].cache)
+        self.assertIsNone(results[0]['state'].sample)
+        self.assertIsNone(results[0]['state'].license)
+        self.assertIsNone(results[0]['state'].processed)
+        self.assertEqual(results[0]['state'].run_id, -1)
 
 class TestBatch (unittest.TestCase):
 
