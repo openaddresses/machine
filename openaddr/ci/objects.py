@@ -176,8 +176,12 @@ def add_job(db, job_id, status, task_files, file_states, file_results, owner, re
         Throws an IntegrityError exception if the job ID exists.
     '''
     # Find RunState instances in file_results and turn them into dictionaries.
-    actual_results = {path: _result_runstate2dictionary(result)
-                      for (path, result) in file_results.items()}
+    actual_results = {}
+    for (path, results) in file_results.items():
+        path_results = []
+        for result in results:
+            path_results.append(_result_runstate2dictionary(result))
+        actual_results[path] = path_results
 
     db.execute('''INSERT INTO jobs
                   (task_files, file_states, file_results, github_owner,
@@ -192,8 +196,12 @@ def write_job(db, job_id, status, task_files, file_states, file_results, owner, 
     ''' Save information about a job to the database.
     '''
     # Find RunState instances in file_results and turn them into dictionaries.
-    actual_results = {path: _result_runstate2dictionary(result)
-                      for (path, result) in file_results.items()}
+    actual_results = {}
+    for (path, results) in file_results.items():
+        path_results = []
+        for result in results:
+            path_results.append(_result_runstate2dictionary(result))
+        actual_results[path] = path_results
 
     is_complete = bool(status is not None)
 
@@ -225,8 +233,19 @@ def read_job(db, job_id):
         return None
     else:
         # Find dictionaries in file_results and turn them into RunState instances.
-        actual_results = {path: result_dictionary2runstate(result)
-                          for (path, result) in file_results.items()}
+        actual_results = {}
+
+        for path, results in file_results.items():
+            # New style runs are file: [ dict, .. ] to accomodate layers
+            if type(results) is list:
+                path_results = []
+                for result in results:
+                    path_results.append(result_dictionary2runstate(result))
+                actual_results[path] = path_results
+
+            # Old Style Runs were a single file: dict format as they are only address layers
+            else:
+                actual_results[path] = [ result_dictionary2runstate(results) ]
 
         return Job(job_id, status, task_files, states, actual_results,
                    github_owner, github_repository, github_status_url,
@@ -254,8 +273,22 @@ def read_jobs(db, past_id):
         # Find dictionaries in file_results and turn them into RunState instances.
         job_args = list(row)
         file_results = job_args.pop(4)
-        actual_results = {path: result_dictionary2runstate(result)
-                          for (path, result) in file_results.items()}
+
+        actual_results = {}
+
+        for path, results in file_results.items():
+            # New style runs are file: [ dict, .. ] to accomodate layers
+            if type(results) is list:
+                path_results = []
+                for result in results:
+                    path_results.append(result_dictionary2runstate(result))
+                actual_results[path] = path_results
+
+            # Old Style Runs were a single file: dict format as they are only address layers
+            else:
+                actual_results[path] = [ result_dictionary2runstate(results) ]
+
+
         job_args.insert(4, actual_results)
         jobs.append(Job(*job_args))
 

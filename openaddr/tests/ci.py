@@ -131,7 +131,7 @@ class TestObjects (unittest.TestCase):
     def test_add_job(self):
         ''' Check behavior of objects.add_job()
         '''
-        results = {'sources/file.json': {'message': 'Yo', 'state': RunState({'source': 'file.txt'})}}
+        results = {'sources/file.json': [{'message': 'Yo', 'state': RunState({'source': 'file.txt'})}]}
         add_job(self.db, 'xyz', True, {}, {}, results, 'o', 'a', 'http://', 'https://')
 
         self.db.execute.assert_called_once_with(
@@ -140,7 +140,7 @@ class TestObjects (unittest.TestCase):
                    github_repository, github_status_url, github_comments_url,
                    status, id, datetime_start)
                   VALUES (%s::json, %s::json, %s::json, %s, %s, %s, %s, %s, %s, NOW())''',
-                  ('{}', '{}', '{"sources/file.json": {"message": "Yo", "state": {"source": "file.txt"}}}',
+                  ('{}', '{}', '{"sources/file.json": [{"message": "Yo", "state": {"source": "file.txt"}}]}',
                    'o', 'a', 'http://', 'https://', True, 'xyz'))
 
     def test_result_dictionary2runstate(self):
@@ -168,7 +168,7 @@ class TestObjects (unittest.TestCase):
     def test_write_job_success(self):
         ''' Check behavior of objects.write_job()
         '''
-        results = {'sources/file.json': {'message': 'Yo', 'state': RunState({'source': 'file.txt'})}}
+        results = {'sources/file.json': [{'message': 'Yo', 'state': RunState({'source': 'file.txt'})}]}
         write_job(self.db, 'xyz', True, {}, {}, results, 'o', 'a', 'http://', 'https://')
 
         self.db.execute.assert_called_once_with(
@@ -178,13 +178,13 @@ class TestObjects (unittest.TestCase):
                       github_status_url=%s, github_comments_url=%s, status=%s,
                       datetime_end=CASE WHEN %s THEN NOW() ELSE null END
                   WHERE id = %s''',
-                  ('{}', '{}', '{"sources/file.json": {"message": "Yo", "state": {"source": "file.txt"}}}',
+                  ('{}', '{}', '{"sources/file.json": [{"message": "Yo", "state": {"source": "file.txt"}}]}',
                    'o', 'a', 'http://', 'https://', True, True, 'xyz'))
 
     def test_write_job_failure(self):
         ''' Check behavior of objects.write_job()
         '''
-        results = {'sources/file.json': {'message': 'Yo', 'state': RunState({'source': 'file.txt'})}}
+        results = {'sources/file.json': [{'message': 'Yo', 'state': RunState({'source': 'file.txt'})}]}
         write_job(self.db, 'xyz', False, {}, {}, results, 'o', 'a', 'http://', 'https://')
 
         self.db.execute.assert_called_once_with(
@@ -194,13 +194,13 @@ class TestObjects (unittest.TestCase):
                       github_status_url=%s, github_comments_url=%s, status=%s,
                       datetime_end=CASE WHEN %s THEN NOW() ELSE null END
                   WHERE id = %s''',
-                  ('{}', '{}', '{"sources/file.json": {"message": "Yo", "state": {"source": "file.txt"}}}',
+                  ('{}', '{}', '{"sources/file.json": [{"message": "Yo", "state": {"source": "file.txt"}}]}',
                    'o', 'a', 'http://', 'https://', False, True, 'xyz'))
 
     def test_write_job_ongoing(self):
         ''' Check behavior of objects.write_job()
         '''
-        results = {'sources/file.json': {'message': 'Yo', 'state': RunState({'source': 'file.txt'})}}
+        results = {'sources/file.json': [{'message': 'Yo', 'state': RunState({'source': 'file.txt'})}]}
         write_job(self.db, 'xyz', None, {}, {}, results, 'o', 'a', 'http://', 'https://')
 
         self.db.execute.assert_called_once_with(
@@ -210,10 +210,37 @@ class TestObjects (unittest.TestCase):
                       github_status_url=%s, github_comments_url=%s, status=%s,
                       datetime_end=CASE WHEN %s THEN NOW() ELSE null END
                   WHERE id = %s''',
-                  ('{}', '{}', '{"sources/file.json": {"message": "Yo", "state": {"source": "file.txt"}}}',
+                  ('{}', '{}', '{"sources/file.json": [{"message": "Yo", "state": {"source": "file.txt"}}]}',
                    'o', 'a', 'http://', 'https://', None, False, 'xyz'))
 
     def test_read_job_yes(self):
+        ''' Check behavior of objects.read_job()
+        '''
+        self.db.fetchone.return_value = True, {}, {}, {"sources/file.json": [{"message": "Yo", "state": {"source": "file.txt"}}]}, 'o', 'a', 'http://', 'https://', None, None
+
+        job = read_job(self.db, 'xyz')
+        self.assertEqual(job.id, 'xyz')
+        self.assertEqual(job.status, True)
+        self.assertEqual(job.github_owner, 'o')
+        self.assertEqual(job.github_repository, 'a')
+        self.assertEqual(job.github_status_url, 'http://')
+        self.assertEqual(job.github_comments_url, 'https://')
+        self.assertIn('sources/file.json', job.file_results)
+        self.assertEqual(len(job.file_results['sources/file.json']), 1)
+        self.assertEqual(job.file_results['sources/file.json'][0]['message'], 'Yo')
+        self.assertEqual(job.file_results['sources/file.json'][0]['state'].source, 'file.txt')
+        self.assertIsNone(job.datetime_start)
+        self.assertIsNone(job.datetime_end)
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT status, task_files, file_states, file_results,
+                         github_owner, github_repository, github_status_url,
+                         github_comments_url, datetime_start, datetime_end
+                  FROM jobs WHERE id = %s
+                  LIMIT 1''',
+                  ('xyz', ))
+
+    def test_read_job_yes_old(self):
         ''' Check behavior of objects.read_job()
         '''
         self.db.fetchone.return_value = True, {}, {}, {"sources/file.json": {"message": "Yo", "state": {"source": "file.txt"}}}, 'o', 'a', 'http://', 'https://', None, None
@@ -226,8 +253,9 @@ class TestObjects (unittest.TestCase):
         self.assertEqual(job.github_status_url, 'http://')
         self.assertEqual(job.github_comments_url, 'https://')
         self.assertIn('sources/file.json', job.file_results)
-        self.assertEqual(job.file_results['sources/file.json']['message'], 'Yo')
-        self.assertEqual(job.file_results['sources/file.json']['state'].source, 'file.txt')
+        self.assertEqual(len(job.file_results['sources/file.json']), 1)
+        self.assertEqual(job.file_results['sources/file.json'][0]['message'], 'Yo')
+        self.assertEqual(job.file_results['sources/file.json'][0]['state'].source, 'file.txt')
         self.assertIsNone(job.datetime_start)
         self.assertIsNone(job.datetime_end)
 
@@ -239,15 +267,16 @@ class TestObjects (unittest.TestCase):
                   LIMIT 1''',
                   ('xyz', ))
 
-    def test_read_job_old(self):
+    def test_read_job_really_old(self):
         ''' Check old-dict behavior of objects.read_job()
         '''
         self.db.fetchone.return_value = True, {}, {}, {"sources/file.json": {"message": "Yo", "output": {"source": "file.txt"}}}, 'o', 'a', 'http://', 'https://', None, None
 
         job = read_job(self.db, 'xyz')
         self.assertIn('sources/file.json', job.file_results)
-        self.assertEqual(job.file_results['sources/file.json']['message'], 'Yo')
-        self.assertEqual(job.file_results['sources/file.json']['state'].source, 'file.txt')
+        self.assertEqual(len(job.file_results['sources/file.json']), 1)
+        self.assertEqual(job.file_results['sources/file.json'][0]['message'], 'Yo')
+        self.assertEqual(job.file_results['sources/file.json'][0]['state'].source, 'file.txt')
 
     def test_read_job_no(self):
         ''' Check behavior of objects.read_job()
@@ -274,8 +303,9 @@ class TestObjects (unittest.TestCase):
         self.assertEqual(job.id, 'xyz')
         self.assertEqual(job.status, True)
         self.assertIn('sources/file.json', job.file_results)
-        self.assertEqual(job.file_results['sources/file.json']['message'], 'Yo')
-        self.assertEqual(job.file_results['sources/file.json']['state'].source, 'file.txt')
+        self.assertEquals(len(job.file_results['sources/file.json']), 1)
+        self.assertEqual(job.file_results['sources/file.json'][0]['message'], 'Yo')
+        self.assertEqual(job.file_results['sources/file.json'][0]['state'].source, 'file.txt')
 
         self.db.execute.assert_called_once_with(
                '''SELECT id, status, task_files, file_states, file_results,
