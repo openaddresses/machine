@@ -1016,6 +1016,7 @@ def pop_task_from_donequeue(queue, github_auth):
 
         donedata = queuedata.Done(**task.data)
         _L.info(u'Got file {} from done queue'.format(donedata.name))
+
         results = donedata.result
         message = results['message']
         run_state = results['state']

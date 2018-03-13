@@ -22,47 +22,51 @@
     <h2> {{ path }} </h2>
 
     <table>
-        {% for result in job.file_results[path] %}
-        <tr>
-            <td>
-                {% if result.state.source_problem is sameas True %}
-                    <span style="color: #f00">&#x274C;</span>
-                {% elif result.state.source_problem is sameas False %}
-                    <span style="color: #0c3">&#x2714;</span>
-                {% endif %}
-            </td>
-            <td>
-                {{ result.state.layer }}-{{ result.state.name }}
-            </td>
-            <td>
-                {% if result.state and result.state.output %}
-                    <a href="{{ result.state.output }}">log</a>
-                {% endif %}
-            </td>
-            <td>
-                {% if result.state and result.state.sample %}
-                    <a href="{{ result.state.sample }}">sample</a>
-                {% endif %}
-            </td>
-            <td>
-                {% if result.state and result.state.processed %}
-                    <a href="{{ result.state.processed }}">data</a>
-                {% endif %}
-            </td>
-            <td>
-                {% if result.state and result.state.preview %}
-                    <a href="{{ result.state.preview }}">image preview</a>
-                {% endif %}
-            </td>
-                {% if dotmaps_base_url %}
+        {% if job.file_results[path] == None %}
+            <p>Job has not been processed yet</p>
+        {% else %}
+            {% for result in job.file_results[path] %}
+                <tr>
                     <td>
-                    {% if result.state and result.state.slippymap %}
-                        <a href="{{ result.state|slippymap_preview_url }}">slippy map preview</a>
-                    {% endif %}
+                        {% if result.state.source_problem is sameas True %}
+                            <span style="color: #f00">&#x274C;</span>
+                        {% elif result.state.source_problem is sameas False %}
+                            <span style="color: #0c3">&#x2714;</span>
+                        {% endif %}
                     </td>
-                {% endif %}
-        </tr>
-        {% endfor %}
+                    <td>
+                        {{ result.state.layer }}-{{ result.state.name }}
+                    </td>
+                    <td>
+                        {% if result.state and result.state.output %}
+                            <a href="{{ result.state.output }}">log</a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if result.state and result.state.sample %}
+                            <a href="{{ result.state.sample }}">sample</a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if result.state and result.state.processed %}
+                            <a href="{{ result.state.processed }}">data</a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if result.state and result.state.preview %}
+                            <a href="{{ result.state.preview }}">image preview</a>
+                        {% endif %}
+                    </td>
+                        {% if dotmaps_base_url %}
+                            <td>
+                            {% if result.state and result.state.slippymap %}
+                                <a href="{{ result.state|slippymap_preview_url }}">slippy map preview</a>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        {% endif %}
     </table>
 {% endfor %}
 </table>

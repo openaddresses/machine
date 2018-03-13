@@ -144,33 +144,59 @@ class Zip:
         self.url = url
         self.content_length = content_length
 
-def _result_runstate2dictionary(result):
+def result_runstate2dictionary(file_results):
     '''
     '''
-    actual_result = copy.copy(result)
+    actual_results = {}
+    file_results_copy = copy.copy(file_results)
 
-    if result and 'state' in result:
-        actual_result['state'] = result['state'].to_dict()
-    elif result and 'output' in result:
-        # old-style
-        actual_result['state'] = result.pop('output').to_dict()
+    for (path, results) in file_results_copy.items():
+        if results == None:
+            actual_results[path] = None
+        else:
+            path_results = []
 
-    return actual_result
+            for result in results:
+                if result and 'state' in result:
+                    result['state'] = result['state'].to_dict()
+                elif result and 'output' in result:
+                    # old-style
+                    result['state'] = result.pop('output').to_dict()
+                path_results.append(result)
+            actual_results[path] = path_results
 
-def result_dictionary2runstate(result):
+    return actual_results
+
+def result_dictionary2runstate(file_results):
     '''
     '''
-    actual_result = copy.copy(result)
 
-    if result and 'state' in result:
-        actual_result['state'] = RunState(result['state'])
-    elif result and 'output' in result:
-        # old-style
-        actual_result['state'] = RunState(result.pop('output'))
-    elif result:
-        actual_result['state'] = RunState(None)
+    actual_results = {}
+    file_results_copy = copy.copy(file_results)
 
-    return actual_result
+    for path, results in file_results_copy.items():
+        # New style runs are file: [ dict, .. ] to accomodate layers
+        if results == None:
+            actual_results[path] = None
+        else:
+            if type(results) is not list:
+                results = [ results ]
+
+            path_results = []
+
+            for result in results:
+                if result and 'state' in result:
+                    result['state'] = RunState(result['state'])
+                elif result and 'output' in result:
+                    # old-style
+                    result['state'] = RunState(result.pop('output'))
+                elif result:
+                    result['state'] = RunState(None)
+
+                path_results.append(result)
+            actual_results[path] = path_results
+
+    return actual_results
 
 def add_job(db, job_id, status, task_files, file_states, file_results, owner, repo, status_url, comments_url):
     ''' Save information about a job to the database.
@@ -178,12 +204,7 @@ def add_job(db, job_id, status, task_files, file_states, file_results, owner, re
         Throws an IntegrityError exception if the job ID exists.
     '''
     # Find RunState instances in file_results and turn them into dictionaries.
-    actual_results = {}
-    for (path, results) in file_results.items():
-        path_results = []
-        for result in results:
-            path_results.append(_result_runstate2dictionary(result))
-        actual_results[path] = path_results
+    actual_results = result_runstate2dictionary(file_results)
 
     db.execute('''INSERT INTO jobs
                   (task_files, file_states, file_results, github_owner,
@@ -198,12 +219,7 @@ def write_job(db, job_id, status, task_files, file_states, file_results, owner, 
     ''' Save information about a job to the database.
     '''
     # Find RunState instances in file_results and turn them into dictionaries.
-    actual_results = {}
-    for (path, results) in file_results.items():
-        path_results = []
-        for result in results:
-            path_results.append(_result_runstate2dictionary(result))
-        actual_results[path] = path_results
+    actual_results = result_runstate2dictionary(file_results)
 
     is_complete = bool(status is not None)
 
@@ -235,19 +251,7 @@ def read_job(db, job_id):
         return None
     else:
         # Find dictionaries in file_results and turn them into RunState instances.
-        actual_results = {}
-
-        for path, results in file_results.items():
-            # New style runs are file: [ dict, .. ] to accomodate layers
-            if type(results) is list:
-                path_results = []
-                for result in results:
-                    path_results.append(result_dictionary2runstate(result))
-                actual_results[path] = path_results
-
-            # Old Style Runs were a single file: dict format as they are only address layers
-            else:
-                actual_results[path] = [ result_dictionary2runstate(results) ]
+        actual_results = result_dictionary2runstate(file_results)
 
         return Job(job_id, status, task_files, states, actual_results,
                    github_owner, github_repository, github_status_url,

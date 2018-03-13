@@ -194,9 +194,8 @@ def app_get_job(job_id):
     job = dict(status=job.status, task_files=ordered_files, file_states=job.states,
                file_results=job.file_results, github_status_url=job.github_status_url)
 
-    print(job)
     return render_template('job.html', job=job,
-                           dotmaps_base_url=current_app.config['DOTMAPS_BASE_URL'])
+                       dotmaps_base_url=current_app.config['DOTMAPS_BASE_URL'])
 
 @webhooks.route('/sets/', methods=['GET'])
 @log_application_errors
