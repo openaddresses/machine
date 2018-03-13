@@ -2321,7 +2321,7 @@ class TestHook (unittest.TestCase):
                     })
                 add_job(db, 'abc', True, {'this': 'foo', 'that': 'bar'},
                        {'foo': True, 'bar': True},
-                       {'foo': {'state': state1}, 'bar': {'state': state2}},
+                       {'foo': [{'state': state1}], 'bar': [{'state': state2}]},
                        'oa', 'oa', None, None)
 
         got2 = self.client.get('/jobs/abc')

@@ -186,6 +186,7 @@ def app_get_job(job_id):
 
     statuses = False, None, True
     key_func = lambda _path: (statuses.index(job.states[_path[1]]), _path[1])
+
     file_tuples = [(sha, path) for (sha, path) in job.task_files.items()]
 
     ordered_files = OrderedDict(sorted(file_tuples, key=key_func))
@@ -193,6 +194,7 @@ def app_get_job(job_id):
     job = dict(status=job.status, task_files=ordered_files, file_states=job.states,
                file_results=job.file_results, github_status_url=job.github_status_url)
 
+    print(job)
     return render_template('job.html', job=job,
                            dotmaps_base_url=current_app.config['DOTMAPS_BASE_URL'])
 

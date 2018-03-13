@@ -84,7 +84,7 @@ class RunState:
         'output', 'process time', 'website', 'skipped', 'license',
         'share-alike', 'attribution required', 'attribution name',
         'attribution flag', 'process hash', 'preview', 'slippymap',
-        'source problem', 'code version', 'tests passed', 'run id')}
+        'source problem', 'code version', 'tests passed', 'run id', 'layer', 'name')}
 
     def __init__(self, json_blob):
         blob_dict = dict(json_blob or {})
@@ -92,6 +92,8 @@ class RunState:
 
         self.run_id = blob_dict.get('run id')
         self.source = blob_dict.get('source')
+        self.layer = blob_dict.get('layer', 'addresses')
+        self.name = blob_dict.get('name', 'primary')
         self.cache = blob_dict.get('cache')
         self.sample = blob_dict.get('sample')
         self.geometry_type = blob_dict.get('geometry type')

@@ -328,6 +328,8 @@ def write_state(source, layer, data_source_name, skipped, destination, log_handl
 
     state = [
         ('source', basename(source)),
+        ('layer', layer),
+        ('name', data_source_name),
         ('skipped', bool(skipped)),
         ('cache', state_cache),
         ('sample', conform_result.sample and relpath(sample_path, statedir)),
@@ -349,7 +351,7 @@ def write_state(source, layer, data_source_name, skipped, destination, log_handl
         ('source problem', getattr(source_problem, 'value', None)),
         ('code version', __version__),
         ('tests passed', tests_passed),
-        ]
+    ]
 
     with open(join(statedir, 'index.txt'), 'w', encoding='utf8') as file:
         out = csv.writer(file, dialect='excel-tab')
