@@ -20,7 +20,7 @@ state_codes = {
     '22': 'LA', '49': 'UT', '23': 'ME', '50': 'VT', '24': 'MD', '51': 'VA',
     '25': 'MA', '78': 'VI', '26': 'MI', '53': 'WA', '27': 'MN', '54': 'WV',
     '28': 'MS', '55': 'WI', '29': 'MO', '56': 'WY', '30': 'MT'
-    } 	
+    }
 
 is_point = lambda geom: bool(geom.GetGeometryType() in (ogr.wkbPoint, ogr.wkbMultiPoint))
 is_polygon = lambda geom: bool(geom.GetGeometryType() in (ogr.wkbPolygon, ogr.wkbMultiPolygon))
@@ -76,7 +76,7 @@ def guess_state_abbrev(feature):
     if feature.GetField('US Census GEOID'):
         # Assume US based on Census GEOID
         state_fips = feature.GetField('US Census GEOID')[:2].upper()
-        
+
         if state_fips in state_codes:
             state_abbrev = state_codes[state_fips]
 
@@ -101,23 +101,23 @@ def insert_coverage_feature(db, feature):
 
     if not geom:
         return
-    
+
     if is_point(geom):
         # Ask PostGIS to buffer points by 10km, as a reasonable city size
         db.execute('SELECT ST_AsText(ST_Buffer(%s::geography, 10000))', (geom.ExportToWkt(), ))
         (geom_wkt, ) = db.fetchone()
     else:
         geom_wkt = geom.ExportToWkt()
-    
+
     db.execute('''INSERT INTO rendered_world (iso_a2, count, geom)
                   VALUES(%s, %s, ST_Multi(ST_SetSRID(%s::geometry, 4326)))''',
                (iso_a2, feature.GetField('address count'), geom_wkt))
-    
+
     if iso_a2 == 'US' and state_abbrev:
         db.execute('''INSERT INTO rendered_usa (usps_code, count, geom)
                       VALUES(%s, %s, ST_Multi(ST_SetSRID(%s::geometry, 4326)))''',
                    (state_abbrev, feature.GetField('address count'), geom_wkt))
-    
+
     return iso_a2, state_abbrev
 
 def summarize_country_coverage(db, iso_a2):
@@ -165,9 +165,9 @@ def summarize_country_coverage(db, iso_a2):
         WHERE ST_Area(ne_boxes.geom) > 0;
         ''',
         (iso_a2, iso_a2))
-    
+
     (area_total, pop_total, area_pct, pop_pct, name) = db.fetchone()
-    
+
     db.execute('''UPDATE areas SET name = %s, area_total = %s, area_pct = %s,
                   pop_total = %s, pop_pct = %s WHERE iso_a2 = %s''',
                (name, area_total, area_pct, pop_total, pop_pct, iso_a2))
@@ -217,9 +217,9 @@ def summarize_us_state_coverage(db, usps_code):
         WHERE ST_Area(cb_boxes.geom) > 0;
         ''',
         (usps_code, usps_code))
-    
+
     (area_total, pop_total, area_pct, pop_pct, name) = db.fetchone()
-    
+
     db.execute('''UPDATE us_states SET name = %s, area_total = %s, area_pct = %s,
                   pop_total = %s, pop_pct = %s WHERE usps_code = %s''',
                (name, area_total, area_pct, pop_total, pop_pct, usps_code))
@@ -294,21 +294,21 @@ def calculate(DATABASE_URL):
                     _L.debug('{}/{} - {} addresses from {}'.format(iso_a2, usps_code, feature.GetField('address count'), feature.GetField('source paths')))
                 else:
                     _L.debug('{} - {} addresses from {}'.format(iso_a2, feature.GetField('address count'), feature.GetField('source paths')))
-        
+
             db.execute('''
                 DELETE FROM areas;
-            
+
                 INSERT INTO areas (iso_a2, addr_count, buffer_km, geom)
                 SELECT iso_a2, SUM(count), 10, ST_Multi(ST_Union(ST_Buffer(geom, 0.00001)))
                 FROM rendered_world GROUP BY iso_a2;
 
                 DELETE FROM us_states;
-            
+
                 INSERT INTO us_states (usps_code, addr_count, buffer_km, geom)
                 SELECT usps_code, SUM(count), 10, ST_Multi(ST_Union(ST_Buffer(geom, 0.00001)))
                 FROM rendered_usa GROUP BY usps_code;
                 ''')
-        
+
             for (index, iso_a2) in enumerate(sorted(iso_a2s)):
                 _L.info('Counting up {} ({}/{})...'.format(iso_a2, index+1, len(iso_a2s)))
                 summarize_country_coverage(db, iso_a2)

@@ -17,7 +17,7 @@ class TestPreview (unittest.TestCase):
 
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp(prefix='TestPreview-')
-    
+
     def tearDown(self):
         rmtree(self.temp_dir)
 
@@ -25,7 +25,7 @@ class TestPreview (unittest.TestCase):
         points = [(n, n) for n in range(-1000, 1001)]
         points_filename = join(self.temp_dir, 'points.bin')
         preview.write_points(points, points_filename)
-        
+
         xmean, xsdev, ymean, ysdev = preview.stats(points_filename)
         self.assertAlmostEqual(xmean, 0)
         self.assertAlmostEqual(xsdev, 577.783263863)
@@ -37,10 +37,10 @@ class TestPreview (unittest.TestCase):
         points += [(-1, -1), (0, 0), (1, 1)] * 100
         points_filename = join(self.temp_dir, 'points.bin')
         preview.write_points(points, points_filename)
-        
+
         bbox = preview.calculate_bounds(points_filename)
         self.assertEqual(bbox, (-1.04, -1.04, 1.04, 1.04), 'The two outliers are ignored')
-    
+
     def test_render_zip(self):
         '''
         '''
@@ -66,7 +66,7 @@ class TestPreview (unittest.TestCase):
             self.assertTrue('8-bit/color RGB' in info)
         finally:
             os.remove(png_filename)
-    
+
     def test_render_csv(self):
         '''
         '''
@@ -85,11 +85,11 @@ class TestPreview (unittest.TestCase):
         try:
             temp_dir = tempfile.mkdtemp(prefix='test_render_csv-')
             zipfile = ZipFile(zip_filename)
-            
+
             with open(join(temp_dir, 'portland.csv'), 'wb') as file:
                 file.write(zipfile.read('portland_metro/us/or/portland_metro.csv'))
                 csv_filename = file.name
-        
+
             with HTTMock(response_content):
                 preview.render(csv_filename, png_filename, 668, 1, 'mapbox-XXXX')
             info = str(subprocess.check_output(('file', png_filename)))
@@ -101,7 +101,7 @@ class TestPreview (unittest.TestCase):
             os.remove(png_filename)
             os.remove(csv_filename)
             os.rmdir(temp_dir)
-    
+
     def test_get_map_features(self):
         '''
         '''
@@ -113,16 +113,16 @@ class TestPreview (unittest.TestCase):
                     data = file.read()
                 return response(200, data, headers={'Content-Type': 'application/vnd.mapbox-vector-tile'})
             raise Exception("Uknown URL")
-        
+
         xmin, ymin, xmax, ymax = -13611952, 4551290, -13609564, 4553048
         scale = 100 / (xmax - xmin)
-        
+
         with HTTMock(response_content):
             landuse_geoms, water_geoms, roads_geoms = \
                 preview.get_map_features(xmin, ymin, xmax, ymax, 2, scale, 'mapbox-XXXX')
-        
+
         self.assertEqual(len(landuse_geoms), 90, 'Should have 90 landuse geometries')
         self.assertEqual(len(water_geoms), 1, 'Should have 1 water geometry')
         self.assertEqual(len(roads_geoms), 792, 'Should have 792 road geometries')
-        
-        
+
+

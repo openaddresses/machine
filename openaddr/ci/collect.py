@@ -237,7 +237,7 @@ def add_csv_to_zipfile(zip_out, arc_filename, file):
                 lat, lon = float(row['LAT']), float(row['LON'])
             except ValueError:
                 continue
-            
+
             if not (-90 <= lat <= 90 and -180 <= lon <= 180):
                 continue
 

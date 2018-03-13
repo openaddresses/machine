@@ -46,7 +46,7 @@ def main():
     setup_logger(args.sns_arn, None, log_level=args.loglevel)
     s3 = S3(None, None, args.bucket)
     db_args = util.prepare_db_kwargs(args.database_url)
-    
+
     while True:
         with db_connect(**db_args) as conn:
             with db_cursor(conn) as db:
@@ -56,7 +56,7 @@ def main():
 
         render_index_maps(s3, runs)
         dashboard_stats.upload_stats(s3, stats)
-        
+
         if args.hourly:
             _L.info('Sleeping for one hour')
             sleep(3600)

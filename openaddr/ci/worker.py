@@ -48,11 +48,11 @@ def main():
     args = parser.parse_args()
     setup_logger(args.sns_arn, None, log_level=args.loglevel)
     s3 = S3(None, None, args.bucket)
-    
-    # Fetch and run jobs in a loop    
+
+    # Fetch and run jobs in a loop
     while True:
         worker_dir = tempfile.mkdtemp(prefix='worker-')
-    
+
         try:
             connection = db_connect(args.database_url)
             with connection as conn:

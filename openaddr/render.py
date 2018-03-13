@@ -42,7 +42,7 @@ class RunPartial:
 
 def make_context(width=960, resolution=1, area=WORLD):
     ''' Get Cairo surface, context, and drawing scale.
-    
+
         Global extent, World Van der Grinten I:
         (-19918964.35, -8269767.91) - (19918964.18, 14041770.96)
         http://spatialreference.org/ref/esri/54029/
@@ -50,7 +50,7 @@ def make_context(width=960, resolution=1, area=WORLD):
         U.S. extent, National Atlas Equal Area:
         (-2031905.05, -2114924.96) - (2516373.83, 732103.34)
         http://spatialreference.org/ref/epsg/2163/
-    
+
         Europe extent, World Van der Grinten I:
         (-2679330, 3644860) - (5725981, 8635513)
         http://spatialreference.org/ref/esri/54029/
@@ -82,7 +82,7 @@ def make_context(width=960, resolution=1, area=WORLD):
     context = cairo.Context(surface)
     context.scale(hscale, vscale)
     context.translate(hoffset, voffset)
-    
+
     return surface, context, hscale
 
 def load_live_state():
@@ -90,7 +90,7 @@ def load_live_state():
     '''
     got = requests.get('https://results.openaddresses.io/state.txt')
     state = csv.DictReader(io.StringIO(got.text), dialect='excel-tab')
-    
+
     return {s['source']: RunPartial(objects.RunState(s))
             for s in state if (s['cache'] and s['processed'])}
 
@@ -111,7 +111,7 @@ def load_fake_state(sources_dir):
 
 def load_geoids(directory, good_sources):
     ''' Load two dictionaries of U.S. Census GEOIDs that should be rendered.
-    
+
         Dictionary keys are FIPS GEOIDs, values are sets of source paths.
     '''
     good_geoids, bad_geoids = defaultdict(set), defaultdict(set)
@@ -119,18 +119,18 @@ def load_geoids(directory, good_sources):
     for path in iterate_sources_dir(directory):
         with open(join(directory, path)) as file:
             data = json.load(file)
-    
+
         if 'geoid' in data.get('coverage', {}).get('US Census', {}):
             if path in good_sources:
                 good_geoids[data['coverage']['US Census']['geoid']].add(path)
             else:
                 bad_geoids[data['coverage']['US Census']['geoid']].add(path)
-    
+
     return good_geoids, bad_geoids
 
 def load_iso3166s(directory, good_sources):
     ''' Load two dictionaries of ISO 3166 codes that should be rendered.
-    
+
         Dictionary keys are ISO 3166 codes, values are sets of source paths.
     '''
     good_iso3166s, bad_iso3166s = defaultdict(set), defaultdict(set)
@@ -138,24 +138,24 @@ def load_iso3166s(directory, good_sources):
     for path in iterate_sources_dir(directory):
         with open(join(directory, path)) as file:
             data = json.load(file)
-    
+
         if 'code' in data.get('coverage', {}).get('ISO 3166', {}):
             if path in good_sources:
                 good_iso3166s[data['coverage']['ISO 3166']['code']].add(path)
             else:
                 bad_iso3166s[data['coverage']['ISO 3166']['code']].add(path)
-    
+
         elif 'alpha2' in data.get('coverage', {}).get('ISO 3166', {}):
             if path in good_sources:
                 good_iso3166s[data['coverage']['ISO 3166']['alpha2']].add(path)
             else:
                 bad_iso3166s[data['coverage']['ISO 3166']['alpha2']].add(path)
-    
+
     return good_iso3166s, bad_iso3166s
 
 def load_geometries(directory, good_sources, area):
     ''' Load two dictionaries of GeoJSON geometries should be rendered.
-    
+
         Dictionary keys are source paths, values are geometries
     '''
     good_geometries, bad_geometries = dict(), dict()
@@ -168,11 +168,11 @@ def load_geometries(directory, good_sources, area):
     for path in iterate_sources_dir(directory):
         with open(join(directory, path)) as file:
             data = json.load(file)
-    
+
         if 'geometry' in data.get('coverage', {}):
             geojson = json.dumps(data['coverage']['geometry'])
             geometry = ogr.CreateGeometryFromJson(geojson)
-            
+
             if not geometry:
                 continue
 
@@ -182,14 +182,14 @@ def load_geometries(directory, good_sources, area):
                 good_geometries[path] = geometry
             else:
                 bad_geometries[path] = geometry
-    
+
     return good_geometries, bad_geometries
 
 def stroke_features(ctx, features):
     '''
     '''
     return stroke_geometries(ctx, [f.GetGeometryRef() for f in features])
-    
+
 def stroke_geometries(ctx, geometries):
     '''
     '''
@@ -219,7 +219,7 @@ def fill_features(ctx, features, muppx, rgb):
     '''
     '''
     return fill_geometries(ctx, [f.GetGeometryRef() for f in features], muppx, rgb)
-    
+
 def fill_geometries(ctx, geometries, muppx, rgb):
     '''
     '''
@@ -283,7 +283,7 @@ def main():
     good_sources = load_live_state() if args.use_state else load_fake_state(args.sources_dir)
 
     _, ext = splitext(args.filename.lower())
-    
+
     if ext == '.png':
         return render_png(args.sources_dir, good_sources, args.width,
                           args.resolution, args.filename, args.area)
@@ -333,10 +333,10 @@ def open_datasources(area):
     admin1s_features = first_layer_list(admin1s_ds)
     us_state_features = first_layer_list(us_state_ds)
     us_county_features = first_layer_list(us_county_ds)
-    
+
     _datasources = landarea_ds, coastline_ds, lakes_ds, countries_ds, \
         countries_borders_ds, admin1s_ds, us_state_ds, us_county_ds
-    
+
     return (
         _datasources, landarea_features, coastline_features,
         lakes_features, countries_features, countries_borders_features,
@@ -365,15 +365,15 @@ def render_png(sources_dir, good_sources, width, resolution, filename, area):
     good_data_admin1s = [f for f in admin1s_features if f.GetFieldAsString('iso_3166_2') in good_iso3166s]
     bad_data_countries = [f for f in countries_features if f.GetFieldAsString('iso_a2') in bad_iso3166s]
     bad_data_admin1s = [f for f in admin1s_features if f.GetFieldAsString('iso_3166_2') in bad_iso3166s]
-    
+
     # Prepare output surface
     surface, context, scale = make_context(width, resolution, area)
-    
+
     # Draw each border between neighboring states exactly once.
     state_borders = [s1.GetGeometryRef().Intersection(s2.GetGeometryRef())
                      for (s1, s2) in combinations(us_state_features, 2)
                      if s1.GetGeometryRef().Intersects(s2.GetGeometryRef())]
-    
+
     # Set up some colors
     silver = 0xdd/0xff, 0xdd/0xff, 0xdd/0xff
     white = 0xff/0xff, 0xff/0xff, 0xff/0xff
@@ -382,10 +382,10 @@ def render_png(sources_dir, good_sources, width, resolution, filename, area):
     dark_red = 215/0xff, 48/0xff, 39/0xff
     light_green = 0x74/0xff, 0xA5/0xff, 0x78/0xff
     dark_green = 0x1C/0xff, 0x89/0xff, 0x3F/0xff
-    
+
     # Map units per reference pixel (http://www.w3.org/TR/css3-values/#reference-pixel)
     muppx = resolution / scale
-    
+
     # Fill land area background
     fill_features(context, landarea_features, muppx, silver)
 
@@ -445,7 +445,7 @@ def render_geojson(sources_dir, good_sources, filename, area):
 
     wgs84 = osr.SpatialReference(osr.SRS_WKT_WGS84)
     feature_strings = []
-    
+
     def append_feature_string(geom, name, status, paths, count, etc):
         source_dates = [str(run.datetime_tz)
                         for (path, run) in good_sources.items()
@@ -453,16 +453,16 @@ def render_geojson(sources_dir, good_sources, filename, area):
 
         geom.TransformTo(wgs84)
         geom_str = geom.ExportToJson(options=['COORDINATE_PRECISION=4'])
-        
+
         properties = dict(name=name, status=status, **etc)
         properties.update({'source paths': ', '.join(paths), 'source count': len(paths)})
         properties.update({'source dates': ', '.join(source_dates)})
         properties.update({'address count': count})
-        
+
         feature_obj = dict(type='Feature', properties=properties, geometry='<placeholder>')
         feature_str = json.dumps(feature_obj).replace('"<placeholder>"', geom_str)
         feature_strings.append(feature_str)
-    
+
     for feature in countries_features:
         iso_a2 = feature.GetFieldAsString('iso_a2')
         name = feature.GetFieldAsString('name')
@@ -476,7 +476,7 @@ def render_geojson(sources_dir, good_sources, filename, area):
             continue
 
         append_feature_string(geom, name, status, paths, addr_count, {'ISO 3166': iso_a2})
-    
+
     for feature in admin1s_features:
         iso_3166_2 = feature.GetFieldAsString('iso_3166_2')
         name = feature.GetFieldAsString('name')
@@ -490,7 +490,7 @@ def render_geojson(sources_dir, good_sources, filename, area):
             continue
 
         append_feature_string(geom, name, status, paths, addr_count, {'ISO 3166-2': iso_3166_2})
-    
+
     for feature in chain(us_state_features, us_county_features):
         geoid = feature.GetFieldAsString('GEOID')
         name = feature.GetFieldAsString('NAME')
@@ -504,14 +504,14 @@ def render_geojson(sources_dir, good_sources, filename, area):
             continue
 
         append_feature_string(geom, name, status, paths, addr_count, {'US Census GEOID': geoid})
-    
+
     for (path, geom) in good_geometries.items():
         addr_count = _source_address_count(good_sources, [path])
         append_feature_string(geom, None, 'good', [path], addr_count, {})
 
     for (path, geom) in bad_geometries.items():
         append_feature_string(geom, None, 'bad', [path], 0, {})
-    
+
     with open(filename, 'w') as file:
         collection_str = json.dumps(dict(type='FeatureCollection', features=['<placeholder>']))
         file.write(collection_str.replace('"<placeholder>"', ',\n'.join(feature_strings)))

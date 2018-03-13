@@ -67,12 +67,12 @@ def main():
             next_queue_report = time() + next_queue_interval
             next_autoscale_grow = time() + next_autoscale_interval
             minimum_capacity = count(1)
-        
+
             with task_Q as db:
                 run_times = get_batch_run_times(db, args.owner, args.repository)
 
             sources = find_batch_sources(args.owner, args.repository, github_auth, run_times)
-            
+
             with task_Q as db:
                 new_set = add_set(db, args.owner, args.repository)
 
@@ -88,11 +88,11 @@ def main():
                     _L.error('Problem during autoscale', exc_info=True)
                 if expected_count:
                     sleep(2)
-        
+
         with task_Q as db:
             _L.debug('Rendering that shit')
             render_set_maps(s3, db, new_set)
-        
+
     except:
         _L.error('Error in worker main()', exc_info=True)
         return 1

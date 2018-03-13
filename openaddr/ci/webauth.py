@@ -44,7 +44,7 @@ def callback_url(request, callback_url):
         base_url = urlunparse((scheme, request.host, path, None, None, None))
     else:
         base_url = request.url
-    
+
     return urljoin(base_url, callback_url)
 
 def exchange_tokens(code, client_id, secret):
@@ -59,10 +59,10 @@ def exchange_tokens(code, client_id, secret):
 
     if 'error' in auth:
         raise RuntimeError('Github said "{error}".'.format(**auth))
-    
+
     elif 'access_token' not in auth:
         raise RuntimeError("missing `access_token`.")
-    
+
     return auth
 
 def user_information(token, org_name='openaddresses'):
@@ -70,12 +70,12 @@ def user_information(token, org_name='openaddresses'):
     '''
     header = {'Authorization': 'token {}'.format(token)}
     resp1 = requests.get(github_user_url, headers=header)
-    
+
     if resp1.status_code != 200:
         return None, None, None
 
     login, avatar_url = resp1.json().get('login'), resp1.json().get('avatar_url')
-    
+
     membership_args = dict(org=org_name, username=login)
     membership_url = uritemplate.expand(github_membership_url, membership_args)
     resp2 = requests.get(membership_url, headers=header)
@@ -90,10 +90,10 @@ def update_authentication(untouched_route):
         # remove this always
         if USER_KEY in session:
             session.pop(USER_KEY)
-    
+
         if TOKEN_KEY in session:
             login, avatar_url, in_org = user_information(session[TOKEN_KEY])
-            
+
             if login and in_org:
                 session[USER_KEY] = dict(login=login, avatar_url=avatar_url)
             elif not login:
@@ -106,7 +106,7 @@ def update_authentication(untouched_route):
                                        user=None, error_org_membership=True)
 
         return untouched_route(*args, **kwargs)
-    
+
     return wrapper
 
 def s3_upload_form_fields(expires, bucketname, subdir, redirect_url, s3):
@@ -122,14 +122,14 @@ def s3_upload_form_fields(expires, bucketname, subdir, redirect_url, s3):
             ["content-length-range", 16, MAX_UPLOAD_SIZE]
         ]
         }
-    
+
     if s3.provider.security_token:
         policy['conditions'].append({'x-amz-security-token': s3.provider.security_token})
-    
+
     policy_b64 = b64encode(json.dumps(policy).encode('utf8'))
     signature = hmac.new(s3.secret_key.encode('utf8'), policy_b64, hashlib.sha1)
     signature_b64 = b64encode(signature.digest())
-    
+
     fields = dict(
         key=policy['conditions'][1][2] + '${filename}',
         acl=policy['conditions'][2]['acl'],
@@ -137,10 +137,10 @@ def s3_upload_form_fields(expires, bucketname, subdir, redirect_url, s3):
         signature=signature_b64.decode('utf8'),
         access_key=s3.access_key
         )
-    
+
     if s3.provider.security_token:
         fields['security_token'] = s3.provider.security_token
-    
+
     return fields
 
 @webauth.route('/auth')
@@ -158,9 +158,9 @@ def app_callback():
     token = exchange_tokens(request.args['code'],
                             current_app.config['GITHUB_OAUTH_CLIENT_ID'],
                             current_app.config['GITHUB_OAUTH_SECRET'])
-    
+
     session[TOKEN_KEY] = token['access_token']
-    
+
     return redirect(state.get('url', url_for('webauth.app_auth')), 302)
 
 @webauth.route('/auth/login', methods=['POST'])
@@ -173,7 +173,7 @@ def app_login():
     args = dict(redirect_uri=callback_url(request, url), response_type='code', state=state)
     args.update(client_id=current_app.config['GITHUB_OAUTH_CLIENT_ID'])
     args.update(scope='user,public_repo,read:org')
-    
+
     return redirect(uritemplate.expand(github_authorize_url, args), 303)
 
 @webauth.route('/auth/logout', methods=['POST'])
@@ -181,10 +181,10 @@ def app_login():
 def app_logout():
     if TOKEN_KEY in session:
         session.pop(TOKEN_KEY)
-    
+
     if USER_KEY in session:
         session.pop(USER_KEY)
-    
+
     return redirect(url_for('webauth.app_auth'), 302)
 
 @webauth.route('/upload-cache')
@@ -194,7 +194,7 @@ def app_upload_cache_data():
     '''
     if USER_KEY not in session:
         return render_template('upload-cache.html', user_required=True, user=None)
-    
+
     random = hex(randint(0x100000, 0xffffff))[2:]
     subdir = '{login}/{0}'.format(random, **session[USER_KEY])
     expires = datetime.now(tz=tzutc()) + timedelta(minutes=5)
@@ -202,13 +202,13 @@ def app_upload_cache_data():
     redirect_url = callback_url(request, url_for('webauth.app_upload_cache_data'))
     bucketname, s3 = current_app.config['AWS_S3_BUCKET'], boto.connect_s3()
     fields = s3_upload_form_fields(expires, bucketname, subdir, redirect_url, s3)
-    
+
     fields.update(
         bucket=current_app.config['AWS_S3_BUCKET'],
         redirect=redirect_url,
         callback=request.args
         )
-    
+
     return render_template('upload-cache.html', user_required=True,
                            user=session[USER_KEY], **fields)
 
@@ -216,7 +216,7 @@ def apply_webauth_blueprint(app):
     '''
     '''
     app.register_blueprint(webauth)
-    
+
     # Use Github OAuth secret to sign Github login cookies too.
     app.secret_key = app.config['GITHUB_OAUTH_SECRET']
 
