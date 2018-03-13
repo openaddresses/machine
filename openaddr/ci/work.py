@@ -142,7 +142,7 @@ def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_di
     state_paths = json.load(result_stdout.strip())
 
     results = []
-    for (state_path in state_paths):
+    for state_path in state_paths:
         result = dict(
             result_code=0,
             result_stdout=state_path,
