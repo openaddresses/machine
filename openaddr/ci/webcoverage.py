@@ -18,9 +18,9 @@ def get_coverage():
                                  area_pct, pop_total, pop_pct
                           FROM areas WHERE name IS NOT NULL ORDER BY name''')
             areas = db.fetchall()
-            
+
     best_areas, okay_areas, empty_areas = list(), list(), list()
-    
+
     for area in areas:
         if area['pop_pct'] > 0.98:
             best_areas.append(area)
@@ -28,7 +28,7 @@ def get_coverage():
             okay_areas.append(area)
         else:
             empty_areas.append(area)
-    
+
     return render_template('coverage-world.html', best_areas=best_areas,
                            okay_areas=okay_areas, empty_areas=empty_areas)
 
@@ -41,9 +41,9 @@ def get_us_coverage():
                                  area_pct, pop_total, pop_pct
                           FROM us_states WHERE name IS NOT NULL ORDER BY name''')
             areas = db.fetchall()
-            
+
     best_areas, okay_areas, empty_areas = list(), list(), list()
-    
+
     for area in areas:
         if area['pop_pct'] > 0.98:
             best_areas.append(area)
@@ -51,7 +51,7 @@ def get_us_coverage():
             okay_areas.append(area)
         else:
             empty_areas.append(area)
-    
+
     return render_template('coverage-us.html', best_areas=best_areas,
                            okay_areas=okay_areas, empty_areas=empty_areas)
 
@@ -66,7 +66,7 @@ def filter_nice_percentage(number):
     '''
     if number >= 0.99:
         return '{:.0f}%'.format(number * 100)
-    
+
     return '{:.1f}%'.format((number or 0) * 100)
 
 def filter_nice_big_number(number):
@@ -74,22 +74,22 @@ def filter_nice_big_number(number):
     '''
     if number > 1000000:
         return '{}K'.format(filter_nice_integer(number / 1000))
-    
+
     if number > 10000000:
         return '{:.0f}M'.format(number / 1000000)
-    
+
     if number > 1000000:
         return '{:.1f}M'.format(number / 1000000)
-    
+
     if number > 10000:
         return '{:.0f}K'.format(number / 1000)
-    
+
     if number > 1000:
         return '{:.1f}K'.format(number / 1000)
-    
+
     if number >= 1:
         return '{:.0f}'.format(number)
-    
+
     return '0'
 
 def filter_nice_integer(number):
@@ -97,10 +97,10 @@ def filter_nice_integer(number):
     '''
     string = str(int(number))
     pattern = re.compile(r'^(\d+)(\d\d\d)\b')
-    
+
     while pattern.match(string):
         string = pattern.sub(r'\1,\2', string)
-    
+
     return string
 
 def apply_coverage_blueprint(app):

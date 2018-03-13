@@ -39,7 +39,7 @@ psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
 def load_config():
     def truthy(value):
         return bool(value.lower() in ('yes', 'true'))
-    
+
     secrets_string = os.environ.get('WEBHOOK_SECRETS', u'').encode('utf8')
     webhook_secrets = secrets_string.split(b',') if secrets_string else []
 
@@ -77,7 +77,7 @@ RETEST_COMMENT_PAT = re.compile(r'^re-?run this,? please\b', re.IGNORECASE|re.MU
 
 def td2str(td):
     ''' Convert a timedelta to a string formatted like '3h'.
-    
+
         Will not be necessary when https://github.com/malthe/pq/pull/5 is released.
     '''
     return '{}s'.format(td.seconds + td.days * 86400)
@@ -87,11 +87,11 @@ def process_github_payload(queue, request_url, app_logger, github_auth, webhook_
     '''
     if skip_payload(webhook_payload):
         return True, {'url': None, 'files': [], 'skip': True}
-    
+
     owner, repo, commit_sha, status_url, comments_url = get_commit_info(app_logger, webhook_payload, github_auth)
     if gag_status:
         status_url = None
-    
+
     try:
         files = process_payload_files(webhook_payload, github_auth, app_logger)
     except Exception as e:
@@ -99,7 +99,7 @@ def process_github_payload(queue, request_url, app_logger, github_auth, webhook_
         update_error_status(status_url, message, [], github_auth)
         _L.error(message, exc_info=True)
         return True, {'url': None, 'files': [], 'status_url': status_url}
-    
+
     if not files:
         update_empty_status(status_url, github_auth)
         _L.warning('No files')
@@ -125,29 +125,29 @@ def process_github_payload(queue, request_url, app_logger, github_auth, webhook_
 
 def get_touched_pushevent_files(payload, app_logger):
     ''' Return a set of files modified in push event payload commits.
-    
+
         https://developer.github.com/v3/activity/events/types/#pushevent
     '''
     touched = set()
-    
+
     # Iterate over commits in chronological order.
     for commit in payload['commits']:
         for filelist in (commit['added'], commit['modified']):
             # Include any potentially-new files.
             touched.update(filelist)
-        
+
         for filename in commit['removed']:
             # Skip files that no longer exist.
             if filename in touched:
                 touched.remove(filename)
-        
+
     app_logger.debug(u'Touched files {}'.format(', '.join(touched)))
-    
+
     return touched
 
 def get_touched_pushevent_branch_files(payload, github_auth, app_logger):
     ''' Return a set of files modified between master and payload head.
-    
+
         https://developer.github.com/v3/activity/events/types/#pushevent
     '''
     branch_sha = payload['head_commit']['id']
@@ -155,10 +155,10 @@ def get_touched_pushevent_branch_files(payload, github_auth, app_logger):
     compare1_url = payload['repository']['compare_url']
     compare1_url = expand_uri(compare1_url, dict(base='master', head=branch_sha))
     app_logger.debug('Compare URL 1 {}'.format(compare1_url))
-    
+
     compare1 = get(compare1_url, auth=github_auth).json()
     merge_base_sha = compare1['merge_base_commit']['sha']
-    
+
     # That's no branch.
     if merge_base_sha == branch_sha:
         return set()
@@ -166,11 +166,11 @@ def get_touched_pushevent_branch_files(payload, github_auth, app_logger):
     compare2_url = payload['repository']['compare_url']
     compare2_url = expand_uri(compare2_url, dict(base=merge_base_sha, head=branch_sha))
     app_logger.debug('Compare URL 2 {}'.format(compare2_url))
-    
+
     compare2 = get(compare2_url, auth=github_auth).json()
     touched = set([file['filename'] for file in compare2['files']])
     app_logger.debug(u'Touched files {}'.format(', '.join(touched)))
-    
+
     return touched
 
 def get_touched_pullrequest_files(pull_request, github_auth, app_logger):
@@ -182,11 +182,11 @@ def get_touched_pullrequest_files(pull_request, github_auth, app_logger):
     compare_url = pull_request['head']['repo']['compare_url']
     compare_url = expand_uri(compare_url, dict(head=head_sha, base=base_sha))
     app_logger.debug('Compare URL {}'.format(compare_url))
-    
+
     compare = get(compare_url, auth=github_auth).json()
     touched = set([file['filename'] for file in compare['files']])
     app_logger.debug(u'Touched files {}'.format(', '.join(touched)))
-    
+
     return touched
 
 def skip_payload(payload):
@@ -194,11 +194,11 @@ def skip_payload(payload):
     '''
     if 'action' in payload and 'pull_request' in payload:
         return bool(payload['action'] == 'closed')
-    
+
     if 'commits' in payload and 'head_commit' in payload:
         # Deleted refs will not have a status URL.
         return bool(payload.get('deleted') == True)
-    
+
     if 'action' in payload and 'comment' in payload and 'issue' in payload:
         # Might be a meaningful PR comment.
         if payload['action'] == 'deleted':
@@ -211,7 +211,7 @@ def skip_payload(payload):
         else:
             # Do not skip if matching PR comment.
             return not (has_pr and is_match)
-    
+
     return True
 
 def is_rerun_payload(payload):
@@ -229,7 +229,7 @@ def is_rerun_payload(payload):
         else:
             # return boolean for matching PR comment.
             return (has_pr and is_match)
-    
+
     return False
 
 def process_payload_files(payload, github_auth, app_logger):
@@ -237,18 +237,18 @@ def process_payload_files(payload, github_auth, app_logger):
     '''
     if 'action' in payload and 'pull_request' in payload:
         return process_pullrequest_payload_files(payload, github_auth, app_logger)
-    
+
     if 'commits' in payload and 'head_commit' in payload:
         return process_pushevent_payload_files(payload, github_auth, app_logger)
-    
+
     if 'action' in payload and 'issue' in payload and 'pull_request' in payload['issue']:
         return process_issuecomment_payload_files(payload, github_auth, app_logger)
-    
+
     raise ValueError('Unintelligible webhook payload')
 
 def process_pullrequest_payload_files(payload, github_auth, app_logger):
     ''' Return a dictionary of files paths from a pull request event payload.
-    
+
         https://developer.github.com/v3/activity/events/types/#pullrequestevent
     '''
     files = dict()
@@ -256,14 +256,14 @@ def process_pullrequest_payload_files(payload, github_auth, app_logger):
         touched = get_touched_pullrequest_files(payload['pull_request'], github_auth, app_logger)
     else:
         touched = set()
-    
+
     commit_sha = payload['pull_request']['head']['sha']
-    
+
     for filename in touched:
         if relpath(filename, 'sources').startswith('..'):
             # Skip things outside of sources directory.
             continue
-        
+
         if splitext(filename)[1] != '.json':
             # Skip non-JSON files.
             continue
@@ -271,83 +271,83 @@ def process_pullrequest_payload_files(payload, github_auth, app_logger):
         contents_url = payload['pull_request']['head']['repo']['contents_url'] + '{?ref}'
         contents_url = expand_uri(contents_url, dict(path=filename, ref=commit_sha))
         app_logger.debug('Contents URL {}'.format(contents_url))
-        
+
         got = get(contents_url, auth=github_auth)
         contents = got.json()
-        
+
         if got.status_code not in range(200, 299):
             app_logger.warning('Skipping {} - {}'.format(filename, got.status_code))
             continue
-        
+
         if contents['encoding'] != 'base64':
             raise ValueError('Unrecognized encoding "{encoding}"'.format(**contents))
-        
+
         app_logger.debug('Contents SHA {sha}'.format(**contents))
         files[filename] = contents['content'], contents['sha']
-    
+
     return files
 
 def process_pushevent_payload_files(payload, github_auth, app_logger):
     ''' Return a dictionary of files paths from a push event payload.
-    
+
         https://developer.github.com/v3/activity/events/types/#pushevent
     '''
     files = dict()
     touched = get_touched_pushevent_files(payload, app_logger)
     touched |= get_touched_pushevent_branch_files(payload, github_auth, app_logger)
-    
+
     commit_sha = payload['head_commit']['id']
-    
+
     for filename in touched:
         if relpath(filename, 'sources').startswith('..'):
             # Skip things outside of sources directory.
             continue
-        
+
         if splitext(filename)[1] != '.json':
             # Skip non-JSON files.
             continue
-        
+
         contents_url = payload['repository']['contents_url'] + '{?ref}'
         contents_url = expand_uri(contents_url, dict(path=filename, ref=commit_sha))
         app_logger.debug('Contents URL {}'.format(contents_url))
-        
+
         got = get(contents_url, auth=github_auth)
         contents = got.json()
-        
+
         if got.status_code not in range(200, 299):
             app_logger.warning('Skipping {} - {}'.format(filename, got.status_code))
             continue
-        
+
         if contents['encoding'] != 'base64':
             raise ValueError('Unrecognized encoding "{encoding}"'.format(**contents))
-        
+
         app_logger.debug('Contents SHA {sha}'.format(**contents))
         files[filename] = contents['content'], contents['sha']
-    
+
     return files
 
 def process_issuecomment_payload_files(issuecomment_payload, github_auth, app_logger):
     ''' Return a dictionary of files paths from a comment payload.
-    
+
         https://developer.github.com/v3/activity/events/types/#issuecommentevent
     '''
     files = dict()
 
     if issuecomment_payload['action'] == 'deleted':
         return files
-    
+
     pull_request_url = issuecomment_payload['issue']['pull_request']['url']
     pull_request = get(pull_request_url, auth=github_auth).json()
 
     touched = get_touched_pullrequest_files(pull_request, github_auth, app_logger)
-    
+
     commit_sha = pull_request['head']['sha']
-    
+
     for filename in touched:
         if relpath(filename, 'sources').startswith('..'):
             # Skip things outside of sources directory.
             continue
-        
+
         if splitext(filename)[1] != '.json':
             # Skip non-JSON files.
             continue
@@ -355,25 +355,25 @@ def process_issuecomment_payload_files(issuecomment_payload, github_auth, app_lo
         contents_url = pull_request['head']['repo']['contents_url'] + '{?ref}'
         contents_url = expand_uri(contents_url, dict(path=filename, ref=commit_sha))
         app_logger.debug('Contents URL {}'.format(contents_url))
-        
+
         got = get(contents_url, auth=github_auth)
         contents = got.json()
-        
+
         if got.status_code not in range(200, 299):
             app_logger.warning('Skipping {} - {}'.format(filename, got.status_code))
             continue
-        
+
         if contents['encoding'] != 'base64':
             raise ValueError('Unrecognized encoding "{encoding}"'.format(**contents))
-        
+
         app_logger.debug('Contents SHA {sha}'.format(**contents))
         files[filename] = contents['content'], contents['sha']
-    
+
     return files
 
 def get_commit_info(app_logger, payload, github_auth):
     ''' Get owner, repository, commit SHA and Github status API URL from webhook payload.
-    
+
         If payload links to a pull request instead of including it, get that.
     '''
     if 'pull_request' in payload:
@@ -381,14 +381,14 @@ def get_commit_info(app_logger, payload, github_auth):
         commit_sha = payload['pull_request']['head']['sha']
         status_url = payload['pull_request']['statuses_url']
         comments_url = payload['pull_request']['comments_url']
-    
+
     elif 'head_commit' in payload:
         # https://developer.github.com/v3/activity/events/types/#pushevent
         commit_sha = payload['head_commit']['id']
         status_url = payload['repository']['statuses_url']
         status_url = expand_uri(status_url, dict(sha=commit_sha))
         comments_url = None
-    
+
     elif 'issue' in payload and 'pull_request' in payload['issue']:
         # nested PR is probably linked, so retrieve it.
         # https://developer.github.com/v3/activity/events/types/#issuecommentevent
@@ -396,19 +396,19 @@ def get_commit_info(app_logger, payload, github_auth):
         commit_sha = resp.json()['head']['sha']
         status_url = resp.json()['statuses_url']
         comments_url = resp.json()['comments_url']
-    
+
     else:
         raise ValueError('Unintelligible payload')
-    
+
     if 'repository' not in payload:
         raise ValueError('Unintelligible payload')
 
     repo = payload['repository']
     owner = repo['owner'].get('name') or repo['owner'].get('login')
     repository = repo['name']
-    
+
     app_logger.debug('Status URL {}'.format(status_url))
-    
+
     return owner, repository, commit_sha, status_url, comments_url
 
 def post_github_status(status_url, status_json, github_auth):
@@ -416,13 +416,13 @@ def post_github_status(status_url, status_json, github_auth):
     '''
     if status_url is None:
         return
-    
+
     # Github only wants 140 chars of description.
     status_json['description'] = status_json['description'][:140]
-    
+
     posted = post(status_url, data=json.dumps(status_json), auth=github_auth,
                   headers={'Content-Type': 'application/json'})
-    
+
     if posted.status_code not in range(200, 299):
         _L.warning('post_github_status() request: {}'.format(json.dumps(status_json)))
         _L.warning('post_github_status() response: {}, {}'.format(posted.status_code, posted.text))
@@ -431,7 +431,7 @@ def post_github_status(status_url, status_json, github_auth):
             return
         else:
             raise ValueError('Failed status post to {}'.format(status_url))
-    
+
     if posted.json()['state'] != status_json['state']:
         raise ValueError('Mismatched status post to {}'.format(status_url))
 
@@ -441,7 +441,7 @@ def update_pending_status(status_url, job_url, filenames, github_auth):
     status = dict(context='openaddresses/hooked', state='pending',
                   description=u'Checking {}'.format(', '.join(filenames)),
                   target_url=job_url)
-    
+
     return post_github_status(status_url, status, github_auth)
 
 def update_error_status(status_url, message, filenames, github_auth):
@@ -449,7 +449,7 @@ def update_error_status(status_url, message, filenames, github_auth):
     '''
     status = dict(context='openaddresses/hooked', state='error',
                   description=u'Errored on {}: {}'.format(', '.join(filenames), message))
-    
+
     return post_github_status(status_url, status, github_auth)
 
 def update_failing_status(status_url, job_url, bad_files, filenames, github_auth):
@@ -458,7 +458,7 @@ def update_failing_status(status_url, job_url, bad_files, filenames, github_auth
     status = dict(context='openaddresses/hooked', state='failure',
                   description=u'Failed on {} from {}'.format(', '.join(bad_files), ', '.join(filenames)),
                   target_url=job_url)
-    
+
     return post_github_status(status_url, status, github_auth)
 
 def update_empty_status(status_url, github_auth):
@@ -466,7 +466,7 @@ def update_empty_status(status_url, github_auth):
     '''
     status = dict(context='openaddresses/hooked', state='success',
                   description='Nothing to check')
-    
+
     return post_github_status(status_url, status, github_auth)
 
 def update_success_status(status_url, job_url, filenames, github_auth):
@@ -475,12 +475,12 @@ def update_success_status(status_url, job_url, filenames, github_auth):
     status = dict(context='openaddresses/hooked', state='success',
                   description=u'Succeeded on {}'.format(', '.join(filenames)),
                   target_url=job_url)
-    
+
     return post_github_status(status_url, status, github_auth)
 
 def find_batch_sources(owner, repository, github_auth, run_times={}):
     ''' Starting with a Github repo API URL, generate a stream of master sources.
-    
+
         Each source is a dict with:
         - content: base 64 content of source JSON.
         - url: URL of source JSON in OA Github repo.
@@ -490,11 +490,11 @@ def find_batch_sources(owner, repository, github_auth, run_times={}):
         - remain: count of sources to come
     '''
     source_urls = list(_find_batch_source_urls(owner, repository, github_auth))
-    
+
     # sort with the shortest known runs at the end, keeping the 9999's alphabetical.
     source_urls.sort(key=lambda su: su['path'])
     source_urls.sort(key=lambda su: (run_times.get(su['path']) or '9999'), reverse=True)
-    
+
     for (index, source_url) in enumerate(source_urls):
         _L.debug('Getting source {url}'.format(**source_url))
         try:
@@ -511,7 +511,7 @@ def find_batch_sources(owner, repository, github_auth, run_times={}):
         source = dict(content=more_source['content'])
         source.update(remain=len(source_urls) - index - 1)
         source.update(source_url)
-        
+
         yield source
 
 def get_batch_run_times(db, owner, repository):
@@ -519,17 +519,17 @@ def get_batch_run_times(db, owner, repository):
     '''
     # return this dictionary
     run_times = dict()
-    
+
     last_set = objects.read_latest_set(db, owner, repository)
-    
+
     if not last_set:
         return run_times
-    
+
     completed_runs_to_date = objects.read_completed_runs_to_date(db, last_set.id)
-    
+
     if not completed_runs_to_date:
         return run_times
-    
+
     for run in objects.read_completed_runs_to_date(db, last_set.id):
         if run.state:
             if run.state.process_time and run.state.cache_time:
@@ -538,17 +538,17 @@ def get_batch_run_times(db, owner, repository):
                 c = datetime.strptime(run.state.cache_time, '%H:%M:%S.%f')
                 run_time = timedelta(hours=p.hour, minutes=p.minute, seconds=p.second) \
                          + timedelta(hours=c.hour, minutes=c.minute, seconds=c.second)
-                
+
                 # should look like 'h:mm:ss'
                 run_times[run.source_path] = str(run_time)
             else:
                 run_times[run.source_path] = None
-    
+
     return run_times
 
 def _find_batch_source_urls(owner, repository, github_auth):
     ''' Starting with a Github repo API URL, return a list of sources.
-    
+
         Sources are dictionaries, with keys commit_sha, url to content on Github,
         blob_sha for git blob, and path like 'sources/xx/yy.json'.
     '''
@@ -556,7 +556,7 @@ def _find_batch_source_urls(owner, repository, github_auth):
     if resp.status_code >= 400:
         raise Exception('Got status {} from Github API'.format(resp.status_code))
     start_url = expand_uri(resp.json()['repository_url'], dict(owner=owner, repo=repository))
-    
+
     _L.info('Starting batch sources at {start_url}'.format(**locals()))
     got = get(start_url, auth=github_auth).json()
     contents_url, commits_url = got['contents_url'], got['commits_url']
@@ -566,7 +566,7 @@ def _find_batch_source_urls(owner, repository, github_auth):
     _L.debug('Getting {ref} branch {master_url}'.format(ref=got['default_branch'], **locals()))
     got = get(master_url, auth=github_auth).json()
     commit_sha, commit_date = got['sha'], got['commit']['committer']['date']
-    
+
     contents_url += '{?ref}' # So that we are consistently at the same commit.
     sources_urls = [expand_uri(contents_url, dict(path='sources', ref=commit_sha))]
     sources_list = list()
@@ -574,18 +574,18 @@ def _find_batch_source_urls(owner, repository, github_auth):
     for sources_url in sources_urls:
         _L.debug('Getting sources {sources_url}'.format(**locals()))
         sources = get(sources_url, auth=github_auth).json()
-    
+
         for source in sources:
             if source['type'] == 'dir':
                 params = dict(path=source['path'], ref=commit_sha)
                 sources_urls.append(expand_uri(contents_url, params))
                 continue
-        
+
             if source['type'] != 'file':
                 continue
-        
+
             path_base, ext = splitext(source['path'])
-        
+
             if ext == '.json':
                 sources_list.append(dict(commit_sha=commit_sha, url=source['url'],
                                          blob_sha=source['sha'], path=source['path']))
@@ -597,7 +597,7 @@ def enqueue_sources(queue, the_set, sources):
     '''
     expected_paths = set()
     commit_sha = None
-    
+
     #
     # Enqueue each source while watching the queue length.
     #
@@ -605,22 +605,22 @@ def enqueue_sources(queue, the_set, sources):
         # Don't enqueue a new source until the queue is empty.
         while len(queue) >= 1:
             yield len(expected_paths)
-        
+
         # Enqueue the new source, because there's nothing else in the queue.
         with queue as db:
             _L.info(u'Sending {path} to task queue, {remain} more to go'.format(**source))
-            
+
             task = queuedata.Task(job_id=None, url=None, set_id=the_set.id,
                                   name=source['path'],
                                   content_b64=source['content'],
                                   commit_sha=source['commit_sha'],
                                   file_id=source['blob_sha'],
                                   render_preview=False)
-            
+
             task_id = queue.put(task.asdata())
             expected_paths.add(source['path'])
             commit_sha = source['commit_sha']
-    
+
     #
     # Wait for all the sources to drain from the queue.
     #
@@ -677,7 +677,7 @@ def _render_and_upload_maps(s3, good_sources, s3_prefix, dirname):
     '''
     urls = dict()
     areas = (render.WORLD, 'world'), (render.USA, 'usa'), (render.EUROPE, 'europe')
-    
+
     key_kwargs = dict(policy='public-read', headers={'Content-Type': 'image/png'})
 
     for (area, area_name) in areas:
@@ -700,44 +700,44 @@ def _render_and_upload_maps(s3, good_sources, s3_prefix, dirname):
         render_geojson_key = s3.new_key(join(s3_prefix, 'render-world.geojson'))
         render_geojson_key.set_contents_from_string(file.read(), **key_kwargs)
         render_geojson_url = util.s3_key_url(render_geojson_key)
-    
+
     return urls['world'], urls['usa'], urls['europe'], render_geojson_url
 
 def _prepare_render_sources(runs, dirname):
     ''' Dump all non-null set runs into a directory for rendering.
-    
+
         Return a dictionary of paths to Run objects.
     '''
     good_sources = dict()
-    
+
     for run in runs:
         filepath = join(dirname, run.source_path)
         dirpath = os.path.dirname(filepath)
-        
+
         if not os.path.exists(dirpath):
             os.makedirs(dirpath)
-        
+
         with open(filepath, 'w+b') as file:
             content = b64decode(run.source_data)
             file.write(content)
-        
+
         if run.status is True:
             good_sources[run.source_path] = run
-    
+
     return good_sources
 
 def calculate_job_id(files):
     '''
     '''
     return str(uuid4())
-    
+
     #
     # Previously, we created a deterministic hash of
     # the files, but for now that might be too optimistic.
     #
     blob = json.dumps(files, ensure_ascii=True, sort_keys=True)
     job_id = sha1(blob).hexdigest()
-    
+
     return job_id
 
 def create_queued_job(queue, files, job_url_template, commit_sha, rerun, owner, repo, status_url, comments_url):
@@ -754,26 +754,26 @@ def create_queued_job(queue, files, job_url_template, commit_sha, rerun, owner, 
     with queue as db:
         task_files = add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun)
         add_job(db, job_id, None, task_files, file_states, file_results, owner, repo, status_url, comments_url)
-    
+
     return job_id
 
 def add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun):
     ''' Make a new task for each file, return dict of file IDs to file names.
     '''
     tasks = {}
-    
+
     for (file_name, (content_b64, file_id)) in files.items():
         task = queuedata.Task(job_id=job_id, url=job_url, name=file_name,
                               content_b64=content_b64, file_id=file_id,
                               commit_sha=commit_sha, rerun=rerun,
                               render_preview=True)
-    
+
         # Spread tasks out over time.
         delay = timedelta(seconds=len(tasks))
 
         queue.put(task.asdata(), expected_at=td2str(delay))
         tasks[file_id] = file_name
-    
+
     return tasks
 
 def is_completed_run(db, run_id, min_datetime):
@@ -787,12 +787,12 @@ def is_completed_run(db, run_id, min_datetime):
         min_dtz = min_datetime.replace(tzinfo=tzutc())
 
     completed_run = get_completed_run(db, run_id, min_dtz)
-    
+
     if completed_run:
         _L.debug('Found completed run {0} ({1}) since {min_datetime}'.format(*completed_run, **locals()))
     else:
         _L.debug('No completed run {run_id} since {min_datetime}'.format(**locals()))
-    
+
     return bool(completed_run is not None)
 
 def update_job_status(db, job_id, job_url, filename, run_status, results, github_auth):
@@ -805,11 +805,11 @@ def update_job_status(db, job_id, job_url, filename, run_status, results, github
 
     if filename not in job.states:
         raise Exception('Unknown file from job {}: "{}"'.format(job.id, filename))
-    
+
     filenames = list(job.task_files.values())
     job.states[filename] = run_status
     job.file_results[filename] = results
-    
+
     # Update job status.
 
     if False in job.states.values():
@@ -819,22 +819,22 @@ def update_job_status(db, job_id, job_url, filename, run_status, results, github
         job.status = None
     else:
         job.status = True
-    
+
     write_job(db, job.id, job.status, job.task_files, job.states, job.file_results,
               job.github_owner, job.github_repository, job.github_status_url,
               job.github_comments_url)
-    
+
     if not job.github_status_url:
         _L.warning('No status_url to tell about {} status of job {}'.format(job.status, job.id))
         return
-    
+
     if job.status is False:
         bad_files = [name for (name, state) in job.states.items() if state is False]
         update_failing_status(job.github_status_url, job_url, bad_files, filenames, github_auth)
-    
+
     elif job.status is None:
         update_pending_status(job.github_status_url, job_url, filenames, github_auth)
-    
+
     elif job.status is True:
         update_success_status(job.github_status_url, job_url, filenames, github_auth)
 
@@ -843,35 +843,35 @@ def update_job_comments(db, job_id, run_id, github_auth):
     '''
     if job_id is None or run_id is None:
         return
-    
+
     job, run = objects.read_job(db, job_id), objects.read_run(db, run_id)
 
     if job is None or run is None:
         raise Exception('Run or Job not found')
-    
+
     if not run.state.preview or job.status is not True or not job.github_comments_url:
         return
-    
+
     got = get(job.github_comments_url, auth=github_auth)
-    
+
     for comment in got.json():
         if run.state.preview in comment['body']:
             # This image has already been posted, great.
             _L.warning('Found {} in an existing comment: {url}'.format(run.state.preview, **comment))
             return
-    
+
     comment_json = {'body': '![Preview]({})'.format(run.state.preview)}
     if 'MACHINE_BASE_URL' in os.environ:
         job_url = urljoin(os.environ['MACHINE_BASE_URL'], '/jobs/{}'.format(job_id))
         comment_json['body'] = '{body}\n\nMore: {}'.format(job_url, **comment_json)
     posted = post(job.github_comments_url, data=json.dumps(comment_json), auth=github_auth,
                   headers={'Content-Type': 'application/json'})
-    
+
     if posted.status_code not in range(200, 299):
         _L.warning('update_job_comments() request: {}'.format(json.dumps(comment_json)))
         _L.warning('update_job_comments() response: {}, {}'.format(posted.status_code, posted.text))
         raise ValueError('Failed status post to {}'.format(job.github_comments_url))
-    
+
     _L.info('Posted {} to new comment: {url}'.format(run.state.preview, **posted.json()))
 
 def is_merged_to_master(db, set_id, job_id, commit_sha, github_auth):
@@ -879,22 +879,22 @@ def is_merged_to_master(db, set_id, job_id, commit_sha, github_auth):
     '''
     # use objects.read_set and read_job so they can be mocked in testing.
     set, job = objects.read_set(db, set_id), objects.read_job(db, job_id)
-    
+
     if set is not None:
         # Sets come from master by definition.
         return True
-    
+
     elif job is None:
         # Missing set and job means unknown merge status.
         return None
-    
+
     try:
         template1 = get('https://api.github.com/', auth=github_auth).json().get('repository_url')
         repo_url = expand_uri(template1, dict(owner=job.github_owner, repo=job.github_repository))
-    
+
         template2 = get(repo_url, auth=github_auth).json().get('compare_url')
         compare_url = expand_uri(template2, dict(base=commit_sha, head='master'))
-    
+
         compare = get(compare_url, auth=github_auth).json()
         return compare['base_commit']['sha'] == compare['merge_base_commit']['sha']
 
@@ -917,7 +917,7 @@ def _wait_for_work_lock(lock, heartbeat_queue):
         if lock.acquire(False):
             # Got the lock, we are done.
             break
-        
+
         if time() > next_put:
             # Keep this .enqueue() outside the lock, so threads don't confuse Postgres.
             beatdata = queuedata.Heartbeat(_worker_id())
@@ -934,7 +934,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
         # PQ will return NULL after 1 second timeout if not ask
         if task is None:
             return
-        
+
         # On the case!
         beatdata = queuedata.Heartbeat(_worker_id())
         heartbeat_queue.put(beatdata.asdata())
@@ -951,15 +951,15 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
         else:
             interval = '{} seconds'.format(RUN_REUSE_TIMEOUT.seconds + RUN_REUSE_TIMEOUT.days * 86400)
             previous_run = objects.get_completed_file_run(db, taskdata.file_id, interval)
-    
+
         if previous_run:
             # Make a copy of the previous run.
             previous_run_id, _, _ = previous_run
             copy_args = (passed_on_kwargs[k] for k in ('job_id', 'commit_sha', 'set_id'))
             passed_on_kwargs['run_id'] = objects.copy_run(db, previous_run_id, *copy_args)
-            
+
             # Don't send a due task, since we will not be doing any actual work.
-        
+
         else:
             # Reserve space for a new run.
             passed_on_kwargs['run_id'] = objects.add_run(db)
@@ -967,7 +967,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
             # Send a Due task, possibly for later.
             due_task = queuedata.Due(**passed_on_kwargs)
             due_queue.put(due_task.asdata(), schedule_at=td2str(jobs.JOB_TIMEOUT + DUETASK_DELAY))
-    
+
     if previous_run:
         # Re-use result from the previous run.
         run_id, state, status = previous_run
@@ -988,14 +988,14 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
                                   passed_on_kwargs['content_b64'],
                                   taskdata.render_preview, output_dir,
                                   mapbox_key)
-        
+
         work_wait.join()
 
     # Send a Done task
     done_task = queuedata.Done(result=result, **passed_on_kwargs)
     done_queue.put(done_task.asdata(), expected_at=td2str(timedelta(0)))
     _L.info('Done')
-    
+
     # Sleep a short time to allow done task to show up in runs table.
     # In a one-worker situation with repetitive pull request jobs,
     # this helps the next job take advantage of previous run results.
@@ -1006,14 +1006,14 @@ def pop_task_from_donequeue(queue, github_auth):
     '''
     with queue as db:
         task = queue.get()
-    
+
         if task is None:
             return
-    
+
         # Convert dictionary into RunState
         if 'result' in task.data:
             task.data['result'] = objects.result_dictionary2runstate(task.data['result'])
-        
+
         donedata = queuedata.Done(**task.data)
         _L.info(u'Got file {} from done queue'.format(donedata.name))
         results = donedata.result
@@ -1028,14 +1028,14 @@ def pop_task_from_donequeue(queue, github_auth):
         file_id = donedata.file_id
         run_id = donedata.run_id
         job_id = donedata.job_id
-        
+
         if is_completed_run(db, run_id, task.enqueued_at):
             # We are too late, this got handled.
             return
-        
+
         run_status = bool(message == work.MAGIC_OK_MESSAGE)
         is_merged = is_merged_to_master(db, set_id, job_id, commit_sha, github_auth)
-        
+
         objects.set_run(db, run_id, filename, file_id, content_b64, run_state,
                         run_status, job_id, worker_id, commit_sha, is_merged, set_id)
 
@@ -1049,10 +1049,10 @@ def pop_task_from_duequeue(queue, github_auth):
     '''
     with queue as db:
         task = queue.get()
-    
+
         if task is None:
             return
-        
+
         duedata = queuedata.Due(**task.data)
         _L.info(u'Got file {} from due queue'.format(duedata.name))
         content_b64 = duedata.content_b64
@@ -1064,7 +1064,7 @@ def pop_task_from_duequeue(queue, github_auth):
         file_id = duedata.file_id
         run_id = duedata.run_id
         job_id = duedata.job_id
-    
+
         if is_completed_run(db, run_id, task.enqueued_at):
             # Everything's fine, this got handled.
             return
@@ -1088,11 +1088,11 @@ def flush_heartbeat_queue(queue):
 
             beatdata = queuedata.Heartbeat(**task.data)
             _L.info('Got heartbeat {}: {}'.format(task.id, beatdata.worker_id))
-            
+
             db.execute('''DELETE FROM heartbeats
                           WHERE worker_id = %s''',
                        (beatdata.worker_id, ))
-            
+
             db.execute('''INSERT INTO heartbeats (worker_id, datetime)
                           VALUES (%s, NOW())''',
                        (beatdata.worker_id, ))
@@ -1101,19 +1101,19 @@ def get_recent_workers(db):
     '''
     '''
     recent_workers = list()
-    
+
     db.execute('''SELECT worker_id
                   FROM heartbeats WHERE datetime >= NOW() - INTERVAL %s''',
                (HEARTBEAT_INTERVAL * 3, ))
 
     for (id, ) in db.fetchall():
         recent_workers.append(id)
-    
+
     return recent_workers
 
 def db_connect(dsn=None, user=None, password=None, host=None, port=None, database=None, sslmode=None):
     ''' Connect to database.
-    
+
         Use DSN string if given, but allow other calls for older systems.
     '''
     if dsn is None:
@@ -1136,10 +1136,10 @@ class SnsHandler(logging.Handler):
 
     def emit(self, record):
         subject = u'OpenAddr: {}: {}'.format(record.levelname, record.name)
-        
+
         if hasattr(record, 'request_info'):
             subject = u'{} - {}'.format(subject, record.request_info)
-        
+
         self.sns.publish(self.arn, self.format(record), subject[:79])
 
 class CloudwatchHandler(logging.Handler):
@@ -1151,7 +1151,7 @@ class CloudwatchHandler(logging.Handler):
         self.logs, self.token = boto.connect_logs(), None
         self.logs.create_log_stream(self.group, self.stream)
         self.events = []
-    
+
     def _send(self, message):
         self.events.append(dict(timestamp=int(time()*1000), message=message))
         try:
@@ -1177,11 +1177,11 @@ def reset_logger():
     '''
     # Get a handle for the openaddr logger and its children
     openaddr_logger = logging.getLogger('openaddr')
-    
+
     if not _logger_status:
         # Nothing to do here
         return
-    
+
     logger_state = _logger_status.pop()
     openaddr_logger.setLevel(logger_state['previous loglevel'])
     openaddr_logger.removeHandler(logger_state['stream handler'])
@@ -1198,7 +1198,7 @@ def setup_logger(sns_arn, log_group, log_level=logging.DEBUG):
     if len(_logger_status):
         # Do this exactly once, so repeated handlers don't stack up.
         return
-    
+
     # Get a handle for the openaddr logger and its children
     openaddr_logger = logging.getLogger('openaddr')
     logger_state = {'previous loglevel': openaddr_logger.level}
@@ -1215,7 +1215,7 @@ def setup_logger(sns_arn, log_group, log_level=logging.DEBUG):
     handler1.setFormatter(logging.Formatter(log_format))
     openaddr_logger.addHandler(handler1)
     logger_state['stream handler'] = handler1
-    
+
     # Set up a second logger to SNS
     if sns_arn:
         try:
@@ -1227,7 +1227,7 @@ def setup_logger(sns_arn, log_group, log_level=logging.DEBUG):
             handler2.setFormatter(logging.Formatter(log_format))
             openaddr_logger.addHandler(handler2)
             logger_state['aws sns handler'] = handler2
-    
+
         stream_name = '{command} {version} {worker_id} {datetime}'.format(
             command=os.path.basename(sys.argv[0]),
             version=__version__, worker_id=_worker_id(),
@@ -1242,12 +1242,12 @@ def setup_logger(sns_arn, log_group, log_level=logging.DEBUG):
             handler3.setFormatter(logging.Formatter('%(levelname)07s: %(message)s'))
             openaddr_logger.addHandler(handler3)
             logger_state['cloudwatch handler'] = handler3
-    
+
     _logger_status.append(logger_state)
 
 def log_function_errors(route_function):
     ''' Error-logging decorator for functions.
-    
+
         Don't do much, but get an error out to the logger.
     '''
     @wraps(route_function)

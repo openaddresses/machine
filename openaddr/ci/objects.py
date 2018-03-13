@@ -23,7 +23,7 @@ class Job:
         self.github_comments_url = github_comments_url
         self.datetime_start = datetime_start
         self.datetime_end = datetime_end
-    
+
 class Set:
     '''
     '''
@@ -56,7 +56,7 @@ class Run:
         assert hasattr(state, 'to_json'), 'Run state should have to_json() method'
         assert source_path.startswith('sources/'), '{} should start with "sources"'.format(repr(source_path))
         assert source_path.endswith('.json'), '{} should end with ".json"'.format(repr(source_path))
-        
+
         self.id = id
         self.source_path = source_path
         self.source_id = source_id
@@ -89,7 +89,7 @@ class RunState:
     def __init__(self, json_blob):
         blob_dict = dict(json_blob or {})
         self.keys = blob_dict.keys()
-        
+
         self.run_id = blob_dict.get('run id')
         self.source = blob_dict.get('source')
         self.cache = blob_dict.get('cache')
@@ -114,24 +114,24 @@ class RunState:
         self.attribution_flag = blob_dict.get('attribution flag')
         self.code_version = blob_dict.get('code version')
         self.tests_passed = blob_dict.get('tests passed')
-        
+
         raw_problem = blob_dict.get('source problem', None)
         self.source_problem = None if (raw_problem is None) else SourceProblem(raw_problem)
 
         unexpected = ', '.join(set(self.keys) - set(RunState.key_attrs.keys()))
         assert len(unexpected) == 0, 'RunState should not have keys {}'.format(unexpected)
-    
+
     def get(self, json_key):
         return getattr(self, RunState.key_attrs[json_key])
-    
+
     def to_dict(self):
         dict = {k: self.get(k) for k in self.keys}
-        
+
         if 'source problem' in dict and dict['source problem'] is not None:
             dict['source problem'] = self.source_problem.value
 
         return dict
-    
+
     def to_json(self):
         return json.dumps(self.to_dict(), sort_keys=True)
 
@@ -172,13 +172,13 @@ def result_dictionary2runstate(result):
 
 def add_job(db, job_id, status, task_files, file_states, file_results, owner, repo, status_url, comments_url):
     ''' Save information about a job to the database.
-    
+
         Throws an IntegrityError exception if the job ID exists.
     '''
     # Find RunState instances in file_results and turn them into dictionaries.
     actual_results = {path: _result_runstate2dictionary(result)
                       for (path, result) in file_results.items()}
-    
+
     db.execute('''INSERT INTO jobs
                   (task_files, file_states, file_results, github_owner,
                    github_repository, github_status_url, github_comments_url,
@@ -194,9 +194,9 @@ def write_job(db, job_id, status, task_files, file_states, file_results, owner, 
     # Find RunState instances in file_results and turn them into dictionaries.
     actual_results = {path: _result_runstate2dictionary(result)
                       for (path, result) in file_results.items()}
-    
+
     is_complete = bool(status is not None)
-    
+
     db.execute('''UPDATE jobs
                   SET task_files=%s::json, file_states=%s::json,
                       file_results=%s::json, github_owner=%s, github_repository=%s,
@@ -209,7 +209,7 @@ def write_job(db, job_id, status, task_files, file_states, file_results, owner, 
 
 def read_job(db, job_id):
     ''' Read information about a job from the database.
-    
+
         Returns a Job or None.
     '''
     db.execute('''SELECT status, task_files, file_states, file_results,
@@ -217,7 +217,7 @@ def read_job(db, job_id):
                          github_comments_url, datetime_start, datetime_end
                   FROM jobs WHERE id = %s
                   LIMIT 1''', (job_id, ))
-    
+
     try:
         status, task_files, states, file_results, github_owner, github_repository, \
         github_status_url, github_comments_url, datetime_start, datetime_end = db.fetchone()
@@ -227,14 +227,14 @@ def read_job(db, job_id):
         # Find dictionaries in file_results and turn them into RunState instances.
         actual_results = {path: result_dictionary2runstate(result)
                           for (path, result) in file_results.items()}
-    
+
         return Job(job_id, status, task_files, states, actual_results,
                    github_owner, github_repository, github_status_url,
                    github_comments_url, datetime_start, datetime_end)
-    
+
 def read_jobs(db, past_id):
     ''' Read information about recent jobs.
-    
+
         Returns list of Jobs.
     '''
     db.execute('''SELECT id, status, task_files, file_states, file_results,
@@ -247,9 +247,9 @@ def read_jobs(db, past_id):
                   FROM jobs WHERE sequence < COALESCE((SELECT sequence FROM jobs WHERE id = %s), 2^64)
                   ORDER BY sequence DESC LIMIT 25''',
                (past_id, ))
-    
+
     jobs = []
-    
+
     for row in db.fetchall():
         # Find dictionaries in file_results and turn them into RunState instances.
         job_args = list(row)
@@ -258,7 +258,7 @@ def read_jobs(db, past_id):
                           for (path, result) in file_results.items()}
         job_args.insert(4, actual_results)
         jobs.append(Job(*job_args))
-    
+
     return jobs
 
 def add_set(db, owner, repository):
@@ -302,17 +302,17 @@ def read_set(db, set_id):
                          owner, repository
                   FROM sets WHERE id = %s
                   LIMIT 1''', (set_id, ))
-    
+
     try:
         id, sha, start, end, world, europe, usa, json, own, repo = db.fetchone()
     except TypeError:
         return None
     else:
         return Set(id, sha, start, end, world, europe, usa, json, own, repo)
-    
+
 def read_sets(db, past_id):
     ''' Read information about recent sets.
-    
+
         Returns list of Sets.
     '''
     db.execute('''SELECT id, commit_sha, datetime_start, datetime_end,
@@ -321,7 +321,7 @@ def read_sets(db, past_id):
                   FROM sets WHERE id < COALESCE(%s, 2^64)
                   ORDER BY id DESC LIMIT 25''',
                (past_id, ))
-    
+
     return [Set(*row) for row in db.fetchall()]
 
 def read_latest_set(db, owner, repository):
@@ -336,7 +336,7 @@ def read_latest_set(db, owner, repository):
                   ORDER BY datetime_start DESC
                   LIMIT 1''',
                (owner, repository, ))
-    
+
     try:
         id, sha, start, end, world, europe, usa, json, own, repo = db.fetchone()
     except TypeError:
@@ -349,9 +349,9 @@ def add_run(db):
     '''
     db.execute("INSERT INTO runs (datetime_tz) VALUES (NOW())")
     db.execute("SELECT currval('ints')")
-    
+
     (run_id, ) = db.fetchone()
-    
+
     return run_id
 
 def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
@@ -371,7 +371,7 @@ def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
 
 def copy_run(db, run_id, job_id, commit_sha, set_id):
     ''' Duplicate a previous run and return its new ID.
-    
+
         Use new values for job ID, commit SHA, and set ID.
     '''
     db.execute('''INSERT INTO runs
@@ -384,9 +384,9 @@ def copy_run(db, run_id, job_id, commit_sha, set_id):
                (job_id, commit_sha, set_id, run_id))
 
     db.execute("SELECT currval('ints')")
-    
+
     (run_id, ) = db.fetchone()
-    
+
     return run_id
 
 def read_run(db, run_id):
@@ -397,7 +397,7 @@ def read_run(db, run_id):
                          job_id, set_id, commit_sha, is_merged
                   FROM runs WHERE id = %s
                   LIMIT 1''', (run_id, ))
-    
+
     try:
         (id, source_path, source_id, source_data, datetime_tz, state, status, copy_of,
          code_version, worker_id, job_id, set_id, commit_sha, is_merged) = db.fetchone()
@@ -407,7 +407,7 @@ def read_run(db, run_id):
         return Run(id, source_path, source_id, source_data, datetime_tz,
                    RunState(state), status, copy_of, code_version, worker_id,
                    job_id, set_id, commit_sha, is_merged)
-    
+
 def get_completed_file_run(db, file_id, interval):
     ''' Look for an existing run on this file ID within the reuse timeout limit.
     '''
@@ -418,9 +418,9 @@ def get_completed_file_run(db, file_id, interval):
                     AND copy_of IS NULL
                   ORDER BY id DESC LIMIT 1''',
                (file_id, interval))
-    
+
     previous_run = db.fetchone()
-    
+
     if previous_run is None:
         _L.debug('No previous run for file {file_id}'.format(**locals()))
         return None
@@ -437,7 +437,7 @@ def get_completed_run(db, run_id, min_dtz):
                     AND datetime_tz >= %s
                     LIMIT 1''',
                (run_id, min_dtz))
-    
+
     return db.fetchone()
 
 def old_read_completed_set_runs(db, set_id):
@@ -446,7 +446,7 @@ def old_read_completed_set_runs(db, set_id):
     db.execute('''SELECT source_id, source_path, source_data, status FROM runs
                   WHERE set_id = %s AND status IS NOT NULL''',
                (set_id, ))
-    
+
     return list(db.fetchall())
 
 def read_completed_set_runs(db, set_id):
@@ -457,7 +457,7 @@ def read_completed_set_runs(db, set_id):
                          job_id, set_id, commit_sha, is_merged FROM runs
                   WHERE set_id = %s AND status IS NOT NULL''',
                (set_id, ))
-    
+
     return [Run(*row[:5]+(RunState(row[5]),)+row[6:]) for row in db.fetchall()]
 
 def read_completed_set_runs_count(db, set_id):
@@ -466,7 +466,7 @@ def read_completed_set_runs_count(db, set_id):
     db.execute('''SELECT COUNT(*) FROM runs
                   WHERE set_id = %s AND status IS NOT NULL''',
                (set_id, ))
-    
+
     (count, ) = db.fetchone()
     return count
 
@@ -480,29 +480,29 @@ def read_completed_source_runs(db, source_path):
                     AND (is_merged or is_merged is null)
                   ORDER BY id DESC''',
                (source_path, ))
-    
+
     seen, runs = set(), list()
-    
+
     for row in db.fetchall():
         run = Run(*row[:5] + (RunState(row[5]),) + row[6:])
-        
+
         if run.copy_of not in seen and run.id not in seen:
             runs.append(run)
-        
+
         seen.add(run.id)
         if run.copy_of is not None:
             seen.add(run.copy_of)
-    
+
     return runs
 
 def read_completed_runs_to_date(db, starting_set_id):
     ''' Get only successful runs.
     '''
     set = read_set(db, starting_set_id)
-    
+
     if set is None or set.datetime_end is None:
         return None
-    
+
     # Get IDs for latest successful source runs of any run in the requested set.
     db.execute('''SELECT MAX(id), source_path FROM runs
                   WHERE source_path IN (
@@ -515,9 +515,9 @@ def read_completed_runs_to_date(db, starting_set_id):
                     AND (is_merged = true OR is_merged IS NULL)
                   GROUP BY source_path''',
                (set.id, ))
-    
+
     run_path_ids = {path: run_id for (run_id, path) in db.fetchall()}
-    
+
     # Get IDs for latest unsuccessful source runs of any run in the requested set.
     db.execute('''SELECT MAX(id), source_path FROM runs
                   WHERE source_path IN (
@@ -530,14 +530,14 @@ def read_completed_runs_to_date(db, starting_set_id):
                     AND (is_merged = true OR is_merged IS NULL)
                   GROUP BY source_path''',
                (set.id, ))
-    
+
     # Use unsuccessful runs if no successful ones exist.
     for (run_id, source_path) in db.fetchall():
         if source_path not in run_path_ids:
             run_path_ids[source_path] = run_id
-    
+
     run_ids = tuple(sorted(run_path_ids.values()))
-    
+
     if not run_ids:
         return []
 
@@ -548,7 +548,7 @@ def read_completed_runs_to_date(db, starting_set_id):
                   FROM runs
                   WHERE id IN %s''',
                (run_ids, ))
-    
+
     return [Run(*row[:5]+(RunState(row[5]),)+row[6:]) for row in db.fetchall()]
 
 def read_latest_run(db, source_path):
@@ -561,9 +561,9 @@ def read_latest_run(db, source_path):
                     AND status = true
                     AND (is_merged = true OR is_merged IS NULL)''',
                (source_path, ))
-    
+
     (run_id, ) = db.fetchone()
-    
+
     if run_id is not None:
         return read_run(db, run_id)
 
@@ -577,15 +577,15 @@ def read_latest_run(db, source_path):
 
     # Use unsuccessful run if no successful one exists.
     (run_id, ) = db.fetchone()
-    
+
     if run_id is not None:
         return read_run(db, run_id)
-    
+
 def load_collection_zips_dict(db):
     '''
     '''
     db.execute('''SELECT collection, license_attr, url, content_length
                   FROM zips WHERE is_current''')
-    
+
     return {(coll, attr): Zip(url, len)
             for (coll, attr, url, len) in db.fetchall()}

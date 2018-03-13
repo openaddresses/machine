@@ -21,7 +21,7 @@ def main():
         cw = connect_cloudwatch()
     except:
         cw = False
-    
+
     while True:
         try:
             with db_connect(config['DATABASE_URL']) as conn:
@@ -33,17 +33,17 @@ def main():
                 pop_task_from_donequeue(done_Q, config['GITHUB_AUTH'])
                 pop_task_from_duequeue(due_Q, config['GITHUB_AUTH'])
                 flush_heartbeat_queue(beat_Q)
-            
+
                 if time() < checkin_time:
                     continue
 
                 # Report basic information about current status.
                 with beat_Q as db:
                     workers_n = len(get_recent_workers(db))
-                
+
                 task_n, done_n, due_n = map(len, (task_Q, done_Q, due_Q))
                 _L.info('{workers_n} active workers; queue lengths: {task_n} tasks, {done_n} done, {due_n} due'.format(**locals()))
-                
+
                 if cw:
                     ns = environ.get('AWS_CLOUDWATCH_NS')
                     cw.put_metric_data(ns, 'tasks queue', task_n, unit='Count')

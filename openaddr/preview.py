@@ -45,14 +45,14 @@ def render(filename_or_url, png_filename, width, resolution, mapbox_key):
     except:
         os.remove(points_filename)
         raise
-    
+
     surface, context, scale = make_context(xmin, ymin, xmax, ymax, width, resolution)
 
     _L.info('Preview width {:.0f}, scale {:.5f}, zoom {:.2f}'.format(width, scale, calculate_zoom(scale, resolution)))
 
     # Map units per reference pixel (http://www.w3.org/TR/css3-values/#reference-pixel)
     muppx = resolution / scale
-    
+
     black = 0x00, 0x00, 0x00
     off_white = 0xFF/0xFF, 0xFC/0xFF, 0xF9/0xFF
     point_fill = 0x74/0xFF, 0xA5/0xFF, 0x78/0xFF
@@ -66,17 +66,17 @@ def render(filename_or_url, png_filename, width, resolution, mapbox_key):
     context.set_source_rgb(*off_white)
     context.rectangle(xmin, ymax, xmax - xmin, ymin - ymax)
     context.fill()
-    
+
     landuse_geoms, water_geoms, roads_geoms = \
         get_map_features(xmin, ymin, xmax, ymax, resolution, scale, mapbox_key)
-    
+
     fill_geometries(context, landuse_geoms, muppx, park_fill)
     fill_geometries(context, water_geoms, muppx, water_fill)
 
     context.set_line_width(.5 * muppx)
     context.set_source_rgb(*road_stroke)
     stroke_geometries(context, roads_geoms)
-    
+
     context.set_line_width(.25 * muppx)
 
     for (x, y) in read_points(points_filename):
@@ -86,7 +86,7 @@ def render(filename_or_url, png_filename, width, resolution, mapbox_key):
         context.arc(x, y, 15, 0, 2 * pi)
         context.set_source_rgb(*black)
         context.stroke()
-    
+
     os.remove(points_filename)
     surface.write_to_png(png_filename)
 
@@ -95,13 +95,13 @@ def get_local_filename(filename_or_url):
     '''
     parsed = urlparse(filename_or_url)
     suffix = os.path.splitext(parsed.path)[1]
-    
+
     if parsed.scheme in ('', 'file'):
         return filename_or_url
-    
+
     if parsed.scheme not in ('http', 'https'):
         raise ValueError('Unknown URL type: {}'.format(filename_or_url))
-    
+
     _L.info('Downloading {}...'.format(filename_or_url))
 
     got = requests.get(filename_or_url)
@@ -110,19 +110,19 @@ def get_local_filename(filename_or_url):
     with open(filename, 'wb') as file:
         file.write(got.content)
         _L.debug('Saved to {}'.format(filename))
-    
+
     return filename
 
 def iterate_file_lonlats(filename):
     ''' Stream (lon, lat) coordinates from an input .csv or .zip file.
     '''
     suffix = os.path.splitext(filename)[1].lower()
-    
+
     if suffix == '.csv':
         open_file = open(filename, 'r')
     elif suffix == '.zip':
         open_file = open(filename, 'rb')
-    
+
     with open_file as file:
         if suffix == '.csv':
             csv_file = file
@@ -130,13 +130,13 @@ def iterate_file_lonlats(filename):
             zip = ZipFile(file)
             csv_names = [name for name in zip.namelist() if name.endswith('.csv')]
             csv_file = TextIOWrapper(zip.open(csv_names[0]))
-        
+
         for row in DictReader(csv_file):
             try:
                 lon, lat = float(row['LON']), float(row['LAT'])
             except:
                 continue
-            
+
             if -180 <= lon <= 180 and -90 <= lat <= 90:
                 yield (lon, lat)
 
@@ -148,12 +148,12 @@ def get_map_features(xmin, ymin, xmax, ymax, resolution, scale, mapbox_key):
     minrow = 2**zoom * (EARTH_DIAMETER/2 - ymax) / EARTH_DIAMETER
     maxcol = 2**zoom * (xmax + EARTH_DIAMETER/2) / EARTH_DIAMETER
     maxrow = 2**zoom * (EARTH_DIAMETER/2 - ymin) / EARTH_DIAMETER
-    
+
     row_cols = itertools.product(range(int(minrow), int(maxrow) + 1),
                                  range(int(mincol), int(maxcol) + 1))
-    
+
     landuse_geoms, water_geoms, roads_geoms = list(), list(), list()
-    
+
     def tile_bounds(row, col, zoom):
         ''' Get Mercator points for corners of this tile.
         '''
@@ -162,7 +162,7 @@ def get_map_features(xmin, ymin, xmax, ymax, resolution, scale, mapbox_key):
         lrx = EARTH_DIAMETER * ((col + 1) / 2**zoom - 1/2)
         lry = EARTH_DIAMETER * (1/2 - (row + 1) / 2**zoom)
         return ulx, uly, lrx, lry
-    
+
     def get_transform(extent, xmin, uly, lrx, lry):
         ''' Get scale and offset coefficients for tile coordinates.
         '''
@@ -186,20 +186,20 @@ def get_map_features(xmin, ymin, xmax, ymax, resolution, scale, mapbox_key):
             raise ValueError(geometry['type'])
         geom = ogr.CreateGeometryFromJson(json.dumps(dict(type=geometry['type'], coordinates=coordinates)))
         return geom
-    
+
     for (row, col) in row_cols:
         url = uritemplate.expand(TILE_URL, dict(z=zoom, x=col, y=row, access_token=mapbox_key))
         got = requests.get(url)
         tile = mapbox_vector_tile.decode(got.content)
         bounds = tile_bounds(row, col, zoom)
-        
+
         if 'landuse' in tile:
             landuse_xform = get_transform(tile['landuse']['extent'], *bounds)
             for feature in tile['landuse']['features']:
                 if 'Polygon' in feature['geometry']['type']:
                     if feature['properties'].get('class') in ('cemetery', 'forest', 'golf_course', 'grave_yard', 'meadow', 'park', 'pitch', 'wood'):
                         landuse_geoms.append(projected_geom(feature['geometry'], *landuse_xform))
-    
+
         if 'water' in tile:
             water_xform = get_transform(tile['water']['extent'], *bounds)
             for feature in tile['water']['features']:
@@ -250,7 +250,7 @@ def write_points(points, points_filename):
         for (x, y) in points:
             file.write(struct.pack(FORMAT, x, y))
             count += 1
-    
+
     _L.info('Wrote {} points to {}'.format(count, points_filename))
 
 def read_points(points_filename):
@@ -258,7 +258,7 @@ def read_points(points_filename):
     '''
     _L.debug('Reading from {}'.format(points_filename))
     chunk_size = struct.calcsize(FORMAT)
-    
+
     with open(points_filename, mode='rb') as file:
         while True:
             chunk = file.read(chunk_size)
@@ -269,28 +269,28 @@ def read_points(points_filename):
 
 def stats(points_filename):
     ''' Return means and standard deviations for points in file.
-        
+
         Uses Welford's numerically stable algorithm from
         https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Online_algorithm
     '''
     n, xmean, xM2, ymean, yM2 = 0, 0, 0, 0, 0
-    
+
     for (x, y) in read_points(points_filename):
         n += 1
 
         xdelta = x - xmean
         xmean += xdelta / n
         xM2 += xdelta * (x - xmean)
-        
+
         ydelta = y - ymean
         ymean += ydelta / n
         yM2 += ydelta * (y - ymean)
-    
+
     if n < 2:
         raise ValueError()
-    
+
     xstddev, ystddev = sqrt(xM2 / (n - 1)), sqrt(yM2 / (n - 1))
-    
+
     return xmean, xstddev, ymean, ystddev
 
 def calculate_zoom(scale, resolution):
@@ -298,41 +298,41 @@ def calculate_zoom(scale, resolution):
     '''
     scale_at_zero = resolution * 256 / EARTH_DIAMETER
     zoom = log(scale / scale_at_zero) / log(2)
-    
+
     return zoom
 
 def calculate_bounds(points_filename):
     '''
     '''
     xmean, xsdev, ymean, ysdev = stats(points_filename)
-    
+
     # use standard deviation to avoid far-flung mistakes, and look further
     # horizontally to account for Github comment thread image appearance.
     xmin, xmax = xmean - 5 * xsdev, xmean + 5 * xsdev
     ymin, ymax = ymean - 3 * ysdev, ymean + 3 * ysdev
-    
+
     # look at the actual points
     left, right = xmax, xmin
     bottom, top = ymax, ymin
-    
+
     for (x, y) in read_points(points_filename):
         if xmin <= x <= xmax:
             left, right = min(left, x), max(right, x)
         if ymin <= y <= ymax:
             bottom, top = min(bottom, y), max(top, y)
-    
+
     # pad by 2% on all sides
     width, height = right - left, top - bottom
     left -= width / 50
     bottom -= height / 50
     right += width / 50
     top += height / 50
-    
+
     return left, bottom, right, top
-    
+
 def make_context(left, bottom, right, top, width=668, resolution=1):
     ''' Get Cairo surface, context, and drawing scale.
-    
+
         668px is the width of a comment box in Github, one place where
         these previews are designed to be used.
     '''
@@ -351,7 +351,7 @@ def make_context(left, bottom, right, top, width=668, resolution=1):
     context = cairo.Context(surface)
     context.scale(hscale, vscale)
     context.translate(hoffset, voffset)
-    
+
     return surface, context, hscale
 
 def stroke_geometries(ctx, geometries):

@@ -22,7 +22,7 @@ SOURCE_COLNAME = 'OA:Source'
 TILE_SIZE = 1.
 
 class Point:
-    
+
     def __init__(self, lon, lat, result, row):
         self.row = row
         self.result = result
@@ -36,14 +36,14 @@ class Tile:
         self.key = key
         self.dirname = dirname
         self.results = set()
-        
+
         handle, self.filename = mkstemp(prefix='tile-', suffix='.csv.gz', dir=dirname)
         close(handle)
-        
+
         with gzip.open(self.filename, 'wt', encoding='utf8') as file:
             rows = DictWriter(file, Tile.columns)
             rows.writerow({k: k for k in Tile.columns})
-    
+
     def add_points(self, points):
         with gzip.open(self.filename, 'at', encoding='utf8') as file:
             rows = DictWriter(file, Tile.columns)
@@ -53,15 +53,15 @@ class Tile:
                 row = {SOURCE_COLNAME: point.result.source_base}
                 row.update(point.row)
                 rows.writerow(row)
-    
+
     def publish(self, s3_bucket):
         '''
         '''
         handle, zip_filename = mkstemp(prefix='tile-', suffix='.zip', dir=self.dirname)
         close(handle)
-        
+
         zipfile = ZipFile(zip_filename, 'w', ZIP_DEFLATED, allowZip64=True)
-        
+
         with gzip.open(self.filename, 'rb') as file:
             zipfile.writestr('addresses.csv', file.read())
 
@@ -70,7 +70,7 @@ class Tile:
 
         zipfile.close()
         keyname = 'tiles/{:.1f}/{:.1f}.zip'.format(*self.key)
-        
+
         collect.write_to_s3(s3_bucket, zipfile.filename, keyname)
 
 parser = ArgumentParser(description='Create a tiled spatial index of CSV data in S3.')
@@ -113,11 +113,11 @@ def main():
             runs = read_completed_runs_to_date(db, set and set.id)
 
     dir = mkdtemp(prefix='tileindex-')
-    
+
     addresses = iterate_runs_points(runs)
     point_blocks = iterate_point_blocks(addresses)
     tiles = populate_tiles(dir, point_blocks)
-    
+
     for tile in tiles.values():
         _L.debug('Publishing tile {} with {} sources'.format(tile.key, len(tile.results)))
         tile.publish(s3.bucket)
@@ -133,30 +133,30 @@ def iterate_runs_points(runs):
     for result in iterate_local_processed_files(runs, sort_on='source_path'):
         if result.run_state.share_alike == 'true':
             continue
-    
+
         _L.info('Indexing points from {}'.format(result.source_base))
         _L.debug('filename: {}'.format(result.filename))
         _L.debug('run_state: {}'.format(result.run_state))
         _L.debug('code_version: {}'.format(result.code_version))
         with open(result.filename, 'rb') as file:
             result_zip = ZipFile(file)
-            
+
             csv_infos = [zipinfo for zipinfo in result_zip.infolist()
                          if splitext(zipinfo.filename)[1] == '.csv']
-            
+
             if not csv_infos:
                 break
 
             zipped_file = result_zip.open(csv_infos[0].filename)
             point_rows = DictReader(TextIOWrapper(zipped_file))
-            
+
             for row in point_rows:
                 try:
                     lat, lon = float(row['LAT']), float(row['LON'])
                 except ValueError:
                     # Skip this point if the lat/lon don't parse
                     continue
-                
+
                 # Include this point if it's on Earth
                 if -180 <= lon <= 180 and -90 <= lat <= 90:
                     yield Point(lon, lat, result, row)
@@ -165,23 +165,23 @@ def iterate_point_blocks(points):
     ''' Group points into blocks by key, generate (key, points) pairs.
     '''
     args, filler = [points] * BLOCK_SIZE, Point(0, -99, None, None) # Illegal lon, lat
-    
+
     for block in zip_longest(*args, fillvalue=filler):
         point_block = sorted(block, key=attrgetter('key'))
-        
+
         for key, key_points in groupby(point_block, attrgetter('key')):
             if key is not filler.key:
                 key_points_list = list(key_points)
                 _L.debug('Found {} points in tile {}'.format(len(key_points_list), key))
                 yield (key, key_points_list)
-    
+
     _L.debug('{} remain'.format(len(list(points))))
 
 def populate_tiles(dirname, point_blocks):
     ''' Return a dictionary of Tiles keyed on southwest lon, lat.
     '''
     tiles = dict()
-    
+
     for (key, points) in point_blocks:
         if key not in tiles:
             tile_dirname = join(dirname, str(randint(100, 999)))
@@ -189,9 +189,9 @@ def populate_tiles(dirname, point_blocks):
                 mkdir(tile_dirname)
             _L.debug('Adding Tile: {}'.format(key))
             tiles[key] = Tile(key, tile_dirname)
-        
+
         tiles[key].add_points(points)
-    
+
     return tiles
 
 if __name__ == '__main__':

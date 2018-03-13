@@ -19,7 +19,7 @@ class TestRender (unittest.TestCase):
         sources = join(dirname(__file__), 'sources')
         handle, filename = tempfile.mkstemp(prefix='render-', suffix='.png')
         os.close(handle)
-        
+
         try:
             render.render_png(sources, set(), 512, 1, filename, render.WORLD)
             info = str(subprocess.check_output(('file', filename)))
@@ -29,12 +29,12 @@ class TestRender (unittest.TestCase):
             self.assertIn('8-bit/color RGBA', info)
         finally:
             os.remove(filename)
-    
+
     def test_render_geojson(self):
         sources = join(dirname(__file__), 'sources')
         handle, filename = tempfile.mkstemp(prefix='render-', suffix='.geojson')
         os.close(handle)
-        
+
         try:
             render.render_geojson(sources, dict(), filename, render.WORLD)
             with open(filename) as file:
@@ -45,7 +45,7 @@ class TestRender (unittest.TestCase):
             self.assertNotIn('"status": "good"', content, "They're all bad")
         finally:
             os.remove(filename)
-    
+
     def test_load_live_state(self):
         def response_state_txt(url, request):
             if (url.hostname, url.path) == ('results.openaddresses.io', '/state.txt'):
@@ -53,10 +53,10 @@ class TestRender (unittest.TestCase):
                 return response(200, data.encode('utf8'))
 
             raise Exception(url)
-    
+
         with HTTMock(response_state_txt):
             state = render.load_live_state()
-        
+
         self.assertEqual(len(state), 3)
         self.assertIn('ar/ba/buenos_aires.json', state)
         self.assertIn('at/31255.json', state)

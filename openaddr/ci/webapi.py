@@ -31,10 +31,10 @@ def app_index_json():
         with db_cursor(conn) as db:
             zips = load_collection_zips_dict(db)
             set = read_latest_set(db, 'openaddresses', 'openaddresses')
-    
+
     collections = {}
     licenses = {'': 'Freely Shareable', 'sa': 'Share-Alike Required'}
-    
+
     for ((collection, license), zip) in zips.items():
         if zip.content_length < 1024:
             # too small, probably empty
@@ -42,20 +42,20 @@ def app_index_json():
 
         if collection not in collections:
             collections[collection] = dict()
-        
+
         if license not in collections[collection]:
             collections[collection][license] = dict()
-        
+
         d = dict(url=nice_domain(zip.url), content_length=zip.content_length)
         d['license'] = licenses[license]
         collections[collection][license] = d
-    
+
     run_states_url = url_for('webapi.app_get_state_txt')
     latest_run_processed_url = url_for('webhooks.app_get_latest_run', source='____').replace('____', '{source}')
     tileindex_url = url_for('webapi.app_get_tileindex_zip', lon='xxx', lat='yyy').replace('xxx', '{lon}').replace('yyy', '{lat}')
     licenses_url = url_for('webapi.app_licenses_json')
     latest_set_url = url_for('webapi.app_get_set_data', set_id=set.id)
-    
+
     render_world_url = 'https://s3.amazonaws.com/{}/render-world.png'.format(current_app.config['AWS_S3_BUCKET'])
     render_europe_url = 'https://s3.amazonaws.com/{}/render-europe.png'.format(current_app.config['AWS_S3_BUCKET'])
     render_usa_url = 'https://s3.amazonaws.com/{}/render-usa.png'.format(current_app.config['AWS_S3_BUCKET'])
@@ -83,21 +83,21 @@ def app_licenses_json():
             runs = read_completed_runs_to_date(db, set.id)
 
     licenses = defaultdict(list)
-    
+
     for run in runs:
         run_state = run.state or {}
         source = os.path.relpath(run.source_path, 'sources')
-    
+
         attribution = None
         if run_state.attribution_required != 'false':
             attribution = run_state.attribution_name
-        
+
         key = run_state.license, attribution
         licenses[key].append((source, run_state.website))
-        
+
     licenses = [dict(license=lic, attribution=attr, sources=sorted(srcs))
                 for ((lic, attr), srcs) in sorted(licenses.items(), key=repr)]
-    
+
     return jsonify(licenses=licenses)
 
 @webapi.route('/state.txt', methods=['GET'])
@@ -109,7 +109,7 @@ def app_get_state_txt():
         with db_cursor(conn) as db:
             set = read_latest_set(db, 'openaddresses', 'openaddresses')
             runs = read_completed_runs_to_date(db, set.id)
-    
+
     buffer = io.StringIO()
     output = csv.DictWriter(buffer, CSV_HEADER, dialect='excel-tab')
     output.writerow({col: col for col in CSV_HEADER})
@@ -135,7 +135,7 @@ def app_get_set_state_txt(set_id):
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
             runs = read_completed_set_runs(db, set_id)
-    
+
     buffer = io.StringIO()
     output = csv.DictWriter(buffer, CSV_HEADER, dialect='excel-tab')
     output.writerow({col: col for col in CSV_HEADER})
@@ -161,7 +161,7 @@ def app_get_set_data(set_id):
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
             set = read_set(db, set_id)
-    
+
     return jsonify({
         'id': set.id,
         'commit_sha': set.commit_sha,
@@ -183,7 +183,7 @@ def app_get_tileindex_zip(lon, lat):
         key = tileindex.lonlat_key(float(lon), float(lat))
     except ValueError:
         return Response('"{}" and "{}" must both be numeric.\n'.format(lon, lat), status=404)
-    
+
     if not (-180 <= key[0] <= 180 and -90 <= key[1] <= 90):
         return Response('"{}" and "{}" must both be on earth.\n'.format(lon, lat), status=404)
 

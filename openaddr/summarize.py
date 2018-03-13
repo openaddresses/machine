@@ -26,9 +26,9 @@ def _get_cached(memcache, key):
     '''
     if not memcache:
         return None
-    
+
     pickled = memcache.get(key)
-    
+
     if pickled is None:
         return None
 
@@ -44,7 +44,7 @@ def _set_cached(memcache, key, value):
     '''
     if not memcache:
         return
-    
+
     pickled = pickle.dumps(value, protocol=2)
     memcache.set(key, pickled)
 
@@ -55,7 +55,7 @@ def is_coverage_complete(source):
         cov = source['coverage']
         if ('ISO 3166' in cov or 'US Census' in cov or 'geometry' in cov):
             return True
-    
+
     return False
 
 def state_conform_type(state):
@@ -63,10 +63,10 @@ def state_conform_type(state):
     '''
     if 'cache' not in state.keys:
         return None
-    
+
     if state.cache is None:
         return None
-    
+
     if state.cache.endswith('.zip'):
         if state.geometry_type in ('Polygon', 'MultiPolygon'):
             return 'shapefile-polygon'
@@ -86,12 +86,12 @@ def convert_run(memcache, run, url_template):
     cached_run = _get_cached(memcache, cache_key)
     if cached_run is not None:
         return cached_run
-    
+
     try:
         source = json.loads(b64decode(run.source_data).decode('utf8'))
     except:
         source = {}
-    
+
     run_state = run.state or {}
 
     converted_run = {
@@ -125,7 +125,7 @@ def run_counts(runs):
     '''
     '''
     states = [(run.state or {}) for run in runs]
-    
+
     return {
         'sources': len(runs),
         'cached': sum([int(bool(state.cache)) for state in states]),
@@ -139,11 +139,11 @@ def sort_run_dicts(dicts, sort_order):
     if sort_order is GLASS_HALF_FULL:
         # Put the happy, successful stuff up front.
         key = lambda d: (not bool(d['processed']), not bool(d['cache']), d['source'])
-    
+
     elif sort_order is GLASS_HALF_EMPTY:
         # Put the stuff that needs help up front.
         key = lambda d: (bool(d['cache']), bool(d['processed']), d['source'])
-    
+
     else:
         raise ValueError('Unknown sort order "{}"'.format(sort_order))
 
@@ -154,10 +154,10 @@ def nice_integer(number):
     '''
     string = str(number)
     pattern = compile(r'^(\d+)(\d\d\d)\b')
-    
+
     while pattern.match(string):
         string = pattern.sub(r'\1,\2', string)
-    
+
     return string
 
 def break_state(string):
@@ -165,10 +165,10 @@ def break_state(string):
     '''
     pattern = compile(r'^(.+)/([^/]+)$')
     string = string.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-    
+
     if pattern.match(string):
         string = pattern.sub(r'\1/<wbr>\2', string)
-    
+
     return string
 
 def summarize_runs(memcache, runs, datetime, owner, repository, sort_order):
@@ -181,5 +181,5 @@ def summarize_runs(memcache, runs, datetime, owner, repository, sort_order):
     states = [convert_run(memcache, run, url_template) for run in runs]
     counts = run_counts(runs)
     sort_run_dicts(states, sort_order)
-    
+
     return dict(states=states, last_modified=datetime, counts=counts)

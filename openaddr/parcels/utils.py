@@ -103,7 +103,7 @@ def import_with_fiona(fpath, source):
     """
     Use fiona to import a parcel file.
 
-    Return a list of dict objects containing WKT-formatted geometries in 
+    Return a list of dict objects containing WKT-formatted geometries in
     addition to any metadata.
     """
     shapes = []
@@ -130,7 +130,7 @@ def import_csv(fpath, source):
     """
     Import a csv file
 
-    Return a list of dict objects containing WKT-formatted geometries in 
+    Return a list of dict objects containing WKT-formatted geometries in
     addition to any metadata.
     """
 

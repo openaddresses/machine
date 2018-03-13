@@ -206,11 +206,11 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "123 MAPLE ST" }
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123", "OA:street": "MAPLE ST" })
-        
+
         d = row_fxn_regexp(c, d, "number", c["conform"]["number"])
         d = row_fxn_regexp(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
-        
+
         "Regex split - no replace - good match"
         c = { "conform": {
             "number": {
@@ -227,13 +227,13 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "123 MAPLE ST" }
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123", "OA:street": "MAPLE ST" })
-        
+
         d = row_fxn_regexp(c, d, "number", c["conform"]["number"])
         d = row_fxn_regexp(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
         "regex split - no replace - bad match"
-        c = { "conform": { 
+        c = { "conform": {
             "number": {
                 "function": "regexp",
                 "field": "ADDRESS",
@@ -248,11 +248,11 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "123 MAPLE ST" }
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123", "OA:street": "" })
-        
+
         d = row_fxn_regexp(c, d, "number", c["conform"]["number"])
         d = row_fxn_regexp(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
-        
+
     def test_transform_and_convert(self):
         d = { "conform": { "street": ["s1", "s2"], "number": "n", "lon": "y", "lat": "x" }, "fingerprint": "0000" }
         r = row_transform_and_convert(d, { "n": "123", "s1": "MAPLE", "s2": "ST", X_FIELDNAME: "-119.2", Y_FIELDNAME: "39.3" })
@@ -445,7 +445,7 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
-    
+
         "Regex prefixed_number and postfixed_number - ordinal street w/house number"
         c = { "conform": {
             "number": {
@@ -559,7 +559,7 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
-        
+
         "Regex prefixed_number and postfixed_street - should honor space+1/2"
         c = { "conform": {
             "number": {
@@ -574,10 +574,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "123 1/2 3rD St" }
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123 1/2", "OA:street": "3rD St" })
-        
+
         d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "Regex prefixed_number and postfixed_street - should honor hyphen+1/2"
         c = { "conform": {
@@ -593,10 +593,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "123-1/2 3rD St" }
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123-1/2", "OA:street": "3rD St" })
-        
+
         d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "Regex prefixed_number and postfixed_street - should honor space+1/3"
         c = { "conform": {
@@ -612,10 +612,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "123 1/3 3rD St" }
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123 1/3", "OA:street": "3rD St" })
-        
+
         d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "Regex prefixed_number and postfixed_street - should honor hyphen+1/3"
         c = { "conform": {
@@ -631,10 +631,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "123-1/3 3rD St" }
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123-1/3", "OA:street": "3rD St" })
-        
+
         d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "Regex prefixed_number and postfixed_street - should honor space+1/4"
         c = { "conform": {
@@ -650,10 +650,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "123 1/4 3rD St" }
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123 1/4", "OA:street": "3rD St" })
-        
+
         d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "Regex prefixed_number and postfixed_street - should honor hyphen+1/4"
         c = { "conform": {
@@ -669,10 +669,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "123-1/4 3rD St" }
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123-1/4", "OA:street": "3rD St" })
-        
+
         d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "Regex prefixed_number and postfixed_street - should honor space+3/4"
         c = { "conform": {
@@ -688,10 +688,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "123 3/4 3rD St" }
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123 3/4", "OA:street": "3rD St" })
-        
+
         d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "Regex prefixed_number and postfixed_street - should honor hyphen+3/4"
         c = { "conform": {
@@ -707,10 +707,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "123-3/4 3rD St" }
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123-3/4", "OA:street": "3rD St" })
-        
+
         d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "contains unit but may_contain_units is not present"
         c = { "conform": {
@@ -726,10 +726,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "123 MAPLE ST UNIT 3" }
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123", "OA:street": "MAPLE ST UNIT 3" })
-        
+
         d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "contains unit but may_contain_units is explicitly false"
         c = { "conform": {
@@ -746,10 +746,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "123 MAPLE ST UNIT 3" }
         e = copy.deepcopy(d)
         e.update({ "OA:number": "123", "OA:street": "MAPLE ST UNIT 3" })
-        
+
         d = row_fxn_prefixed_number(c, d, "number", c["conform"]["number"])
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
     def test_row_fxn_prefixed_number_and_postfixed_street_may_contain_units(self):
         "UNIT-style unit"
@@ -765,7 +765,7 @@ class TestConformTransforms (unittest.TestCase):
         e.update({ "OA:street": "MAPLE ST" })
 
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "APARTMENT-style unit"
         c = { "conform": {
@@ -780,7 +780,7 @@ class TestConformTransforms (unittest.TestCase):
         e.update({ "OA:street": "MAPLE ST" })
 
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "APT-style unit"
         c = { "conform": {
@@ -795,7 +795,7 @@ class TestConformTransforms (unittest.TestCase):
         e.update({ "OA:street": "MAPLE ST" })
 
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "APT.-style unit"
         c = { "conform": {
@@ -810,7 +810,7 @@ class TestConformTransforms (unittest.TestCase):
         e.update({ "OA:street": "MAPLE ST" })
 
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "SUITE-style unit"
         c = { "conform": {
@@ -825,7 +825,7 @@ class TestConformTransforms (unittest.TestCase):
         e.update({ "OA:street": "MAPLE ST" })
 
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "STE-style unit"
         c = { "conform": {
@@ -840,7 +840,7 @@ class TestConformTransforms (unittest.TestCase):
         e.update({ "OA:street": "MAPLE ST" })
 
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "STE.-style unit"
         c = { "conform": {
@@ -855,7 +855,7 @@ class TestConformTransforms (unittest.TestCase):
         e.update({ "OA:street": "MAPLE ST" })
 
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "BUILDING-style unit"
         c = { "conform": {
@@ -870,7 +870,7 @@ class TestConformTransforms (unittest.TestCase):
         e.update({ "OA:street": "MAPLE ST" })
 
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "BLDG-style unit"
         c = { "conform": {
@@ -885,7 +885,7 @@ class TestConformTransforms (unittest.TestCase):
         e.update({ "OA:street": "MAPLE ST" })
 
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "BLDG.-style unit"
         c = { "conform": {
@@ -900,7 +900,7 @@ class TestConformTransforms (unittest.TestCase):
         e.update({ "OA:street": "MAPLE ST" })
 
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "LOT-style unit"
         c = { "conform": {
@@ -915,7 +915,7 @@ class TestConformTransforms (unittest.TestCase):
         e.update({ "OA:street": "MAPLE ST" })
 
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "#-style unit"
         c = { "conform": {
@@ -930,7 +930,7 @@ class TestConformTransforms (unittest.TestCase):
         e.update({ "OA:street": "MAPLE ST" })
 
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "no unit"
         c = { "conform": {
@@ -945,9 +945,9 @@ class TestConformTransforms (unittest.TestCase):
         e.update({ "OA:street": "MAPLE ST" })
 
         d = row_fxn_postfixed_street(c, d, "street", c["conform"]["street"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
-    def test_row_fxn_postfixed_unit(self): 
+    def test_row_fxn_postfixed_unit(self):
         "postfixed_unit - UNIT-style"
         c = { "conform": {
             "unit": {
@@ -958,9 +958,9 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street Unit 300" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "Unit 300" })
-        
+
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "postfixed_unit - UNIT is word ending"
         c = { "conform": {
@@ -972,10 +972,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street runit 300" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "" })
-        
+
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
-        self.assertEqual(e, d)        
-                
+        self.assertEqual(e, d)
+
         "postfixed_unit - APARTMENT-style"
         c = { "conform": {
             "unit": {
@@ -986,10 +986,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street Apartment 300" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "Apartment 300" })
-        
+
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
-        self.assertEqual(e, d)        
-        
+        self.assertEqual(e, d)
+
         "postfixed_unit - APT-style"
         c = { "conform": {
             "unit": {
@@ -1000,10 +1000,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street Apt 300" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "Apt 300" })
-        
+
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
-        self.assertEqual(e, d)        
-        
+        self.assertEqual(e, d)
+
         "postfixed_unit - APT is word ending"
         c = { "conform": {
             "unit": {
@@ -1014,10 +1014,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street rapt 300" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "" })
-        
+
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
-        self.assertEqual(e, d)        
-        
+        self.assertEqual(e, d)
+
         "postfixed_unit - APT.-style"
         c = { "conform": {
             "unit": {
@@ -1028,10 +1028,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street Apt. 300" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "Apt. 300" })
-        
+
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
-        self.assertEqual(e, d)        
-        
+        self.assertEqual(e, d)
+
         "postfixed_unit - SUITE-style"
         c = { "conform": {
             "unit": {
@@ -1042,9 +1042,9 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street Suite 300" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "Suite 300" })
-        
+
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "postfixed_unit - STE-style"
         c = { "conform": {
@@ -1056,10 +1056,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street Ste 300" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "Ste 300" })
-        
+
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
-        self.assertEqual(e, d)        
-                
+        self.assertEqual(e, d)
+
         "postfixed_unit - STE is word ending"
         c = { "conform": {
             "unit": {
@@ -1070,10 +1070,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street Haste 300" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "" })
-        
+
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
-        self.assertEqual(e, d)        
-        
+        self.assertEqual(e, d)
+
         "postfixed_unit - STE.-style"
         c = { "conform": {
             "unit": {
@@ -1084,10 +1084,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street Ste. 300" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "Ste. 300" })
-        
+
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
-        self.assertEqual(e, d)        
-        
+        self.assertEqual(e, d)
+
         "postfixed_unit - BUILDING-style"
         c = { "conform": {
             "unit": {
@@ -1098,9 +1098,9 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street Building 300" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "Building 300" })
-        
+
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "postfixed_unit - BLDG-style"
         c = { "conform": {
@@ -1112,10 +1112,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street Bldg 300" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "Bldg 300" })
-        
+
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
-        self.assertEqual(e, d)        
-        
+        self.assertEqual(e, d)
+
         "postfixed_unit - BLDG.-style"
         c = { "conform": {
             "unit": {
@@ -1126,10 +1126,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street Bldg. 300" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "Bldg. 300" })
-        
+
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
-        self.assertEqual(e, d)        
-        
+        self.assertEqual(e, d)
+
         "postfixed_unit - LOT-style"
         c = { "conform": {
             "unit": {
@@ -1140,10 +1140,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street Lot 300" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "Lot 300" })
-        
+
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
-        self.assertEqual(e, d)        
-                
+        self.assertEqual(e, d)
+
         "postfixed_unit - LOT is word ending"
         c = { "conform": {
             "unit": {
@@ -1154,10 +1154,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street alot 300" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "" })
-        
+
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
-        self.assertEqual(e, d)        
-        
+        self.assertEqual(e, d)
+
         "postfixed_unit - #-style with spaces"
         c = { "conform": {
             "unit": {
@@ -1168,10 +1168,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street # 300" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "# 300" })
-        
+
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
-        self.assertEqual(e, d)        
-        
+        self.assertEqual(e, d)
+
         "postfixed_unit - #-style without spaces"
         c = { "conform": {
             "unit": {
@@ -1182,9 +1182,9 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street #300" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "#300" })
-        
+
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
         "postfixed_unit - no unit"
         c = { "conform": {
@@ -1196,9 +1196,9 @@ class TestConformTransforms (unittest.TestCase):
         d = { "ADDRESS": "Main Street" }
         e = copy.deepcopy(d)
         e.update({ "OA:unit": "" })
-        
+
         d = row_fxn_postfixed_unit(c, d, "unit", c["conform"]["unit"])
-        self.assertEqual(e, d)        
+        self.assertEqual(e, d)
 
     def test_row_fxn_remove_prefix(self):
         "remove_prefix - field_to_remove is a prefix"
@@ -1306,7 +1306,7 @@ class TestConformTransforms (unittest.TestCase):
 
         d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
-        
+
         "first_non_empty - both fields are non-empty"
         c = { "conform": {
             "street": {
@@ -1320,7 +1320,7 @@ class TestConformTransforms (unittest.TestCase):
 
         d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
-        
+
         "first_non_empty - first field is null"
         c = { "conform": {
             "street": {
@@ -1331,10 +1331,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "FIELD1": None, "FIELD2": "field2 value" }
         e = copy.deepcopy(d)
         e.update({ "OA:street": "field2 value" })
-        
+
         d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
-        
+
         "first_non_empty - first field is 0-length string"
         c = { "conform": {
             "street": {
@@ -1345,10 +1345,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "FIELD1": "", "FIELD2": "field2 value" }
         e = copy.deepcopy(d)
         e.update({ "OA:street": "field2 value" })
-        
+
         d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
-        
+
         "first_non_empty - first field is trimmable to a 0-length string"
         c = { "conform": {
             "street": {
@@ -1359,10 +1359,10 @@ class TestConformTransforms (unittest.TestCase):
         d = { "FIELD1": " \t ", "FIELD2": "field2 value" }
         e = copy.deepcopy(d)
         e.update({ "OA:street": "field2 value" })
-        
+
         d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
-        
+
         "first_non_empty - all field values are trimmable to a 0-length string"
         c = { "conform": {
             "street": {
@@ -1373,7 +1373,7 @@ class TestConformTransforms (unittest.TestCase):
         d = { "FIELD1": " \t ", "FIELD2": " \t " }
         e = copy.deepcopy(d)
         e.update({ })
-        
+
         d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
@@ -1392,7 +1392,7 @@ class TestConformCli (unittest.TestCase):
             source_definition = json.load(file)
         source_path = os.path.join(self.conforms_dir, "%s.%s" % (source_name, ext))
         dest_path = os.path.join(self.testdir, '%s-conformed.csv' % source_name)
-        
+
         rc = conform_cli(source_definition, source_path, dest_path)
         return rc, dest_path
 
@@ -1459,7 +1459,7 @@ class TestConformCli (unittest.TestCase):
     def test_lake_man_split(self):
         rc, dest_path = self._run_conform_on_source('lake-man-split', 'shp')
         self.assertEqual(0, rc)
-        
+
         with open(dest_path) as fp:
             rows = list(csv.DictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '915')
@@ -1478,7 +1478,7 @@ class TestConformCli (unittest.TestCase):
     def test_lake_man_merge_postcode(self):
         rc, dest_path = self._run_conform_on_source('lake-man-merge-postcode', 'shp')
         self.assertEqual(0, rc)
-        
+
         with open(dest_path) as fp:
             rows = list(csv.DictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '35845')
@@ -1493,11 +1493,11 @@ class TestConformCli (unittest.TestCase):
             self.assertEqual(rows[4]['STREET'], 'EKLUTNA LAKE RD')
             self.assertEqual(rows[5]['NUMBER'], '31401')
             self.assertEqual(rows[5]['STREET'], 'EKLUTNA LAKE RD')
-    
+
     def test_lake_man_merge_postcode2(self):
         rc, dest_path = self._run_conform_on_source('lake-man-merge-postcode2', 'shp')
         self.assertEqual(0, rc)
-        
+
         with open(dest_path) as fp:
             rows = list(csv.DictReader(fp))
             self.assertEqual(rows[0]['NUMBER'], '85')
@@ -1608,7 +1608,7 @@ class TestConformMisc(unittest.TestCase):
         '''
         '''
         crr = convert_regexp_replace
-        
+
         self.assertEqual(crr('$1'), r'\1')
         self.assertEqual(crr('$9'), r'\9')
         self.assertEqual(crr('$b'), '$b')
@@ -1654,7 +1654,7 @@ class TestConformMisc(unittest.TestCase):
         self.assertEqual(crr('${99}9 yo ${99}9'), r'\g<99>9 yo \g<99>9')
         self.assertEqual(crr('${99}b yo ${99}b'), r'\g<99>b yo \g<99>b')
         self.assertEqual(crr('${bb}b yo ${bb}b'), '${bb}b yo ${bb}b')
-        
+
         self.assertEqual(re.sub(r'hello (world)', crr('goodbye $1'), 'hello world'), 'goodbye world')
         self.assertEqual(re.sub(r'(hello) (world)', crr('goodbye $2'), 'hello world'), 'goodbye world')
         self.assertEqual(re.sub(r'he(ll)o', crr('he$1$1o'), 'hello'), 'hellllo')
@@ -1729,7 +1729,7 @@ class TestConformMisc(unittest.TestCase):
         filename = os.path.join(self.testdir, 'file.geojson')
         with open(filename, 'w') as file:
             file.write('yo')
-        
+
         self.assertEqual(normalize_ogr_filename_case(filename), filename)
         self.assertTrue(os.path.exists(normalize_ogr_filename_case(filename)))
 
@@ -1737,7 +1737,7 @@ class TestConformMisc(unittest.TestCase):
         filename = os.path.join(self.testdir, 'file.GeoJSON')
         with open(filename, 'w') as file:
             file.write('yo')
-        
+
         self.assertNotEqual(normalize_ogr_filename_case(filename), filename)
         self.assertTrue(os.path.exists(normalize_ogr_filename_case(filename)))
 
@@ -1745,12 +1745,12 @@ class TestConformMisc(unittest.TestCase):
         filename = os.path.join(self.testdir, 'file.shp')
         with open(filename, 'w') as file:
             file.write('yo')
-        
+
         for otherbase in ('file.shx', 'file.dbf', 'file.prj'):
             othername = os.path.join(self.testdir, otherbase)
             with open(othername, 'w') as other:
                 other.write('yo')
-        
+
         self.assertEqual(normalize_ogr_filename_case(filename), filename)
         self.assertTrue(os.path.exists(normalize_ogr_filename_case(filename)))
         self.assertTrue(os.path.exists(os.path.join(self.testdir, 'file.shx')))
@@ -1761,12 +1761,12 @@ class TestConformMisc(unittest.TestCase):
         filename = os.path.join(self.testdir, 'file.Shp')
         with open(filename, 'w') as file:
             file.write('yo')
-        
+
         for otherbase in ('file.Shx', 'file.Dbf', 'file.Prj'):
             othername = os.path.join(self.testdir, otherbase)
             with open(othername, 'w') as other:
                 other.write('yo')
-        
+
         self.assertNotEqual(normalize_ogr_filename_case(filename), filename)
         self.assertTrue(os.path.exists(normalize_ogr_filename_case(filename)))
         self.assertTrue(os.path.exists(os.path.join(self.testdir, 'file.shx')))
@@ -1777,18 +1777,18 @@ class TestConformMisc(unittest.TestCase):
         filename = os.path.join(self.testdir, 'file.SHP')
         with open(filename, 'w') as file:
             file.write('yo')
-        
+
         for otherbase in ('file.SHX', 'file.DBF', 'file.PRJ'):
             othername = os.path.join(self.testdir, otherbase)
             with open(othername, 'w') as other:
                 other.write('yo')
-        
+
         self.assertNotEqual(normalize_ogr_filename_case(filename), filename)
         self.assertTrue(os.path.exists(normalize_ogr_filename_case(filename)))
         self.assertTrue(os.path.exists(os.path.join(self.testdir, 'file.shx')))
         self.assertTrue(os.path.exists(os.path.join(self.testdir, 'file.dbf')))
         self.assertTrue(os.path.exists(os.path.join(self.testdir, 'file.prj')))
-    
+
     def test_is_not_in(self):
         self.assertFalse(is_in('foo', []), 'Should not match an empty list')
         self.assertFalse(is_in('foo', ['bar']), 'Should not match')
@@ -1806,14 +1806,14 @@ class TestConformMisc(unittest.TestCase):
         self.assertTrue(is_in('Foo/bar/baz', ['foo']), 'Should match a directory path case-insensitively')
         self.assertTrue(is_in('foo/Bar', ['foo/bar']), 'Should match a directory path case-insensitively')
         self.assertTrue(is_in('foo/Bar/baz', ['foo/bar']), 'Should match a directory path case-insensitively')
-    
+
     def test_geojson_source_to_csv(self):
         '''
         '''
         geojson_path = os.path.join(os.path.dirname(__file__), 'data/us-pa-bucks.geojson')
         csv_path = os.path.join(self.testdir, 'us-tx-waco.csv')
         geojson_source_to_csv(geojson_path, csv_path)
-        
+
         with open(csv_path, encoding='utf8') as file:
             row = next(csv.DictReader(file))
             self.assertAlmostEqual(float(row[X_FIELDNAME]), -74.98335721879076)
@@ -1845,13 +1845,13 @@ class TestConformCsv(unittest.TestCase):
         "Convert a CSV source (list of byte strings) and return output as a list of unicode strings"
         self.assertNotEqual(type(src_bytes), type(u''))
         src_path = os.path.join(self.testdir, "input.csv")
-        
+
         with open(src_path, "w+b") as file:
             file.write(b'\n'.join(src_bytes))
 
         dest_path = os.path.join(self.testdir, "output.csv")
         csv_source_to_csv(conform, src_path, dest_path)
-        
+
         with open(dest_path, 'rb') as file:
             return [s.decode('utf-8').strip() for s in file]
 
@@ -1910,7 +1910,7 @@ class TestConformCsv(unittest.TestCase):
         c = {"conform": { "headers": 2, "skiplines": 2, "type": "csv", "lon": "LONGITUDE", "lat": "LATITUDE" }, 'type': 'test' }
         d = (u'HAHA,THIS,HEADER,IS,FAKE'.encode('ascii'),
              self._ascii_header_in.encode('ascii'),
-             self._ascii_row_in.encode('ascii')) 
+             self._ascii_row_in.encode('ascii'))
         r = self._convert(c, d)
         self.assertEqual(self._ascii_header_out, r[0])
         self.assertEqual(self._ascii_row_out, r[1])
@@ -1981,11 +1981,11 @@ class TestConformLicense (unittest.TestCase):
         self.assertEqual(conform_license({'text': 'CC-BY-SA'}), 'CC-BY-SA')
         self.assertEqual(conform_license({'url': 'http://example.com'}), 'http://example.com')
         self.assertEqual(conform_license({'text': u'\xa7 unicode \xa7'}), u'\xa7 unicode \xa7')
-        
+
         license = {'text': 'CC-BY-SA', 'url': 'http://example.com'}
         self.assertIn(license['text'], conform_license(license))
         self.assertIn(license['url'], conform_license(license))
-    
+
     def test_attribution(self):
         ''' Test combinations of attribution data.
         '''
@@ -2044,13 +2044,13 @@ class TestConformLicense (unittest.TestCase):
         attr_flag14, attr_name14 = conform_attribution({'attribution': None, 'attribution name': False}, None)
         self.assertIs(attr_flag14, True)
         self.assertEqual(attr_name14, 'False')
-    
+
     def test_sharealike(self):
         ''' Test combinations of share=alike data.
         '''
         for undict in (None, False, True, 'this', 'that'):
             self.assertIs(conform_sharealike(undict), None, '{} should be None'.format(undict))
-        
+
         for value1 in (False, 'No', 'no', 'false', 'False', 'n', 'f', None, ''):
             dict1 = {'share-alike': value1}
             self.assertIs(conform_sharealike(dict1), False, 'sa:{} should be False'.format(repr(value1)))
@@ -2060,39 +2060,39 @@ class TestConformLicense (unittest.TestCase):
             self.assertIs(conform_sharealike(dict2), True, 'sa:{} should be True'.format(repr(value2)))
 
 class TestConformTests (unittest.TestCase):
-    
+
     def test_good_tests(self):
         '''
         '''
         filenames = ['cz-countrywide-good-tests.json', 'cz-countrywide-implied-tests.json']
-        
+
         for filename in filenames:
             with open(os.path.join(os.path.dirname(__file__), 'sources', filename)) as file:
                 source = json.load(file)
-        
+
             result, message = check_source_tests(source)
             self.assertIs(result, True, 'Tests should pass in {}'.format(filename))
             self.assertIsNone(message, 'No message expected from {}'.format(filename))
-    
+
     def test_bad_tests(self):
         '''
         '''
         with open(os.path.join(os.path.dirname(__file__), 'sources', 'cz-countrywide-bad-tests.json')) as file:
             source = json.load(file)
-        
+
         result, message = check_source_tests(source)
         self.assertIs(result, False, 'Tests should fail in {}'.format(file.name))
         self.assertIn('address with /-delimited number', message, 'A message is expected from {}'.format(file.name))
-    
+
     def test_no_tests(self):
         '''
         '''
         filenames = ['cz-countrywide-no-tests.json', 'cz-countrywide-disabled-tests.json']
-        
+
         for filename in filenames:
             with open(os.path.join(os.path.dirname(__file__), 'sources', filename)) as file:
                 source = json.load(file)
-        
+
             result, message = check_source_tests(source)
             self.assertIsNone(result, 'Tests should not exist in {}'.format(filename))
             self.assertIsNone(message, 'No message expected from {}'.format(filename))
