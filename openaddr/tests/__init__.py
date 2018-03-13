@@ -343,7 +343,7 @@ class TestOA (unittest.TestCase):
             preview_ren.side_effect = touch_second_arg_file
             slippymap_gen.side_effect = touch_first_arg_file
             state_paths = process_one.process(source, self.testdir, True, mapbox_key='mapbox-XXXX')
-        
+
         self.assertTrue(slippymap_gen.mock_calls[0][1][0].endswith('.mbtiles'))
         self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
 
@@ -398,7 +398,7 @@ class TestOA (unittest.TestCase):
             preview_ren.side_effect = touch_second_arg_file
             slippymap_gen.side_effect = touch_first_arg_file
             state_paths = process_one.process(source, self.testdir, True, mapbox_key='mapbox-XXXX')
-        
+
         self.assertTrue(slippymap_gen.mock_calls[0][1][0].endswith('.mbtiles'))
         self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
 
@@ -414,7 +414,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'], 'http://www.acgov.org/acdata/terms.htm')
-        
+
         with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
@@ -422,9 +422,9 @@ class TestOA (unittest.TestCase):
         self.assertTrue('ZIPCODE' in sample_data[0])
         self.assertTrue('OAKLAND' in sample_data[1])
         self.assertTrue('94612' in sample_data[1])
-        
+
         output_path = join(dirname(state_paths[0]), state['processed'])
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(rows[1]['ID'], '')
@@ -451,7 +451,7 @@ class TestOA (unittest.TestCase):
             preview_ren.side_effect = touch_second_arg_file
             slippymap_gen.side_effect = touch_first_arg_file
             state_paths = process_one.process(source, self.testdir, True, mapbox_key='mapbox-XXXX')
-        
+
         self.assertTrue(slippymap_gen.mock_calls[0][1][0].endswith('.mbtiles'))
         self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
 
@@ -467,16 +467,16 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'], '')
-        
+
         with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
         self.assertEqual(len(sample_data), 6)
         self.assertTrue('ZIPCODE' in sample_data[0])
         self.assertTrue('94102' in sample_data[1])
-        
+
         output_path = join(dirname(state_paths[0]), state['processed'])
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(rows[1]['ID'], '')
@@ -507,7 +507,7 @@ class TestOA (unittest.TestCase):
             preview_ren.side_effect = touch_second_arg_file
             slippymap_gen.side_effect = touch_first_arg_file
             state_paths = process_one.process(source, self.testdir, True, mapbox_key='mapbox-XXXX')
-        
+
         self.assertTrue(slippymap_gen.mock_calls[0][1][0].endswith('.mbtiles'))
         self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
 
@@ -524,13 +524,13 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['geometry type'], 'Point')
         self.assertEqual(state['website'], 'http://ci.carson.ca.us/')
         self.assertIsNone(state['license'])
-        
+
         with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
         self.assertEqual(len(sample_data), 6)
         self.assertTrue('SITENUMBER' in sample_data[0])
-        
+
         with open(join(dirname(state_paths[0]), state['processed'])) as file:
             rows = list(DictReader(file, dialect='excel'))
             self.assertEqual(5, len(rows))
@@ -550,7 +550,7 @@ class TestOA (unittest.TestCase):
 
         with HTTMock(self.response_content):
             state_paths = process_one.process(source, self.testdir, False)
-        
+
         self.assertIs(len(state_paths), 1)
         with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
@@ -568,7 +568,7 @@ class TestOA (unittest.TestCase):
 
         self.assertEqual(len(sample_data), 6)
         self.assertTrue('SITENUMBER' in sample_data[0])
-        
+
         with open(join(dirname(state_paths[0]), state['processed'])) as file:
             self.assertTrue('555,CARSON ST' in file.read())
 
@@ -579,7 +579,7 @@ class TestOA (unittest.TestCase):
 
         with HTTMock(self.response_content):
             state_paths = process_one.process(source, self.testdir, False)
-        
+
         self.assertIs(len(state_paths), 1)
         with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
@@ -597,7 +597,7 @@ class TestOA (unittest.TestCase):
 
         self.assertEqual(len(sample_data), 6)
         self.assertTrue('SITENUMBER' in sample_data[0])
-        
+
         with open(join(dirname(state_paths[0]), state['processed'])) as file:
             self.assertTrue('555,CARSON ST' in file.read())
 
@@ -608,7 +608,7 @@ class TestOA (unittest.TestCase):
 
         with HTTMock(self.response_content):
             state_paths = process_one.process(source, self.testdir, False)
-        
+
         self.assertIs(len(state_paths), 1)
         with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -627,7 +627,7 @@ class TestOA (unittest.TestCase):
 
         with HTTMock(self.response_content):
             state_paths = process_one.process(source, self.testdir, False)
-        
+
         self.assertIs(len(state_paths), 1)
         with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -641,7 +641,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state.slippymap)
         self.assertEqual(state.website, 'http://data.openoakland.org/dataset/property-parcels/resource/df20b818-0d16-4da8-a9c1-a7b8b720ff49')
         self.assertIsNone(state.license)
-        
+
         with open(join(dirname(state_paths[0]), state.sample)) as file:
             sample_data = json.load(file)
 
@@ -654,7 +654,7 @@ class TestOA (unittest.TestCase):
 
         with HTTMock(self.response_content):
             state_paths = process_one.process(source, self.testdir, False)
-        
+
         self.assertIs(len(state_paths), 1)
         with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -674,7 +674,7 @@ class TestOA (unittest.TestCase):
 
         with HTTMock(self.response_content):
             state_paths = process_one.process(source, self.testdir, False)
-        
+
         self.assertIs(len(state_paths), 1)
         with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -687,7 +687,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state.slippymap)
         self.assertEqual(state.website, 'http://www.ci.berkeley.ca.us/datacatalog/')
         self.assertIsNone(state.license)
-        
+
         with open(join(dirname(state_paths[0]), state.sample)) as file:
             sample_data = json.load(file)
 
@@ -700,7 +700,7 @@ class TestOA (unittest.TestCase):
 
         with HTTMock(self.response_content):
             state_paths = process_one.process(source, self.testdir, False)
-        
+
         self.assertIs(len(state_paths), 1)
         with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -718,7 +718,7 @@ class TestOA (unittest.TestCase):
 
         with HTTMock(self.response_content):
             state_paths = process_one.process(source, self.testdir, False)
-        
+
         self.assertIs(len(state_paths), 1)
         with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
@@ -729,9 +729,9 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state['slippymap'])
         self.assertEqual(state['website'], 'http://www.ci.berkeley.ca.us/datacatalog/')
         self.assertIsNone(state['license'])
-        
+
         output_path = join(dirname(state_paths[0]), state['processed'])
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(rows[1]['ID'], '055 188300600')
@@ -754,7 +754,7 @@ class TestOA (unittest.TestCase):
 
         with HTTMock(self.response_content):
             state_paths = process_one.process(source, self.testdir, False)
-        
+
         self.assertIs(len(state_paths), 1)
         with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
@@ -769,7 +769,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['license'][:21], 'Polish Law on Geodesy')
         self.assertEqual(state['share-alike'], 'false')
         self.assertIn('issues/187#issuecomment-63327973', state['license'])
-        
+
         with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
@@ -785,7 +785,7 @@ class TestOA (unittest.TestCase):
 
         with HTTMock(self.response_content):
             state_paths = process_one.process(source, self.testdir, False)
-        
+
         self.assertIs(len(state_paths), 1)
         with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
@@ -800,7 +800,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['license'][:21], 'Polish Law on Geodesy')
         self.assertEqual(state['share-alike'], 'false')
         self.assertIn('issues/187#issuecomment-63327973', state['license'])
-        
+
         with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
@@ -808,9 +808,9 @@ class TestOA (unittest.TestCase):
         self.assertTrue('pad_numer_porzadkowy' in sample_data[0])
         self.assertTrue(u'Gliwice' in sample_data[1])
         self.assertTrue(u'Ulica Dworcowa ' in sample_data[1])
-        
+
         output_path = join(dirname(state_paths[0]), state['processed'])
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(rows[1]['NUMBER'], u'5')
@@ -830,7 +830,7 @@ class TestOA (unittest.TestCase):
 
         with HTTMock(self.response_content):
             state_paths = process_one.process(source, self.testdir, False)
-        
+
         self.assertIs(len(state_paths), 1)
         with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -844,7 +844,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state.license, u'http://nlftp.mlit.go.jp/ksj/other/yakkan§.html')
         self.assertEqual(state.attribution_required, 'true')
         self.assertIn('Ministry of Land', state.attribution_name)
-        
+
         with open(join(dirname(state_paths[0]), state.sample)) as file:
             sample_data = json.load(file)
 
@@ -861,7 +861,7 @@ class TestOA (unittest.TestCase):
 
         with HTTMock(self.response_content):
             state_paths = process_one.process(source, self.testdir, False)
-        
+
         self.assertIs(len(state_paths), 1)
         with open(state_paths[0]) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -875,7 +875,7 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state.license, u'http://nlftp.mlit.go.jp/ksj/other/yakkan.html')
         self.assertEqual(state.attribution_required, 'true')
         self.assertIn('Ministry of Land', state.attribution_name)
-        
+
         with open(join(dirname(state_paths[0]), state.sample)) as file:
             sample_data = json.load(file)
 
@@ -884,7 +884,7 @@ class TestOA (unittest.TestCase):
         self.assertTrue(u'田沢字姥懐' in sample_data[1])
         self.assertTrue('37.706391' in sample_data[1])
         self.assertTrue('140.480007' in sample_data[1])
-        
+
         with open(join(dirname(state_paths[0]), state.processed), encoding='utf8') as file:
             rows = list(csv.DictReader(file))
 
@@ -1136,9 +1136,9 @@ class TestOA (unittest.TestCase):
         self.assertEqual('3', sample_data[3][6])
         self.assertEqual('4', sample_data[4][6])
         self.assertEqual('5', sample_data[5][6])
-        
+
         output_path = join(dirname(state_paths[0]), state['processed'])
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(rows[1]['UNIT'], u'2')
@@ -1205,9 +1205,9 @@ class TestOA (unittest.TestCase):
         self.assertEqual('', row2['SITUS_ADDR_NUM'])
         self.assertEqual('STATE', row2['SITUS_FNAME'])
         self.assertEqual('RD', row2['SITUS_FTYPE'])
-        
+
         output_path = join(dirname(state_paths[0]), state['processed'])
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(rows[1]['UNIT'], u'')
@@ -1249,9 +1249,9 @@ class TestOA (unittest.TestCase):
         self.assertEqual('9030', sample_data[3][0])
         self.assertEqual('23110', sample_data[4][0])
         self.assertEqual(' ', sample_data[5][0])
-        
+
         output_path = join(dirname(state_paths[0]), state['processed'])
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(rows[1]['UNIT'], u'')
@@ -1302,7 +1302,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNone(state.slippymap)
 
         output_path = join(dirname(state_paths[0]), state.processed)
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(rows[0]['REGION'], u'TX')
@@ -1333,7 +1333,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state.processed)
 
         output_path = join(dirname(state_paths[0]), state.processed)
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(rows[0]['ID'], u'')
@@ -1363,7 +1363,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state.processed)
 
         output_path = join(dirname(state_paths[0]), state.processed)
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(rows[0]['ID'], u'')
@@ -1390,7 +1390,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
 
         output_path = join(dirname(state_paths[0]), state['processed'])
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(rows[0]['NUMBER'], u'72')
@@ -1426,7 +1426,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
 
         output_path = join(dirname(state_paths[0]), state['processed'])
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(len(rows), 12)
@@ -1460,7 +1460,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
 
         output_path = join(dirname(state_paths[0]), state['processed'])
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(len(rows), 8)
@@ -1486,7 +1486,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
 
         output_path = join(dirname(state_paths[0]), state['processed'])
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(len(rows), 666)
@@ -1519,7 +1519,7 @@ class TestOA (unittest.TestCase):
             state = dict(zip(*json.load(file)))
 
         output_path = join(dirname(state_paths[0]), state['processed'])
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(len(rows), 19)
@@ -1547,9 +1547,9 @@ class TestOA (unittest.TestCase):
         self.assertIs(len(state_paths), 1)
         with open(state_paths[0]) as file:
             state = dict(zip(*json.load(file)))
-        
+
         output_path = join(dirname(state_paths[0]), state['processed'])
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(len(rows), 1045)
@@ -1630,7 +1630,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
         self.assertIsNone(state['slippymap'])
-        
+
         with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
@@ -1638,9 +1638,9 @@ class TestOA (unittest.TestCase):
         self.assertTrue('ADDRESSID' in sample_data[0])
         self.assertTrue(964 in sample_data[1])
         self.assertTrue('FRUITED PLAINS LN' in sample_data[1])
-        
+
         output_path = join(dirname(state_paths[0]), state['processed'])
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(len(rows), 6)
@@ -1672,7 +1672,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
         self.assertIsNone(state['slippymap'])
-        
+
         with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
@@ -1680,9 +1680,9 @@ class TestOA (unittest.TestCase):
         self.assertTrue('ADDRESSID' in sample_data[0])
         self.assertTrue(964 in sample_data[1])
         self.assertTrue('FRUITED PLAINS LN' in sample_data[1])
-        
+
         output_path = join(dirname(state_paths[0]), state['processed'])
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(len(rows), 6)
@@ -1714,7 +1714,7 @@ class TestOA (unittest.TestCase):
         self.assertIsNotNone(state['sample'])
         self.assertIsNone(state['preview'])
         self.assertIsNone(state['slippymap'])
-        
+
         with open(join(dirname(state_paths[0]), state['sample'])) as file:
             sample_data = json.load(file)
 
@@ -1722,9 +1722,9 @@ class TestOA (unittest.TestCase):
         self.assertTrue('ADDRESSID' in sample_data[0])
         self.assertTrue(964 in sample_data[1])
         self.assertTrue('FRUITED PLAINS LN' in sample_data[1])
-        
+
         output_path = join(dirname(state_paths[0]), state['processed'])
-        
+
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(len(rows), 6)
