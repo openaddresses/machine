@@ -17,7 +17,7 @@ def upload_file(s3, keyname, filename):
     kwargs = dict(policy='public-read', reduced_redundancy=True)
     key.set_contents_from_filename(filename, **kwargs)
     url = util.s3_key_url(key)
-    
+
     return url, key.md5.decode('ascii')
 
 def make_source_filename(source_name):
@@ -30,21 +30,21 @@ def assemble_runstate(s3, input, source_name, run_id, index_dirname):
     '''
     output = {k: v for (k, v) in input.items()}
     output['run id'] = run_id
-    
+
     if input['cache']:
         # e.g. /runs/0/cache.zip
         cache_path = os.path.join(index_dirname, input['cache'])
         key_name = '/runs/{run}/{cache}'.format(run=run_id, **input)
         url, fingerprint = upload_file(s3, key_name, cache_path)
         output['cache'], output['fingerprint'] = url, fingerprint
-    
+
     if input['sample']:
         # e.g. /runs/0/sample.json
         sample_path = os.path.join(index_dirname, input['sample'])
         key_name = '/runs/{run}/{sample}'.format(run=run_id, **input)
         url, _ = upload_file(s3, key_name, sample_path)
         output['sample'] = url
-    
+
     if input['processed']:
         # e.g. /runs/0/fr/paris.zip
         processed_path = os.path.join(index_dirname, input['processed'])
@@ -56,28 +56,28 @@ def assemble_runstate(s3, input, source_name, run_id, index_dirname):
 
         if os.path.exists(archive_path):
             os.remove(archive_path)
-    
+
     if input['output']:
         # e.g. /runs/0/output.txt
         output_path = os.path.join(index_dirname, input['output'])
         key_name = '/runs/{run}/{output}'.format(run=run_id, **input)
         url, _ = upload_file(s3, key_name, output_path)
         output['output'] = url
-    
+
     if input['preview']:
         # e.g. /runs/0/preview.png
         preview_path = os.path.join(index_dirname, input['preview'])
         key_name = '/runs/{run}/{preview}'.format(run=run_id, **input)
         url, _ = upload_file(s3, key_name, preview_path)
         output['preview'] = url
-    
+
     if input['slippymap']:
         # e.g. /runs/0/slippymap.mbtiles
         slippymap_path = os.path.join(index_dirname, input['slippymap'])
         key_name = '/runs/{run}/{slippymap}'.format(run=run_id, **input)
         url, _ = upload_file(s3, key_name, slippymap_path)
         output['slippymap'] = url
-    
+
     return RunState(output)
 
 def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_dir, mapbox_key=None):
@@ -100,7 +100,7 @@ def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_di
     # Invoke the job to do
     logfile_path = os.path.join(workdir, 'logfile.txt')
     cmd = 'openaddr-process-one', '-l', logfile_path, out_fn, oa_dir
-    
+
     if render_preview and mapbox_key:
         cmd += ('--render-preview', '--mapbox-key', mapbox_key)
     else:
@@ -138,21 +138,29 @@ def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_di
                         message='Something went wrong in {0}'.format(*cmd),
                         output=output)
 
-    result = dict(result_code=0, result_stdout=result_stdout,
-                  message=MAGIC_OK_MESSAGE)
-
     # openaddr-process-one prints a path to index.json
-    state_fullpath = result_stdout.strip()
+    state_paths = json.load(result_stdout.strip())
 
-    with open(state_fullpath) as file:
-        index = dict(zip(*json.load(file)))
-        
-        for key in ('processed', 'sample', 'cache'):
-            if not index[key] and not index.get('skipped'):
-                result.update(result_code=-1, message='Failed to produce {} data'.format(key))
-        
-        index_dirname = os.path.dirname(state_fullpath)
-        result['state'] = assemble_runstate(s3, index, source_name, run_id, index_dirname)
-    
-    shutil.rmtree(workdir)
-    return result
+    results = []
+    for (state_path in state_paths):
+        result = dict(
+            result_code=0,
+            result_stdout=state_path,
+            message=MAGIC_OK_MESSAGE
+        )
+
+        with open(state_fullpath) as file:
+            index = dict(zip(*json.load(file)))
+
+            for key in ('processed', 'sample', 'cache'):
+                if not index[key] and not index.get('skipped'):
+                    result.update(result_code=-1, message='Failed to produce {} data'.format(key))
+
+            index_dirname = os.path.dirname(state_fullpath)
+            result['state'] = assemble_runstate(s3, index, source_name, run_id, index_dirname)
+
+        shutil.rmtree(workdir)
+
+        results.append(result)
+
+    return results

@@ -400,11 +400,12 @@ def main():
     csv.field_size_limit(sys.maxsize)
 
     try:
-        file_path = process(args.source, args.destination, args.render_preview, mapbox_key=args.mapbox_key)
+        processed_paths = process(args.source, args.destination, args.render_preview, mapbox_key=args.mapbox_key)
     except Exception as e:
         _L.error(e, exc_info=True)
         return 1
     else:
+        json.dumps(processed_paths)
         return 0
 
 if __name__ == '__main__':
