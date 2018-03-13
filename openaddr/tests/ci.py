@@ -3133,7 +3133,7 @@ class TestWorker (unittest.TestCase):
         mkdtemp.side_effect = same_tempdir_every_time
 
         job_id, content = task_data['id'], task_data['content']
-        result = work.do_work(self.s3, -1, 'angry', content, True, self.output_dir, mapbox_key=None)
+        results = work.do_work(self.s3, -1, 'angry', content, True, self.output_dir, mapbox_key=None)
 
         self.assertEqual(check_output.mock_calls[-1][1][0], (
             'openaddr-process-one', '-l',
@@ -3146,9 +3146,10 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(check_output.mock_calls[-1][2]['timeout'],
                          JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
 
-        self.assertEqual(result['message'], 'Something went wrong in openaddr-process-one')
-        self.assertEqual(result['result_stdout'], 'Everything is ruined.\n')
-        self.assertEqual(result['result_code'], 1)
+        self.assertEquals(len(results), 1)
+        self.assertEqual(results[0]['message'], 'Something went wrong in openaddr-process-one')
+        self.assertEqual(results[0]['result_stdout'], 'Everything is ruined.\n')
+        self.assertEqual(results[0]['result_code'], 1)
 
     @patch('tempfile.mkdtemp')
     @patch('subprocess.check_output')
