@@ -405,7 +405,7 @@ def main():
         _L.error(e, exc_info=True)
         return 1
     else:
-        json.dumps(processed_paths)
+        print(json.dumps(processed_paths))
         return 0
 
 if __name__ == '__main__':
