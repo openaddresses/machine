@@ -49,7 +49,7 @@ OPENADDR_CSV_SCHEMA = ['LON', 'LAT', 'NUMBER', 'STREET', 'UNIT', 'CITY',
 # We add columns to the extracted CSV with our own data with these names.
 GEOM_FIELDNAME = 'OA:geom'
 X_FIELDNAME, Y_FIELDNAME = 'OA:x', 'OA:y'
-attrib_types = { 
+attrib_types = {
     'street':   'OA:street',
     'number':   'OA:number',
     'unit':     'OA:unit',
@@ -91,10 +91,10 @@ geometry_types = {
 # - '123a' from '123a Main St'
 # - '123-a' from '123-a Main St'
 # - '' from '3rd St' (the 3 belongs to the street, it's not a house number)
-# 
+#
 # this regex can be optimized but number scenarios are much cleaner this way:
 # - just digits with optional fractional
-# - two groups of digits separated by a hyphen (for queens-style addresses, eg - 69-15 51st Ave) 
+# - two groups of digits separated by a hyphen (for queens-style addresses, eg - 69-15 51st Ave)
 # - digits and a letter, optionally separated by a hyphen
 prefixed_number_pattern = re.compile("^\s*(\d+(?:[ -]\d/\d)?|\d+-\d+|\d+-?[A-Z])\s+", re.IGNORECASE)
 
@@ -165,7 +165,7 @@ class ConformResult:
     sharealike_flag = None
     attribution_flag = None
     attribution_name = None
-    
+
     def __init__(self, processed, sample, website, license, geometry_type,
                  address_count, path, elapsed, sharealike_flag,
                  attribution_flag, attribution_name):
@@ -211,12 +211,12 @@ class GuessDecompressTask(DecompressionTask):
     '''
     def decompress(self, source_paths, workdir, filenames):
         types = {type for (type, _) in map(mimetypes.guess_type, source_paths)}
-        
+
         if types == {'application/zip'}:
             substitute_task = ZipDecompressTask()
             _L.info('Guessing zip compression based on file names')
             return substitute_task.decompress(source_paths, workdir, filenames)
-        
+
         _L.warning('Could not guess a single compression from file names')
         return source_paths
 
@@ -226,7 +226,7 @@ def is_in(path, names):
     if path.lower() in names:
         # Found it!
         return True
-    
+
     for name in names:
         # Maybe one of the names is an enclosing directory?
         if not os.path.relpath(path.lower(), name).startswith('..'):
@@ -249,9 +249,9 @@ class ZipDecompressTask(DecompressionTask):
                         # Download only the named file, if any.
                         _L.debug("Skipped file {}".format(name))
                         continue
-                
+
                     z.extract(name, expand_path)
-        
+
         # Collect names of directories and files in expand_path directory.
         for (dirpath, dirnames, filenames) in os.walk(expand_path):
             for dirname in dirnames:
@@ -261,7 +261,7 @@ class ZipDecompressTask(DecompressionTask):
             for filename in filenames:
                 output_files.append(os.path.join(dirpath, filename))
                 _L.debug("Expanded file {}".format(output_files[-1]))
-        
+
         return output_files
 
 class ExcerptDataTask(object):
@@ -271,7 +271,7 @@ class ExcerptDataTask(object):
 
     def excerpt(self, source_paths, workdir, conform):
         '''
-        
+
             Tested version from openaddr.excerpt() on master branch:
 
             if ext == '.zip':
@@ -280,26 +280,26 @@ class ExcerptDataTask(object):
                 with open(cachefile, 'w') as file:
                     for chunk in got.iter_content(1024**2):
                         file.write(chunk)
-    
+
                 zf = ZipFile(cachefile, 'r')
-        
+
                 for name in zf.namelist():
                     _, ext = splitext(name)
-            
+
                     if ext in ('.shp', '.shx', '.dbf'):
                         with open(join(workdir, 'cache'+ext), 'w') as file:
                             file.write(zf.read(name))
-        
+
                 if exists(join(workdir, 'cache.shp')):
                     ds = ogr.Open(join(workdir, 'cache.shp'))
                 else:
                     ds = None
-    
+
             elif ext == '.json':
                 _L.debug('Downloading part of {cache}'.format(**extras))
 
                 scheme, host, path, query, _, _ = urlparse(got.url)
-        
+
                 if scheme in ('http', 'https'):
                     conn = HTTPConnection(host, 80)
                     conn.request('GET', path + ('?' if query else '') + query)
@@ -309,20 +309,20 @@ class ExcerptDataTask(object):
                         resp = StringIO(rawfile.read(1024*1024))
                 else:
                     raise RuntimeError('Unsure what to do with {}'.format(got.url))
-        
+
                 with open(cachefile, 'w') as file:
                     file.write(sample_geojson(resp, 10))
-    
+
                 ds = ogr.Open(cachefile)
-    
+
             else:
                 ds = None
         '''
         encoding = conform.get('encoding')
         csvsplit = conform.get('csvsplit', ',')
-        
+
         known_paths = ExcerptDataTask._get_known_paths(source_paths, workdir, conform, self.known_types)
-        
+
         if not known_paths:
             # we know nothing.
             return None, None
@@ -333,7 +333,7 @@ class ExcerptDataTask(object):
         # Sample a few GeoJSON features to save on memory for large datasets.
         if data_ext in ('.geojson', '.json'):
             data_path = ExcerptDataTask._sample_geojson_file(data_path)
-        
+
         # GDAL has issues with weird input CSV data, so use Python instead.
         if conform.get('type') == 'csv':
             return ExcerptDataTask._excerpt_csv_file(data_path, encoding, csvsplit)
@@ -344,18 +344,18 @@ class ExcerptDataTask(object):
 
         if not encoding:
             encoding = guess_source_encoding(datasource, layer)
-        
+
         # GDAL has issues with non-UTF8 input CSV data, so use Python instead.
         if data_ext == '.csv' and encoding not in ('utf8', 'utf-8'):
             return ExcerptDataTask._excerpt_csv_file(data_path, encoding, csvsplit)
-        
+
         layer_defn = layer.GetLayerDefn()
         fieldcount = layer_defn.GetFieldCount()
         fieldnames = [layer_defn.GetFieldDefn(i).GetName() for i in range(fieldcount)]
         fieldnames = [f.decode(encoding) if hasattr(f, 'decode') else f for f in fieldnames]
 
         data_sample = [fieldnames]
-        
+
         for (feature, _) in zip(layer, range(5)):
             row = [feature.GetField(i) for i in range(fieldcount)]
             row = [v.decode(encoding) if hasattr(v, 'decode') else v for v in row]
@@ -363,7 +363,7 @@ class ExcerptDataTask(object):
 
         if len(data_sample) < 2:
             raise ValueError('Not enough rows in data source')
-        
+
         # Determine geometry_type from layer, sample, or give up.
         if layer_defn.GetGeomType() in geometry_types:
             geometry_type = geometry_types.get(layer_defn.GetGeomType(), None)
@@ -380,20 +380,20 @@ class ExcerptDataTask(object):
         if conform.get('type') != 'csv' or 'file' not in conform:
             paths = [source_path for source_path in source_paths
                      if os.path.splitext(source_path)[1].lower() in known_types]
-            
+
             # If nothing was found or named but we expect a CSV, return first file.
             if not paths and conform.get('type') == 'csv' and 'file' not in conform:
                 return source_paths[:1]
-            
+
             return paths
-    
+
         unzipped_base = os.path.join(workdir, UNZIPPED_DIRNAME)
         unzipped_paths = dict([(os.path.relpath(source_path, unzipped_base), source_path)
                                for source_path in source_paths])
-        
+
         if conform['file'] not in unzipped_paths:
             return []
-        
+
         csv_path = ExcerptDataTask._make_csv_path(unzipped_paths.get(conform['file']))
         return [csv_path]
 
@@ -406,7 +406,7 @@ class ExcerptDataTask(object):
             new_path = csv_path + '.csv'
             os.link(csv_path, new_path)
             csv_path = new_path
-        
+
         return csv_path
 
     @staticmethod
@@ -419,7 +419,7 @@ class ExcerptDataTask(object):
             with open(temp_path, 'w') as temp_file:
                 temp_file.write(sample_geojson(complete_layer, 10))
                 return temp_path
-    
+
     @staticmethod
     def _excerpt_csv_file(data_path, encoding, csvsplit):
         with open(data_path, 'r', encoding=encoding) as file:
@@ -437,32 +437,32 @@ class ExcerptDataTask(object):
 
 def elaborate_filenames(filename):
     ''' Return a list of filenames for a single name from conform file tag.
-    
+
         Used to expand example.shp with example.shx, example.dbf, and example.prj.
     '''
     if filename is None:
         return []
-    
+
     filename = filename.lower()
     base, original_ext = splitext(filename)
-    
+
     if original_ext == '.shp':
         return [base + ext for ext in (original_ext, '.shx', '.dbf', '.prj')]
-    
+
     return [filename]
 
 def guess_source_encoding(datasource, layer):
     ''' Guess at a string encoding using hints from OGR and locale().
-    
+
         Duplicate the process used in Fiona, described and implemented here:
-        
+
         https://github.com/openaddresses/machine/issues/42#issuecomment-69693143
         https://github.com/Toblerity/Fiona/blob/53df35dc70fb/docs/encoding.txt
         https://github.com/Toblerity/Fiona/blob/53df35dc70fb/fiona/ogrext.pyx#L386
     '''
     ogr_recoding = layer.TestCapability(ogr.OLCStringsAsUTF8)
     is_shapefile = datasource.GetDriver().GetName() == 'ESRI Shapefile'
-    
+
     return (ogr_recoding and 'UTF-8') \
         or (is_shapefile and 'ISO-8859-1') \
         or getpreferredencoding()
@@ -548,7 +548,7 @@ def find_source_path(source_definition, source_paths):
         elif len(candidates) == 1:
             _L.debug("Selected %s for source", candidates[0])
             return candidates[0]
-        else: 
+        else:
             # Multiple candidates; look for the one named by the file attribute
             if "file" not in conform:
                 _L.warning("Multiple GDBs found, but source has no file attribute.")
@@ -609,43 +609,43 @@ class ConvertToCsvTask(object):
 
 def convert_regexp_replace(replace):
     ''' Convert regular expression replace string from $ syntax to slash-syntax.
-        
+
         Replace one kind of replacement, then call self recursively to find others.
     '''
     if re.search(r'\$\d+\b', replace):
         # $dd* back-reference followed by a word break.
         return convert_regexp_replace(re.sub(r'\$(\d+)\b', r'\\\g<1>', replace))
-    
+
     if re.search(r'\$\d+\D', replace):
         # $dd* back-reference followed by an non-digit character.
         return convert_regexp_replace(re.sub(r'\$(\d+)(\D)', r'\\\g<1>\g<2>', replace))
-    
+
     if re.search(r'\$\{\d+\}', replace):
         # ${dd*} back-reference.
         return convert_regexp_replace(re.sub(r'\$\{(\d+)\}', r'\\g<\g<1>>', replace))
-    
-    return replace    
+
+    return replace
 
 def normalize_ogr_filename_case(source_path):
     '''
     '''
     base, ext = splitext(source_path)
-    
+
     if ext == ext.lower():
         # Extension is already lowercase, no need to do anything.
         return source_path
 
     normal_path = base + ext.lower()
-    
+
     if os.path.exists(normal_path):
         # We appear to be on a case-insensitive filesystem.
         return normal_path
 
     os.link(source_path, normal_path)
-    
+
     # May need to deal with some additional files.
     extras = {'.Shp': ('.Shx', '.Dbf', '.Prj'), '.SHP': ('.SHX', '.DBF', '.PRJ')}
-    
+
     if ext in extras:
         for other_ext in extras[ext]:
             if os.path.exists(base + other_ext):
@@ -668,7 +668,7 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
     # Determine the appropriate SRS
     inSpatialRef = in_layer.GetSpatialRef()
     srs = source_definition["conform"].get("srs", None)
-    
+
     if srs is not None:
         # OGR may have a projection, but use the explicit SRS instead
         if srs.startswith(u"EPSG:"):
@@ -838,7 +838,7 @@ def geojson_source_to_csv(source_path, dest_path):
                     out_fieldnames.extend((X_FIELDNAME, Y_FIELDNAME))
                     writer = csv.DictWriter(dest_fp, out_fieldnames)
                     writer.writeheader()
-                
+
                 try:
                     row = feature['properties']
                     geom = ogr.CreateGeometryFromJson(json.dumps(feature['geometry']))
@@ -987,10 +987,10 @@ def row_transform_and_convert(sd, row):
         raise ValueError('Found unsupported "advanced_merge" option in conform')
     if "split" in c:
         raise ValueError('Found unsupported "split" option in conform')
-    
+
     # Make up a random fingerprint if none exists
     cache_fingerprint = sd.get('fingerprint', str(uuid4()))
-    
+
     row2 = row_convert_to_out(sd, row)
     row3 = row_canonicalize_unit_and_number(sd, row2)
     row4 = row_round_lat_lon(sd, row3)
@@ -1005,7 +1005,7 @@ def conform_smash_case(source_definition):
         if v not in (X_FIELDNAME, Y_FIELDNAME) and getattr(v, 'lower', None):
             conform[k] = v.lower()
         if type(conform[k]) is list:
-           conform[k] = [s.lower() for s in conform[k]] 
+           conform[k] = [s.lower() for s in conform[k]]
         if type(conform[k]) is dict:
             if "field" in conform[k]:
                 conform[k]["field"] = conform[k]["field"].lower()
@@ -1082,7 +1082,7 @@ def row_fxn_postfixed_street(sd, row, key, fxn):
         match = postfixed_street_with_units_pattern.search(row[fxn["field"]])
     else:
         match = postfixed_street_pattern.search(row[fxn["field"]])
-    
+
     row[var_types[key]] = ''.join(match.groups()) if match else '';
 
     return row
@@ -1137,9 +1137,9 @@ def row_fxn_format(sd, row, key, fxn):
 
             if field:
                 # if the value being added ends with '.0', remove it
-                # certain fields ending with '.0' are normalized by removing that 
-                #  suffix in row_canonicalize_unit_and_number but this isn't 
-                #  possible when not-the-last component fields submitted to the format 
+                # certain fields ending with '.0' are normalized by removing that
+                #  suffix in row_canonicalize_unit_and_number but this isn't
+                #  possible when not-the-last component fields submitted to the format
                 #  function end with '.0'
                 if field.endswith(".0"):
                     field = field[:-2]
@@ -1183,7 +1183,7 @@ def row_fxn_first_non_empty(sd, row, key, fxn):
         if row[field] and row[field].strip():
             row[var_types[key]] = row[field]
             break
-            
+
     return row
 
 def row_canonicalize_unit_and_number(sd, row):
@@ -1209,19 +1209,19 @@ def row_round_lat_lon(sd, row):
 
 def row_calculate_hash(cache_fingerprint, row):
     ''' Calculate row hash based on content and existing fingerprint.
-    
+
         16 chars of SHA-1 gives a 64-bit value, plenty for all addresses.
     '''
     hash = sha1(cache_fingerprint.encode('utf8'))
     hash.update(json.dumps(sorted(row.items()), separators=(',', ':')).encode('utf8'))
     row.update(HASH=hash.hexdigest()[:16])
-    
+
     return row
 
 def row_convert_to_out(sd, row):
     "Convert a row from the source schema to OpenAddresses output schema"
     # note: sd["conform"]["lat"] and lon were already applied in the extraction from source
-    
+
     keys = {}
     for k, v in attrib_types.items():
         if attrib_types[k] in row:
@@ -1319,11 +1319,11 @@ def conform_license(license):
     '''
     if license is None:
         return None
-    
+
     if not hasattr(license, 'get'):
         # Old behavior: treat it like a string instead of a dictionary
         return license if hasattr(license, 'encode') else str(license)
-    
+
     if 'url' in license and 'text' in license:
         return '{text} ({url})'.format(**license)
     elif 'url' in license:
@@ -1334,12 +1334,12 @@ def conform_license(license):
         return text if hasattr(text, 'encode') else str(text)
     else:
         return None
-    
+
     raise ValueError('Unknown license format "{}"'.format(repr(license)))
 
 def conform_attribution(license, attribution):
     ''' Convert optional license and attribution tags.
-    
+
         Return tuple with attribution-required flag and attribution name.
     '''
     # Initially guess based on old attribution tag.
@@ -1352,9 +1352,9 @@ def conform_attribution(license, attribution):
     else:
         attr_flag = True
         attr_name = attribution
-    
+
     is_dict = license is not None and hasattr(license, 'get')
-    
+
     # Look for an attribution name inside license dictionary
     if is_dict and 'attribution name' in license:
         if not hasattr(license['attribution name'], 'encode'):
@@ -1363,33 +1363,33 @@ def conform_attribution(license, attribution):
         elif license['attribution name']:
             attr_flag = True
             attr_name = license['attribution name']
-    
+
     # Look for an explicit flag inside license dictionary.
     if is_dict and 'attribution' in license:
         attr_flag = license['attribution']
-    
+
     # Override null flag if name has been defined.
     if attr_flag is None and attr_name:
         attr_flag = True
-    
+
     # Blank name if flag is not true.
     if not attr_flag:
         attr_name = None
-    
+
     return attr_flag, attr_name
 
 def conform_sharealike(license):
     ''' Convert optional license share-alike tags.
-    
+
         Return boolean share-alike flag.
     '''
     is_dict = license is not None and hasattr(license, 'get')
-    
+
     if not is_dict or 'share-alike' not in license:
         return None
-    
+
     share_alike = license.get('share-alike')
-    
+
     if share_alike is None:
         return False
 
@@ -1398,11 +1398,11 @@ def conform_sharealike(license):
 
     if share_alike is True:
         return True
-    
+
     if hasattr(share_alike, 'lower'):
         if share_alike.lower() in ('n', 'no', 'f', 'false', ''):
             return False
-    
+
     if hasattr(share_alike, 'lower'):
         if share_alike.lower() in ('y', 'yes', 't', 'true'):
             return True
@@ -1420,22 +1420,22 @@ def check_source_tests(raw_source):
     source_test = source.get('test', {})
     tests_enabled = source_test.get('enabled', True)
     acceptance_tests = source_test.get('acceptance-tests')
-    
+
     if not tests_enabled or not acceptance_tests:
         # There is nothing to be done here.
         return None, None
-    
+
     for (index, test) in enumerate(acceptance_tests):
         input = row_smash_case(source, test['inputs'])
         output = row_smash_case(source, row_transform_and_convert(source, input))
         actual = {k: v for (k, v) in output.items() if k in test['expected']}
         expected = row_smash_case(source, test['expected'])
-        
+
         if actual != expected:
             expected_json = json.dumps(expected, ensure_ascii=False)
             actual_json = json.dumps(actual, ensure_ascii=False)
             description = test.get('description', 'test {}'.format(index))
             return False, 'For {}, expected {} but got {}'.format(description, expected_json, actual_json)
-    
+
     # Yay, everything passed.
     return True, None

@@ -16,12 +16,12 @@ def generate(mbtiles_filename, *filenames_or_urls):
     cmd = 'tippecanoe', '-l', 'dots', '-r', '3', \
           '-n', 'OpenAddresses Dots', '-f', \
           '-t', gettempdir(), '-o', mbtiles_filename
-    
+
     tippecanoe = subprocess.Popen(cmd, stdin=subprocess.PIPE, bufsize=1)
-    
+
     for filename_or_url in filenames_or_urls:
         src_filename = get_local_filename(filename_or_url)
-    
+
         for feature in iterate_file_features(src_filename):
             tippecanoe.stdin.write(json.dumps(feature).encode('utf8'))
             tippecanoe.stdin.write(b'\n')
@@ -34,13 +34,13 @@ def get_local_filename(filename_or_url):
     '''
     parsed = urlparse(filename_or_url)
     suffix = os.path.splitext(parsed.path)[1]
-    
+
     if parsed.scheme in ('', 'file'):
         return filename_or_url
-    
+
     if parsed.scheme not in ('http', 'https'):
         raise ValueError('Unknown URL type: {}'.format(filename_or_url))
-    
+
     _L.info('Downloading {}...'.format(filename_or_url))
 
     got = requests.get(filename_or_url)
@@ -49,19 +49,19 @@ def get_local_filename(filename_or_url):
     with open(filename, 'wb') as file:
         file.write(got.content)
         _L.debug('Saved to {}'.format(filename))
-    
+
     return filename
 
 def iterate_file_features(filename):
     ''' Stream GeoJSON features from an input .csv or .zip file.
     '''
     suffix = os.path.splitext(filename)[1].lower()
-    
+
     if suffix == '.csv':
         open_file = open(filename, 'r')
     elif suffix == '.zip':
         open_file = open(filename, 'rb')
-    
+
     with open_file as file:
         if suffix == '.csv':
             csv_file = file
@@ -69,13 +69,13 @@ def iterate_file_features(filename):
             zip = ZipFile(file)
             csv_names = [name for name in zip.namelist() if name.endswith('.csv')]
             csv_file = TextIOWrapper(zip.open(csv_names[0]))
-        
+
         for row in DictReader(csv_file):
             try:
                 lon, lat = float(row['LON']), float(row['LAT'])
             except:
                 continue
-            
+
             if -180 <= lon <= 180 and -90 <= lat <= 90:
                 geometry = dict(type='Point', coordinates=[lon, lat])
                 properties = {k: v for (k, v) in row.items() if k not in ('LON', 'LAT')}

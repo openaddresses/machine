@@ -15,7 +15,7 @@ class TestSlippyMap (unittest.TestCase):
 
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp(prefix='TestPreview-')
-    
+
     def tearDown(self):
         rmtree(self.temp_dir)
 
@@ -37,7 +37,7 @@ class TestSlippyMap (unittest.TestCase):
                 '-f', '-t', tempfile.gettempdir(), '-o', mbtiles_filename))
         finally:
             os.remove(mbtiles_filename)
-    
+
     def test_render_csv(self):
         '''
         '''
@@ -48,11 +48,11 @@ class TestSlippyMap (unittest.TestCase):
         try:
             temp_dir = tempfile.mkdtemp(prefix='test_render_csv-')
             zipfile = ZipFile(zip_filename)
-            
+
             with open(join(temp_dir, 'portland.csv'), 'wb') as file:
                 file.write(zipfile.read('portland_metro/us/or/portland_metro.csv'))
                 csv_filename = file.name
-        
+
             with mock.patch('subprocess.Popen') as Popen:
                 slippymap.generate(mbtiles_filename, csv_filename)
 

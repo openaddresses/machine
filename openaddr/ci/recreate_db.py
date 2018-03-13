@@ -13,13 +13,13 @@ def recreate(DATABASE_URL):
     with connect(DATABASE_URL) as conn:
         with conn.cursor() as db:
             db.execute('SET client_min_messages TO WARNING')
-        
+
             with open(ci_schema_filename) as file:
                 db.execute(file.read())
-            
+
             with open(cov_schema_filename) as file:
                 db.execute(file.read())
-            
+
             db.execute('DROP TABLE IF EXISTS queue')
 
         pq = PQ(conn, table='queue')
