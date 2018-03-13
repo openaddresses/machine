@@ -303,7 +303,7 @@ class TestObjects (unittest.TestCase):
         self.assertEqual(job.id, 'xyz')
         self.assertEqual(job.status, True)
         self.assertIn('sources/file.json', job.file_results)
-        self.assertEquals(len(job.file_results['sources/file.json']), 1)
+        self.assertEqual(len(job.file_results['sources/file.json']), 1)
         self.assertEqual(job.file_results['sources/file.json'][0]['message'], 'Yo')
         self.assertEqual(job.file_results['sources/file.json'][0]['state'].source, 'file.txt')
 
@@ -3176,7 +3176,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(check_output.mock_calls[-1][2]['timeout'],
                          JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
 
-        self.assertEquals(len(results), 1)
+        self.assertEqual(len(results), 1)
         self.assertEqual(results[0]['message'], 'Something went wrong in openaddr-process-one')
         self.assertEqual(results[0]['result_stdout'], 'Everything is ruined.\n')
         self.assertEqual(results[0]['result_code'], 1)
@@ -3223,7 +3223,7 @@ class TestWorker (unittest.TestCase):
         self.assertEqual(check_output.mock_calls[-1][2]['timeout'],
                          JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400)
 
-        self.assertEquals(len(results), 1)
+        self.assertEqual(len(results), 1)
         self.assertEqual(results[0]['message'], MAGIC_OK_MESSAGE)
         self.assertEqual(results[0]['result_code'], 0)
 
