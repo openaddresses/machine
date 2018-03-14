@@ -138,21 +138,29 @@ def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_di
                         message='Something went wrong in {0}'.format(*cmd),
                         output=output)
 
-    result = dict(result_code=0, result_stdout=result_stdout,
-                  message=MAGIC_OK_MESSAGE)
-
     # openaddr-process-one prints a path to index.json
-    state_fullpath = result_stdout.strip()
+    state_paths = json.loads(result_stdout.strip())
 
-    with open(state_fullpath) as file:
-        index = dict(zip(*json.load(file)))
+    results = []
+    for state_path in state_paths:
+        result = dict(
+            result_code=0,
+            result_stdout=state_path,
+            message=MAGIC_OK_MESSAGE
+        )
 
-        for key in ('processed', 'sample', 'cache'):
-            if not index[key] and not index.get('skipped'):
-                result.update(result_code=-1, message='Failed to produce {} data'.format(key))
+        with open(state_path) as file:
+            index = dict(zip(*json.load(file)))
 
-        index_dirname = os.path.dirname(state_fullpath)
-        result['state'] = assemble_runstate(s3, index, source_name, run_id, index_dirname)
+            for key in ('processed', 'sample', 'cache'):
+                if not index[key] and not index.get('skipped'):
+                    result.update(result_code=-1, message='Failed to produce {} data'.format(key))
 
-    shutil.rmtree(workdir)
-    return result
+            index_dirname = os.path.dirname(state_path)
+            result['state'] = assemble_runstate(s3, index, source_name, run_id, index_dirname)
+
+        shutil.rmtree(workdir)
+
+        results.append(result)
+
+    return results

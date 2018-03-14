@@ -19,50 +19,55 @@
 
 <table>
 {% for (sha, path) in job.task_files.items() %}
+    <h2> {{ path }} </h2>
 
-    {% set file_runstate = job.file_results[path].state %}
-    {% set file_state = job.file_states[path] %}
-
-    <tr>
-        <td>
-        {% if file_state is sameas True %}
-            <span style="color: #0c3">&#x2714;</span>
-        {% elif file_state is sameas False %}
-            <span style="color: #f00">&#x274C;</span>
+    <table>
+        {% if job.file_results[path] == None %}
+            <p>Job has not been processed yet</p>
+        {% else %}
+            {% for result in job.file_results[path] %}
+                <tr>
+                    <td>
+                        {% if result.state.source_problem is sameas True %}
+                            <span style="color: #f00">&#x274C;</span>
+                        {% elif result.state.source_problem is sameas False %}
+                            <span style="color: #0c3">&#x2714;</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ result.state.layer }}-{{ result.state.name }}
+                    </td>
+                    <td>
+                        {% if result.state and result.state.output %}
+                            <a href="{{ result.state.output }}">log</a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if result.state and result.state.sample %}
+                            <a href="{{ result.state.sample }}">sample</a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if result.state and result.state.processed %}
+                            <a href="{{ result.state.processed }}">data</a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if result.state and result.state.preview %}
+                            <a href="{{ result.state.preview }}">image preview</a>
+                        {% endif %}
+                    </td>
+                        {% if dotmaps_base_url %}
+                            <td>
+                            {% if result.state and result.state.slippymap %}
+                                <a href="{{ result.state|slippymap_preview_url }}">slippy map preview</a>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
         {% endif %}
-        </td>
-        <td>
-        {{ path }}
-        </td>
-        <td>
-        {% if file_runstate and file_runstate.output %}
-            <a href="{{ file_runstate.output }}">log</a>
-        {% endif %}
-        </td>
-        <td>
-        {% if file_runstate and file_runstate.sample %}
-            <a href="{{ file_runstate.sample }}">sample</a>
-        {% endif %}
-        </td>
-        <td>
-        {% if file_runstate and file_runstate.processed %}
-            <a href="{{ file_runstate.processed }}">data</a>
-        {% endif %}
-        </td>
-        <td>
-        {% if file_runstate and file_runstate.preview %}
-            <a href="{{ file_runstate.preview }}">image preview</a>
-        {% endif %}
-        </td>
-        {% if dotmaps_base_url %}
-            <td>
-            {% if file_runstate and file_runstate.slippymap %}
-                <a href="{{ file_runstate|slippymap_preview_url }}">slippy map preview</a>
-            {% endif %}
-            </td>
-        {% endif %}
-    </tr>
-
+    </table>
 {% endfor %}
 </table>
 {% endblock main %}

@@ -84,7 +84,7 @@ class RunState:
         'output', 'process time', 'website', 'skipped', 'license',
         'share-alike', 'attribution required', 'attribution name',
         'attribution flag', 'process hash', 'preview', 'slippymap',
-        'source problem', 'code version', 'tests passed', 'run id')}
+        'source problem', 'code version', 'tests passed', 'run id', 'layer', 'name')}
 
     def __init__(self, json_blob):
         blob_dict = dict(json_blob or {})
@@ -92,6 +92,8 @@ class RunState:
 
         self.run_id = blob_dict.get('run id')
         self.source = blob_dict.get('source')
+        self.layer = blob_dict.get('layer', 'addresses')
+        self.name = blob_dict.get('name', 'primary')
         self.cache = blob_dict.get('cache')
         self.sample = blob_dict.get('sample')
         self.geometry_type = blob_dict.get('geometry type')
@@ -142,33 +144,81 @@ class Zip:
         self.url = url
         self.content_length = content_length
 
-def _result_runstate2dictionary(result):
+def result_runstate2dictionary(file_results):
     '''
     '''
-    actual_result = copy.copy(result)
+    file_results_copy = copy.copy(file_results)
 
-    if result and 'state' in result:
-        actual_result['state'] = result['state'].to_dict()
-    elif result and 'output' in result:
-        # old-style
-        actual_result['state'] = result.pop('output').to_dict()
+    def _2dict(result):
+        if result and 'state' in result:
+            result['state'] = result['state'].to_dict()
+        elif result and 'output' in result:
+            # old-style
+            result['state'] = result.pop('output').to_dict()
+        return result
 
-    return actual_result
+    # Handle an individual task payload of 1 source file  - [ layer, .. ]
+    if type(file_results_copy) is list:
+        actual_results = []
+        for result in file_results_copy:
+            actual_results.append(_2dict(result))
+        return actual_results
+        
+    # Handle a run - { source: [ layer, .. ] }
+    else:
+        actual_results = {}
+        for (path, results) in file_results_copy.items():
+            if results == None:
+                actual_results[path] = None
+            else:
+                path_results = []
 
-def result_dictionary2runstate(result):
+                for result in results:
+                    path_results.append(_2dict(result))
+                actual_results[path] = path_results
+        return actual_results
+
+def result_dictionary2runstate(file_results):
     '''
     '''
-    actual_result = copy.copy(result)
 
-    if result and 'state' in result:
-        actual_result['state'] = RunState(result['state'])
-    elif result and 'output' in result:
-        # old-style
-        actual_result['state'] = RunState(result.pop('output'))
-    elif result:
-        actual_result['state'] = RunState(None)
+    file_results_copy = copy.copy(file_results)
 
-    return actual_result
+    def _2runstate(result):
+        if result and 'state' in result:
+            result['state'] = RunState(result['state'])
+        elif result and 'output' in result:
+            # old-style
+            result['state'] = RunState(result.pop('output'))
+        elif result:
+            result['state'] = RunState(None)
+        return result
+
+
+    # Handle an individual task payload of 1 source file  - [ layer, .. ]
+    if type(file_results_copy) is list:
+        actual_results = []
+        for result in file_results_copy:
+            actual_results.append(_2runstate(result))
+        return actual_results
+
+    # Handle a run - { source: [ layer, .. ] }
+    else:
+        actual_results = {}
+        for path, results in file_results_copy.items():
+            # New style runs are file: [ dict, .. ] to accomodate layers
+            if results == None:
+                actual_results[path] = None
+            else:
+                if type(results) is not list:
+                    results = [ results ]
+
+                path_results = []
+
+                for result in results:
+                    path_results.append(_2runstate(result))
+                actual_results[path] = path_results
+        return actual_results
 
 def add_job(db, job_id, status, task_files, file_states, file_results, owner, repo, status_url, comments_url):
     ''' Save information about a job to the database.
@@ -176,8 +226,7 @@ def add_job(db, job_id, status, task_files, file_states, file_results, owner, re
         Throws an IntegrityError exception if the job ID exists.
     '''
     # Find RunState instances in file_results and turn them into dictionaries.
-    actual_results = {path: _result_runstate2dictionary(result)
-                      for (path, result) in file_results.items()}
+    actual_results = result_runstate2dictionary(file_results)
 
     db.execute('''INSERT INTO jobs
                   (task_files, file_states, file_results, github_owner,
@@ -192,8 +241,7 @@ def write_job(db, job_id, status, task_files, file_states, file_results, owner, 
     ''' Save information about a job to the database.
     '''
     # Find RunState instances in file_results and turn them into dictionaries.
-    actual_results = {path: _result_runstate2dictionary(result)
-                      for (path, result) in file_results.items()}
+    actual_results = result_runstate2dictionary(file_results)
 
     is_complete = bool(status is not None)
 
@@ -225,8 +273,7 @@ def read_job(db, job_id):
         return None
     else:
         # Find dictionaries in file_results and turn them into RunState instances.
-        actual_results = {path: result_dictionary2runstate(result)
-                          for (path, result) in file_results.items()}
+        actual_results = result_dictionary2runstate(file_results)
 
         return Job(job_id, status, task_files, states, actual_results,
                    github_owner, github_repository, github_status_url,
@@ -254,8 +301,9 @@ def read_jobs(db, past_id):
         # Find dictionaries in file_results and turn them into RunState instances.
         job_args = list(row)
         file_results = job_args.pop(4)
-        actual_results = {path: result_dictionary2runstate(result)
-                          for (path, result) in file_results.items()}
+
+        actual_results = result_dictionary2runstate(file_results)
+
         job_args.insert(4, actual_results)
         jobs.append(Job(*job_args))
 
@@ -358,6 +406,11 @@ def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
             job_id, worker_id, commit_sha, is_merged, set_id):
     ''' Populate an identitified row in the runs table.
     '''
+
+    code_version = None
+    if (len(run_state) != 0):
+        code_version = run_state[0].get('code_version', None)
+
     db.execute('''UPDATE runs SET
                   source_path = %s, source_data = %s, source_id = %s,
                   state = %s::json, status = %s, worker_id = %s,
@@ -365,8 +418,8 @@ def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
                   is_merged = %s, set_id = %s, datetime_tz = NOW()
                   WHERE id = %s''',
                (filename, content_b64, file_id,
-               run_state.to_json(), run_status, worker_id,
-               run_state.code_version, job_id, commit_sha, is_merged,
+               json.dumps(run_state), run_status, worker_id,
+               code_version, job_id, commit_sha, is_merged,
                set_id, run_id))
 
 def copy_run(db, run_id, job_id, commit_sha, set_id):

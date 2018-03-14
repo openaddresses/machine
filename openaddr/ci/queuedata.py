@@ -1,3 +1,8 @@
+from .objects import (
+    result_runstate2dictionary,
+    result_dictionary2runstate
+)
+
 class Task:
 
     def __init__(self, job_id, url, name, content_b64, commit_sha, file_id,
@@ -55,8 +60,8 @@ class Done:
         if self.set_id is not None: data.update(set_id=self.set_id)
 
         # Convert RunState to a plain dictionary
-        if data['result'] and 'state' in data['result']:
-            data['result']['state'] = data['result']['state'].to_dict()
+        if data['result']:
+            data['result'] = result_runstate2dictionary(data['result'])
 
         return data
 

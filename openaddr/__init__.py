@@ -72,7 +72,7 @@ class LocalProcessedResult:
         self.run_state = run_state
         self.code_version = code_version
 
-def cache(srcjson, destdir, extras):
+def cache(data_source_name, data_source, destdir, extras):
     ''' Python wrapper for openaddress-cache.
 
         Return a CacheResult object:
@@ -86,22 +86,19 @@ def cache(srcjson, destdir, extras):
         Creates and destroys a subdirectory in destdir.
     '''
     start = datetime.now()
-    source, _ = splitext(basename(srcjson))
     workdir = mkdtemp(prefix='cache-', dir=destdir)
 
-    with open(srcjson, 'r') as src_file:
-        data = json.load(src_file)
-        data.update(extras)
+    data_source.update(extras)
 
     #
     #
     #
-    source_urls = data.get('data')
+    source_urls = data_source.get('data')
     if not isinstance(source_urls, list):
         source_urls = [source_urls]
 
-    task = DownloadTask.from_type_string(data.get('type'), source)
-    downloaded_files = task.download(source_urls, workdir, data.get('conform'))
+    task = DownloadTask.from_type_string(data_source.get('type'), data_source_name)
+    downloaded_files = task.download(source_urls, workdir, data_source.get('conform'))
 
     # FIXME: I wrote the download stuff to assume multiple files because
     # sometimes a Shapefile fileset is splayed across multiple files instead
@@ -114,17 +111,17 @@ def cache(srcjson, destdir, extras):
     # Find the cached data and hold on to it.
     #
     resultdir = join(destdir, 'cached')
-    data['cache'], data['fingerprint'] \
-        = compare_cache_details(filepath_to_upload, resultdir, data)
+    data_source['cache'], data_source['fingerprint'] \
+        = compare_cache_details(filepath_to_upload, resultdir, data_source)
 
     rmtree(workdir)
 
-    return CacheResult(data.get('cache', None),
-                       data.get('fingerprint', None),
-                       data.get('version', None),
+    return CacheResult(data_source.get('cache', None),
+                       data_source.get('fingerprint', None),
+                       data_source.get('version', None),
                        datetime.now() - start)
 
-def conform(srcjson, destdir, extras):
+def conform(data_source_name, data_source, destdir, extras):
     ''' Python wrapper for openaddresses-conform.
 
         Return a ConformResult object:
@@ -138,12 +135,9 @@ def conform(srcjson, destdir, extras):
         Creates and destroys a subdirectory in destdir.
     '''
     start = datetime.now()
-    source, _ = splitext(basename(srcjson))
     workdir = mkdtemp(prefix='conform-', dir=destdir)
 
-    with open(srcjson, 'r') as src_file:
-        data = json.load(src_file)
-        data.update(extras)
+    data_source.update(extras)
 
     #
     # The cached data will be a local path.
@@ -152,22 +146,22 @@ def conform(srcjson, destdir, extras):
     if scheme == 'file':
         copy(cache_path, workdir)
 
-    source_urls = data.get('cache')
+    source_urls = data_source.get('cache')
     if not isinstance(source_urls, list):
         source_urls = [source_urls]
 
-    task1 = URLDownloadTask(source)
+    task1 = URLDownloadTask(data_source_name)
     downloaded_path = task1.download(source_urls, workdir)
     _L.info("Downloaded to %s", downloaded_path)
 
-    task2 = DecompressionTask.from_type_string(data.get('compression'))
-    names = elaborate_filenames(data.get('conform', {}).get('file', None))
+    task2 = DecompressionTask.from_type_string(data_source.get('compression'))
+    names = elaborate_filenames(data_source.get('conform', {}).get('file', None))
     decompressed_paths = task2.decompress(downloaded_path, workdir, names)
     _L.info("Decompressed to %d files", len(decompressed_paths))
 
     task3 = ExcerptDataTask()
     try:
-        conform = data.get('conform', {})
+        conform = data_source.get('conform', {})
         data_sample, geometry_type = task3.excerpt(decompressed_paths, workdir, conform)
         _L.info("Sampled %d records", len(data_sample))
     except Exception as e:
@@ -177,7 +171,7 @@ def conform(srcjson, destdir, extras):
 
     task4 = ConvertToCsvTask()
     try:
-        csv_path, addr_count = task4.convert(data, decompressed_paths, workdir)
+        csv_path, addr_count = task4.convert(data_source, decompressed_paths, workdir)
         if addr_count > 0:
             _L.info("Converted to %s with %d addresses", csv_path, addr_count)
         else:
@@ -194,13 +188,13 @@ def conform(srcjson, destdir, extras):
 
     rmtree(workdir)
 
-    sharealike_flag = conform_sharealike(data.get('license'))
-    attr_flag, attr_name = conform_attribution(data.get('license'), data.get('attribution'))
+    sharealike_flag = conform_sharealike(data_source.get('license'))
+    attr_flag, attr_name = conform_attribution(data_source.get('license'), data_source.get('attribution'))
 
-    return ConformResult(data.get('processed', None),
+    return ConformResult(data_source.get('processed', None),
                          data_sample,
-                         data.get('website'),
-                         conform_license(data.get('license')),
+                         data_source.get('website'),
+                         conform_license(data_source.get('license')),
                          geometry_type,
                          addr_count,
                          out_path,
