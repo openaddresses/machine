@@ -3062,7 +3062,7 @@ class TestWorker (unittest.TestCase):
                 with open(os.path.join(index_dirname, name), 'w') as file:
                     file.write('Yo')
 
-            return index_filename
+            return json.dumps([index_filename])
 
         def same_tempdir_every_time(prefix, dir):
             os.mkdir(join(dir, 'work'))
@@ -3166,7 +3166,7 @@ class TestWorker (unittest.TestCase):
             with open(os.path.join(index_dirname, 'output.txt'), 'w') as file:
                 file.write('Yo')
 
-            return index_filename
+            return json.dumps([index_filename])
 
         def same_tempdir_every_time(prefix, dir):
             os.mkdir(join(dir, 'work'))

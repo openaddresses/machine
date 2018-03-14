@@ -138,8 +138,11 @@ def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_di
                         message='Something went wrong in {0}'.format(*cmd),
                         output=output)
 
+    result = dict(result_code=0, result_stdout=result_stdout,
+            message=MAGIC_OK_MESSAGE)
+
     # openaddr-process-one prints a path to index.json
-    state_fullpath = json.loads(result_stdout.strip())
+    state_fullpath = json.loads(result_stdout.strip())[0]
 
     print(state_fullpath)
 
