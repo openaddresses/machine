@@ -1759,7 +1759,7 @@ class TestHook (unittest.TestCase):
 
         # This is the JSON source payload, just make sure it parses.
         content = json.loads(de64(task.data['content_b64']))
-        task.data['result'] = dict(message=MAGIC_OK_MESSAGE)
+        task.data['result'] = [ dict(message=MAGIC_OK_MESSAGE) ]
         task.data['run_id'] = None
 
         # Put back a completion task to the done queue.
@@ -1806,7 +1806,7 @@ class TestHook (unittest.TestCase):
 
             # This is the JSON source payload, just make sure it parses.
             content = json.loads(de64(task.data['content_b64']))
-            task.data['result'] = dict(message=message)
+            task.data['result'] = [ dict(message=message) ]
             task.data['run_id'] = None
 
             # Put back a completion task to the done queue.
@@ -2231,23 +2231,23 @@ class TestHook (unittest.TestCase):
 
         _run_state1 = {k: v for (k, v) in run_states.items()}
         _run_state1.update({'source': 'a1.json', 'processed': 'https://s3.amazonaws.com/data.openaddresses.io/runs/1/a1.zip'})
-        run_state1 = RunState(_run_state1)
+        run_state1 = [ RunState(_run_state1) ]
 
         _run_state2 = {k: v for (k, v) in run_states.items()}
         _run_state2.update({'source': 'a2.json', 'processed': 'http://data.openaddresses.io.s3.amazonaws.com/runs/2/a2.zip'})
-        run_state2 = RunState(_run_state2)
+        run_state2 = [ RunState(_run_state2) ]
 
         _run_state3 = {k: v for (k, v) in run_states.items()}
         _run_state3.update({'source': 'a3.json', 'processed': 'http://data.openaddresses.io/runs/3/a3.zip'})
-        run_state3 = RunState(_run_state3)
+        run_state3 = [ RunState(_run_state3) ]
 
         _run_state4 = {k: v for (k, v) in run_states.items()}
         _run_state4.update({'source': 'a4.json', 'processed': 'http://future.openaddresses.io/runs/4/a4.zip'})
-        run_state4 = RunState(_run_state4)
+        run_state4 = [ RunState(_run_state4) ]
 
         _run_state5 = {k: v for (k, v) in run_states.items()}
         _run_state5.update({'source': 'a5.json', 'processed': 'http://s3.amazonaws.com/past.openaddresses.io/runs/5/a5.zip'})
-        run_state5 = RunState(_run_state5)
+        run_state5 = [ RunState(_run_state5) ]
 
         with db_connect(self.database_url) as conn:
             with db_cursor(conn) as db:

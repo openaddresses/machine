@@ -302,20 +302,7 @@ def read_jobs(db, past_id):
         job_args = list(row)
         file_results = job_args.pop(4)
 
-        actual_results = {}
-
-        for path, results in file_results.items():
-            # New style runs are file: [ dict, .. ] to accomodate layers
-            if type(results) is list:
-                path_results = []
-                for result in results:
-                    path_results.append(result_dictionary2runstate(result))
-                actual_results[path] = path_results
-
-            # Old Style Runs were a single file: dict format as they are only address layers
-            else:
-                actual_results[path] = [ result_dictionary2runstate(results) ]
-
+        actual_results = result_dictionary2runstate(file_results)
 
         job_args.insert(4, actual_results)
         jobs.append(Job(*job_args))
@@ -419,6 +406,11 @@ def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
             job_id, worker_id, commit_sha, is_merged, set_id):
     ''' Populate an identitified row in the runs table.
     '''
+
+    code_version = None
+    if (len(run_state) != 0):
+        code_version = run_state[0].get('code_version', None)
+
     db.execute('''UPDATE runs SET
                   source_path = %s, source_data = %s, source_id = %s,
                   state = %s::json, status = %s, worker_id = %s,
@@ -427,7 +419,7 @@ def set_run(db, run_id, filename, file_id, content_b64, run_state, run_status,
                   WHERE id = %s''',
                (filename, content_b64, file_id,
                json.dumps(run_state), run_status, worker_id,
-               run_state[0].get('code_version'), job_id, commit_sha, is_merged,
+               code_version, job_id, commit_sha, is_merged,
                set_id, run_id))
 
 def copy_run(db, run_id, job_id, commit_sha, set_id):
