@@ -1010,16 +1010,9 @@ def pop_task_from_donequeue(queue, github_auth):
         if task is None:
             return
 
-        # Convert dictionary into RunState
-        if 'result' in task.data:
-            task.data['result'] = objects.result_dictionary2runstate(task.data['result'])
-
         donedata = queuedata.Done(**task.data)
         _L.info(u'Got file {} from done queue'.format(donedata.name))
 
-        results = donedata.result
-        message = results['message']
-        run_state = results['state']
         content_b64 = donedata.content_b64
         commit_sha = donedata.commit_sha
         worker_id = donedata.worker_id
@@ -1030,18 +1023,22 @@ def pop_task_from_donequeue(queue, github_auth):
         run_id = donedata.run_id
         job_id = donedata.job_id
 
+        run_status = True
+        for result in donedata.result:
+            if result['message'] != work.MAGIC_OK_MESSAGE:
+                run_status = False
+
         if is_completed_run(db, run_id, task.enqueued_at):
             # We are too late, this got handled.
             return
 
-        run_status = bool(message == work.MAGIC_OK_MESSAGE)
         is_merged = is_merged_to_master(db, set_id, job_id, commit_sha, github_auth)
 
-        objects.set_run(db, run_id, filename, file_id, content_b64, run_state,
+        objects.set_run(db, run_id, filename, file_id, content_b64, donedata.result,
                         run_status, job_id, worker_id, commit_sha, is_merged, set_id)
 
         if job_id:
-            update_job_status(db, job_id, job_url, filename, run_status, results, github_auth)
+            update_job_status(db, job_id, job_url, filename, run_status, donedata.result, github_auth)
             if run_status:
                 update_job_comments(db, job_id, run_id, github_auth)
 

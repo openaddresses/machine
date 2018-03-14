@@ -1854,7 +1854,7 @@ class TestHook (unittest.TestCase):
 
             # This is the JSON source payload, just make sure it parses.
             content = json.loads(de64(task.data['content_b64']))
-            task.data['result'] = dict(message=message)
+            task.data['result'] = [ dict(message=message) ]
             task.data['run_id'] = None
 
             # Put back a completion task to the done queue.
