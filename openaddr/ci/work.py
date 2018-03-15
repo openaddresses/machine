@@ -143,9 +143,7 @@ def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_di
             message=MAGIC_OK_MESSAGE)
 
     # openaddr-process-one prints a path to index.json
-    state_fullpath = json.loads(result_stdout.strip())[0]
-
-    print(state_fullpath)
+    state_fullpath = result_stdout.strip()
 
     with open(state_fullpath) as file:
         index = dict(zip(*json.load(file)))

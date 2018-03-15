@@ -154,7 +154,7 @@ def process(source, destination, layer, layersource, do_preview, mapbox_key=None
                         else:
                             _L.info('Preview image in {}'.format(preview_path))
 
-            state_path = write_state(temp_src, layer, data_source['name'], skipped_source, destination, layer_log_handler,
+            state_path = write_state(temp_src, layer, data_source['name'], skipped_source, destination, log_handler,
                 tests_passed, cache_result, conform_result, preview_path, slippymap_path,
                 temp_dir)
         except SourceSaysSkip:
