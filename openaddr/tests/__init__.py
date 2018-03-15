@@ -386,6 +386,51 @@ class TestOA (unittest.TestCase):
             self.assertEqual(rows[100]['UNIT'], '')
             self.assertEqual(rows[1000]['UNIT'], '')
 
+    def test_single_ac_v2(self):
+        ''' Test complete process_one.process on Alameda County sample data using V2 Schema Source
+        '''
+        source = join(self.src_dir, 'us-ca-alameda_county_v2.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir, 'addresses', 'open-data', False)
+
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+
+        self.assertIsNotNone(state['cache'])
+        self.assertIsNotNone(state['processed'])
+        self.assertIsNotNone(state['sample'])
+        self.assertEqual(state['geometry type'], 'Point')
+        self.assertIsNone(state['website'])
+        self.assertEqual(state['license'], 'http://www.acgov.org/acdata/terms.htm')
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('ZIPCODE' in sample_data[0])
+        self.assertTrue('OAKLAND' in sample_data[1])
+        self.assertTrue('94612' in sample_data[1])
+
+        output_path = join(dirname(state_path), state['processed'])
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
+            self.assertEqual(rows[1]['ID'], '')
+            self.assertEqual(rows[10]['ID'], '')
+            self.assertEqual(rows[100]['ID'], '')
+            self.assertEqual(rows[1000]['ID'], '')
+            self.assertEqual(rows[1]['NUMBER'], '2147')
+            self.assertEqual(rows[10]['NUMBER'], '605')
+            self.assertEqual(rows[100]['NUMBER'], '167')
+            self.assertEqual(rows[1000]['NUMBER'], '322')
+            self.assertEqual(rows[1]['STREET'], 'BROADWAY')
+            self.assertEqual(rows[10]['STREET'], 'HILLSBOROUGH ST')
+            self.assertEqual(rows[100]['STREET'], '8TH ST')
+            self.assertEqual(rows[1000]['STREET'], 'HANOVER AV')
+            self.assertEqual(rows[1]['UNIT'], '')
+            self.assertEqual(rows[10]['UNIT'], '')
+            self.assertEqual(rows[100]['UNIT'], '')
+            self.assertEqual(rows[1000]['UNIT'], '')
+
     def test_single_ac_mixedcase(self):
         ''' Test complete process_one.process on Alameda County sample data.
         '''

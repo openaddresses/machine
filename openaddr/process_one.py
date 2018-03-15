@@ -83,11 +83,16 @@ def process(source, destination, layer, layersource, do_preview, mapbox_key=None
                     source = upgrade_source_schema(source)
                     layer = 'addresses'
                     layersource = 'primary'
-                
-                if type(layer) is not str or len(layer) == 0:
+
+                if type(layer) is not str:
+                    layer = ''
+                if type(layersource) is not str:
+                    layersource = ''
+
+                if len(layer) == 0:
                     _L.error('explicit --layer arg is required for v2 sources')
                     raise ValueError('explicit --layer arg is required for v2 sources')
-                elif type(layersource) is not str or len(layersource) == 0:
+                elif len(layersource) == 0:
                     _L.error('explicit --layersource arg is required for v2 sources')
                     raise ValueError('explicit --layersource arg is required for v2 sources')
 
@@ -103,7 +108,7 @@ def process(source, destination, layer, layersource, do_preview, mapbox_key=None
                     if ds.get('name', None) == layersource:
                         data_source = ds
                         break
-                
+
                 if data_source == False:
                     _L.error('Nothing processed: \'{}\' layersource not found in \'{}\' layer '.format(layersource, layer))
                     raise ValueError('Nothing processed: \'{}\' layersource not found in \'{}\' layer')
