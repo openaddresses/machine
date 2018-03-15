@@ -90,9 +90,6 @@ def cache(data_source_name, data_source, destdir, extras):
 
     data_source.update(extras)
 
-    #
-    #
-    #
     source_urls = data_source.get('data')
     if not isinstance(source_urls, list):
         source_urls = [source_urls]

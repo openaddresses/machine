@@ -118,7 +118,7 @@ def process(source, destination, layer, layersource, do_preview, mapbox_key=None
 
                 if data_source.get('name', None) == None:
                     _L.warning('name attribute is required on each data source')
-                    raise
+                    raise ValueError('name attribute is required on each data source')
 
                 # Cache source data.
                 try:
@@ -154,9 +154,6 @@ def process(source, destination, layer, layersource, do_preview, mapbox_key=None
                         else:
                             _L.info('Preview image in {}'.format(preview_path))
 
-            state_path = write_state(temp_src, layer, data_source['name'], skipped_source, destination, log_handler,
-                tests_passed, cache_result, conform_result, preview_path, slippymap_path,
-                temp_dir)
         except SourceSaysSkip:
             _L.info('Source says to skip in process_one.process()')
             skipped_source = True
@@ -172,11 +169,15 @@ def process(source, destination, layer, layersource, do_preview, mapbox_key=None
             # Make sure this gets done no matter what
             logging.getLogger('openaddr').removeHandler(log_handler)
 
+        state_path = write_state(temp_src, layer, data_source['name'], skipped_source, destination, log_handler,
+            tests_passed, cache_result, conform_result, preview_path, slippymap_path,
+            temp_dir)
+
         log_handler.close()
         rmtree(temp_dir)
 
-        # TODO Return List of state paths
-        return state_path
+    # TODO Return List of state paths
+    return state_path
 
 def upgrade_source_schema(schema):
     ''' Temporary Shim to convert a V1 Schema source (layerless) to a V2 schema file (layers)
