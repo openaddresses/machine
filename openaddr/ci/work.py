@@ -85,6 +85,7 @@ def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_di
     '''
     _L.info('Doing work on source {}'.format(repr(source_name)))
 
+
     # Make a directory to run the whole job
     workdir = tempfile.mkdtemp(prefix='work-', dir=output_dir)
 
