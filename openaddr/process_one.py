@@ -63,6 +63,7 @@ def process(source, destination, layer, layersource, do_preview, mapbox_key=None
     copy(source, temp_src)
 
     state_path = False
+    data_source = dict(name='')
 
     log_handler = get_log_handler(temp_dir)
     logging.getLogger('openaddr').addHandler(log_handler)
@@ -83,10 +84,10 @@ def process(source, destination, layer, layersource, do_preview, mapbox_key=None
                     layer = 'addresses'
                     layersource = 'primary'
                 
-                if type(layer) is not str:
+                if type(layer) is not str or len(layer) == 0:
                     _L.error('explicit --layer arg is required for v2 sources')
                     raise ValueError('explicit --layer arg is required for v2 sources')
-                elif type(layersource) is not str:
+                elif type(layersource) is not str or len(layersource) == 0:
                     _L.error('explicit --layersource arg is required for v2 sources')
                     raise ValueError('explicit --layersource arg is required for v2 sources')
 
@@ -98,7 +99,6 @@ def process(source, destination, layer, layersource, do_preview, mapbox_key=None
                     _L.error('Nothing processed: \'{}\' layer does not exist in source'.format(layer))
                     raise ValueError('Nothing processed: \'{}\' layer does not exist in source')
 
-                data_source = False
                 for ds in source['layers'][layer]:
                     if ds.get('name', None) == layersource:
                         data_source = ds
@@ -382,9 +382,9 @@ parser.add_argument('source', help='Required source file name.')
 parser.add_argument('destination', help='Required output directory name.')
 
 parser.add_argument('-ln', '--layer', help='Layer name to process in V2 sources',
-                    dest='layer', default=False)
+                    dest='layer', default='')
 parser.add_argument('-ls', '--layersource', help='Source within a given layer to pull from',
-                    dest='layersource', default=False)
+                    dest='layersource', default='')
 
 parser.add_argument('--render-preview', help='Render a map preview',
                     action='store_const', dest='render_preview',
