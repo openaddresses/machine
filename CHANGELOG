@@ -1,3 +1,6 @@
+2017-03-16: 6.8.4
+- Switched to a larger EC2 instances type for calculating coverage.
+
 2017-03-05: 6.8.3
 - Suppressed another dumb error. (#688)
 

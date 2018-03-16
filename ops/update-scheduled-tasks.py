@@ -54,7 +54,7 @@ def main():
             description = 'Update coverage page data, every third day at 15:00 UTC (7am PST)',
             input = {
                 "command": ["openaddr-calculate-coverage"],
-                "hours": 3, "instance-type": "t2.nano",
+                "hours": 3, "instance-type": "t2.micro",
                 "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
                 }),
         DOTMAP_RULE: dict(
