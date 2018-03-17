@@ -85,6 +85,7 @@ def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_di
     '''
     _L.info('Doing work on source {}'.format(repr(source_name)))
 
+
     # Make a directory to run the whole job
     workdir = tempfile.mkdtemp(prefix='work-', dir=output_dir)
 
@@ -139,7 +140,7 @@ def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_di
                         output=output)
 
     result = dict(result_code=0, result_stdout=result_stdout,
-                  message=MAGIC_OK_MESSAGE)
+            message=MAGIC_OK_MESSAGE)
 
     # openaddr-process-one prints a path to index.json
     state_fullpath = result_stdout.strip()

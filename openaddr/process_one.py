@@ -47,7 +47,7 @@ def boolstr(value):
 
     raise ValueError(repr(value))
 
-def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
+def process(source, destination, layer, layersource, do_preview, mapbox_key=None, extras=dict()):
     ''' Process a single source and destination, return path to JSON state file.
 
         Creates a new directory and files under destination.
@@ -62,6 +62,9 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
     temp_src = join(temp_dir, basename(source))
     copy(source, temp_src)
 
+    state_path = False
+    data_source = dict(name='')
+
     log_handler = get_log_handler(temp_dir)
     logging.getLogger('openaddr').addHandler(log_handler)
 
@@ -73,48 +76,88 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
 
         try:
             with open(temp_src) as file:
-                if json.load(file).get('skip', None):
+                source = json.load(file)
+
+                # Update a v1 source to v2 and set required flags to process it
+                if source.get('schema', None) == None and source.get('layers', None) == None:
+                    source = upgrade_source_schema(source)
+                    layer = 'addresses'
+                    layersource = 'primary'
+
+                if type(layer) is not str:
+                    layer = ''
+                if type(layersource) is not str:
+                    layersource = ''
+
+                if len(layer) == 0:
+                    _L.error('explicit --layer arg is required for v2 sources')
+                    raise ValueError('explicit --layer arg is required for v2 sources')
+                elif len(layersource) == 0:
+                    _L.error('explicit --layersource arg is required for v2 sources')
+                    raise ValueError('explicit --layersource arg is required for v2 sources')
+
+                # Only Address Layers are supported right now
+                if (layer != 'addresses'):
+                    _L.error('Nothing processed: \'{}\' layer not currently supported'.format(layer))
+                    raise ValueError('Nothing processed: \'{}\' layer not currently supported')
+                elif source['layers'].get(layer, None) == None:
+                    _L.error('Nothing processed: \'{}\' layer does not exist in source'.format(layer))
+                    raise ValueError('Nothing processed: \'{}\' layer does not exist in source')
+
+                for ds in source['layers'][layer]:
+                    if ds.get('name', None) == layersource:
+                        data_source = ds
+                        break
+
+                if data_source == False:
+                    _L.error('Nothing processed: \'{}\' layersource not found in \'{}\' layer '.format(layersource, layer))
+                    raise ValueError('Nothing processed: \'{}\' layersource not found in \'{}\' layer')
+
+                if data_source.get('skip', None):
                     raise SourceSaysSkip()
 
-            # Check tests in source data.
-            with open(temp_src) as file:
-                tests_passed, failure_details = check_source_tests(json.load(file))
+                # Check tests in data_source object.
+                tests_passed, failure_details = check_source_tests(data_source)
                 if tests_passed is False:
                     raise SourceTestsFailed(failure_details)
 
-            # Cache source data.
-            try:
-                cache_result = cache(temp_src, temp_dir, extras)
-            except EsriDownloadError as e:
-                _L.warning('Could not download ESRI source data: {}'.format(e))
-                raise
-            except DownloadError as e:
-                _L.warning('Could not download source data')
-                raise
+                if data_source.get('name', None) == None:
+                    _L.warning('name attribute is required on each data source')
+                    raise ValueError('name attribute is required on each data source')
 
-            if not cache_result.cache:
-                _L.warning('Nothing cached')
-            else:
-                _L.info(u'Cached data in {}'.format(cache_result.cache))
+                # Cache source data.
+                try:
+                    cache_result = cache(layer + '-' + data_source['name'], data_source, temp_dir, extras)
+                except EsriDownloadError as e:
+                    _L.warning('Could not download ESRI source data: {}'.format(e))
+                    raise
+                except DownloadError as e:
+                    _L.warning('Could not download source data')
+                    raise
 
-                # Conform cached source data.
-                conform_result = conform(temp_src, temp_dir, cache_result.todict())
-
-                if not conform_result.path:
-                    _L.warning('Nothing processed')
+                if not cache_result.cache:
+                    _L.warning('Nothing cached')
                 else:
-                    _L.info('Processed data in {}'.format(conform_result.path))
+                    _L.info(u'Cached data in {}'.format(cache_result.cache))
 
-                    if do_preview and mapbox_key:
-                        preview_path = render_preview(conform_result.path, temp_dir, mapbox_key)
+                    # Conform cached source data.
+                    conform_result = conform(layer + '-' + data_source['name'], data_source, temp_dir, cache_result.todict())
 
-                    if do_preview:
-                        slippymap_path = render_slippymap(conform_result.path, temp_dir)
-
-                    if not preview_path:
-                        _L.warning('Nothing previewed')
+                    if not conform_result.path:
+                        _L.warning('Nothing processed')
                     else:
-                        _L.info('Preview image in {}'.format(preview_path))
+                        _L.info('Processed data in {}'.format(conform_result.path))
+
+                        if do_preview and mapbox_key:
+                            preview_path = render_preview(conform_result.path, temp_dir, mapbox_key)
+
+                        if do_preview:
+                            slippymap_path = render_slippymap(conform_result.path, temp_dir)
+
+                        if not preview_path:
+                            _L.warning('Nothing previewed')
+                        else:
+                            _L.info('Preview image in {}'.format(preview_path))
 
         except SourceSaysSkip:
             _L.info('Source says to skip in process_one.process()')
@@ -131,15 +174,29 @@ def process(source, destination, do_preview, mapbox_key=None, extras=dict()):
             # Make sure this gets done no matter what
             logging.getLogger('openaddr').removeHandler(log_handler)
 
-        # Write output
-        state_path = write_state(source, skipped_source, destination, log_handler,
+        state_path = write_state(temp_src, layer, data_source['name'], skipped_source, destination, log_handler,
             tests_passed, cache_result, conform_result, preview_path, slippymap_path,
             temp_dir)
 
         log_handler.close()
         rmtree(temp_dir)
 
+    # TODO Return List of state paths
     return state_path
+
+def upgrade_source_schema(schema):
+    ''' Temporary Shim to convert a V1 Schema source (layerless) to a V2 schema file (layers)
+    '''
+
+    v2 = { 'layers': { 'addresses': [{ 'name': 'primary' }] } }
+
+    for k, v in schema.items():
+        if (k == 'coverage'):
+            v2['coverage'] = v
+        else:
+            v2['layers']['addresses'][0][k] = v
+
+    return v2
 
 def render_preview(csv_filename, temp_dir, mapbox_key):
     '''
@@ -222,7 +279,7 @@ def find_source_problem(log_contents, source):
 
     return None
 
-def write_state(source, skipped, destination, log_handler, tests_passed,
+def write_state(source, layer, data_source_name, skipped, destination, log_handler, tests_passed,
                 cache_result, conform_result, preview_path, slippymap_path,
                 temp_dir):
     '''
@@ -230,6 +287,14 @@ def write_state(source, skipped, destination, log_handler, tests_passed,
     source_id, _ = splitext(basename(source))
     statedir = join(destination, source_id)
 
+    if not exists(statedir):
+        mkdir(statedir)
+
+    statedir = join(statedir, layer)
+    if not exists(statedir):
+        mkdir(statedir)
+
+    statedir = join(statedir, data_source_name)
     if not exists(statedir):
         mkdir(statedir)
 
@@ -277,6 +342,7 @@ def write_state(source, skipped, destination, log_handler, tests_passed,
                 source_data = json.load(file)
         else:
             source_data = {}
+
         source_problem = find_source_problem(log_content, source_data)
 
     state = [
@@ -320,6 +386,11 @@ parser = ArgumentParser(description='Run one source file locally, prints output 
 parser.add_argument('source', help='Required source file name.')
 parser.add_argument('destination', help='Required output directory name.')
 
+parser.add_argument('-ln', '--layer', help='Layer name to process in V2 sources',
+                    dest='layer', default='')
+parser.add_argument('-ls', '--layersource', help='Source within a given layer to pull from',
+                    dest='layersource', default='')
+
 parser.add_argument('--render-preview', help='Render a map preview',
                     action='store_const', dest='render_preview',
                     const=True, default=False)
@@ -353,12 +424,12 @@ def main():
     csv.field_size_limit(sys.maxsize)
 
     try:
-        file_path = process(args.source, args.destination, args.render_preview, mapbox_key=args.mapbox_key)
+        processed_path = process(args.source, args.destination, args.layer, args.layersource, args.render_preview, mapbox_key=args.mapbox_key)
     except Exception as e:
         _L.error(e, exc_info=True)
         return 1
     else:
-        print(file_path)
+        print(processed_path)
         return 0
 
 if __name__ == '__main__':

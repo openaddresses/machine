@@ -342,7 +342,7 @@ class TestOA (unittest.TestCase):
              mock.patch('openaddr.slippymap.generate') as slippymap_gen:
             preview_ren.side_effect = touch_second_arg_file
             slippymap_gen.side_effect = touch_first_arg_file
-            state_path = process_one.process(source, self.testdir, True, mapbox_key='mapbox-XXXX')
+            state_path = process_one.process(source, self.testdir, False, False, True, mapbox_key='mapbox-XXXX')
 
         self.assertTrue(slippymap_gen.mock_calls[0][1][0].endswith('.mbtiles'))
         self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
@@ -358,7 +358,6 @@ class TestOA (unittest.TestCase):
         self.assertEqual(state['geometry type'], 'Point')
         self.assertIsNone(state['website'])
         self.assertEqual(state['license'], 'http://www.acgov.org/acdata/terms.htm')
-
         with open(join(dirname(state_path), state['sample'])) as file:
             sample_data = json.load(file)
 
@@ -368,7 +367,51 @@ class TestOA (unittest.TestCase):
         self.assertTrue('94612' in sample_data[1])
 
         output_path = join(dirname(state_path), state['processed'])
+        with open(output_path, encoding='utf8') as input:
+            rows = list(csv.DictReader(input))
+            self.assertEqual(rows[1]['ID'], '')
+            self.assertEqual(rows[10]['ID'], '')
+            self.assertEqual(rows[100]['ID'], '')
+            self.assertEqual(rows[1000]['ID'], '')
+            self.assertEqual(rows[1]['NUMBER'], '2147')
+            self.assertEqual(rows[10]['NUMBER'], '605')
+            self.assertEqual(rows[100]['NUMBER'], '167')
+            self.assertEqual(rows[1000]['NUMBER'], '322')
+            self.assertEqual(rows[1]['STREET'], 'BROADWAY')
+            self.assertEqual(rows[10]['STREET'], 'HILLSBOROUGH ST')
+            self.assertEqual(rows[100]['STREET'], '8TH ST')
+            self.assertEqual(rows[1000]['STREET'], 'HANOVER AV')
+            self.assertEqual(rows[1]['UNIT'], '')
+            self.assertEqual(rows[10]['UNIT'], '')
+            self.assertEqual(rows[100]['UNIT'], '')
+            self.assertEqual(rows[1000]['UNIT'], '')
 
+    def test_single_ac_v2(self):
+        ''' Test complete process_one.process on Alameda County sample data using V2 Schema Source
+        '''
+        source = join(self.src_dir, 'us-ca-alameda_county_v2.json')
+
+        with HTTMock(self.response_content):
+            state_path = process_one.process(source, self.testdir, 'addresses', 'open-data', False)
+
+        with open(state_path) as file:
+            state = dict(zip(*json.load(file)))
+
+        self.assertIsNotNone(state['cache'])
+        self.assertIsNotNone(state['processed'])
+        self.assertIsNotNone(state['sample'])
+        self.assertEqual(state['geometry type'], 'Point')
+        self.assertIsNone(state['website'])
+        self.assertEqual(state['license'], 'http://www.acgov.org/acdata/terms.htm')
+        with open(join(dirname(state_path), state['sample'])) as file:
+            sample_data = json.load(file)
+
+        self.assertEqual(len(sample_data), 6)
+        self.assertTrue('ZIPCODE' in sample_data[0])
+        self.assertTrue('OAKLAND' in sample_data[1])
+        self.assertTrue('94612' in sample_data[1])
+
+        output_path = join(dirname(state_path), state['processed'])
         with open(output_path, encoding='utf8') as input:
             rows = list(csv.DictReader(input))
             self.assertEqual(rows[1]['ID'], '')
@@ -398,7 +441,7 @@ class TestOA (unittest.TestCase):
              mock.patch('openaddr.slippymap.generate') as slippymap_gen:
             preview_ren.side_effect = touch_second_arg_file
             slippymap_gen.side_effect = touch_first_arg_file
-            state_path = process_one.process(source, self.testdir, True, mapbox_key='mapbox-XXXX')
+            state_path = process_one.process(source, self.testdir, False, False, True, mapbox_key='mapbox-XXXX')
 
         self.assertTrue(slippymap_gen.mock_calls[0][1][0].endswith('.mbtiles'))
         self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
@@ -450,7 +493,7 @@ class TestOA (unittest.TestCase):
              mock.patch('openaddr.slippymap.generate') as slippymap_gen:
             preview_ren.side_effect = touch_second_arg_file
             slippymap_gen.side_effect = touch_first_arg_file
-            state_path = process_one.process(source, self.testdir, True, mapbox_key='mapbox-XXXX')
+            state_path = process_one.process(source, self.testdir, False, False, True, mapbox_key='mapbox-XXXX')
 
         self.assertTrue(slippymap_gen.mock_calls[0][1][0].endswith('.mbtiles'))
         self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
@@ -505,7 +548,7 @@ class TestOA (unittest.TestCase):
              mock.patch('openaddr.slippymap.generate') as slippymap_gen:
             preview_ren.side_effect = touch_second_arg_file
             slippymap_gen.side_effect = touch_first_arg_file
-            state_path = process_one.process(source, self.testdir, True, mapbox_key='mapbox-XXXX')
+            state_path = process_one.process(source, self.testdir, False, False, True, mapbox_key='mapbox-XXXX')
 
         self.assertTrue(slippymap_gen.mock_calls[0][1][0].endswith('.mbtiles'))
         self.assertTrue(slippymap_gen.mock_calls[0][1][1].endswith('.csv'))
@@ -547,7 +590,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-carson-cached.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -575,7 +618,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-carson-old-cached.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -603,7 +646,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us/tx/runnels.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -621,7 +664,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-oakland.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -647,7 +690,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-oakland-skip.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -666,7 +709,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-berkeley.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -691,7 +734,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-berkeley-404.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -708,7 +751,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ca-berkeley-apn.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -743,7 +786,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'pl-dolnoslaskie.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -773,7 +816,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'pl-lodzkie.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -817,7 +860,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'jp-fukushima1.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -847,7 +890,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'jp-fukushima2.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -894,7 +937,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ut.json')
 
         with mock.patch('openaddr.util.request_ftp_file', new=self.response_content_ftp):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -916,7 +959,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'iceland.json')
 
         with mock.patch('openaddr.util.request_ftp_file', new=self.response_content_ftp):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -956,7 +999,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'fr-paris.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -994,7 +1037,7 @@ class TestOA (unittest.TestCase):
             raise Exception('Could not find a usable fr/la-réunion.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -1023,7 +1066,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us/va/statewide.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -1047,7 +1090,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us/oh/trumbull.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -1071,7 +1114,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us/ks/brown_county.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -1092,7 +1135,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us/pa/lancaster.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -1135,7 +1178,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'ua-63-city_of_kharkiv.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -1158,7 +1201,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us/pa/bucks.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -1202,7 +1245,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us/nm/washington.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -1247,7 +1290,7 @@ class TestOA (unittest.TestCase):
         with HTTMock(self.response_content):
             ofs = csv.field_size_limit()
             csv.field_size_limit(1)
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
             csv.field_size_limit(ofs)
 
         with open(state_path) as file:
@@ -1262,7 +1305,7 @@ class TestOA (unittest.TestCase):
         with HTTMock(self.response_content):
             ofs = csv.field_size_limit()
             csv.field_size_limit(sys.maxsize)
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
             csv.field_size_limit(ofs)
 
         with open(state_path) as file:
@@ -1296,7 +1339,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-wy-park.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -1325,7 +1368,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-ny-orange.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -1354,7 +1397,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'de/berlin.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -1389,7 +1432,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us/or/portland.json')
 
         with mock.patch('openaddr.util.request_ftp_file', new=self.response_content_ftp):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -1422,7 +1465,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'nl/countrywide.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -1447,7 +1490,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'be/wa/brussels-fr.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -1480,7 +1523,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'it-52-statewide.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -1509,7 +1552,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us/nj/statewide.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -1538,7 +1581,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'cz-countrywide-bad-tests.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -1554,7 +1597,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-or-curry.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -1570,7 +1613,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'us-mi-grand_traverse.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = RunState(dict(zip(*json.load(file))))
@@ -1584,7 +1627,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'lake-man-gdb.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -1625,7 +1668,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'lake-man-gdb-nested.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -1666,7 +1709,7 @@ class TestOA (unittest.TestCase):
         source = join(self.src_dir, 'lake-man-gdb-nested-nodir.json')
 
         with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False)
+            state_path = process_one.process(source, self.testdir, False, False, False)
 
         with open(state_path) as file:
             state = dict(zip(*json.load(file)))
@@ -1744,7 +1787,8 @@ class TestState (unittest.TestCase):
         #
         # Check result of process_one.write_state().
         #
-        args = dict(source='sources/foo.json', skipped=False,
+        args = dict(source='sources/foo.json', layer='addresses',
+                    data_source_name='open-data', skipped=False,
                     destination=self.output_dir, log_handler=log_handler,
                     cache_result=cache_result, conform_result=conform_result,
                     temp_dir=self.output_dir, preview_path=preview_path,
