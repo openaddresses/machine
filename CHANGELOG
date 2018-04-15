@@ -1,3 +1,7 @@
+2017-04-14: 6.8.5
+- Updated Ubuntu base image to 16.04. (#695)
+- Fixed stats graph range (#649)
+
 2017-03-16: 6.8.4
 - Switched to a larger EC2 instances type for calculating coverage.
 
