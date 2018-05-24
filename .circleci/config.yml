@@ -43,7 +43,7 @@ jobs:
       - run: gunzip -c /tmp/P/prereqs.gz | docker load
       - run: gunzip -c /tmp/P/machine.gz | docker load
       - run: docker tag openaddr/machine:`cat /tmp/P/MAJOR` openaddr/machine:`cat /tmp/P/FULL`
-      - run: docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+      - run: docker login -u $DOCKER_USER -p $DOCKER_PASS
       - run: docker push openaddr/prereqs:`cat /tmp/P/MAJOR`
       - run: docker push openaddr/machine:`cat /tmp/P/MAJOR`
       - run: docker push openaddr/machine:`cat /tmp/P/FULL`
