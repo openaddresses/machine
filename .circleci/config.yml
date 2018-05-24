@@ -19,15 +19,17 @@ jobs:
   package:
     machine: true
     steps:
+      - checkout
+      - run: cut -f1 -d. openaddr/VERSION > /tmp/MAJOR
       - run: docker tag openaddr/machine:`cat /tmp/MAJOR` openaddr/machine:`cat openaddr/VERSION`
-      - run: mkdir /tmp/images
-      - run: docker save openaddr/prereqs:`cat /tmp/MAJOR` | gzip -c --fast > /tmp/images/openaddr-prereqs-`cat /tmp/MAJOR`.tar.gz
-      - run: docker save openaddr/machine:`cat /tmp/MAJOR` | gzip -c --fast > /tmp/images/openaddr-machine-`cat /tmp/MAJOR`.tar.gz
-      - run: docker save openaddr/machine:`cat openaddr/VERSION` | gzip -c --fast > /tmp/images/openaddr-machine-`cat openaddr/VERSION`.tar.gz
   release:
     machine: true
     steps:
-      - run: aws s3 cp --quiet --recursive --acl public-read /tmp/images/ s3://data.openaddresses.io/docker/
+      - checkout
+      - run: cut -f1 -d. openaddr/VERSION > /tmp/MAJOR
+      - run: docker push openaddr/prereqs:`cat /tmp/MAJOR`
+      - run: docker push openaddr/machine:`cat /tmp/MAJOR`
+      - run: docker push openaddr/machine:`cat openaddr/VERSION`
 workflows:
   version: 2
   everything:
