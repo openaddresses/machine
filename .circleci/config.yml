@@ -8,13 +8,9 @@ jobs:
       - run: cp openaddr/VERSION /tmp/P/FULL
       - run: cut -f1 -d. /tmp/P/FULL > /tmp/P/MAJOR
       - run: docker pull ubuntu:16.04
-      - run: docker history ubuntu:16.04
       - run: aws s3 cp --quiet s3://data.openaddresses.io/docker/openaddr-prereqs-`cat /tmp/P/MAJOR`.tar.gz /tmp/img && gunzip -c /tmp/img | docker load || true
-      - run: docker history openaddr/prereqs:`cat /tmp/P/MAJOR`
       - run: docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat /tmp/P/MAJOR` .
-      - run: docker history openaddr/prereqs:`cat /tmp/P/MAJOR`
       - run: docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/P/MAJOR` .
-      - run: docker history openaddr/machine:`cat /tmp/P/MAJOR`
       # Save images, but don't perform tests
       - run: docker save openaddr/prereqs:`cat /tmp/P/MAJOR` $(docker history -q openaddr/prereqs:`cat /tmp/P/MAJOR` | grep -v missing) | gzip -c --fast > /tmp/P/prereqs.gz
       - run: docker save openaddr/machine:`cat /tmp/P/MAJOR` | gzip -c --fast > /tmp/P/machine.gz
@@ -49,7 +45,6 @@ jobs:
       - run: cp /tmp/P/machine.gz /tmp/images/openaddr-machine-`cat /tmp/P/MAJOR`.tar.gz
       - run: gunzip -c /tmp/P/machine.gz | docker load
       - run: docker tag openaddr/machine:`cat /tmp/P/MAJOR` openaddr/machine:`cat /tmp/P/FULL`
-      - run: docker history openaddr/machine:`cat /tmp/P/FULL`
       - run: docker save openaddr/machine:`cat /tmp/P/FULL` | gzip -c --fast > /tmp/images/openaddr-machine-`cat /tmp/P/FULL`.tar.gz
       - run: aws s3 cp --quiet --recursive --acl public-read /tmp/images/ s3://data.openaddresses.io/docker/
 workflows:
