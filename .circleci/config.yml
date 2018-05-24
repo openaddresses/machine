@@ -1,7 +1,8 @@
 version: 2
 jobs:
   build:
-    machine: true
+    machine:
+      docker_layer_caching: true
     steps:
       - checkout
       - run: cut -f1 -d. openaddr/VERSION > /tmp/MAJOR
@@ -10,20 +11,23 @@ jobs:
       - run: docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat /tmp/MAJOR` .
       - run: docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/MAJOR` .
   test:
-    machine: true
+    machine:
+      docker_layer_caching: true
     steps:
       # Postgres needs a little time
       - checkout
       - run: docker-compose up -d && sleep 15
       - run: docker-compose run machine python3 /usr/local/src/openaddr/test.py
   package:
-    machine: true
+    machine:
+      docker_layer_caching: true
     steps:
       - checkout
       - run: cut -f1 -d. openaddr/VERSION > /tmp/MAJOR
       - run: docker tag openaddr/machine:`cat /tmp/MAJOR` openaddr/machine:`cat openaddr/VERSION`
   release:
-    machine: true
+    machine:
+      docker_layer_caching: true
     steps:
       - checkout
       - run: cut -f1 -d. openaddr/VERSION > /tmp/MAJOR
