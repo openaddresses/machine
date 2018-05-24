@@ -1,0 +1,83 @@
+version: 2
+jobs:
+
+  # Prepare Docker images for use in Release step.
+  # Optimistically prepares images in parallel with Test step.
+  Build:
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: Prepare Docker images
+          command: |
+            set -x
+            mkdir -p /tmp/P
+            cp openaddr/VERSION /tmp/P/FULL
+            cut -f1 -d. /tmp/P/FULL > /tmp/P/MAJOR
+            docker pull ubuntu:16.04
+            aws s3 cp --quiet s3://data.openaddresses.io/docker/openaddr-prereqs-`cat /tmp/P/MAJOR`.tar.gz /tmp/img && gunzip -c /tmp/img | docker load || true
+            docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat /tmp/P/MAJOR` .
+            docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/P/MAJOR` .
+      
+      # Save images, but don't perform tests
+      - run: docker save openaddr/prereqs:`cat /tmp/P/MAJOR` $(docker history -q openaddr/prereqs:`cat /tmp/P/MAJOR` | grep -v missing) | gzip -c --fast > /tmp/P/prereqs.gz
+      - run: docker save openaddr/machine:`cat /tmp/P/MAJOR` | gzip -c --fast > /tmp/P/machine.gz
+      - persist_to_workspace:
+          root: /tmp/P
+          paths:
+            - FULL
+            - MAJOR
+            - prereqs.gz
+            - machine.gz
+
+  # Run tests inside prepared Docker container.
+  Test:
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: Prepare Docker images
+          command: |
+            set -x
+            mkdir -p /tmp/P
+            cp openaddr/VERSION /tmp/P/FULL
+            cut -f1 -d. /tmp/P/FULL > /tmp/P/MAJOR
+            docker pull ubuntu:16.04
+            aws s3 cp --quiet s3://data.openaddresses.io/docker/openaddr-prereqs-`cat /tmp/P/MAJOR`.tar.gz /tmp/img && gunzip -c /tmp/img | docker load || true
+            docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat /tmp/P/MAJOR` .
+            docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/P/MAJOR` .
+      
+      # Perform tests, but don't keep images around
+      - run: docker-compose up -d && sleep 15
+      - run: docker-compose run machine python3 /usr/local/src/openaddr/test.py
+
+  # Release Docker images to S3 for use in production.
+  Release:
+    machine: true
+    steps:
+      - attach_workspace:
+          at: /tmp/P
+      - run: mkdir -p /tmp/images
+      - run: cp /tmp/P/prereqs.gz /tmp/images/openaddr-prereqs-`cat /tmp/P/MAJOR`.tar.gz
+      - run: cp /tmp/P/machine.gz /tmp/images/openaddr-machine-`cat /tmp/P/MAJOR`.tar.gz
+      - run: gunzip -c /tmp/P/machine.gz | docker load
+      - run: docker tag openaddr/machine:`cat /tmp/P/MAJOR` openaddr/machine:`cat /tmp/P/FULL`
+      - run: docker save openaddr/machine:`cat /tmp/P/FULL` | gzip -c --fast > /tmp/images/openaddr-machine-`cat /tmp/P/FULL`.tar.gz
+      - run: aws s3 cp --quiet --recursive --acl public-read /tmp/images/ s3://data.openaddresses.io/docker/
+
+workflows:
+  version: 2
+  everything:
+    jobs:
+      - Test
+      - Build:
+          filters:
+            branches:
+              only: 6.x
+      - Release:
+          requires:
+            - Build
+            - Test
+          filters:
+            branches:
+              only: 6.x
