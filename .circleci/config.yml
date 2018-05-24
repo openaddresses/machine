@@ -16,7 +16,7 @@ jobs:
       - run: docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/P/MAJOR` .
       - run: docker history openaddr/machine:`cat /tmp/P/MAJOR`
       # Save images, but don't perform tests
-      - run: docker save openaddr/prereqs:`cat /tmp/P/MAJOR` | gzip -c --fast > /tmp/P/prereqs.gz
+      - run: docker save openaddr/prereqs:`cat /tmp/P/MAJOR` $(docker history -q openaddr/prereqs:`cat /tmp/P/MAJOR` | grep -v missing) | gzip -c --fast > /tmp/P/prereqs.gz
       - run: docker save openaddr/machine:`cat /tmp/P/MAJOR` | gzip -c --fast > /tmp/P/machine.gz
       - persist_to_workspace:
           root: /tmp/P
