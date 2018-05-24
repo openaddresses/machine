@@ -1,12 +1,16 @@
 version: 2
 jobs:
-  build:
+
+  # Prepare Docker images for use in Release step.
+  # Optimistically prepares images in parallel with Test step.
+  Build:
     machine: true
     steps:
       - checkout
       - run:
           name: Prepare Docker images
           command: |
+            set -x
             mkdir -p /tmp/P
             cp openaddr/VERSION /tmp/P/FULL
             cut -f1 -d. /tmp/P/FULL > /tmp/P/MAJOR
@@ -25,13 +29,16 @@ jobs:
             - MAJOR
             - prereqs.gz
             - machine.gz
-  test:
+
+  # Run tests inside prepared Docker container.
+  Test:
     machine: true
     steps:
       - checkout
       - run:
           name: Prepare Docker images
           command: |
+            set -x
             mkdir -p /tmp/P
             cp openaddr/VERSION /tmp/P/FULL
             cut -f1 -d. /tmp/P/FULL > /tmp/P/MAJOR
@@ -43,7 +50,9 @@ jobs:
       # Perform tests, but don't keep images around
       - run: docker-compose up -d && sleep 15
       - run: docker-compose run machine python3 /usr/local/src/openaddr/test.py
-  release:
+
+  # Release Docker images to S3 for use in production.
+  Release:
     machine: true
     steps:
       - attach_workspace:
@@ -55,16 +64,20 @@ jobs:
       - run: docker tag openaddr/machine:`cat /tmp/P/MAJOR` openaddr/machine:`cat /tmp/P/FULL`
       - run: docker save openaddr/machine:`cat /tmp/P/FULL` | gzip -c --fast > /tmp/images/openaddr-machine-`cat /tmp/P/FULL`.tar.gz
       - run: aws s3 cp --quiet --recursive --acl public-read /tmp/images/ s3://data.openaddresses.io/docker/
+
 workflows:
   version: 2
   everything:
     jobs:
-      - build
-      - test
-      - release:
-          requires:
-            - build
-            - test
+      - Test
+      - Build:
           filters:
             branches:
-              only: migurski/upgrade-circleci
+              only: 6.x
+      - Release:
+          requires:
+            - Build
+            - Test
+          filters:
+            branches:
+              only: 6.x
