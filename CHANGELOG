@@ -1,3 +1,6 @@
+2017-05-24: 6.8.7 
+- Switched to Circle CI 2.0. (#702)
+
 2017-04-17: 6.8.6
 - Updated Kosovo country code. (#701)
 
