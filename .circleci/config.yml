@@ -11,6 +11,7 @@ jobs:
       - run: docker pull openaddr/prereqs:`cat /tmp/P/MAJOR` || true
       - run: docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat /tmp/P/MAJOR` .
       - run: docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/P/MAJOR` .
+      # Save images, but don't perform tests
       - run: docker save openaddr/prereqs:`cat /tmp/P/MAJOR` | gzip -c --fast > /tmp/P/prereqs.gz
       - run: docker save openaddr/machine:`cat /tmp/P/MAJOR` | gzip -c --fast > /tmp/P/machine.gz
       - persist_to_workspace:
@@ -23,21 +24,17 @@ jobs:
   test:
     machine: true
     steps:
-      - attach_workspace:
-          at: /tmp/P
-      - run: gunzip -c /tmp/P/machine.gz | docker load
-      # Postgres needs a little time
       - checkout
+      - run: mkdir -p /tmp/P
+      - run: cp openaddr/VERSION /tmp/P/FULL
+      - run: cut -f1 -d. /tmp/P/FULL > /tmp/P/MAJOR
+      - run: docker pull ubuntu:16.04
+      - run: docker pull openaddr/prereqs:`cat /tmp/P/MAJOR` || true
+      - run: docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat /tmp/P/MAJOR` .
+      - run: docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/P/MAJOR` .
+      # Perform tests, but don't keep images around
       - run: docker-compose up -d && sleep 15
       - run: docker-compose run machine python3 /usr/local/src/openaddr/test.py
-  package:
-    machine: true
-    steps:
-      - attach_workspace:
-          at: /tmp/P
-      - run: gunzip -c /tmp/P/prereqs.gz | docker load
-      - run: gunzip -c /tmp/P/machine.gz | docker load
-      - run: docker tag openaddr/machine:`cat /tmp/P/MAJOR` openaddr/machine:`cat /tmp/P/FULL`
   release:
     machine: true
     steps:
@@ -55,16 +52,11 @@ workflows:
   everything:
     jobs:
       - build
-      - test:
-          requires:
-            - build
-      - package:
-          requires:
-            - build
+      - test
       - release:
           requires:
+            - build
             - test
-            - package
           filters:
             branches:
               only: migurski/upgrade-circleci
