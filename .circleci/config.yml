@@ -1,6 +1,7 @@
 version: 2
 jobs:
   build:
+    machine: true
     steps:
       - cut -f1 -d. openaddr/VERSION > /tmp/MAJOR
       - docker pull ubuntu:16.04
@@ -8,11 +9,13 @@ jobs:
       - docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat /tmp/MAJOR` .
       - docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/MAJOR` .
   test:
+    machine: true
     steps:
       # Postgres needs a little time
       - docker-compose up -d && sleep 15
       - docker-compose run machine python3 /usr/local/src/openaddr/test.py
   release:
+    machine: true
     steps:
       - docker tag openaddr/machine:`cat /tmp/MAJOR` openaddr/machine:`cat openaddr/VERSION`
       - mkdir /tmp/images
