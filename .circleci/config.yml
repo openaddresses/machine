@@ -8,7 +8,7 @@ jobs:
       - run: cp openaddr/VERSION /tmp/P/FULL
       - run: cut -f1 -d. /tmp/P/FULL > /tmp/P/MAJOR
       - run: docker pull ubuntu:16.04
-      - run: docker pull openaddr/prereqs:`cat /tmp/P/MAJOR` || true
+      - run: aws s3 cp --quiet s3://data.openaddresses.io/docker/openaddr-prereqs-`cat /tmp/P/MAJOR`.tar.gz /tmp/img && gunzip -c /tmp/img | docker load || true
       - run: docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat /tmp/P/MAJOR` .
       - run: docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/P/MAJOR` .
       # Save images, but don't perform tests
@@ -29,7 +29,7 @@ jobs:
       - run: cp openaddr/VERSION /tmp/P/FULL
       - run: cut -f1 -d. /tmp/P/FULL > /tmp/P/MAJOR
       - run: docker pull ubuntu:16.04
-      - run: docker pull openaddr/prereqs:`cat /tmp/P/MAJOR` || true
+      - run: aws s3 cp --quiet s3://data.openaddresses.io/docker/openaddr-prereqs-`cat /tmp/P/MAJOR`.tar.gz /tmp/img && gunzip -c /tmp/img | docker load || true
       - run: docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat /tmp/P/MAJOR` .
       - run: docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/P/MAJOR` .
       # Perform tests, but don't keep images around
@@ -40,13 +40,13 @@ jobs:
     steps:
       - attach_workspace:
           at: /tmp/P
-      - run: gunzip -c /tmp/P/prereqs.gz | docker load
+      - run: mkdir -p /tmp/images
+      - run: cp /tmp/P/prereqs.gz /tmp/images/openaddr-prereqs-`cat /tmp/P/MAJOR`.tar.gz
+      - run: cp /tmp/P/machine.gz /tmp/images/openaddr-machine-`cat /tmp/P/MAJOR`.tar.gz
       - run: gunzip -c /tmp/P/machine.gz | docker load
       - run: docker tag openaddr/machine:`cat /tmp/P/MAJOR` openaddr/machine:`cat /tmp/P/FULL`
-      - run: docker login -u $DOCKER_USER -p $DOCKER_PASS
-      - run: docker push openaddr/prereqs:`cat /tmp/P/MAJOR`
-      - run: docker push openaddr/machine:`cat /tmp/P/MAJOR`
-      - run: docker push openaddr/machine:`cat /tmp/P/FULL`
+      - run: docker save openaddr/machine:`cat /tmp/P/FULL` | gzip -c --fast > /tmp/images/openaddr-machine-`cat /tmp/P/FULL`.tar.gz
+      - run: aws s3 cp --quiet --recursive --acl public-read /tmp/images/ s3://data.openaddresses.io/docker/
 workflows:
   version: 2
   everything:
