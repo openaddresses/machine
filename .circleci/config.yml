@@ -6,7 +6,7 @@ jobs:
       - checkout
       - run: cut -f1 -d. openaddr/VERSION > /tmp/MAJOR
       - run: docker pull ubuntu:16.04
-      - run: aws s3 cp --quiet s3://data.openaddresses.io/docker/openaddr-prereqs-`cat /tmp/MAJOR`.tar.gz /tmp/img && gunzip -c /tmp/img | docker load || true
+      - run: docker pull openaddr/prereqs:`cat /tmp/MAJOR` || true
       - run: docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat /tmp/MAJOR` .
       - run: docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/MAJOR` .
   test:
@@ -16,27 +16,33 @@ jobs:
       - checkout
       - run: docker-compose up -d && sleep 15
       - run: docker-compose run machine python3 /usr/local/src/openaddr/test.py
-  release:
+  package:
     machine: true
     steps:
-      - checkout
       - run: docker tag openaddr/machine:`cat /tmp/MAJOR` openaddr/machine:`cat openaddr/VERSION`
       - run: mkdir /tmp/images
       - run: docker save openaddr/prereqs:`cat /tmp/MAJOR` | gzip -c --fast > /tmp/images/openaddr-prereqs-`cat /tmp/MAJOR`.tar.gz
       - run: docker save openaddr/machine:`cat /tmp/MAJOR` | gzip -c --fast > /tmp/images/openaddr-machine-`cat /tmp/MAJOR`.tar.gz
       - run: docker save openaddr/machine:`cat openaddr/VERSION` | gzip -c --fast > /tmp/images/openaddr-machine-`cat openaddr/VERSION`.tar.gz
+  release:
+    machine: true
+    steps:
       - run: aws s3 cp --quiet --recursive --acl public-read /tmp/images/ s3://data.openaddresses.io/docker/
 workflows:
   version: 2
-  build_and_test:
+  everything:
     jobs:
       - build
       - test:
           requires:
             - build
+      - package:
+          requires:
+            - build
       - release:
           requires:
             - test
+            - package
           filters:
             branches:
-              only: master
+              only: migurski/upgrade-circleci
