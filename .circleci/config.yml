@@ -2,64 +2,53 @@ version: 2
 jobs:
   build:
     machine: true
-    working_directory: /tmp
     steps:
       - checkout
-      - run: mkdir -p versions
-      - run: cp openaddr/VERSION versions/FULL
-      - run: cut -f1 -d. versions/FULL > versions/MAJOR
+      - run: mkdir -p /tmp/P
+      - run: cp openaddr/VERSION /tmp/P/FULL
+      - run: cut -f1 -d. /tmp/P/FULL > /tmp/P/MAJOR
+      - run: docker pull ubuntu:16.04
+      - run: docker pull openaddr/prereqs:`cat /tmp/P/MAJOR` || true
+      - run: docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat /tmp/P/MAJOR` .
+      - run: docker build -f Dockerfile-machine -t openaddr/machine:`cat /tmp/P/MAJOR` .
+      - run: docker save openaddr/prereqs:`cat /tmp/P/MAJOR` | gzip -c --fast > /tmp/P/prereqs.gz
+      - run: docker save openaddr/machine:`cat /tmp/P/MAJOR` | gzip -c --fast > /tmp/P/machine.gz
       - persist_to_workspace:
-          root: versions
+          root: /tmp/P
           paths:
             - FULL
             - MAJOR
-      - run: docker pull ubuntu:16.04
-      - run: docker pull openaddr/prereqs:`cat versions/MAJOR` || true
-      - run: docker build -f Dockerfile-prereqs -t openaddr/prereqs:`cat versions/MAJOR` .
-      - run: docker build -f Dockerfile-machine -t openaddr/machine:`cat versions/MAJOR` .
-      - run: docker save openaddr/prereqs:`cat /tmp/MAJOR` | gzip -c --fast > images/prereqs
-      - run: docker save openaddr/machine:`cat /tmp/MAJOR` | gzip -c --fast > images/machine
-      - persist_to_workspace:
-          root: images
-          paths:
-            - prereqs
-            - machine
+            - prereqs.gz
+            - machine.gz
   test:
     machine: true
-    working_directory: /tmp
     steps:
       - attach_workspace:
-          at: /tmp/images
-      - run: gunzip -c images/machine | docker load
+          at: /tmp/P
+      - run: gunzip -c /tmp/P/machine.gz | docker load
       # Postgres needs a little time
       - checkout
       - run: docker-compose up -d && sleep 15
       - run: docker-compose run machine python3 /usr/local/src/openaddr/test.py
   package:
     machine: true
-    working_directory: /tmp
     steps:
       - attach_workspace:
-          at: /tmp/versions
-      - attach_workspace:
-          at: /tmp/images
-      - run: gunzip -c images/prereqs | docker load
-      - run: gunzip -c images/machine | docker load
-      - run: docker tag openaddr/machine:`cat versions/MAJOR` openaddr/machine:`cat versions/FULL`
+          at: /tmp/P
+      - run: gunzip -c /tmp/P/prereqs.gz | docker load
+      - run: gunzip -c /tmp/P/machine.gz | docker load
+      - run: docker tag openaddr/machine:`cat /tmp/P/MAJOR` openaddr/machine:`cat /tmp/P/FULL`
   release:
     machine: true
-    working_directory: /tmp
     steps:
       - attach_workspace:
-          at: /tmp/versions
-      - attach_workspace:
-          at: /tmp/images
-      - run: gunzip -c images/prereqs | docker load
-      - run: gunzip -c images/machine | docker load
-      - run: docker tag openaddr/machine:`cat versions/MAJOR` openaddr/machine:`cat versions/FULL`
-      - run: docker push openaddr/prereqs:`cat versions/MAJOR`
-      - run: docker push openaddr/machine:`cat versions/MAJOR`
-      - run: docker push openaddr/machine:`cat versions/FULL`
+          at: /tmp/P
+      - run: gunzip -c /tmp/P/prereqs.gz | docker load
+      - run: gunzip -c /tmp/P/machine.gz | docker load
+      - run: docker tag openaddr/machine:`cat /tmp/P/MAJOR` openaddr/machine:`cat /tmp/P/FULL`
+      - run: docker push openaddr/prereqs:`cat /tmp/P/MAJOR`
+      - run: docker push openaddr/machine:`cat /tmp/P/MAJOR`
+      - run: docker push openaddr/machine:`cat /tmp/P/FULL`
 workflows:
   version: 2
   everything:
