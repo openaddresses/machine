@@ -67,9 +67,11 @@ jobs:
   
   # Deploy new version of Machine to EC2 and Lambda
   Deploy:
-    machine: true
+    docker:
+      - image: circleci/python:3.5-jessie-browsers
     steps:
       - checkout
+      - run: pip3 install --user boto3
       - run: ops/update-scheduled-tasks.py
       - run: ops/update-webhooks-group.py
 
