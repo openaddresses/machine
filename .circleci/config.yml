@@ -63,17 +63,17 @@ workflows:
       - Build:
           filters:
             branches:
-              only: migurski/deploy-continuously
+              only: 6.x
       - Package:
           requires:
             - Build
             - Test
           filters:
             branches:
-              only: migurski/deploy-continuously
+              only: 6.x
       - Deploy:
           requires:
             - Package
           filters:
             branches:
-              only: migurski/deploy-continuously
+              only: 6.x
