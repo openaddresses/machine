@@ -20,7 +20,8 @@ def first_file(paths):
 def main():
     '''
     '''
-    asg_client, elb_client = boto3.client('autoscaling'), boto3.client('elb')
+    asg_client = boto3.client('autoscaling', region_name='us-east-1')
+    elb_client = boto3.client('elb', region_name='us-east-1')
     
     with open(first_file(version_paths)) as file:
         version = file.read().strip()

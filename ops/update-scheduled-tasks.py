@@ -74,7 +74,7 @@ def main():
                 }),
         }
     
-    client = boto3.client('events')
+    client = boto3.client('events', region_name='us-east-1')
     
     for (rule_name, details) in rules.items():
         print('Updating rule', rule_name, 'with target', EC2_RUN_TARGET_ID, '...', file=sys.stderr)
