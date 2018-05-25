@@ -51,8 +51,8 @@ jobs:
       - run: docker-compose up -d && sleep 15
       - run: docker-compose run machine python3 /usr/local/src/openaddr/test.py
 
-  # Release Docker images to S3 for use in production.
-  Release:
+  # Package Docker images and upload to S3 for use in production.
+  Package:
     machine: true
     steps:
       - attach_workspace:
@@ -64,6 +64,14 @@ jobs:
       - run: docker tag openaddr/machine:`cat /tmp/P/MAJOR` openaddr/machine:`cat /tmp/P/FULL`
       - run: docker save openaddr/machine:`cat /tmp/P/FULL` | gzip -c --fast > /tmp/images/openaddr-machine-`cat /tmp/P/FULL`.tar.gz
       - run: aws s3 cp --quiet --recursive --acl public-read /tmp/images/ s3://data.openaddresses.io/docker/
+  
+  # Deploy new version of Machine to EC2 and Lambda
+  Deploy:
+    machine: true
+    steps:
+      - checkout
+      - run: ops/update-scheduled-tasks.py
+      - run: ops/update-webhooks-group.py
 
 workflows:
   version: 2
@@ -74,10 +82,11 @@ workflows:
           filters:
             branches:
               only: 6.x
-      - Release:
+      - Package:
           requires:
             - Build
             - Test
+      - Deploy:
           filters:
             branches:
-              only: 6.x
+              only: migurski/deploy-continuously
