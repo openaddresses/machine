@@ -46,7 +46,7 @@ def main():
             cron = 'cron(0 15 */2 * ? *)',
             description = 'Archive collection, every other day at 15:00 UTC (7am PST)',
             input = {
-                "command": ["openaddr-collect-extracts"], "hours": 18,
+                "command": ["openaddr-collect-extracts"], "hours": 20,
                 "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
                 }),
         CALCULATE_RULE: dict(
