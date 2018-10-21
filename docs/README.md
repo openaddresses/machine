@@ -19,6 +19,10 @@ Machine Internals
     
     How to install machine from scratch.
 
+*   **[Costs](costs.md)**
+    
+    How to adjust machine costs.
+
 For database, EC2, or AWS credentials and other privileged access to the
 internals documented here, contact [Ian Dees](https://github.com/iandees)
 or [Michal Migurski](https://github.com/migurski).
