@@ -62,7 +62,8 @@ CREATE TABLE runs
     job_id              VARCHAR(40) REFERENCES jobs(id) NULL,
     set_id              INTEGER REFERENCES sets(id) NULL,
     commit_sha          VARCHAR(40) NULL,
-    is_merged           BOOLEAN
+    is_merged           BOOLEAN,
+    for_index_page      BOOLEAN NOT NULL DEFAULT false
 );
 
 CREATE TYPE zip_collection AS ENUM ('global', 'us_northeast', 'us_midwest',
