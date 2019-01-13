@@ -6,7 +6,7 @@ from datetime import date
 from time import sleep
 from os import environ
 
-from .objects import read_latest_set, read_completed_runs_to_date
+from .objects import read_latest_set, read_completed_runs_to_date, mark_runs_for_index_page
 from . import db_connect, db_cursor, setup_logger, render_index_maps, log_function_errors, dashboard_stats
 from .. import S3, util
 
@@ -52,6 +52,7 @@ def main():
             with db_cursor(conn) as db:
                 set = read_latest_set(db, args.owner, args.repository)
                 runs = read_completed_runs_to_date(db, set.id)
+                mark_runs_for_index_page(db, runs)
                 stats = dashboard_stats.make_stats(db)
 
         render_index_maps(s3, runs)
