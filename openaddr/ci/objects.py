@@ -566,6 +566,23 @@ def read_completed_runs_to_date(db, starting_set_id):
     _L.warning('7) results 3 {:.0f}'.format(time.time()))
 
     return runs
+
+def mark_runs_for_index_page(db, runs):
+    ''' Update runs.for_index_page boolean column from list of provided runs.
+    '''
+    run_ids = tuple([run.id for run in runs])
+    
+    db.execute('''
+        UPDATE runs SET for_index_page = false
+        WHERE for_index_page
+          AND id NOT IN %s
+        ''', (run_ids, ))
+    
+    db.execute('''
+        UPDATE runs SET for_index_page = true
+        WHERE NOT for_index_page
+          AND id IN %s
+        ''', (run_ids, ))
     
 def read_latest_run(db, source_path):
     '''
