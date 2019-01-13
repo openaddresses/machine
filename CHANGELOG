@@ -1,3 +1,6 @@
+2019-01-12: 6.8.13
+- Fixed log level mismatch for index page timing logging.
+
 2019-01-12: 6.8.12
 - Fixed bug in index page timing logging.
 
