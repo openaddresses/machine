@@ -1,6 +1,6 @@
 import logging; _L = logging.getLogger('openaddr.ci.objects')
 
-import json, pickle, copy
+import json, pickle, copy, time
 
 from ..process_one import SourceProblem
 
@@ -498,6 +498,8 @@ def read_completed_source_runs(db, source_path):
 def read_completed_runs_to_date(db, starting_set_id):
     ''' Get only successful runs.
     '''
+    _L.info('1) start', time.time())
+    
     set = read_set(db, starting_set_id)
 
     if set is None or set.datetime_end is None:
@@ -516,7 +518,11 @@ def read_completed_runs_to_date(db, starting_set_id):
                   GROUP BY source_path''',
                (set.id, ))
 
+    _L.info('2) query 1', time.time())
+
     run_path_ids = {path: run_id for (run_id, path) in db.fetchall()}
+
+    _L.info('3) results 1', time.time())
 
     # Get IDs for latest unsuccessful source runs of any run in the requested set.
     db.execute('''SELECT MAX(id), source_path FROM runs
@@ -531,10 +537,14 @@ def read_completed_runs_to_date(db, starting_set_id):
                   GROUP BY source_path''',
                (set.id, ))
 
+    _L.info('4) query 2', time.time())
+
     # Use unsuccessful runs if no successful ones exist.
     for (run_id, source_path) in db.fetchall():
         if source_path not in run_path_ids:
             run_path_ids[source_path] = run_id
+
+    _L.info('5) results 2', time.time())
 
     run_ids = tuple(sorted(run_path_ids.values()))
 
@@ -549,8 +559,14 @@ def read_completed_runs_to_date(db, starting_set_id):
                   WHERE id IN %s''',
                (run_ids, ))
 
-    return [Run(*row[:5]+(RunState(row[5]),)+row[6:]) for row in db.fetchall()]
+    _L.info('6) query 3', time.time())
 
+    runs = [Run(*row[:5]+(RunState(row[5]),)+row[6:]) for row in db.fetchall()]
+
+    _L.info('7) results 3', time.time())
+
+    return runs
+    
 def read_latest_run(db, source_path):
     '''
     '''
