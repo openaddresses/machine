@@ -25,7 +25,7 @@ from . import (
 
 from .objects import (
     read_job, read_jobs, read_sets, read_set, read_latest_set, RunState,
-    read_run, read_completed_set_runs, read_completed_runs_to_date,
+    read_run, read_completed_set_runs, read_completed_runs_to_date_cheaply,
     load_collection_zips_dict, read_latest_run, read_completed_source_runs,
     read_completed_set_runs_count
     )
@@ -89,7 +89,7 @@ def app_index():
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
             set = read_latest_set(db, 'openaddresses', 'openaddresses')
-            runs = read_completed_runs_to_date(db, set and set.id)
+            runs = read_completed_runs_to_date_cheaply(db)
             zips = load_collection_zips_dict(db)
             source_count = read_completed_set_runs_count(db, set.id) if set else None
 
