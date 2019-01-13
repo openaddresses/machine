@@ -1,45 +1,48 @@
-2017-11-01: 6.8.10
+2019-01-12: 6.8.11
+- Logged index page timing to debug slowness. (#711)
+
+2018-11-01: 6.8.10
 - Bumped collection time frequency to twice weekly.
 
-2017-10-20: 6.8.9
+2018-10-20: 6.8.9
 - Bumped collection time limit to 20 hours.
 
-2017-05-25: 6.8.8 
+2018-05-25: 6.8.8 
 - Started deploying continuously from Circle CI. (#703)
 
-2017-05-24: 6.8.7 
+2018-05-24: 6.8.7 
 - Switched to Circle CI 2.0. (#702)
 
-2017-04-17: 6.8.6
+2018-04-17: 6.8.6
 - Updated Kosovo country code. (#701)
 
-2017-04-14: 6.8.5
+2018-04-14: 6.8.5
 - Updated Ubuntu base image to 16.04. (#695)
 - Fixed stats graph range (#649)
 
-2017-03-16: 6.8.4
+2018-03-16: 6.8.4
 - Switched to a larger EC2 instances type for calculating coverage.
 
-2017-03-05: 6.8.3
+2018-03-05: 6.8.3
 - Suppressed another dumb error. (#688)
 
-2017-02-26: 6.8.2
+2018-02-26: 6.8.2
 - Suppressed one more dumb error. (#685)
 
-2017-02-26: 6.8.1
+2018-02-26: 6.8.1
 - Suppressed dumb errors. (#684)
 
-2017-02-01: 6.8.0
+2018-02-01: 6.8.0
 - Added first_non_empty helper function. (#681)
 - Further fiddled with Docker image tagging. (#682)
 
-2017-01-21: 6.7.0
+2018-01-21: 6.7.0
 - Fixed Docker cache issues to speed up testing and deployment. (#680)
 
-2017-01-20: 6.6.0
+2018-01-20: 6.6.0
 - Replace remaining Mapzen keys with Mapbox keys. (#679)
 
-2017-01-19: 6.5.0
+2018-01-19: 6.5.0
 - Replace Mapzen vector tiles with Mapbox vector tiles for Github preview images. (#678)
 
 2017-12-16: 6.4.3
