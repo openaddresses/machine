@@ -79,8 +79,7 @@ def app_index_json():
 def app_licenses_json():
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
-            set = read_latest_set(db, 'openaddresses', 'openaddresses')
-            runs = read_completed_runs_to_date_cheaply(db, set.id)
+            runs = read_completed_runs_to_date_cheaply(db)
 
     licenses = defaultdict(list)
 
@@ -107,8 +106,7 @@ def app_get_state_txt():
     '''
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
-            set = read_latest_set(db, 'openaddresses', 'openaddresses')
-            runs = read_completed_runs_to_date_cheaply(db, set.id)
+            runs = read_completed_runs_to_date_cheaply(db)
 
     buffer = io.StringIO()
     output = csv.DictWriter(buffer, CSV_HEADER, dialect='excel-tab')
