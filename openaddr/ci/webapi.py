@@ -9,7 +9,7 @@ from flask import Response, Blueprint, request, current_app, jsonify, url_for, r
 from flask_cors import CORS
 
 from .objects import (
-    load_collection_zips_dict, read_latest_set, read_completed_runs_to_date,
+    load_collection_zips_dict, read_latest_set, read_completed_runs_to_date_cheaply,
     read_completed_set_runs, read_set
     )
 
@@ -79,8 +79,7 @@ def app_index_json():
 def app_licenses_json():
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
-            set = read_latest_set(db, 'openaddresses', 'openaddresses')
-            runs = read_completed_runs_to_date(db, set.id)
+            runs = read_completed_runs_to_date_cheaply(db)
 
     licenses = defaultdict(list)
 
@@ -107,8 +106,7 @@ def app_get_state_txt():
     '''
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
-            set = read_latest_set(db, 'openaddresses', 'openaddresses')
-            runs = read_completed_runs_to_date(db, set.id)
+            runs = read_completed_runs_to_date_cheaply(db)
 
     buffer = io.StringIO()
     output = csv.DictWriter(buffer, CSV_HEADER, dialect='excel-tab')

@@ -495,6 +495,26 @@ def read_completed_source_runs(db, source_path):
 
     return runs
 
+def read_completed_runs_to_date_cheaply(db):
+    ''' Get only successful runs based on runs.for_index_page column.
+    '''
+    _L.warning('A) start {:.0f}'.format(time.time()))
+    
+    # Get Run instance for each of the returned run IDs.
+    db.execute('''SELECT id, source_path, source_id, source_data, datetime_tz,
+                         state, status, copy_of, code_version, worker_id,
+                         job_id, set_id, commit_sha, is_merged
+                  FROM runs
+                  WHERE for_index_page''')
+
+    _L.warning('B) query {:.0f}'.format(time.time()))
+
+    runs = [Run(*row[:5]+(RunState(row[5]),)+row[6:]) for row in db.fetchall()]
+
+    _L.warning('C) results {:.0f}'.format(time.time()))
+
+    return runs
+
 def read_completed_runs_to_date(db, starting_set_id):
     ''' Get only successful runs.
     '''
