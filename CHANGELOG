@@ -1,3 +1,6 @@
+2019-01-12: 6.9.2
+- Switched to objects.read_completed_runs_to_date_cheaply() in web requests. (#713)
+
 2019-01-12: 6.9.1
 - Added runs.for_index_page column and ci.objects.mark_runs_for_index_page(). (#712)
 
