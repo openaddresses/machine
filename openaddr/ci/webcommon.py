@@ -30,6 +30,7 @@ def monitor_execution_time(route_function):
     try:
         # Rely on boto environment.
         cw = boto.connect_cloudwatch()
+        ns = os.environ.get('AWS_CLOUDWATCH_NS')
     except:
         cw = False
     
@@ -38,9 +39,9 @@ def monitor_execution_time(route_function):
         start_time = time.time()
         result = route_function(*args, **kwargs)
         if cw:
-            ns = os.environ.get('AWS_CLOUDWATCH_NS')
             fmod, fname = route_function.__module__, route_function.__name__
-            metric, elapsed = f'timing {fmod}.{fname}', (time.time() - start_time)
+            metric = 'timing {fmod}.{fname}'.format(**locals())
+            elapsed = (time.time() - start_time)
             cw.put_metric_data(ns, metric, elapsed, unit='Seconds')
         return result
 
