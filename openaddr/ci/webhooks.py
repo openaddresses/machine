@@ -31,7 +31,7 @@ from .objects import (
     )
 
 from ..summarize import summarize_runs, GLASS_HALF_FULL, GLASS_HALF_EMPTY, nice_integer, break_state
-from .webcommon import log_application_errors, nice_domain, flask_log_level
+from .webcommon import log_application_errors, monitor_execution_time, nice_domain, flask_log_level
 
 webhooks = Blueprint('webhooks', __name__, template_folder='templates')
 
@@ -85,6 +85,7 @@ def get_memcache_client(config):
 
 @webhooks.route('/')
 @log_application_errors
+@monitor_execution_time
 def app_index():
     with db_connect(current_app.config['DATABASE_URL']) as conn:
         with db_cursor(conn) as db:
