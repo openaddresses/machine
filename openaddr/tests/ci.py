@@ -42,7 +42,7 @@ from ..ci.objects import (
     old_read_completed_set_runs, read_completed_set_runs, read_latest_set,
     read_run, read_completed_runs_to_date, read_latest_run, Run, RunState,
     read_completed_source_runs, read_completed_set_runs_count,
-    result_dictionary2runstate
+    result_dictionary2runstate, read_completed_runs_to_date_cheaply
     )
 
 from ..ci.collect import (
@@ -647,6 +647,31 @@ class TestObjects (unittest.TestCase):
                     AND (is_merged or is_merged is null)
                   ORDER BY id DESC''',
                   ('sources/whatever.json', ))
+
+    def test_read_completed_runs_to_date_cheaply(self):
+        ''' Check whether read_completed_runs_to_date_cheaply() calls correctly
+        '''
+        self.db.fetchall.return_value = (
+            ('abc', 'sources/whatever.json', 'jkl', b'', None, {}, True,
+             'def', '', '', 'mno', 123, 'abc', False),
+            ('def', 'sources/whatever.json', 'jkl', b'', None, {}, True,
+             None, '', '', 'mno', 123, 'abc', False),
+            ('ghi', 'sources/whatever.json', 'jkl', b'', None, {}, True,
+             None, '', '', 'mno', 123, 'abc', False),
+            )
+
+        runs = read_completed_runs_to_date_cheaply(self.db)
+        self.assertEqual(len(runs), 3)
+        self.assertEqual(runs[0].id, 'abc')
+        self.assertEqual(runs[1].id, 'def')
+        self.assertEqual(runs[2].id, 'ghi')
+
+        self.db.execute.assert_called_once_with(
+               '''SELECT id, source_path, source_id, source_data, datetime_tz,
+                         state, status, copy_of, code_version, worker_id,
+                         job_id, set_id, commit_sha, is_merged
+                  FROM runs
+                  WHERE for_index_page''')
 
     def test_read_completed_runs_to_date_missing_set(self):
         ''' Check when read_completed_runs_to_date() called with missing set.
