@@ -1,3 +1,6 @@
+2019-01-14: 6.9.4
+- Started testing ci.objects.read_completed_runs_to_date_cheaply(). (#715)
+
 2019-01-14: 6.9.3
 - Started monitoring home page load time. (#714)
 
