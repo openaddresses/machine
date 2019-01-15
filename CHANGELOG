@@ -1,16 +1,19 @@
-2019-01-12: 6.9.2
+2019-01-14: 6.9.3
+- Started monitoring home page load time. (#714)
+
+2019-01-13: 6.9.2
 - Switched to objects.read_completed_runs_to_date_cheaply() in web requests. (#713)
 
-2019-01-12: 6.9.1
+2019-01-13: 6.9.1
 - Added runs.for_index_page column and ci.objects.mark_runs_for_index_page(). (#712)
 
-2019-01-12: 6.8.13
+2019-01-13: 6.8.13
 - Fixed log level mismatch for index page timing logging.
 
-2019-01-12: 6.8.12
+2019-01-13: 6.8.12
 - Fixed bug in index page timing logging.
 
-2019-01-12: 6.8.11
+2019-01-13: 6.8.11
 - Logged index page timing to debug slowness. (#711)
 
 2018-11-01: 6.8.10
