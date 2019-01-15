@@ -672,7 +672,7 @@ class TestOA (unittest.TestCase):
         self.assertFalse(state.skipped)
         self.assertIsNotNone(state.cache)
         # This test data does not contain a working conform object
-        self.assertIs(state.source_problem, SourceProblem.unknown_conform_type)
+        self.assertIs(state.source_problem, SourceProblem.unknown_conform_format)
         self.assertIsNone(state.processed)
         self.assertIsNone(state.preview)
         self.assertIsNone(state.slippymap)

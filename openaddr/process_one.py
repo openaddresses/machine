@@ -25,13 +25,17 @@ class SourceProblem (enum.Enum):
     '''
     skip_source = 'Source says to skip'
     missing_conform = 'Source is missing a conform object'
-    unknown_conform_type = 'Unknown source conform type'
+    unknown_conform_format = 'Unknown source conform format'
+    unknown_conform_protocol = 'Unknown source conform protocol'
     download_source_failed = 'Could not download source data'
     conform_source_failed = 'Could not conform source data'
     no_coverage = 'Missing or incomplete coverage'
     no_esri_token = 'Missing required ESRI token'
     test_failed = 'An acceptance test failed'
     no_addresses_found = 'Found no addresses in source data'
+
+    # Old tag naming; replaced with "format" or "protocol"
+    unknown_conform_type = 'Unknown source conform type'
 
 def boolstr(value):
     '''
@@ -252,6 +256,12 @@ def find_source_problem(log_contents, source):
 
     if 'WARNING: Source is missing a conform object' in log_contents:
         return SourceProblem.missing_conform
+
+    if 'WARNING: Unknown source conform protocol' in log_contents:
+        return SourceProblem.unknown_conform_protocol
+
+    if 'WARNING: Unknown source conform format' in log_contents:
+        return SourceProblem.unknown_conform_format
 
     if 'WARNING: Unknown source conform type' in log_contents:
         return SourceProblem.unknown_conform_type
