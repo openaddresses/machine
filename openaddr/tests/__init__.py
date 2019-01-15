@@ -1846,6 +1846,8 @@ class TestState (unittest.TestCase):
         self.assertIs(RunState({'source problem': find_source_problem('WARNING: Could not download ESRI source data: Could not retrieve layer metadata: Token Required', {})}).source_problem, SourceProblem.no_esri_token)
         self.assertIs(RunState({'source problem': find_source_problem('WARNING: Error doing conform; skipping', {})}).source_problem, SourceProblem.conform_source_failed)
         self.assertIs(RunState({'source problem': find_source_problem('WARNING: Could not download source data', {})}).source_problem, SourceProblem.download_source_failed)
+        self.assertIs(RunState({'source problem': find_source_problem('WARNING: Unknown source conform protocol', {})}).source_problem, SourceProblem.unknown_conform_protocol)
+        self.assertIs(RunState({'source problem': find_source_problem('WARNING: Unknown source conform format', {})}).source_problem, SourceProblem.unknown_conform_format)
         self.assertIs(RunState({'source problem': find_source_problem('WARNING: Unknown source conform type', {})}).source_problem, SourceProblem.unknown_conform_type)
         self.assertIs(RunState({'source problem': find_source_problem('WARNING: A source test failed', {})}).source_problem, SourceProblem.test_failed)
         self.assertIs(RunState({'source problem': find_source_problem('WARNING: Found no addresses in source data', {})}).source_problem, SourceProblem.no_addresses_found)
