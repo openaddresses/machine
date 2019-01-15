@@ -498,8 +498,6 @@ def read_completed_source_runs(db, source_path):
 def read_completed_runs_to_date_cheaply(db):
     ''' Get only successful runs based on runs.for_index_page column.
     '''
-    _L.warning('A) start {:.0f}'.format(time.time()))
-    
     # Get Run instance for each of the returned run IDs.
     db.execute('''SELECT id, source_path, source_id, source_data, datetime_tz,
                          state, status, copy_of, code_version, worker_id,
@@ -507,19 +505,13 @@ def read_completed_runs_to_date_cheaply(db):
                   FROM runs
                   WHERE for_index_page''')
 
-    _L.warning('B) query {:.0f}'.format(time.time()))
-
     runs = [Run(*row[:5]+(RunState(row[5]),)+row[6:]) for row in db.fetchall()]
-
-    _L.warning('C) results {:.0f}'.format(time.time()))
 
     return runs
 
 def read_completed_runs_to_date(db, starting_set_id):
     ''' Get only successful runs.
     '''
-    _L.warning('1) start {:.0f}'.format(time.time()))
-    
     set = read_set(db, starting_set_id)
 
     if set is None or set.datetime_end is None:
@@ -538,11 +530,7 @@ def read_completed_runs_to_date(db, starting_set_id):
                   GROUP BY source_path''',
                (set.id, ))
 
-    _L.warning('2) query 1 {:.0f}'.format(time.time()))
-
     run_path_ids = {path: run_id for (run_id, path) in db.fetchall()}
-
-    _L.warning('3) results 1 {:.0f}'.format(time.time()))
 
     # Get IDs for latest unsuccessful source runs of any run in the requested set.
     db.execute('''SELECT MAX(id), source_path FROM runs
@@ -557,14 +545,10 @@ def read_completed_runs_to_date(db, starting_set_id):
                   GROUP BY source_path''',
                (set.id, ))
 
-    _L.warning('4) query 2 {:.0f}'.format(time.time()))
-
     # Use unsuccessful runs if no successful ones exist.
     for (run_id, source_path) in db.fetchall():
         if source_path not in run_path_ids:
             run_path_ids[source_path] = run_id
-
-    _L.warning('5) results 2 {:.0f}'.format(time.time()))
 
     run_ids = tuple(sorted(run_path_ids.values()))
 
@@ -579,11 +563,7 @@ def read_completed_runs_to_date(db, starting_set_id):
                   WHERE id IN %s''',
                (run_ids, ))
 
-    _L.warning('6) query 3 {:.0f}'.format(time.time()))
-
     runs = [Run(*row[:5]+(RunState(row[5]),)+row[6:]) for row in db.fetchall()]
-
-    _L.warning('7) results 3 {:.0f}'.format(time.time()))
 
     return runs
 
