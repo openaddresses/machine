@@ -10,9 +10,9 @@
         "county": "Clearwater"
     },
     "data": "http://gis.clearwatercounty.org/arcgis/rest/services/County/MapServer/1",
-    "type": "ESRI",
+    "protocol": "ESRI",
     "conform": {
-        "type": "geojson",
+        "format": "geojson",
         "number": "Prop_StNum",
         "unit": "DLVRY_APT",
         "street": "prop_stree",

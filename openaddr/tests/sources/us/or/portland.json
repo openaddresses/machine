@@ -9,7 +9,7 @@
         "number": "address_number",
         "lon": "x",
         "lat": "y",
-        "type": "csv",
+        "format": "csv",
         "street": [
             "str_predir_code",
             "street_name",
@@ -26,5 +26,5 @@
     "skip": false,
     "note": "zipped csv",
     "data": "ftp://ftp02.portlandoregon.gov/CivicApps/address.zip",
-    "type": "ftp"
+    "protocol": "ftp"
 }

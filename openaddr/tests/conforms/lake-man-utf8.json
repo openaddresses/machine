@@ -1,14 +1,14 @@
 {
     "data": "http://fake-web/lake-man-utf8",
     "cache": "http://fake-cache/lake-man-utf8.zip",
-    "type": "http",
+    "protocol": "http",
     "compression": "zip",
     "conform": {
         "lon": "X",
         "lat": "Y",
         "number": "number",
         "street": "street",
-        "type": "shapefile",
+        "format": "shapefile",
 	"encoding": "utf-8"
     }
 }

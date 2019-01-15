@@ -12,13 +12,13 @@
     "data": "https://data.acgov.org/api/geospatial/MiXeD-cAsE?method=export&format=Original",
     "license": { "url": "http://www.acgov.org/acdata/terms.htm" },
     "year": "",
-    "type": "http",
+    "protocol": "http",
     "compression": "zip",
     "conform": {
         "lon": "X",
         "lat": "Y",
         "number": "ST_NUM",
         "street": ["FEANME", "FEATYP"],
-        "type": "shapefile"
+        "format": "shapefile"
     }
 }

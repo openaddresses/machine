@@ -8,7 +8,7 @@
 	},
 	"data": "https://www.dropbox.com/s/8uaqry2w657p44n/bagadres.zip?dl=1",
 	"website": "http://www.nlextract.nl",
-	"type": "http",
+	"protocol": "http",
 	"compression": "zip",
 	"conform": {
 		"lon": "lon",
@@ -23,7 +23,7 @@
 		"city": "woonplaats",
 		"district":"gemeente",
 		"region": "provincie",
-		"type": "csv",
+		"format": "csv",
 		"csvsplit": ";"
 	}
 }

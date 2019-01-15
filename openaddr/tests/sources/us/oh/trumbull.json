@@ -10,7 +10,7 @@
         "county": "Trumbull"
     },
     "data": "http://gis3.oit.ohio.gov/LBRS/_downloads/TRU_ADDS.zip",
-    "type": "http",
+    "protocol": "http",
     "compression": "zip",
     "conform": {
         "number": "HOUSENUM",
@@ -20,7 +20,7 @@
             "ST_TYPE",
             "ST_SUFFIX"
         ],
-        "type": "shapefile",
+        "format": "shapefile",
         "postcode": "zipcode"
     }
 }
