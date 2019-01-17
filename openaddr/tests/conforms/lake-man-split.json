@@ -1,7 +1,7 @@
 {
     "data": "http://fake-web/lake-man-split.zip",
     "cache": "http://fake-cache/lake-man-split.zip",
-    "type": "http",
+    "protocol": "http",
     "compression": "zip",
     "conform": {
         "lon": "X",
@@ -16,6 +16,6 @@
             "field": "ADD_RANGE",
             "pattern": "^(?:\\S+ )(.*)"
             },
-        "type": "shapefile"
+        "format": "shapefile"
     }
 }

@@ -10,9 +10,9 @@
         "county": "Washington"
     },
     "data": "http://maps.co.washington.mn.us/arcgis/rest/services/Public/Public_Parcels/MapServer/0",
-    "type": "ESRI",
+    "protocol": "ESRI",
     "conform": {
-        "type": "geojson",
+        "format": "geojson",
         "number": "BLDG_NUM",
         "street": [
             "PREFIX_DIR",

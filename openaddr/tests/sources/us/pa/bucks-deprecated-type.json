@@ -10,10 +10,10 @@
         "county": "Bucks"
     },
     "data": "https://s3.amazonaws.com/data.openaddresses.io/cache/uploads/iandees/ed482f/bucks.geojson.zip",
-    "protocol": "http",
+    "type": "http",
     "compression": "zip",
     "conform": {
-        "format": "geojson",
+        "type": "geojson",
         "number": "SITUS_ADDR_NUM",
         "street": [
             "SITUS_FDPRE",

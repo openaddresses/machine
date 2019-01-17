@@ -9,13 +9,13 @@
     "version": "20000101",
     "data": "http://www.carsonproperty.info/ArcGIS/rest/services/basemap/MapServer/1",
     "website": "http://ci.carson.ca.us/",
-    "type": "ESRI",
+    "protocol": "ESRI",
     "conform": {
         "lon": "x",
         "lat": "y",
         "number": "SITENUMBER",
         "street": "SITESTREET",
-        "type": "geojson",
+        "format": "geojson",
         "postal_code": "sitezip"
     }
 }

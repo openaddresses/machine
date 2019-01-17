@@ -1,13 +1,13 @@
 {
     "data": "http://fake-web/lake-man.gdb.zip",
     "cache": "http://fake-cache/lake-man.gdb.zip",
-    "type": "http",
+    "protocol": "http",
     "compression": "zip",
     "conform": {
         "lon": "X",
         "lat": "Y",
         "number": "NUMBER",
         "street": "STRNAME",
-        "type": "gdb"
+        "format": "gdb"
     }
 }

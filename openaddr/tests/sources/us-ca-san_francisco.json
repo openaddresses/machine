@@ -7,7 +7,7 @@
     "data": "https://data.sfgov.org/download/kvej-w5kb/ZIPPED%20SHAPEFILE",
     "license": { "text": "" },
     "year": "",
-    "type": "http",
+    "protocol": "http",
     "compression": "zip",
     "conform": {
         "lon": "x",
@@ -18,6 +18,6 @@
             "pattern": "^(\\S+)"
             },
         "street": ["st_name", "st_type"],
-        "type": "shapefile"
+        "format": "shapefile"
     }
 }

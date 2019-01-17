@@ -8,7 +8,7 @@
     "data": "http://www.ci.berkeley.ca.us/uploadedFiles/IT/GIS/Parcels.zip",
     "website": "http://www.ci.berkeley.ca.us/datacatalog/",
     "license": { },
-    "type": "http",
+    "protocol": "http",
     "compression": "zip",
     "note": "Metadata at http://www.ci.berkeley.ca.us/uploadedFiles/IT/GIS/Parcels.shp(1).xml"
 }

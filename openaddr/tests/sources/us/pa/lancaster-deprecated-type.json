@@ -10,9 +10,9 @@
         "city": "Lancaster"
     },
     "data": "http://services1.arcgis.com/I6XnrlnguPDoEObn/arcgis/rest/services/AddressPoints/FeatureServer/0",
-    "protocol": "ESRI",
+    "type": "ESRI",
     "conform": {
-        "format": "geojson",
+        "type": "geojson",
         "number": "ADRNUM",
         "unit": "UNITNUM",
         "street": [

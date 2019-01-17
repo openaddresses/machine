@@ -10,7 +10,7 @@
 	},
 	"data": "http://fbarc.stadt-berlin.de/FIS_Broker_Atom/Hauskoordinaten/HKO_EPSG3068.zip",
 	"website": "http://fbinter.stadt-berlin.de/fb/berlin/service.jsp?id=a_hauskoordinaten@senstadt&type=FEED",
-	"protocol": "http",
+	"type": "http",
 	"compression": "zip",
 	"license": {
 		"text": "Nutzungsbestimmungen Geoportal Berlin",
@@ -20,7 +20,7 @@
 		"attribution name": "Geoportal Berlin / Hauskoordinaten Berlin"
 	},
 	"conform": {
-		"format": "csv",
+		"type": "csv",
 		"srs": "EPSG:3068",
 		"encoding": "ISO-8859-1",
 		"csvsplit": ";",

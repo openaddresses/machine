@@ -94,7 +94,10 @@ def cache(data_source_name, data_source, destdir, extras):
     if not isinstance(source_urls, list):
         source_urls = [source_urls]
 
-    task = DownloadTask.from_type_string(data_source.get('type'), data_source_name)
+    # TODO: "type" is a deprecated tag
+    protocol_string = data_source.get('protocol') or data_source.get('type')
+
+    task = DownloadTask.from_protocol_string(protocol_string, data_source_name)
     downloaded_files = task.download(source_urls, workdir, data_source.get('conform'))
 
     # FIXME: I wrote the download stuff to assume multiple files because
@@ -151,7 +154,7 @@ def conform(data_source_name, data_source, destdir, extras):
     downloaded_path = task1.download(source_urls, workdir)
     _L.info("Downloaded to %s", downloaded_path)
 
-    task2 = DecompressionTask.from_type_string(data_source.get('compression'))
+    task2 = DecompressionTask.from_format_string(data_source.get('compression'))
     names = elaborate_filenames(data_source.get('conform', {}).get('file', None))
     decompressed_paths = task2.decompress(downloaded_path, workdir, names)
     _L.info("Decompressed to %d files", len(decompressed_paths))

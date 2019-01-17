@@ -132,15 +132,15 @@ class DownloadTask(object):
 
 
     @classmethod
-    def from_type_string(clz, type_string, source_prefix=None):
-        if type_string.lower() == 'http':
+    def from_protocol_string(clz, protocol_string, source_prefix=None):
+        if protocol_string.lower() == 'http':
             return URLDownloadTask(source_prefix)
-        elif type_string.lower() == 'ftp':
+        elif protocol_string.lower() == 'ftp':
             return URLDownloadTask(source_prefix)
-        elif type_string.lower() == 'esri':
+        elif protocol_string.lower() == 'esri':
             return EsriRestDownloadTask(source_prefix)
         else:
-            raise KeyError("I don't know how to extract for type {}".format(type_string))
+            raise KeyError("I don't know how to extract for protocol {}".format(protocol_string))
 
     def download(self, source_urls, workdir, conform):
         raise NotImplementedError()

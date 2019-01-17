@@ -5,14 +5,14 @@
         "state": "ut"
     },
     "data": "ftp://ftp.agrc.utah.gov/UtahSGID_Vector/UTM12_NAD83/LOCATION/UnpackagedData/AddressPoints/_Statewide/AddressPoints_shp.zip",
-    "protocol": "ftp",
+    "type": "ftp",
     "compression": "zip",
     "conform": {
         "street": [
             "StreetName",
             "StreetType"
         ],
-        "format": "shapefile",
+        "type": "shapefile",
         "file": "AddressPoints/AddressPoints.shp",
         "lon": "x",
         "lat": "y",

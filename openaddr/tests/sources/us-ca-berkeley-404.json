@@ -7,7 +7,7 @@
     },
     "data": "http://www.ci.berkeley.ca.us/uploadedFiles/IT/GIS/No-Parcels.zip",
     "website": "http://www.ci.berkeley.ca.us/datacatalog/",
-    "type": "http",
+    "protocol": "http",
     "compression": "zip",
     "note": "Metadata at http://www.ci.berkeley.ca.us/uploadedFiles/IT/GIS/Parcels.shp(1).xml"
 }
