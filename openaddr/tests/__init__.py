@@ -953,28 +953,6 @@ class TestOA (unittest.TestCase):
 
         self.assertEqual(len(sample_data), 6)
 
-    def test_single_utah_deprecated_type(self):
-        ''' Test complete process_one.process on data that uses file selection with mixed case (issue #104)
-        '''
-        source = join(self.src_dir, 'us-ut-deprecated-type.json')
-
-        with mock.patch('openaddr.util.request_ftp_file', new=self.response_content_ftp):
-            state_path = process_one.process(source, self.testdir, False, False, False)
-
-        with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
-
-        self.assertIsNotNone(state['sample'])
-        self.assertIsNone(state['preview'])
-        self.assertIsNone(state['slippymap'])
-        self.assertIsNone(state['website'])
-        self.assertIsNone(state['license'])
-
-        with open(join(dirname(state_path), state['sample'])) as file:
-            sample_data = json.load(file)
-
-        self.assertEqual(len(sample_data), 6)
-
     def test_single_iceland(self):
         ''' Test complete process_one.process.
         '''
@@ -1194,49 +1172,6 @@ class TestOA (unittest.TestCase):
             self.assertEqual(rows[11]['STREET'], u'W 28TH DIVISION HWY')
             self.assertEqual(rows[21]['STREET'], u'W 28TH DIVISION HWY')
 
-    def test_single_pa_lancaster_deprecated_type(self):
-        ''' Test complete process_one.process on data with ESRI multiPolyline geometries.
-        '''
-        source = join(self.src_dir, 'us/pa/lancaster-deprecated-type.json')
-
-        with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False, False, False)
-
-        with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
-
-        self.assertIsNotNone(state['sample'])
-        self.assertIsNone(state['preview'])
-        self.assertIsNone(state['slippymap'])
-
-        with open(join(dirname(state_path), state['sample'])) as file:
-            sample_data = json.load(file)
-
-        self.assertEqual(len(sample_data), 6)
-        self.assertIn('OA:geom', sample_data[0])
-        self.assertIn('UNITNUM', sample_data[0])
-        self.assertEqual('423', sample_data[1][0])
-        self.assertEqual(['W', ' ', '28TH DIVISION', 'HWY'], sample_data[1][1:5])
-        self.assertEqual('1', sample_data[1][6])
-        self.assertEqual('2', sample_data[2][6])
-        self.assertEqual('3', sample_data[3][6])
-        self.assertEqual('4', sample_data[4][6])
-        self.assertEqual('5', sample_data[5][6])
-
-        output_path = join(dirname(state_path), state['processed'])
-
-        with open(output_path, encoding='utf8') as input:
-            rows = list(csv.DictReader(input))
-            self.assertEqual(rows[1]['UNIT'], u'2')
-            self.assertEqual(rows[11]['UNIT'], u'11')
-            self.assertEqual(rows[21]['UNIT'], u'')
-            self.assertEqual(rows[1]['NUMBER'], u'423')
-            self.assertEqual(rows[11]['NUMBER'], u'423')
-            self.assertEqual(rows[21]['NUMBER'], u'7')
-            self.assertEqual(rows[1]['STREET'], u'W 28TH DIVISION HWY')
-            self.assertEqual(rows[11]['STREET'], u'W 28TH DIVISION HWY')
-            self.assertEqual(rows[21]['STREET'], u'W 28TH DIVISION HWY')
-
     def test_single_ua_kharkiv(self):
         ''' Test complete process_one.process on data with ESRI multiPolyline geometries.
         '''
@@ -1264,50 +1199,6 @@ class TestOA (unittest.TestCase):
         ''' Test complete process_one.process on data with ESRI multiPolyline geometries.
         '''
         source = join(self.src_dir, 'us/pa/bucks.json')
-
-        with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False, False, False)
-
-        with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
-
-        self.assertIsNotNone(state['sample'])
-        self.assertIsNone(state['preview'])
-        self.assertIsNone(state['slippymap'])
-
-        with open(join(dirname(state_path), state['sample'])) as file:
-            sample_data = json.load(file)
-            row1 = dict(zip(sample_data[0], sample_data[1]))
-            row2 = dict(zip(sample_data[0], sample_data[2]))
-
-        self.assertEqual(len(sample_data), 6)
-        self.assertIn('SITUS_ADDR_NUM', sample_data[0])
-        self.assertIn('MUNI', sample_data[0])
-        self.assertEqual('', row1['SITUS_ADDR_NUM'])
-        self.assertEqual('STATE', row1['SITUS_FNAME'])
-        self.assertEqual('RD', row1['SITUS_FTYPE'])
-        self.assertEqual('', row2['SITUS_ADDR_NUM'])
-        self.assertEqual('STATE', row2['SITUS_FNAME'])
-        self.assertEqual('RD', row2['SITUS_FTYPE'])
-
-        output_path = join(dirname(state_path), state['processed'])
-
-        with open(output_path, encoding='utf8') as input:
-            rows = list(csv.DictReader(input))
-            self.assertEqual(rows[1]['UNIT'], u'')
-            self.assertEqual(rows[10]['UNIT'], u'')
-            self.assertEqual(rows[20]['UNIT'], u'')
-            self.assertEqual(rows[1]['NUMBER'], u'')
-            self.assertEqual(rows[10]['NUMBER'], u'')
-            self.assertEqual(rows[20]['NUMBER'], u'429')
-            self.assertEqual(rows[1]['STREET'], u'STATE RD')
-            self.assertEqual(rows[10]['STREET'], u'STATE RD')
-            self.assertEqual(rows[20]['STREET'], u'WALNUT AVE E')
-
-    def test_single_pa_bucks_deprecated_type(self):
-        ''' Test complete process_one.process on data with ESRI multiPolyline geometries.
-        '''
-        source = join(self.src_dir, 'us/pa/bucks-deprecated-type.json')
 
         with HTTMock(self.response_content):
             state_path = process_one.process(source, self.testdir, False, False, False)
@@ -1535,78 +1426,10 @@ class TestOA (unittest.TestCase):
             self.assertEqual(sample_datum[9], row['NUMBER'])
             self.assertEqual(sample_datum[13], row['STREET'])
 
-    def test_single_de_berlin_deprecated_type(self):
-        ''' Test complete process_one.process on data.
-        '''
-        source = join(self.src_dir, 'de/berlin-deprecated-type.json')
-
-        with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False, False, False)
-
-        with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
-
-        output_path = join(dirname(state_path), state['processed'])
-
-        with open(output_path, encoding='utf8') as input:
-            rows = list(csv.DictReader(input))
-            self.assertEqual(rows[0]['NUMBER'], u'72')
-            self.assertEqual(rows[1]['NUMBER'], u'3')
-            self.assertEqual(rows[2]['NUMBER'], u'75')
-            self.assertEqual(rows[0]['STREET'], u'Otto-Braun-Stra\xdfe')
-            self.assertEqual(rows[1]['STREET'], u'Dorotheenstra\xdfe')
-            self.assertEqual(rows[2]['STREET'], u'Alte Jakobstra\xdfe')
-
-        self.assertIsNotNone(state['sample'])
-        self.assertIsNone(state['preview'])
-        self.assertIsNone(state['slippymap'])
-
-        with open(join(dirname(state_path), state['sample'])) as file:
-            sample_data = json.load(file)
-
-        self.assertEqual(len(sample_data), 6)
-
-        for (sample_datum, row) in zip(sample_data[1:], rows[0:]):
-            self.assertEqual(sample_datum[9], row['NUMBER'])
-            self.assertEqual(sample_datum[13], row['STREET'])
-
     def test_single_us_or_portland(self):
         ''' Test complete process_one.process on data.
         '''
         source = join(self.src_dir, 'us/or/portland.json')
-
-        with mock.patch('openaddr.util.request_ftp_file', new=self.response_content_ftp):
-            state_path = process_one.process(source, self.testdir, False, False, False)
-
-        with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
-
-        output_path = join(dirname(state_path), state['processed'])
-
-        with open(output_path, encoding='utf8') as input:
-            rows = list(csv.DictReader(input))
-            self.assertEqual(len(rows), 12)
-            self.assertEqual(rows[2]['NUMBER'], u'1')
-            self.assertEqual(rows[3]['NUMBER'], u'10')
-            self.assertEqual(rows[-2]['NUMBER'], u'2211')
-            self.assertEqual(rows[-1]['NUMBER'], u'2211')
-            self.assertEqual(rows[2]['STREET'], u'SW RICHARDSON ST')
-            self.assertEqual(rows[3]['STREET'], u'SW PORTER ST')
-            self.assertEqual(rows[-2]['STREET'], u'SE OCHOCO ST')
-            self.assertEqual(rows[-1]['STREET'], u'SE OCHOCO ST')
-            self.assertTrue(bool(rows[2]['LAT']))
-            self.assertTrue(bool(rows[2]['LON']))
-            self.assertTrue(bool(rows[3]['LAT']))
-            self.assertTrue(bool(rows[3]['LON']))
-            self.assertFalse(bool(rows[-2]['LAT']))
-            self.assertFalse(bool(rows[-2]['LON']))
-            self.assertTrue(bool(rows[-1]['LAT']))
-            self.assertTrue(bool(rows[-1]['LON']))
-
-    def test_single_us_or_portland_deprecated_type(self):
-        ''' Test complete process_one.process on data.
-        '''
-        source = join(self.src_dir, 'us/or/portland-deprecated-type.json')
 
         with mock.patch('openaddr.util.request_ftp_file', new=self.response_content_ftp):
             state_path = process_one.process(source, self.testdir, False, False, False)
@@ -1727,35 +1550,6 @@ class TestOA (unittest.TestCase):
         ''' Test complete process_one.process on data.
         '''
         source = join(self.src_dir, 'us/nj/statewide.json')
-
-        with HTTMock(self.response_content):
-            state_path = process_one.process(source, self.testdir, False, False, False)
-
-        with open(state_path) as file:
-            state = dict(zip(*json.load(file)))
-
-        output_path = join(dirname(state_path), state['processed'])
-
-        with open(output_path, encoding='utf8') as input:
-            rows = list(csv.DictReader(input))
-            self.assertEqual(len(rows), 1045)
-            self.assertEqual(rows[0]['NUMBER'], u'7')
-            self.assertEqual(rows[0]['STREET'], u'Sagamore Avenue')
-            self.assertEqual(rows[1]['NUMBER'], u'29')
-            self.assertEqual(rows[1]['STREET'], u'Sagamore Avenue')
-            self.assertEqual(rows[2]['NUMBER'], u'47')
-            self.assertEqual(rows[2]['STREET'], u'Seneca Place')
-            self.assertAlmostEqual(float(rows[0]['LON']), -74.0012016, places=5)
-            self.assertAlmostEqual(float(rows[0]['LAT']),  40.3201199, places=5)
-            self.assertAlmostEqual(float(rows[1]['LON']), -74.0027904, places=5)
-            self.assertAlmostEqual(float(rows[1]['LAT']),  40.3203365, places=5)
-            self.assertAlmostEqual(float(rows[2]['LON']), -74.0011386, places=5)
-            self.assertAlmostEqual(float(rows[2]['LAT']),  40.3166497, places=5)
-
-    def test_single_us_nj_statewide_deprecated_type(self):
-        ''' Test complete process_one.process on data.
-        '''
-        source = join(self.src_dir, 'us/nj/statewide-deprecated-type.json')
 
         with HTTMock(self.response_content):
             state_path = process_one.process(source, self.testdir, False, False, False)
