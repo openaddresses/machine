@@ -1,3 +1,6 @@
+2019-02-13: 7.0.0
+- Removed support for "type" source tags. (#719)
+
 2019-01-16: 6.10.0
 - Added support for "protocol" and "format" source tags. (#716)
 

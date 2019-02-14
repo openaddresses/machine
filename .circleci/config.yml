@@ -63,17 +63,17 @@ workflows:
       - Build:
           filters:
             branches:
-              only: 6.x
+              only: 7.x
       - Package:
           requires:
             - Build
             - Test
           filters:
             branches:
-              only: 6.x
+              only: 7.x
       - Deploy:
           requires:
             - Package
           filters:
             branches:
-              only: 6.x
+              only: 7.x
