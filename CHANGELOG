@@ -1,3 +1,6 @@
+2019-02-13: 7.0.1
+- Fixed incorrect Docker base machine.
+
 2019-02-13: 7.0.0
 - Removed support for "type" source tags. (#719)
 
