@@ -94,8 +94,7 @@ def cache(data_source_name, data_source, destdir, extras):
     if not isinstance(source_urls, list):
         source_urls = [source_urls]
 
-    # TODO: "type" is a deprecated tag
-    protocol_string = data_source.get('protocol') or data_source.get('type')
+    protocol_string = data_source.get('protocol')
 
     task = DownloadTask.from_protocol_string(protocol_string, data_source_name)
     downloaded_files = task.download(source_urls, workdir, data_source.get('conform'))

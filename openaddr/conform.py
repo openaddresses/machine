@@ -334,8 +334,7 @@ class ExcerptDataTask(object):
         if data_ext in ('.geojson', '.json'):
             data_path = ExcerptDataTask._sample_geojson_file(data_path)
 
-        # TODO: "type" is a deprecated tag
-        format_string = conform.get('format') or conform.get('type')
+        format_string = conform.get('format')
     
         # GDAL has issues with weird input CSV data, so use Python instead.
         if format_string == 'csv':
@@ -380,8 +379,7 @@ class ExcerptDataTask(object):
 
     @staticmethod
     def _get_known_paths(source_paths, workdir, conform, known_types):
-        # TODO: "type" is a deprecated tag
-        format_string = conform.get('format') or conform.get('type')
+        format_string = conform.get('format')
     
         if format_string != 'csv' or 'file' not in conform:
             paths = [source_path for source_path in source_paths
@@ -482,9 +480,8 @@ def find_source_path(source_definition, source_paths):
         _L.warning('Source is missing a conform object')
         raise
 
-    # TODO: "type" is a deprecated tag
-    format_string = conform.get('format') or conform.get('type')
-    protocol_string = source_definition.get('protocol') or source_definition.get('type')
+    format_string = conform.get('format')
+    protocol_string = source_definition.get('protocol')
     
     if format_string in ("shapefile", "shapefile-polygon"):
         # TODO this code is too complicated; see XML variant below for simpler option
@@ -802,8 +799,7 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
         reader = csv.DictReader(source_fp, delimiter=delim, fieldnames=in_fieldnames)
         num_fields = len(reader.fieldnames)
 
-        # TODO: "type" is a deprecated tag
-        protocol_string = source_definition.get('protocol') or source_definition['type']
+        protocol_string = source_definition['protocol']
     
         # Construct headers for the extracted CSV file
         if protocol_string == "ESRI":
@@ -880,9 +876,8 @@ def _transform_to_4326(srs):
 def row_extract_and_reproject(source_definition, source_row):
     ''' Find lat/lon in source CSV data and store it in ESPG:4326 in X/Y in the row
     '''
-    # TODO: "type" is a deprecated tag
-    format_string = source_definition["conform"].get('format') or source_definition["conform"].get('type')
-    protocol_string = source_definition.get('protocol') or source_definition['type']
+    format_string = source_definition["conform"].get('format')
+    protocol_string = source_definition['protocol']
     
     # Ignore any lat/lon names for natively geographic sources.
     ignore_conform_names = bool(format_string != 'csv')
@@ -1268,9 +1263,8 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     The extracted file will be in UTF-8 and will have X and Y columns corresponding
     to longitude and latitude in EPSG:4326.
     """
-    # TODO: "type" is a deprecated tag
-    format_string = source_definition["conform"].get('format') or source_definition["conform"]['type']
-    protocol_string = source_definition.get('protocol') or source_definition['type']
+    format_string = source_definition["conform"]['format']
+    protocol_string = source_definition['protocol']
     
     if format_string in ("shapefile", "shapefile-polygon", "xml", "gdb"):
         ogr_source_path = normalize_ogr_filename_case(source_path)
@@ -1318,8 +1312,7 @@ def conform_cli(source_definition, source_path, dest_path):
     if "conform" not in source_definition:
         return 1
 
-    # TODO: "type" is a deprecated tag
-    format_string = source_definition["conform"].get('format') or source_definition["conform"].get('type')
+    format_string = source_definition["conform"].get('format')
     
     if not format_string in ["shapefile", "shapefile-polygon", "geojson", "csv", "xml", "gdb"]:
         _L.warning("Skipping file with unknown conform: %s", source_path)
