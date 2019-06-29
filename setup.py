@@ -89,7 +89,7 @@ setup(
         'psycopg2 == 2.7.3.2',
         
         # http://docs.python-requests.org/en/master/
-        'requests == 2.11.1',
+        'requests == 2.20.0',
 
         # https://github.com/patrys/httmock
         'httmock == 1.2.5',
