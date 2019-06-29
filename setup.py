@@ -60,40 +60,40 @@ setup(
     test_suite = 'openaddr.tests',
     install_requires = [
         'boto == 2.43.0', 'dateutils == 0.6.6', 'ijson == 2.3',
-        
+
         # http://jinja.pocoo.org/docs/2.10/
         'Jinja2 == 2.10.1',
 
         # http://flask.pocoo.org
         'Flask == 1.0.2',
-        
+
         # http://flask-cors.corydolphin.com
         'Flask-Cors == 3.0.2',
-        
+
         # https://www.palletsproject.com/projects/werkzeug/
         'Werkzeug == 0.15.4',
-        
+
         # http://gunicorn.org
         'gunicorn == 19.6.0',
 
         # http://www.voidspace.org.uk/python/mock/
-        'mock == 2.0.0',
+        'mock == 3.0.5',
 
         # https://github.com/uri-templates/uritemplate-py/
-        'uritemplate == 0.6',
-        
+        'uritemplate == 3.0.0',
+
         # https://github.com/malthe/pq/
         'pq == 1.7.0',
-        
+
         # http://initd.org/psycopg/
         'psycopg2 == 2.8.3',
-        
+
         # http://docs.python-requests.org/en/master/
         'requests == 2.20.0',
 
         # https://github.com/patrys/httmock
         'httmock == 1.2.5',
-        
+
         # https://boto3.readthedocs.org
         'boto3 == 1.9.180',
 
