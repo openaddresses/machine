@@ -1,5 +1,5 @@
 machine:
-  image: openaddr/machine:6
+  image: openaddr/machine:7
   environment:
     - DATABASE_URL=postgresql://openaddr:openaddr@postgres/openaddr
   links:
