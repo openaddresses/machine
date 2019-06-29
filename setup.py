@@ -61,17 +61,17 @@ setup(
     install_requires = [
         'boto == 2.43.0', 'dateutils == 0.6.6', 'ijson == 2.3',
         
-        # Honcho (imported for worker) requires Jinja2 < 2.8.
-        'Jinja2 == 2.7.3',
+        # http://jinja.pocoo.org/docs/2.10/
+        'Jinja2 == 2.10.1',
 
         # http://flask.pocoo.org
-        'Flask == 0.12.3',
+        'Flask == 1.0.2',
         
         # http://flask-cors.corydolphin.com
         'Flask-Cors == 3.0.2',
         
         # https://www.palletsproject.com/projects/werkzeug/
-        'Werkzeug == 0.11.11',
+        'Werkzeug == 0.15.4',
         
         # http://gunicorn.org
         'gunicorn == 19.6.0',
@@ -83,10 +83,10 @@ setup(
         'uritemplate == 0.6',
         
         # https://github.com/malthe/pq/
-        'pq == 1.4',
+        'pq == 1.7.0',
         
         # http://initd.org/psycopg/
-        'psycopg2 == 2.7.3.2',
+        'psycopg2 == 2.8.3',
         
         # http://docs.python-requests.org/en/master/
         'requests == 2.20.0',
@@ -95,17 +95,17 @@ setup(
         'httmock == 1.2.5',
         
         # https://boto3.readthedocs.org
-        'boto3 == 1.4.4',
+        'boto3 == 1.9.180',
 
         # https://github.com/openaddresses/pyesridump
-        'esridump == 1.6.0',
+        'esridump == 1.8.0',
 
         # Used in openaddr.parcels
         'Shapely == 1.5.17',
         'Fiona == 1.7.0.post2',
 
         # http://pythonhosted.org/itsdangerous/
-        'itsdangerous == 0.24',
+        'itsdangerous == 1.1.0',
 
         # https://pypi.python.org/pypi/python-memcached
         'python-memcached == 1.59',
