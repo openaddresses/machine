@@ -7,7 +7,7 @@ machine:
   volumes:
     - .:/vol
 postgres:
-  image: mdillon/postgis:9.3
+  image: mdillon/postgis:9.5
   environment:
     - POSTGRES_USER=openaddr
     - POSTGRES_PASSWORD=openaddr
