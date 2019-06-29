@@ -84,7 +84,7 @@ CREATE TABLE zips
 
 CREATE INDEX runs_set_ids ON runs (set_id);
 CREATE INDEX runs_source_paths ON runs (source_path);
-CREATE INDEX runs_for_index_page ON runs (for_index_page);
+CREATE INDEX runs_for_index_page ON runs (id) WHERE for_index_page;
 
 CREATE TABLE heartbeats
 (
