@@ -65,7 +65,7 @@ setup(
         'Jinja2 == 2.7.3',
 
         # http://flask.pocoo.org
-        'Flask == 0.11.1',
+        'Flask == 0.12.3',
         
         # http://flask-cors.corydolphin.com
         'Flask-Cors == 3.0.2',
