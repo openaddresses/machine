@@ -59,7 +59,7 @@ setup(
     },
     test_suite = 'openaddr.tests',
     install_requires = [
-        'boto == 2.43.0', 'dateutils == 0.6.6', 'ijson == 2.3',
+        'boto == 2.43.0', 'dateutils == 0.6.6', 'ijson == 2.4',
 
         # http://jinja.pocoo.org/docs/2.10/
         'Jinja2 == 2.10.1',
@@ -68,7 +68,7 @@ setup(
         'Flask == 1.0.2',
 
         # http://flask-cors.corydolphin.com
-        'Flask-Cors == 3.0.2',
+        'Flask-Cors == 3.0.7',
 
         # https://www.palletsproject.com/projects/werkzeug/
         'Werkzeug == 0.15.4',
@@ -92,7 +92,7 @@ setup(
         'requests == 2.20.0',
 
         # https://github.com/patrys/httmock
-        'httmock == 1.2.5',
+        'httmock == 1.3.0',
 
         # https://boto3.readthedocs.org
         'boto3 == 1.9.180',
