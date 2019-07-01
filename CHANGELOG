@@ -1,3 +1,7 @@
+2019-06-30: 7.0.2
+- Added new index to runs table for performance.
+- Updated selected Python package dependencies.
+
 2019-02-13: 7.0.1
 - Fixed incorrect Docker base machine.
 
