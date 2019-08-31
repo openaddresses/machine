@@ -889,9 +889,9 @@ class TestAPI (unittest.TestCase):
         self.assertEqual(index['tileindex_url'], 'http://localhost/tiles/{lon}/{lat}.zip')
         self.assertEqual(index['latest_set_url'], 'http://localhost/sets/2.json')
 
-        self.assertEqual(colls['global']['']['url'], 'http://data.openaddresses.io/openaddr-collected-global.zip')
-        self.assertEqual(colls['global']['sa']['url'], 'http://data.openaddresses.io/openaddr-collected-global-sa.zip')
-        self.assertEqual(colls['us_west']['']['url'], 'http://data.openaddresses.io/openaddr-collected-us_west.zip')
+        self.assertEqual(colls['global']['']['url'], 'https://data.openaddresses.io/openaddr-collected-global.zip')
+        self.assertEqual(colls['global']['sa']['url'], 'https://data.openaddresses.io/openaddr-collected-global-sa.zip')
+        self.assertEqual(colls['us_west']['']['url'], 'https://data.openaddresses.io/openaddr-collected-us_west.zip')
         self.assertEqual(colls['global']['']['content_length'], 1234)
         self.assertEqual(colls['global']['sa']['content_length'], 2345)
         self.assertEqual(colls['us_west']['']['content_length'], 3456)
@@ -901,10 +901,10 @@ class TestAPI (unittest.TestCase):
         self.assertNotIn('sa', colls['us_west'])
         self.assertNotIn('europe', colls)
 
-        self.assertEqual(index['render_world_url'], 'http://data.openaddresses.io/render-world.png')
-        self.assertEqual(index['render_europe_url'], 'http://data.openaddresses.io/render-europe.png')
-        self.assertEqual(index['render_usa_url'], 'http://data.openaddresses.io/render-usa.png')
-        self.assertEqual(index['render_geojson_url'], 'http://data.openaddresses.io/render-world.geojson')
+        self.assertEqual(index['render_world_url'], 'https://data.openaddresses.io/render-world.png')
+        self.assertEqual(index['render_europe_url'], 'https://data.openaddresses.io/render-europe.png')
+        self.assertEqual(index['render_usa_url'], 'https://data.openaddresses.io/render-usa.png')
+        self.assertEqual(index['render_geojson_url'], 'https://data.openaddresses.io/render-world.geojson')
 
     def test_latest_licenses(self):
         '''
