@@ -13,7 +13,7 @@
     {% else %}
         {% set status_phrase = 'is in progress' %}
     {% endif %}
-    
+
     This job {{ status_phrase }}:
 </p>
 
@@ -36,22 +36,22 @@
         </td>
         <td>
         {% if file_runstate and file_runstate.output %}
-            <a href="{{ file_runstate.output }}">log</a>
+            <a href="{{ file_runstate.output|nice_domain }}">log</a>
         {% endif %}
         </td>
         <td>
         {% if file_runstate and file_runstate.sample %}
-            <a href="{{ file_runstate.sample }}">sample</a>
+            <a href="{{ file_runstate.sample|nice_domain }}">sample</a>
         {% endif %}
         </td>
         <td>
         {% if file_runstate and file_runstate.processed %}
-            <a href="{{ file_runstate.processed }}">data</a>
+            <a href="{{ file_runstate.processed|nice_domain }}">data</a>
         {% endif %}
         </td>
         <td>
         {% if file_runstate and file_runstate.preview %}
-            <a href="{{ file_runstate.preview }}">image preview</a>
+            <a href="{{ file_runstate.preview|nice_domain }}">image preview</a>
         {% endif %}
         </td>
         {% if dotmaps_base_url %}
