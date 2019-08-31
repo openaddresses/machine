@@ -36,7 +36,7 @@ def prepare_db_kwargs(dsn):
 
     if 'sslmode' in q:
         kwargs.update(dict(sslmode=q['sslmode']))
-    
+
     return kwargs
 
 def set_autoscale_capacity(autoscale, cloudwatch, cloudwatch_ns, capacity):
@@ -50,10 +50,10 @@ def set_autoscale_capacity(autoscale, cloudwatch, cloudwatch_ns, capacity):
 
     group_name = 'CI Workers {0}.x'.format(*get_version().split('.'))
     (group, ) = autoscale.get_all_groups([group_name])
-    
+
     if group.desired_capacity >= capacity:
         return
-    
+
     if measure['Maximum'] > .9:
         group.set_capacity(capacity)
 
@@ -63,9 +63,9 @@ def package_output(source, processed_path, website, license):
     _, ext = splitext(processed_path)
     handle, zip_path = mkstemp(prefix='util-package_output-', suffix='.zip')
     close(handle)
-    
+
     zip_file = zipfile.ZipFile(zip_path, mode='w', compression=zipfile.ZIP_DEFLATED)
-    
+
     template = join(dirname(__file__), 'templates', 'README.txt')
     with io.open(template, encoding='utf8') as file:
         content = file.read().format(website=website, license=license, date=date.today())
@@ -78,10 +78,10 @@ def package_output(source, processed_path, website, license):
         with io.open(template, encoding='utf8') as file:
             content = file.read().format(source=basename(source))
             zip_file.writestr(source + '.vrt', content.encode('utf8'))
-    
+
     zip_file.write(processed_path, source + ext)
     zip_file.close()
-    
+
     return zip_path
 
 def summarize_result_licenses(results):
@@ -89,7 +89,7 @@ def summarize_result_licenses(results):
     '''
     template = u'{source}\nWebsite: {website}\nLicense: {license}\nRequired attribution: {attribution}\n'
     license_lines = [u'Data collected by OpenAddresses (http://openaddresses.io).\n']
-    
+
     for result in sorted(results, key=attrgetter('source_base')):
         attribution = 'No'
         if result.run_state.attribution_flag != 'false':
@@ -118,11 +118,11 @@ def request_ftp_file(url):
     '''
     _L.info('Getting {} via FTP'.format(url))
     parsed = urlparse(url)
-    
+
     try:
         ftp = ftplib.FTP(parsed.hostname)
         ftp.login(parsed.username, parsed.password)
-    
+
         file, callback = build_request_ftp_file_callback()
         ftp.retrbinary('RETR {}'.format(parsed.path), callback)
         file.seek(0)
@@ -138,14 +138,14 @@ def s3_key_url(key):
     '''
     base = u'https://s3.amazonaws.com'
     path = join(key.bucket.name, key.name.lstrip('/'))
-    
+
     return urljoin(base, path)
 
 def get_pidlist(start_pid):
     ''' Return a set of recursively-found child PIDs of the given start PID.
     '''
     children = collections.defaultdict(set)
-    
+
     for path in glob.glob('/proc/*/status'):
         _, _, pid, _ = path.split('/', 3)
         if pid in ('thread-self', 'self'):
@@ -156,52 +156,52 @@ def get_pidlist(start_pid):
                     ppid = line[6:].strip()
                     break
             children[int(ppid)].add(int(pid))
-    
+
     parents, pids = [start_pid], set()
-    
+
     while parents:
         parent = parents.pop(0)
         pids.add(parent)
         parents.extend(children[parent])
-    
+
     return pids
 
 def get_cpu_times(pidlist):
     ''' Return Linux CPU usage times in jiffies.
-    
+
         See http://stackoverflow.com/questions/1420426/how-to-calculate-the-cpu-usage-of-a-process-by-pid-in-linux-from-c
     '''
     if not exists('/proc/stat') or not exists('/proc/self/stat'):
         return None, None, None
-    
+
     with open('/proc/stat') as file:
         stat = re.split(r'\s+', next(file).strip())
         time_total = sum([int(s) for s in stat[1:]])
 
     utime, stime = 0, 0
-    
+
     for pid in pidlist:
         with open('/proc/{}/stat'.format(pid)) as file:
             stat = next(file).strip().split(' ')
             utime += int(stat[13])
             stime += int(stat[14])
-    
+
     return time_total, utime, stime
 
 def get_diskio_bytes(pidlist):
     ''' Return bytes read and written.
-    
+
         This will measure all bytes read in the process, and so includes
         reading in shared libraries, etc; not just our productive data
         processing activity.
-    
+
         See http://stackoverflow.com/questions/3633286/understanding-the-counters-in-proc-pid-io
     '''
     if not exists('/proc/self/io'):
         return None, None
-    
+
     read_bytes, write_bytes = 0, 0
-    
+
     for pid in pidlist:
         with open('/proc/{}/io'.format(pid)) as file:
             for line in file:
@@ -210,20 +210,20 @@ def get_diskio_bytes(pidlist):
                     read_bytes += int(bytes[1])
                 if 'write_bytes' in bytes:
                     write_bytes += int(bytes[1])
-    
+
     return read_bytes, write_bytes
 
 def get_network_bytes():
     ''' Return bytes sent and received.
-        
+
         TODO: This code measures network usage for the whole system.
         It'll be better to do this measurement on a per-process basis later.
     '''
     if not exists('/proc/net/netstat'):
         return None, None
-    
+
     sent_bytes, recv_bytes = None, None
-    
+
     with open('/proc/net/netstat') as file:
         for line in file:
             columns = line.strip().split()
@@ -231,23 +231,23 @@ def get_network_bytes():
                 values = next(file).strip().split()
                 netstat = {k: int(v) for (k, v) in zip(columns[1:], values[1:])}
                 sent_bytes, recv_bytes = netstat['OutOctets'], netstat['InOctets']
-    
+
     return sent_bytes, recv_bytes
 
 def get_memory_usage(pidlist):
     ''' Return Linux memory usage in megabytes.
-        
+
         VMRSS is of interest here too; that's resident memory size.
         It will matter if a machine runs out of RAM.
-    
+
         See http://stackoverflow.com/questions/30869297/difference-between-memfree-and-memavailable
         and http://stackoverflow.com/questions/131303/how-to-measure-actual-memory-usage-of-an-application-or-process
     '''
     if not exists('/proc/self/status'):
         return None
-    
+
     megabytes = 0
-    
+
     for pid in pidlist:
         with open('/proc/{}/status'.format(pid)) as file:
             for line in file:
@@ -255,7 +255,7 @@ def get_memory_usage(pidlist):
                     size = re.split(r'\s+', line.strip())
                     megabytes += int(size[1]) / 1024
                     break
-    
+
     return megabytes
 
 def log_current_usage(start_time, usercpu_prev, syscpu_prev, totcpu_prev, read_prev, written_prev, sent_prev, received_prev, time_prev):

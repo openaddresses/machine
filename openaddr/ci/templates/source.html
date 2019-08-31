@@ -5,19 +5,19 @@
 <style lang="text/css">
 
     #source { border-collapse: collapse }
-    
+
     #source tr th
     {
         font-size: 65%;
     }
-    
+
     #source tr th, #source tr td
     {
         text-align: left;
         padding: 3px 10px;
         border: none;
     }
-    
+
     /*
     #source tr td>a
     {
@@ -27,7 +27,7 @@
         text-decoration: underline;
     }
     */
-    
+
     #source tr td small>a,
     #source tr td.sample>a
     {
@@ -35,12 +35,12 @@
         margin: 0;
         padding: 0;
     }
-    
+
     #source tr td.name>a
     {
         text-decoration: none;
     }
-    
+
     #source tr:nth-child(2n+0) td { background-color: #f8f8f8 }
     #source tr:nth-child(2n+1) td { background-color: #ffffff }
 
@@ -56,7 +56,7 @@
         line-height: 1.5em;
         padding: 1px 10px;
     }
-    
+
    /*
     * Progressively show additional sample data columns.
     */
@@ -96,7 +96,7 @@
             display: table-cell
         }
     }
-    
+
     @media (min-width: 640px)
     {
         #source tr th.cached,
@@ -105,7 +105,7 @@
             display: table-cell
         }
     }
-    
+
     @media (min-width: 960px)
     {
         #source tr th.source,
@@ -123,7 +123,7 @@
 
 {% if run.state.processed %}
 <p>
-    <a href="{{ run.state.processed }}">
+    <a href="{{ run.state.processed | nice_url }}">
     {{ run.state.address_count|nice_integer }} addresses
     downloaded {{ run.datetime_tz.strftime('%b %d %Y') }}
     </a>
@@ -161,30 +161,30 @@
             {{ run.state.address_count|nice_integer }}
           {% elif run.state.source_problem %}
             <small>{{ run.state.source_problem }}
-            ( <a href="{{ run.state.output }}">log</a> )</small>
+            ( <a href="{{ run.state.output | nice_url }}">log</a> )</small>
           {% else %}
             <small>Unknown problem
-            ( <a href="{{ run.state.output }}">log</a> )</small>
+            ( <a href="{{ run.state.output | nice_url }}">log</a> )</small>
           {% endif %}
         </td>
         <td class="datetimelog">
-        <a href="{{ run.state.output }}">{{ run.datetime_tz.strftime('%Y-%m-%d') }}</a>
+        <a href="{{ run.state.output | nice_url }}">{{ run.datetime_tz.strftime('%Y-%m-%d') }}</a>
         </td>
         <td class="processed">
         {% if run.state.process_hash %}
-            <a href="{{ run.state.processed }}"><tt>{{ run.state.process_hash[:7] }}</tt></a>
+            <a href="{{ run.state.processed | nice_url }}"><tt>{{ run.state.process_hash[:7] }}</tt></a>
             <small>({{ run.state.process_time.split('.')[0] }})</small>
         {% elif run.state.processed %}
-            <a href="{{ run.state.processed }}">zip</a>
+            <a href="{{ run.state.processed | nice_url }}">zip</a>
             <small>({{ run.state.process_time.split('.')[0] }})</small>
         {% endif %}
         </td>
         <td class="cached">
         {% if run.state.fingerprint %}
-            <a href="{{ run.state.cache }}"><tt>{{ run.state.fingerprint[:7] }}</tt></a>
+            <a href="{{ run.state.cache | nice_url }}"><tt>{{ run.state.fingerprint[:7] }}</tt></a>
             <small>({{ run.state.cache_time.split('.')[0] }})</small>
         {% elif run.state.cache %}
-            <a href="{{ run.state.cache }}">cache</a>
+            <a href="{{ run.state.cache | nice_url }}">cache</a>
             <small>({{ run.state.cache_time.split('.')[0] }})</small>
         {% endif %}
         </td>

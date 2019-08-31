@@ -29,7 +29,7 @@ More information about Machine’s output can be seen by following the Details l
 Machine also runs its own weekly batch process to generate the downloadable
 files, maps, and other resources available via [results.openaddresses.io](https://results.openaddresses.io).
 
-![OpenAddresses worldwide coverage map](https://s3.amazonaws.com/data.openaddresses.io/render-world.png)
+![OpenAddresses worldwide coverage map](https://data.openaddresses.io/render-world.png)
 
 Development
 -----------
