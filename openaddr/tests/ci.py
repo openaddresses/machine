@@ -2273,15 +2273,15 @@ class TestHook (unittest.TestCase):
 
         got1 = self.client.get('/latest/run/a1.zip')
         self.assertEqual(got1.status_code, 302)
-        self.assertEqual(got1.headers.get('Location'), 'http://data.openaddresses.io/runs/1/a1.zip')
+        self.assertEqual(got1.headers.get('Location'), 'https://data.openaddresses.io/runs/1/a1.zip')
 
         got2 = self.client.get('/latest/run/a2.zip')
         self.assertEqual(got2.status_code, 302)
-        self.assertEqual(got2.headers.get('Location'), 'http://data.openaddresses.io/runs/2/a2.zip')
+        self.assertEqual(got2.headers.get('Location'), 'https://data.openaddresses.io/runs/2/a2.zip')
 
         got3 = self.client.get('/latest/run/a3.zip')
         self.assertEqual(got3.status_code, 302)
-        self.assertEqual(got3.headers.get('Location'), 'http://data.openaddresses.io/runs/3/a3.zip')
+        self.assertEqual(got3.headers.get('Location'), 'https://data.openaddresses.io/runs/3/a3.zip')
 
         got4 = self.client.get('/latest/run/a4.zip')
         self.assertEqual(got4.status_code, 302)
