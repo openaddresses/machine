@@ -1012,10 +1012,10 @@ class TestAPI (unittest.TestCase):
         self.assertIn('datetime_start', data)
         self.assertIn('datetime_end', data)
 
-        self.assertEqual(data['render_world_url'], 'http://data.openaddresses.io/--/world.png')
-        self.assertEqual(data['render_europe_url'], 'http://data.openaddresses.io/--/europe.png')
-        self.assertEqual(data['render_usa_url'], 'http://data.openaddresses.io/--/usa.png')
-        self.assertEqual(data['render_geojson_url'], 'http://data.openaddresses.io/--/world.geojson')
+        self.assertEqual(data['render_world_url'], 'https://data.openaddresses.io/--/world.png')
+        self.assertEqual(data['render_europe_url'], 'https://data.openaddresses.io/--/europe.png')
+        self.assertEqual(data['render_usa_url'], 'https://data.openaddresses.io/--/usa.png')
+        self.assertEqual(data['render_geojson_url'], 'https://data.openaddresses.io/--/world.geojson')
 
     def test_tile_redirects(self):
         '''
