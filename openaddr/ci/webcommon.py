@@ -33,7 +33,7 @@ def monitor_execution_time(route_function):
         ns = os.environ.get('AWS_CLOUDWATCH_NS')
     except:
         cw = False
-    
+
     @wraps(route_function)
     def decorated_function(*args, **kwargs):
         start_time = time.time()
@@ -59,12 +59,12 @@ def nice_domain(url):
     _ = None
 
     if parsed.hostname == u'data.openaddresses.io':
-        return urlunparse((u'http', parsed.hostname, parsed.path, _, _, _))
+        return urlunparse((u'https', parsed.hostname, parsed.path, _, _, _))
 
     if parsed.hostname == u's3.amazonaws.com' and parsed.path.startswith(u'/data.openaddresses.io/'):
-        return urlunparse((u'http', u'data.openaddresses.io', parsed.path[22:], _, _, _))
+        return urlunparse((u'https', u'data.openaddresses.io', parsed.path[22:], _, _, _))
 
     if parsed.hostname == u'data.openaddresses.io.s3.amazonaws.com':
-        return urlunparse((u'http', u'data.openaddresses.io', parsed.path, _, _, _))
+        return urlunparse((u'https', u'data.openaddresses.io', parsed.path, _, _, _))
 
     return url

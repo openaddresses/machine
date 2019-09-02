@@ -432,6 +432,7 @@ def apply_webhooks_blueprint(app):
         app.jinja_env.filters['nice_timedelta'] = nice_timedelta
         app.jinja_env.filters['breakstate'] = break_state
         app.jinja_env.filters['nice_size'] = nice_size
+        app.jinja_env.filters['nice_domain'] = nice_domain
 
         app.jinja_env.filters['slippymap_preview_url'] = slippymap_preview_url
 

@@ -889,9 +889,9 @@ class TestAPI (unittest.TestCase):
         self.assertEqual(index['tileindex_url'], 'http://localhost/tiles/{lon}/{lat}.zip')
         self.assertEqual(index['latest_set_url'], 'http://localhost/sets/2.json')
 
-        self.assertEqual(colls['global']['']['url'], 'http://data.openaddresses.io/openaddr-collected-global.zip')
-        self.assertEqual(colls['global']['sa']['url'], 'http://data.openaddresses.io/openaddr-collected-global-sa.zip')
-        self.assertEqual(colls['us_west']['']['url'], 'http://data.openaddresses.io/openaddr-collected-us_west.zip')
+        self.assertEqual(colls['global']['']['url'], 'https://data.openaddresses.io/openaddr-collected-global.zip')
+        self.assertEqual(colls['global']['sa']['url'], 'https://data.openaddresses.io/openaddr-collected-global-sa.zip')
+        self.assertEqual(colls['us_west']['']['url'], 'https://data.openaddresses.io/openaddr-collected-us_west.zip')
         self.assertEqual(colls['global']['']['content_length'], 1234)
         self.assertEqual(colls['global']['sa']['content_length'], 2345)
         self.assertEqual(colls['us_west']['']['content_length'], 3456)
@@ -901,10 +901,10 @@ class TestAPI (unittest.TestCase):
         self.assertNotIn('sa', colls['us_west'])
         self.assertNotIn('europe', colls)
 
-        self.assertEqual(index['render_world_url'], 'http://data.openaddresses.io/render-world.png')
-        self.assertEqual(index['render_europe_url'], 'http://data.openaddresses.io/render-europe.png')
-        self.assertEqual(index['render_usa_url'], 'http://data.openaddresses.io/render-usa.png')
-        self.assertEqual(index['render_geojson_url'], 'http://data.openaddresses.io/render-world.geojson')
+        self.assertEqual(index['render_world_url'], 'https://data.openaddresses.io/render-world.png')
+        self.assertEqual(index['render_europe_url'], 'https://data.openaddresses.io/render-europe.png')
+        self.assertEqual(index['render_usa_url'], 'https://data.openaddresses.io/render-usa.png')
+        self.assertEqual(index['render_geojson_url'], 'https://data.openaddresses.io/render-world.geojson')
 
     def test_latest_licenses(self):
         '''
@@ -1012,10 +1012,10 @@ class TestAPI (unittest.TestCase):
         self.assertIn('datetime_start', data)
         self.assertIn('datetime_end', data)
 
-        self.assertEqual(data['render_world_url'], 'http://data.openaddresses.io/--/world.png')
-        self.assertEqual(data['render_europe_url'], 'http://data.openaddresses.io/--/europe.png')
-        self.assertEqual(data['render_usa_url'], 'http://data.openaddresses.io/--/usa.png')
-        self.assertEqual(data['render_geojson_url'], 'http://data.openaddresses.io/--/world.geojson')
+        self.assertEqual(data['render_world_url'], 'https://data.openaddresses.io/--/world.png')
+        self.assertEqual(data['render_europe_url'], 'https://data.openaddresses.io/--/europe.png')
+        self.assertEqual(data['render_usa_url'], 'https://data.openaddresses.io/--/usa.png')
+        self.assertEqual(data['render_geojson_url'], 'https://data.openaddresses.io/--/world.geojson')
 
     def test_tile_redirects(self):
         '''
@@ -2273,15 +2273,15 @@ class TestHook (unittest.TestCase):
 
         got1 = self.client.get('/latest/run/a1.zip')
         self.assertEqual(got1.status_code, 302)
-        self.assertEqual(got1.headers.get('Location'), 'http://data.openaddresses.io/runs/1/a1.zip')
+        self.assertEqual(got1.headers.get('Location'), 'https://data.openaddresses.io/runs/1/a1.zip')
 
         got2 = self.client.get('/latest/run/a2.zip')
         self.assertEqual(got2.status_code, 302)
-        self.assertEqual(got2.headers.get('Location'), 'http://data.openaddresses.io/runs/2/a2.zip')
+        self.assertEqual(got2.headers.get('Location'), 'https://data.openaddresses.io/runs/2/a2.zip')
 
         got3 = self.client.get('/latest/run/a3.zip')
         self.assertEqual(got3.status_code, 302)
-        self.assertEqual(got3.headers.get('Location'), 'http://data.openaddresses.io/runs/3/a3.zip')
+        self.assertEqual(got3.headers.get('Location'), 'https://data.openaddresses.io/runs/3/a3.zip')
 
         got4 = self.client.get('/latest/run/a4.zip')
         self.assertEqual(got4.status_code, 302)

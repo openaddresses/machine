@@ -25,7 +25,7 @@
     #downloads tr td { vertical-align: top }
 
     #downloads tr th, #downloads tr td.explanation { font-size: 65% }
-    
+
     #downloads tr:nth-child(2n+1) td { background-color: #f8f8f8 }
     #downloads tr:nth-child(2n+2) td { background-color: #ffffff }
 
@@ -34,7 +34,7 @@
         background-color: white;
         border-color: #bcb7df;
     }
-    
+
    /*
     * Progressively show additional sample data columns.
     * Always show the explanation cells.
@@ -67,7 +67,7 @@
             display: table-cell
         }
     }
-    
+
     p#all-runs { text-align: center }
     p#all-runs a
     {
@@ -76,7 +76,7 @@
         border-radius: 3px;
         padding: .2em 1em;
     }
-    
+
 </style>
 <table id="downloads">
     <tr>
@@ -151,11 +151,11 @@
     </tr>
 </table>
 <p>
-    <button onclick="choosemap('https://s3.amazonaws.com/{{ s3_bucket }}/render-world.png')">Show World</button>
-    <button onclick="choosemap('https://s3.amazonaws.com/{{ s3_bucket }}/render-usa.png')">Show United States</button>
-    <button onclick="choosemap('https://s3.amazonaws.com/{{ s3_bucket }}/render-europe.png')">Show Europe</button>
+    <button onclick="choosemap('https://data.openaddresses.io/render-world.png')">Show World</button>
+    <button onclick="choosemap('https://data.openaddresses.io/render-usa.png')">Show United States</button>
+    <button onclick="choosemap('https://data.openaddresses.io/render-europe.png')">Show Europe</button>
 </p>
-<p><img src="https://s3.amazonaws.com/{{ s3_bucket }}/render-world.png" width="100%" id="render-img"></p>
+<p><img src="https://data.openaddresses.io/render-world.png" width="100%" id="render-img"></p>
 <p>
     The latest summary can always be found at
     <a href="http://results.openaddresses.io">results.openaddresses.io</a>.<br>
