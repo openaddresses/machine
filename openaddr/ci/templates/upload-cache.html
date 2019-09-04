@@ -4,21 +4,21 @@
 <h2>Upload to S3</h2>
 <form action="https://s3.amazonaws.com/{{ bucket }}" method="post" enctype="multipart/form-data">
     <input type="hidden" name="key" value="{{ key }}">
-    <input type="hidden" name="AWSAccessKeyId" value="{{ access_key }}"> 
-    <input type="hidden" name="acl" value="{{ acl }}"> 
+    <input type="hidden" name="AWSAccessKeyId" value="{{ access_key }}">
+    <input type="hidden" name="acl" value="{{ acl }}">
     <input type="hidden" name="success_action_redirect" value="{{ redirect }}">
     <input type="hidden" name="policy" value="{{ policy }}">
     <input type="hidden" name="signature" value="{{ signature }}">
     {% if security_token %}<input type="hidden" name="x-amz-security-token" value="{{ security_token }}">{% endif %}
     Choose file:
-    <input name="file" type="file"> 
-    <input type="submit" value="Upload"> 
-</form> 
+    <input name="file" type="file">
+    <input type="submit" value="Upload">
+</form>
 {% if callback.etag and callback.bucket and callback.key %}
     <h3>Successfully uploaded</h3>
     <p>
-        <a href="https://s3.amazonaws.com/{{ callback.bucket }}/{{ callback.key }}">
-            <code>https://s3.amazonaws.com/{{ callback.bucket }}/{{ callback.key }}</code>
+        <a href="https://data.openaddresses.io/{{ callback.key }}">
+            <code>https://data.openaddresses.io/{{ callback.key }}</code>
         </a>
     </p>
 {% endif %}
