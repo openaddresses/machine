@@ -4263,11 +4263,11 @@ class TestTileIndex (unittest.TestCase):
         scheme, host, path, _, query, _ = urlparse(url.geturl())
         local_path = None
 
-        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/runs/65018/us/ca/alameda.zip'):
+        if (host, path) == ('data.openaddresses.io', '/runs/65018/us/ca/alameda.zip'):
             local_path = os.path.join(os.path.dirname(__file__), 'outputs', 'alameda.zip')
             headers = {'Last-Modified': 'Sun, 28 Feb 2016 21:27:51 GMT', 'Content-Type': 'application/zip'}
 
-        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/runs/117966/us/ca/santa_clara.zip'):
+        if (host, path) == ('data.openaddresses.io', '/runs/117966/us/ca/santa_clara.zip'):
             local_path = os.path.join(os.path.dirname(__file__), 'outputs', 'santa_clara.zip')
             headers = {'Last-Modified': 'Sun, 09 Oct 2016 06:41:32 GMT', 'Content-Type': 'application/zip'}
 

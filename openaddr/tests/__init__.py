@@ -110,16 +110,16 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('www.dropbox.com', '/s/fhopgbg4vkyoobr/czech_addresses_wgs84_12092016_MASTER.zip'):
             return response(404, 'Nobody here but us coats')
 
-        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/cache/uploads/migurski/d5add2/oregon_state_addresses.zip'):
+        if (host, path) == ('data.openaddresses.io', '/cache/uploads/migurski/d5add2/oregon_state_addresses.zip'):
             return response(404, 'Nobody here but us coats')
 
         if (host, path) == ('data.openoakland.org', '/sites/default/files/OakParcelsGeo2013_0.zip'):
             local_path = join(data_dirname, 'us-ca-oakland-excerpt.zip')
 
-        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/cache/pl.zip'):
+        if (host, path) == ('data.openaddresses.io', '/cache/pl.zip'):
             local_path = join(data_dirname, 'pl.zip')
 
-        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/cache/jp-fukushima.zip'):
+        if (host, path) == ('data.openaddresses.io', '/cache/jp-fukushima.zip'):
             local_path = join(data_dirname, 'jp-fukushima.zip')
 
         if (host, path) == ('data.sfgov.org', '/download/kvej-w5kb/ZIPPED%20SHAPEFILE'):
@@ -131,7 +131,7 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('gis3.oit.ohio.gov', '/LBRS/_downloads/TRU_ADDS.zip'):
             local_path = join(data_dirname, 'TRU_ADDS-excerpt.zip')
 
-        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/cache/uploads/iandees/ed482f/bucks.geojson.zip'):
+        if (host, path) == ('data.openaddresses.io', '/cache/uploads/iandees/ed482f/bucks.geojson.zip'):
             local_path = join(data_dirname, 'us-pa-bucks.geojson.zip')
 
         if (host, path) == ('www.carsonproperty.info', '/ArcGIS/rest/services/basemap/MapServer/1/query'):
@@ -275,16 +275,16 @@ class TestOA (unittest.TestCase):
         if (host, path) == ('s.irisnet.be', '/v1/AUTH_b4e6bcc3-db61-442e-8b59-e0ce9142d182/Region/UrbAdm_SHP.zip'):
             local_path = join(data_dirname, 'be-wa-brussels.zip')
 
-        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/cache/uploads/migurski/ed789f/toscana20160804.zip'):
+        if (host, path) == ('data.openaddresses.io', '/cache/uploads/migurski/ed789f/toscana20160804.zip'):
             local_path = join(data_dirname, 'it-52-statewide.zip')
 
-        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/cache/uploads/nvkelso/5a5bf6/ParkCountyADDRESS_POINTS_point.zip'):
+        if (host, path) == ('data.openaddresses.io', '/cache/uploads/nvkelso/5a5bf6/ParkCountyADDRESS_POINTS_point.zip'):
             local_path = join(data_dirname, 'us-wy-park.zip')
 
         if (host, path) == ('njgin.state.nj.us', '/download2/Address/ADDR_POINT_NJ_fgdb.zip'):
             local_path = join(data_dirname, 'nj-statewide.gdb.zip')
 
-        if (host, path) == ('s3.amazonaws.com', '/data.openaddresses.io/cache/uploads/trescube/f5df2e/us-mi-grand-traverse.geojson.zip'):
+        if (host, path) == ('data.openaddresses.io', '/cache/uploads/trescube/f5df2e/us-mi-grand-traverse.geojson.zip'):
             local_path = join(data_dirname, 'us-mi-grand-traverse.geojson.zip')
 
         if (host, path) == ('fake-web', '/lake-man.gdb.zip'):
