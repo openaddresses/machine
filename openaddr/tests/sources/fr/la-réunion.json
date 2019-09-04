@@ -6,7 +6,7 @@
     },
     "website": "http://adresse.data.gouv.fr/download/",
     "note": "Downloaded and cached 2015-06-18",
-    "data": "http://data.openaddresses.io/cache/fr/BAN_licence_gratuite_repartage_974.zip",
+    "data": "https://data.openaddresses.io/cache/fr/BAN_licence_gratuite_repartage_974.zip",
     "protocol": "http",
     "compression": "zip",
     "conform": {
