@@ -1,3 +1,6 @@
+2019-09-03: 7.1.1
+- Also replace s3.amazonaws.com URLs on index.html (#729)
+
 2019-09-02: 7.1.0
 - Replaced bare s3.amazonaws.com URLs with data.openaddresses.io (#728)
 
