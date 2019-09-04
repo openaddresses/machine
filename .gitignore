@@ -11,6 +11,8 @@ state-*.json
 env-*
 venv-hooked-on-sources
 .vagrant
+.eggs/
+.noseids
 
 # PyCharm/JetBrains IDE files
 .idea
