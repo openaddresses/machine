@@ -190,7 +190,7 @@ def _upload_s3_part(s3_bucket, multipart_id, part_num, source_path, offset, byte
             _L.info('... Uploaded part #%d', part_num)
             return
 
-def write_to_s3(s3_bucket, filename, keyname, policy='public-read', content_type='application/zip'):
+def write_to_s3(s3_bucket, filename, keyname, policy='private', content_type='application/zip'):
     ''' Writes the file at `filename` to the S3 key `keyname` using
         S3's multipart upload functionality.
 
@@ -216,7 +216,9 @@ def write_to_s3(s3_bucket, filename, keyname, policy='public-read', content_type
 
     mp.complete_upload()
     key = s3_bucket.get_key(keyname)
-    key.set_acl(policy)
+    if policy != 'private':
+        # Private is default
+        key.set_acl(policy)
     return key
 
 def add_csv_to_zipfile(zip_out, arc_filename, file):

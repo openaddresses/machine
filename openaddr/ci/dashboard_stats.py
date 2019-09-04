@@ -92,7 +92,7 @@ def upload_stats(s3, data):
     _L.info('Uploading dashboard stats')
     stats_key = s3.new_key('machine-stats.json')
     stats_key.set_contents_from_string(json.dumps(data),
-        policy='public-read', headers={'Content-Type': 'application/json'})
+        headers={'Content-Type': 'application/json'})
 
     return util.s3_key_url(stats_key)
 

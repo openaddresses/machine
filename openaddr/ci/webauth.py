@@ -117,7 +117,6 @@ def s3_upload_form_fields(expires, bucketname, subdir, redirect_url, s3):
         "conditions": [
             {"bucket": bucketname},
             ["starts-with", "$key", "cache/uploads/{}/".format(subdir)],
-            {"acl": "public-read"},
             {"success_action_redirect": redirect_url},
             ["content-length-range", 16, MAX_UPLOAD_SIZE]
         ]
