@@ -120,7 +120,7 @@ def s3_upload_form_fields(expires, bucketname, subdir, redirect_url, s3):
             {"success_action_redirect": redirect_url},
             ["content-length-range", 16, MAX_UPLOAD_SIZE]
         ]
-        }
+    }
 
     if s3.provider.security_token:
         policy['conditions'].append({'x-amz-security-token': s3.provider.security_token})
@@ -131,7 +131,6 @@ def s3_upload_form_fields(expires, bucketname, subdir, redirect_url, s3):
 
     fields = dict(
         key=policy['conditions'][1][2] + '${filename}',
-        acl=policy['conditions'][2]['acl'],
         policy=policy_b64.decode('utf8'),
         signature=signature_b64.decode('utf8'),
         access_key=s3.access_key
