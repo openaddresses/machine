@@ -1,5 +1,5 @@
 from flask import Flask
-from werkzeug.contrib.fixers import ProxyFix
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .webauth import apply_webauth_blueprint
 from .webhooks import apply_webhooks_blueprint
@@ -15,4 +15,4 @@ apply_webapi_blueprint(app)
 apply_coverage_blueprint(app)
 
 # Look at X-Forwarded-* request headers when behind a proxy.
-app.wsgi_app = ProxyFix(app.wsgi_app)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_port=1)
