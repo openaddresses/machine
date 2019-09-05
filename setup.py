@@ -59,22 +59,22 @@ setup(
     },
     test_suite = 'openaddr.tests',
     install_requires = [
-        'boto == 2.43.0', 'dateutils == 0.6.6', 'ijson == 2.4',
+        'boto == 2.49.0', 'dateutils == 0.6.6', 'ijson == 2.4',
 
         # http://jinja.pocoo.org/docs/2.10/
         'Jinja2 == 2.10.1',
 
         # http://flask.pocoo.org
-        'Flask == 1.0.2',
+        'Flask == 1.1.1',
 
         # http://flask-cors.corydolphin.com
-        'Flask-Cors == 3.0.7',
+        'Flask-Cors == 3.0.8',
 
         # https://www.palletsproject.com/projects/werkzeug/
-        'Werkzeug == 0.15.4',
+        'Werkzeug == 0.15.6',
 
         # http://gunicorn.org
-        'gunicorn == 19.6.0',
+        'gunicorn == 19.9.0',
 
         # http://www.voidspace.org.uk/python/mock/
         'mock == 3.0.5',
@@ -83,13 +83,13 @@ setup(
         'uritemplate == 3.0.0',
 
         # https://github.com/malthe/pq/
-        'pq == 1.7.0',
+        'pq == 1.8.1',
 
         # http://initd.org/psycopg/
         'psycopg2 == 2.8.3',
 
         # http://docs.python-requests.org/en/master/
-        'requests == 2.20.0',
+        'requests == 2.22.0',
 
         # https://github.com/patrys/httmock
         'httmock == 1.3.0',
