@@ -1070,7 +1070,6 @@ class TestAuth (unittest.TestCase):
         self.assertEqual(fields['signature'], b64encode(digest).decode('utf8'))
         self.assertEqual(fields['access_key'], s3.access_key)
         self.assertEqual(fields['key'], 'cache/uploads/jrandom/123/${filename}')
-        self.assertEqual(fields['acl'], 'public-read')
         self.assertNotIn('x-amz-security-token', fields)
 
         policy = json.loads(b64decode(fields['policy']).decode('utf8'))
@@ -1081,7 +1080,6 @@ class TestAuth (unittest.TestCase):
                 'conditions': [
                     {'bucket': bucketname},
                     ['starts-with', '$key', 'cache/uploads/jrandom/123/'],
-                    {'acl': 'public-read'},
                     {'success_action_redirect': redirect},
                     ['content-length-range', 16, webauth.MAX_UPLOAD_SIZE]
                 ]
@@ -3946,7 +3944,6 @@ class TestCollect (unittest.TestCase):
         self.assertEqual(mp_upload.upload_part_from_file.mock_calls[0][2]['fp'].mode, 'rb', 'Should be binary')
         bucket.initiate_multipart_upload.assert_has_calls([mock.call('keyname.csv', headers={'Content-Type': 'text/csv'})])
         self.assertEqual(bucket.get_key.mock_calls[0][1], ('keyname.csv', ), 'Should upload a correctly-named key')
-        self.assertEqual(bucket.get_key.mock_calls[1][1], ('public-read', ), 'Should upload a publicly-readable key')
 
     def test_collector_publisher_multipart_s3_two_parts(self):
         '''
@@ -3973,7 +3970,6 @@ class TestCollect (unittest.TestCase):
         self.assertEqual(mp_upload.upload_part_from_file.mock_calls[1][2]['fp'].mode, 'rb', 'Should be binary')
         bucket.initiate_multipart_upload.assert_has_calls([mock.call('keyname.csv', headers={'Content-Type': 'text/csv'})])
         self.assertEqual(bucket.get_key.mock_calls[0][1], ('keyname.csv', ), 'Should upload a correctly-named key')
-        self.assertEqual(bucket.get_key.mock_calls[1][1], ('public-read', ), 'Should upload a publicly-readable key')
 
     def test_collection_checks(self):
         '''

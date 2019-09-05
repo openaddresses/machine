@@ -678,7 +678,7 @@ def _render_and_upload_maps(s3, good_sources, s3_prefix, dirname):
     urls = dict()
     areas = (render.WORLD, 'world'), (render.USA, 'usa'), (render.EUROPE, 'europe')
 
-    key_kwargs = dict(policy='public-read', headers={'Content-Type': 'image/png'})
+    key_kwargs = dict(headers={'Content-Type': 'image/png'})
 
     for (area, area_name) in areas:
         png_basename = 'render-{}.png'.format(area_name)
