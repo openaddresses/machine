@@ -1171,49 +1171,6 @@ class TestAuth (unittest.TestCase):
             self.assertEqual(avatar, 'https://avatars.githubusercontent.com/u/58730?v=3')
             self.assertTrue(orged)
 
-    def test_callback_url(self):
-        req1 = mock.Mock()
-        req1.url = 'http://example.org/auth'
-        req1.host, req1.path = 'example.org', '/auth'
-        req1.headers = {}
-        url1 = webauth.callback_url(req1, 'http://www.example.com/callback')
-        self.assertEqual(url1, 'http://www.example.com/callback')
-
-        req2 = mock.Mock()
-        req2.url = 'http://example.org/auth'
-        req2.host, req2.path = 'example.org', '/auth'
-        req2.headers = {}
-        url2 = webauth.callback_url(req2, '/callback')
-        self.assertEqual(url2, 'http://example.org/callback')
-
-        req3 = mock.Mock()
-        req3.url = 'http://example.org/auth'
-        req3.host, req3.path = 'example.org', '/auth'
-        req3.headers = {'X-Forwarded-Proto': 'https'}
-        url3 = webauth.callback_url(req3, '/callback')
-        self.assertEqual(url3, 'https://example.org/callback')
-
-        req4 = mock.Mock()
-        req4.url = 'http://example.org/auth'
-        req4.host, req4.path = 'example.org', u'/auth'
-        req4.headers = {'X-Forwarded-Proto': 'https'}
-        url4 = webauth.callback_url(req4, '/callback')
-        self.assertEqual(url4, 'https://example.org/callback')
-
-        req5 = mock.Mock()
-        req5.url = 'http://example.org/auth'
-        req5.host, req5.path = 'example.org', u'/auth'
-        req5.headers = {'X-Forwarded-Proto': u'https'}
-        url5 = webauth.callback_url(req5, '/callback')
-        self.assertEqual(url5, 'https://example.org/callback')
-
-        req6 = mock.Mock()
-        req6.url = 'http://example.org/auth'
-        req6.host, req6.path = 'example.org', u'/auth'
-        req6.headers = {'X-Forwarded-Proto': u'https'}
-        url6 = webauth.callback_url(req6, u'/callback')
-        self.assertEqual(url6, 'https://example.org/callback')
-
     def test_upload_cache(self):
         '''
         '''

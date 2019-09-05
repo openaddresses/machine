@@ -35,18 +35,6 @@ def serialize(secret, data):
 def unserialize(secret, data):
     return URLSafeSerializer(secret).loads(data)
 
-def callback_url(request, callback_url):
-    '''
-    '''
-    if 'X-Forwarded-Proto' in request.headers:
-        scheme = request.headers.get('X-Forwarded-Proto')
-        path = request.path
-        base_url = urlunparse((scheme, request.host, path, None, None, None))
-    else:
-        base_url = request.url
-
-    return urljoin(base_url, callback_url)
-
 def exchange_tokens(code, client_id, secret):
     ''' Exchange the temporary code for an access token
 
@@ -167,8 +155,7 @@ def app_login():
     state = serialize(current_app.secret_key,
                       dict(url=request.headers.get('Referer')))
 
-    url = current_app.config.get('GITHUB_OAUTH_CALLBACK') or url_for('webauth.app_callback')
-    args = dict(redirect_uri=callback_url(request, url), response_type='code', state=state)
+    args = dict(redirect_uri=url_for('webauth.app_callback', _external=True), response_type='code', state=state)
     args.update(client_id=current_app.config['GITHUB_OAUTH_CLIENT_ID'])
     args.update(scope='user,public_repo,read:org')
 
@@ -197,7 +184,7 @@ def app_upload_cache_data():
     subdir = '{login}/{0}'.format(random, **session[USER_KEY])
     expires = datetime.now(tz=tzutc()) + timedelta(minutes=5)
 
-    redirect_url = callback_url(request, url_for('webauth.app_upload_cache_data'))
+    redirect_url = url_for('webauth.app_upload_cache_data', _external=True)
     bucketname, s3 = current_app.config['AWS_S3_BUCKET'], boto.connect_s3()
     fields = s3_upload_form_fields(expires, bucketname, subdir, redirect_url, s3)
 
