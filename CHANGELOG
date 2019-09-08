@@ -1,3 +1,7 @@
+2019-09-07: 7.2.4
+- Use CDN URL for preview.html content (#736)
+- Try to fix external links/ProxyFix (#735)
+
 2019-09-05: 7.2.3
 - Don't include ACL in the upload form (#734)
 
