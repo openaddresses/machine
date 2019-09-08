@@ -15,4 +15,4 @@ apply_webapi_blueprint(app)
 apply_coverage_blueprint(app)
 
 # Look at X-Forwarded-* request headers when behind a proxy.
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=2, x_proto=2, x_port=2)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_port=1)
