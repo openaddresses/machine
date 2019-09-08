@@ -297,16 +297,14 @@ def app_get_run_sample(run_id):
     sample_url = nice_domain(run.state.get('sample'))
 
     try:
-        # Failed sample data requests sometimes result in S3 or HTTP errors.
-        sample_data = requests.get(sample_url).json()
+        resp = requests.get(sample_url)
+
+        if resp.status_code == 404:
+            return Response('Run {} did not produce sample data'.format(run_id), 404)
+
+        sample_data = resp.json()
     except:
-        try:
-            # Try again in case of transient S3 or HTTP problem.
-            sample_data = requests.get(sample_url).json()
-        except:
-            # Try a third and last time after a short sleep.
-            time.sleep(.2)
-            sample_data = requests.get(sample_url).json()
+        return Response('Sample data for run {} failed to parse'.format(run_id), 500)
 
     return render_template('run-sample.html', sample_data=sample_data or [])
 
