@@ -2,6 +2,7 @@ import logging; _L = logging.getLogger('openaddr.ci')
 
 from .. import jobs, render, util, __version__
 
+from .webcommon import nice_domain
 from .objects import (
     add_job, write_job, read_job, complete_set, update_set_renders,
     set_run, RunState, get_completed_run, read_completed_set_runs
@@ -496,16 +497,17 @@ def find_batch_sources(owner, repository, github_auth, run_times={}):
     source_urls.sort(key=lambda su: (run_times.get(su['path']) or '9999'), reverse=True)
 
     for (index, source_url) in enumerate(source_urls):
-        _L.debug('Getting source {url}'.format(**source_url))
+        source_url_url = nice_domain(source_url['url'])
+        _L.debug('Getting source {}'.format(source_url_url))
         try:
-            more_source = get(source_url['url'], auth=github_auth).json()
+            more_source = get(source_url_url, auth=github_auth).json()
         except ConnectionError:
-            _L.info('Retrying to download {url}'.format(**source))
+            _L.info('Retrying to download {}'.format(source_url_url))
             try:
-                sleep(GITHUB_RETRY_DELAY.seconds + GITHUB_RETRY_DELAY.days * 86400)
-                more_source = get(source_url['url'], auth=github_auth).json()
+                sleep(GITHUB_RETRY_DELAY.total_seconds())
+                more_source = get(source_url_url, auth=github_auth).json()
             except ConnectionError:
-                _L.error('Failed to download {url}'.format(**source_url))
+                _L.error('Failed to download {}'.format(source_url_url))
                 raise
 
         source = dict(content=more_source['content'])
@@ -572,7 +574,7 @@ def _find_batch_source_urls(owner, repository, github_auth):
     sources_list = list()
 
     for sources_url in sources_urls:
-        _L.debug('Getting sources {sources_url}'.format(**locals()))
+        _L.debug('Getting sources {}'.format(sources_url))
         sources = get(sources_url, auth=github_auth).json()
 
         for source in sources:

@@ -9,9 +9,9 @@ from urllib.parse import urlparse
 from datetime import datetime, date
 from calendar import timegm
 import json
+import requests
 
 from osgeo import ogr
-from requests import get
 from boto.s3.connection import S3Connection
 from dateutil.parser import parse
 from .sample import sample_geojson
@@ -222,17 +222,15 @@ def iterate_local_processed_files(runs, sort_on='datetime_tz'):
 
         try:
             filename = download_processed_file(processed_url)
-        except:
-            _L.info('Retrying to download {}'.format(processed_url))
-            try:
-                filename = download_processed_file(processed_url)
-            except:
-                _L.info('Re-retrying to download {}'.format(processed_url))
-                try:
-                    filename = download_processed_file(processed_url)
-                except:
-                    _L.error('Failed to download {}'.format(processed_url))
-                    continue
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                continue
+            else:
+                _L.error('HTTP {} while downloading {}: {}'.format(e.response.status_code, processed_url, e))
+                continue
+        except Exception as e:
+            _L.error('Failed to download {}: {}'.format(processed_url, e))
+            continue
 
         yield LocalProcessedResult(source_base, filename, run_state, run.code_version)
 
@@ -248,7 +246,8 @@ def download_processed_file(url):
     handle, filename = mkstemp(prefix='processed-', suffix=ext)
     close(handle)
 
-    response = get(url, stream=True, timeout=5)
+    response = requests.get(url, stream=True, timeout=5)
+    response.raise_for_status()
 
     with open(filename, 'wb') as file:
         for chunk in response.iter_content(chunk_size=8192):
