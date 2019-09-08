@@ -287,7 +287,7 @@ def app_get_run_sample(run_id):
     if run is None:
         return Response('Run {} does not exist'.format(run_id), 404)
 
-    sample_url = run.state.get('sample')
+    sample_url = nice_domain(run.state.get('sample'))
 
     try:
         # Failed sample data requests sometimes result in S3 or HTTP errors.
