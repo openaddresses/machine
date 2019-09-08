@@ -148,7 +148,7 @@ def app_health():
 def robots_txt():
     '''
     '''
-    return 'User-Agent: *\nDisallow: /\n'
+    return 'User-Agent: *\nAllow: /\nAllow: /sources/\nDisallow: /runs/\nDisallow: /jobs/\nDisallow: /sets/\nDisallow: /latest/\n'
 
 @webhooks.route('/jobs/', methods=['GET'])
 @log_application_errors
