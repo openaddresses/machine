@@ -1,3 +1,6 @@
+2019-09-07: 7.2.5
+- Add robots.txt endpoint (#737)
+
 2019-09-07: 7.2.4
 - Use CDN URL for preview.html content (#736)
 - Try to fix external links/ProxyFix (#735)
