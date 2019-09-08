@@ -1,3 +1,6 @@
+2019-09-07: 7.2.6
+- Check for status code of response when fetching data for sample.html (#738)
+
 2019-09-07: 7.2.5
 - Add robots.txt endpoint (#737)
 
