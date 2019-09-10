@@ -222,6 +222,12 @@ def iterate_local_processed_files(runs, sort_on='datetime_tz'):
 
         try:
             filename = download_processed_file(processed_url)
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                continue
+            else:
+                _L.error('HTTP {} while downloading {}: {}'.format(e.response.status_code, processed_url, e))
+                continue
         except Exception as e:
             _L.error('Failed to download {}: {}'.format(processed_url, e))
             continue
@@ -240,7 +246,18 @@ def download_processed_file(url):
     handle, filename = mkstemp(prefix='processed-', suffix=ext)
     close(handle)
 
-    response = requests.get(url, stream=True, timeout=5)
+    for i in range(3):
+        response = requests.get(url, stream=True, timeout=5)
+
+        if response.status_code == 200:
+            break
+        elif response.status_code == 404:
+            response.raise_for_status()
+        else:
+            # Retry
+            continue
+
+    # Raise an exception if we failed after retries
     response.raise_for_status()
 
     with open(filename, 'wb') as file:

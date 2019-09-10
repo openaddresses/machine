@@ -1910,6 +1910,7 @@ class TestPackage (unittest.TestCase):
         self.assertEqual(call3[0], 'close')
 
     def test_iterate_local_processed_files(self):
+        import requests
         state0 = {'processed': 'http://s3.amazonaws.com/openaddresses/000.csv'}
         state1 = {'processed': 'http://s3.amazonaws.com/openaddresses/123.csv', 'website': 'http://example.com'}
         state3 = {'processed': 'http://s3.amazonaws.com/openaddresses/789.csv', 'license': 'ODbL'}
@@ -1925,13 +1926,9 @@ class TestPackage (unittest.TestCase):
                 RunState(state3), None, None, None, None, None, None, None, None),
             ]
 
-        failure = cycle((True, True, False))
-
         def _download_processed_file(url):
             if url == state0['processed']:
-                raise Exception('HTTP 404 Not Found')
-            elif next(failure):
-                raise Exception('HTTP 666 Transient B.S.')
+                raise requests.exceptions.HTTPError('HTTP 404 Not Found', response=FakeResponse(404))
             else:
                 return 'nonexistent file'
 
@@ -2062,3 +2059,7 @@ class FakeKey:
     def set_contents_from_filename(self, filename, **kwargs):
         with open(filename, 'rb') as file:
             self.s3._write_fake_key(self.name, file.read())
+
+class FakeResponse:
+    def __init__(self, status_code):
+        self.status_code = status_code
