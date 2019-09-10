@@ -143,6 +143,16 @@ def app_health():
     '''
     return 'OK'
 
+@webhooks.route('/headers')
+@log_application_errors
+def app_headers():
+    '''
+    '''
+    headerz = []
+    for k, v in request.headers:
+        headerz.append({'name': k, 'value': v})
+    return jsonify(headers=headerz)
+
 @webhooks.route('/robots.txt')
 @log_application_errors
 def robots_txt():
