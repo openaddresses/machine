@@ -1,3 +1,6 @@
+2019-09-09: 7.2.8
+- Update ProxyFix based on headers debug endpoint (#741)
+
 2019-09-09: 7.2.7
 - Add an endpoint to debug x-for headers (#740)
 - Use nice_domain when requesting batch sources, handle 404's properly (#739)
