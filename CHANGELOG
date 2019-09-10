@@ -1,3 +1,7 @@
+2019-09-09: 7.2.7
+- Add an endpoint to debug x-for headers (#740)
+- Use nice_domain when requesting batch sources, handle 404's properly (#739)
+
 2019-09-07: 7.2.6
 - Check for status code of response when fetching data for sample.html (#738)
 
