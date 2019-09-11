@@ -15,6 +15,7 @@ from osgeo import ogr
 from boto.s3.connection import S3Connection
 from dateutil.parser import parse
 from .sample import sample_geojson
+from .ci.webcommon import nice_domain
 
 from .cache import (
     CacheResult,
@@ -219,6 +220,8 @@ def iterate_local_processed_files(runs, sort_on='datetime_tz'):
 
         if not processed_url:
             continue
+
+        processed_url = nice_domain(processed_url)
 
         try:
             filename = download_processed_file(processed_url)
