@@ -13,6 +13,7 @@ All logging is suppressed unless --logall or -l specified
 
 from __future__ import absolute_import, division, print_function
 
+import datetime
 import unittest
 import shutil
 import tempfile
@@ -1967,6 +1968,8 @@ class TestPackage (unittest.TestCase):
         with mock.patch('openaddr.S3') as s3:
             fake_s3 = mock.MagicMock()
             fake_key = mock.MagicMock()
+            fake_key.get_contents_to_filename.return_value = None
+            fake_key.last_modified.return_value = datetime.datetime.utcnow()
             fake_s3.get_key.return_value = fake_key
             s3.return_value = fake_s3
             filename = download_processed_file('http://s3.amazonaws.com/openaddresses/us-oh-clinton.csv')
