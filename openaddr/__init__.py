@@ -247,15 +247,15 @@ def download_processed_file(url):
     handle, filename = mkstemp(prefix='processed-', suffix=ext)
     close(handle)
 
-    for i in range(3):
-        if urlparts.hostname == 's3.amazonaws.com':
-            # Use boto directly if it's an S3 URL
-            bucket, key = urlparts.path[1:].split('/', 1)
-            connection = S3Connection()
-            b = connection.get_bucket(bucket, validate=False)
-            k = b.get_key(key, validate=False)
-            k.get_contents_to_filename(filename)
-        else:
+    if urlparts.hostname == 's3.amazonaws.com':
+        # Use boto directly if it's an S3 URL
+        bucket, key = urlparts.path[1:].split('/', 1)
+        s3 = S3(None, None, bucket)
+        k = s3.get_key(key)
+        k.get_contents_to_filename(filename)
+        last_modified = k.last_modified
+    else:
+        for i in range(3):
             # Otherwise just download via HTTP
             response = requests.get(url, stream=True, timeout=5)
 
@@ -267,14 +267,14 @@ def download_processed_file(url):
                 # Retry
                 continue
 
-    # Raise an exception if we failed after retries
-    response.raise_for_status()
+        # Raise an exception if we failed after retries
+        response.raise_for_status()
 
-    with open(filename, 'wb') as file:
-        for chunk in response.iter_content(chunk_size=8192):
-            file.write(chunk)
+        with open(filename, 'wb') as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
 
-    last_modified = response.headers.get('Last-Modified')
+        last_modified = response.headers.get('Last-Modified')
     timestamp = timegm(parse(last_modified).utctimetuple())
     utime(filename, (timestamp, timestamp))
 

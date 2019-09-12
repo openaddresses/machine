@@ -1964,7 +1964,11 @@ class TestPackage (unittest.TestCase):
         raise ValueError(url.geturl())
 
     def test_download_processed_file_csv(self):
-        with HTTMock(self.response_content):
+        with mock.patch('openaddr.S3') as s3:
+            fake_s3 = mock.MagicMock()
+            fake_key = mock.MagicMock()
+            fake_s3.get_key.return_value = fake_key
+            s3.return_value = fake_s3
             filename = download_processed_file('http://s3.amazonaws.com/openaddresses/us-oh-clinton.csv')
 
         self.assertEqual(splitext(filename)[1], '.csv')
