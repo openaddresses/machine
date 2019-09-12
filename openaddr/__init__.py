@@ -221,8 +221,6 @@ def iterate_local_processed_files(runs, sort_on='datetime_tz'):
         if not processed_url:
             continue
 
-        processed_url = nice_domain(processed_url)
-
         try:
             filename = download_processed_file(processed_url)
         except requests.exceptions.HTTPError as e:
@@ -245,20 +243,31 @@ def download_processed_file(url):
 
         Local file will have an appropriate timestamp and extension.
     '''
-    _, ext = splitext(urlparse(url).path)
+    urlparts = urlparse(url)
+    _, ext = splitext(urlparts.path)
     handle, filename = mkstemp(prefix='processed-', suffix=ext)
     close(handle)
 
     for i in range(3):
-        response = requests.get(url, stream=True, timeout=5)
-
-        if response.status_code == 200:
-            break
-        elif response.status_code == 404:
-            response.raise_for_status()
+        if urlparts.hostname == 's3.amazonaws.com':
+            # Use boto directly if it's an S3 URL
+            bucket, key = urlparts.path[1:].split('/', 1)
+            connection = S3Connection()
+            b = connection.get_bucket(bucket, validate=False)
+            k = b.get_key(key, validate=False)
+            k.get_contents_to_filename(filename)
         else:
-            # Retry
-            continue
+            # Otherwise just download via HTTP
+            url = nice_domain(url)
+            response = requests.get(url, stream=True, timeout=5)
+
+            if response.status_code == 200:
+                break
+            elif response.status_code == 404:
+                response.raise_for_status()
+            else:
+                # Retry
+                continue
 
     # Raise an exception if we failed after retries
     response.raise_for_status()
