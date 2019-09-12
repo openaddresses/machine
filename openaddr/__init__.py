@@ -15,7 +15,6 @@ from osgeo import ogr
 from boto.s3.connection import S3Connection
 from dateutil.parser import parse
 from .sample import sample_geojson
-from .ci.webcommon import nice_domain
 
 from .cache import (
     CacheResult,
@@ -258,7 +257,6 @@ def download_processed_file(url):
             k.get_contents_to_filename(filename)
         else:
             # Otherwise just download via HTTP
-            url = nice_domain(url)
             response = requests.get(url, stream=True, timeout=5)
 
             if response.status_code == 200:
