@@ -242,30 +242,42 @@ def download_processed_file(url):
 
         Local file will have an appropriate timestamp and extension.
     '''
-    _, ext = splitext(urlparse(url).path)
+    urlparts = urlparse(url)
+    _, ext = splitext(urlparts.path)
     handle, filename = mkstemp(prefix='processed-', suffix=ext)
     close(handle)
 
-    for i in range(3):
-        response = requests.get(url, stream=True, timeout=5)
+    if urlparts.hostname == 's3.amazonaws.com':
+        # Use boto directly if it's an S3 URL
+        bucket, key = urlparts.path[1:].split('/', 1)
+        s3 = S3(None, None, bucket)
+        k = s3.get_key(key)
+        k.get_contents_to_filename(filename)
+        last_modified = datetime.strptime(k.last_modified, '%a, %d %b %Y %H:%M:%S %Z')
+        timestamp = timegm(last_modified.utctimetuple())
+    else:
+        for i in range(3):
+            # Otherwise just download via HTTP
+            response = requests.get(url, stream=True, timeout=5)
 
-        if response.status_code == 200:
-            break
-        elif response.status_code == 404:
-            response.raise_for_status()
-        else:
-            # Retry
-            continue
+            if response.status_code == 200:
+                break
+            elif response.status_code == 404:
+                response.raise_for_status()
+            else:
+                # Retry
+                continue
 
-    # Raise an exception if we failed after retries
-    response.raise_for_status()
+        # Raise an exception if we failed after retries
+        response.raise_for_status()
 
-    with open(filename, 'wb') as file:
-        for chunk in response.iter_content(chunk_size=8192):
-            file.write(chunk)
+        with open(filename, 'wb') as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
 
-    last_modified = response.headers.get('Last-Modified')
-    timestamp = timegm(parse(last_modified).utctimetuple())
+        last_modified = response.headers.get('Last-Modified')
+        timestamp = timegm(parse(last_modified).utctimetuple())
+
     utime(filename, (timestamp, timestamp))
 
     return filename
