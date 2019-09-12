@@ -13,7 +13,6 @@ All logging is suppressed unless --logall or -l specified
 
 from __future__ import absolute_import, division, print_function
 
-import datetime
 import unittest
 import shutil
 import tempfile
@@ -29,7 +28,7 @@ from io import BytesIO
 from csv import DictReader
 from itertools import cycle
 from zipfile import ZipFile
-from datetime import timedelta
+from datetime import datetime, timedelta
 from mimetypes import guess_type
 from urllib.parse import urlparse, parse_qs
 from os.path import dirname, join, basename, exists, splitext
@@ -1969,7 +1968,7 @@ class TestPackage (unittest.TestCase):
             fake_s3 = mock.MagicMock()
             fake_key = mock.MagicMock()
             fake_key.get_contents_to_filename.return_value = None
-            fake_key.last_modified.return_value = datetime.datetime.utcnow()
+            fake_key.last_modified = "Wed, 30 Apr 2014 17:42:10 GMT"
             fake_s3.get_key.return_value = fake_key
             s3.return_value = fake_s3
             filename = download_processed_file('http://s3.amazonaws.com/openaddresses/us-oh-clinton.csv')

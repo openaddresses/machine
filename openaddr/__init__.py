@@ -253,7 +253,8 @@ def download_processed_file(url):
         s3 = S3(None, None, bucket)
         k = s3.get_key(key)
         k.get_contents_to_filename(filename)
-        last_modified = k.last_modified
+        last_modified = datetime.strptime(k.last_modified, '%a, %d %b %Y %H:%M:%S %Z')
+        timestamp = timegm(last_modified.utctimetuple())
     else:
         for i in range(3):
             # Otherwise just download via HTTP
@@ -275,7 +276,8 @@ def download_processed_file(url):
                 file.write(chunk)
 
         last_modified = response.headers.get('Last-Modified')
-    timestamp = timegm(parse(last_modified).utctimetuple())
+        timestamp = timegm(parse(last_modified).utctimetuple())
+
     utime(filename, (timestamp, timestamp))
 
     return filename
