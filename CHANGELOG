@@ -1,3 +1,6 @@
+2019-09-13: 7.2.12
+- Bump the webhook logger log level (#746)
+
 2019-09-12: 7.2.11
 - Log out the GitHub webhook payload (#745)
 
