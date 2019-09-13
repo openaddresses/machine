@@ -1,3 +1,6 @@
+2019-09-12: 7.2.11
+- Log out the GitHub webhook payload (#745)
+
 2019-09-12: 7.2.10
 - Use boto to download straight from S3 instead of through CDN (#744)
 
