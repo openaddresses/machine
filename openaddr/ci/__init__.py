@@ -86,6 +86,8 @@ def td2str(td):
 def process_github_payload(queue, request_url, app_logger, github_auth, webhook_payload, gag_status):
     '''
     '''
+    _L.info("Received hook: %s", json.dumps(webhook_payload))
+
     if skip_payload(webhook_payload):
         return True, {'url': None, 'files': [], 'skip': True}
 
