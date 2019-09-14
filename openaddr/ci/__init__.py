@@ -83,12 +83,12 @@ def td2str(td):
     '''
     return '{}s'.format(td.seconds + td.days * 86400)
 
-def process_github_payload(queue, request_url, app_logger, github_auth, webhook_payload, gag_status):
+def process_github_payload(queue, request_url, app_logger, github_auth, webhook_name, webhook_payload, gag_status):
     '''
     '''
-    app_logger.warning("Received hook: %s", json.dumps(webhook_payload))
+    app_logger.warning("Received event %s: %s", webhook_name, json.dumps(webhook_payload))
 
-    if skip_payload(webhook_payload):
+    if skip_payload(webhook_name, webhook_payload):
         return True, {'url': None, 'files': [], 'skip': True}
 
     owner, repo, commit_sha, status_url, comments_url = get_commit_info(app_logger, webhook_payload, github_auth)
@@ -192,10 +192,11 @@ def get_touched_pullrequest_files(pull_request, github_auth, app_logger):
 
     return touched
 
-def skip_payload(payload):
+def skip_payload(event_name, payload):
     ''' Return True if this payload should not be processed.
     '''
-    if 'action' in payload and 'pull_request' in payload:
+    if event_name == 'pull_request' and 'action' in payload:
+        # Skip pull request closed events
         return bool(payload['action'] == 'closed')
 
     if 'commits' in payload and 'head_commit' in payload:
