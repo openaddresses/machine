@@ -1,3 +1,6 @@
+2019-09-13: 7.2.13
+- Include the GitHub event name in logs (#748)
+
 2019-09-13: 7.2.12
 - Bump the webhook logger log level (#746)
 
