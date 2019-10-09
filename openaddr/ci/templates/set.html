@@ -3,7 +3,7 @@
 {% block info %}{% endblock %}
 {% block main %}
 <p>
-    This is a summary view of <a href="http://openaddresses.io">OpenAddresses data</a>.
+    This is a summary view of <a href="https://openaddresses.io">OpenAddresses data</a>.
     {% if last_modified %}
         {{ counts.addresses|nice_integer }} addresses were processed
         <span class="stat">{{ last_modified.strftime('%A, %b %d, %Y') }}</span>.
@@ -20,7 +20,7 @@
 </p>
 <p>
     The latest summary can always be found at
-    <a href="http://results.openaddresses.io">results.openaddresses.io</a>.<br>
+    <a href="https://results.openaddresses.io">results.openaddresses.io</a>.<br>
     A plain text version of data on this page can be found at
     <a href="{{ url_for('webapi.app_get_set_state_txt', set_id=set.id) }}">state.txt</a>.
 </p>
@@ -31,19 +31,19 @@
     #}
     <p>
         {% if set.render_world %}
-            <button onclick="choosemap('{{ set.render_world }}')">Show World</button>
+            <button onclick="choosemap('{{ set.render_world|nice_domain }}')">Show World</button>
         {% endif %}
         {% if set.render_usa and set.render_world %}
-            <button onclick="choosemap('{{ set.render_usa }}')">Show United States</button>
+            <button onclick="choosemap('{{ set.render_usa|nice_domain }}')">Show United States</button>
         {% endif %}
         {% if set.render_europe %}
-            <button onclick="choosemap('{{ set.render_europe }}')">Show Europe</button>
+            <button onclick="choosemap('{{ set.render_europe|nice_domain }}')">Show Europe</button>
         {% endif %}
     </p>
     {% if set.render_world %}
-        <p><img src="{{ set.render_world }}" width="100%" id="render-img"></p>
+        <p><img src="{{ set.render_world|nice_domain }}" width="100%" id="render-img"></p>
     {% elif set.render_usa %}
-        <p><img src="{{ set.render_usa }}" width="100%" id="render-img"></p>
+        <p><img src="{{ set.render_usa|nice_domain }}" width="100%" id="render-img"></p>
     {% endif %}
 {% endif %}
 
