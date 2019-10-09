@@ -1,3 +1,6 @@
+2019-10-09: 7.2.15
+- Use CDN URL on /set pages (#751)
+
 2019-10-08: 7.2.14
 - Handle bucket-in-domain and bucket-in-path forms of S3 URL (#749)
 
