@@ -247,9 +247,16 @@ def download_processed_file(url):
     handle, filename = mkstemp(prefix='processed-', suffix=ext)
     close(handle)
 
-    if urlparts.hostname == 's3.amazonaws.com':
+    if urlparts.hostname.endswith('s3.amazonaws.com'):
         # Use boto directly if it's an S3 URL
-        bucket, key = urlparts.path[1:].split('/', 1)
+        if urlparts.hostname == 's3.amazonaws.com':
+            # Bucket and key are in the path part of the URL
+            bucket, key = urlparts.path[1:].split('/', 1)
+        else:
+            # Bucket is part of the domain, path is the key
+            bucket = urlparts.hostname[:-17]
+            key = urlparts.path[1:]
+
         s3 = S3(None, None, bucket)
         k = s3.get_key(key)
         k.get_contents_to_filename(filename)

@@ -1947,22 +1947,6 @@ class TestPackage (unittest.TestCase):
             self.assertEqual(local_processed_result2.run_state.processed, state3['processed'])
             self.assertEqual(local_processed_result2.run_state.license, state3['license'])
 
-    def response_content(self, url, request):
-        '''
-        '''
-        MHP = request.method, url.hostname, url.path
-
-        if MHP == ('GET', 's3.amazonaws.com', '/openaddresses/us-oh-clinton.csv'):
-            return response(200, b'...', headers={'Last-Modified': 'Wed, 30 Apr 2014 17:42:10 GMT'})
-
-        if MHP == ('GET', 'data.openaddresses.io.s3.amazonaws.com', '/runs/11170/ca-ab-strathcona-county.zip'):
-            return response(200, b'...', headers={'Last-Modified': 'Tue, 18 Aug 2015 07:10:32 GMT'})
-
-        if MHP == ('GET', 'data.openaddresses.io.s3.amazonaws.com', '/runs/13616/fr/vaucluse.zip'):
-            return response(200, b'...', headers={'Last-Modified': 'Wed, 19 Aug 2015 10:35:44 GMT'})
-
-        raise ValueError(url.geturl())
-
     def test_download_processed_file_csv(self):
         with mock.patch('openaddr.S3') as s3:
             fake_s3 = mock.MagicMock()
@@ -1978,7 +1962,13 @@ class TestPackage (unittest.TestCase):
         remove(filename)
 
     def test_download_processed_file_zip(self):
-        with HTTMock(self.response_content):
+        with mock.patch('openaddr.S3') as s3:
+            fake_s3 = mock.MagicMock()
+            fake_key = mock.MagicMock()
+            fake_key.get_contents_to_filename.return_value = None
+            fake_key.last_modified = "Tue, 18 Aug 2015 07:10:32 GMT"
+            fake_s3.get_key.return_value = fake_key
+            s3.return_value = fake_s3
             filename = download_processed_file('http://data.openaddresses.io.s3.amazonaws.com/runs/11170/ca-ab-strathcona-county.zip')
 
         self.assertEqual(splitext(filename)[1], '.zip')
@@ -1986,7 +1976,13 @@ class TestPackage (unittest.TestCase):
         remove(filename)
 
     def test_download_processed_file_nested_zip(self):
-        with HTTMock(self.response_content):
+        with mock.patch('openaddr.S3') as s3:
+            fake_s3 = mock.MagicMock()
+            fake_key = mock.MagicMock()
+            fake_key.get_contents_to_filename.return_value = None
+            fake_key.last_modified = "Wed, 19 Aug 2015 10:35:44 GMT"
+            fake_s3.get_key.return_value = fake_key
+            s3.return_value = fake_s3
             filename = download_processed_file('http://data.openaddresses.io.s3.amazonaws.com/runs/13616/fr/vaucluse.zip')
 
         self.assertEqual(splitext(filename)[1], '.zip')
