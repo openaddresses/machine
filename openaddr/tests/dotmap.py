@@ -83,8 +83,8 @@ class TestDotmap (unittest.TestCase):
 
         self.assertEqual('tippecanoe', cmd1[0])
         self.assertEqual('tippecanoe', cmd2[0])
-        self.assertEqual(('--output', 'oa.mbtiles'), cmd1[10:12])
-        self.assertEqual(('--output', 'oa.mbtiles'), cmd2[10:12])
+        self.assertEqual(('--output', 'oa.mbtiles'), cmd1[11:13])
+        self.assertEqual(('--output', 'oa.mbtiles'), cmd2[11:13])
         self.assertIn('OpenAddresses {}'.format(str(date.today())), cmd1)
         self.assertIn('OpenAddresses {}'.format(str(date.today())), cmd2)
 
