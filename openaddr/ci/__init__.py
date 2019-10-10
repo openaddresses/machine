@@ -1122,9 +1122,9 @@ def db_connect(dsn=None, user=None, password=None, host=None, port=None, databas
         Use DSN string if given, but allow other calls for older systems.
     '''
     if dsn is None:
-        return connect(user=user, password=password, host=host, port=port, database=database, sslmode=sslmode)
+        return connect(user=user, password=password, host=host, port=port, database=database, sslmode=sslmode, connect_timeout=5)
 
-    return connect(dsn)
+    return connect(dsn, connect_timeout=5)
 
 def db_queue(conn, name):
     return PQ(conn, table='queue')[name]

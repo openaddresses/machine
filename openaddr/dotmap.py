@@ -244,35 +244,42 @@ def main():
     args = parser.parse_args()
     setup_logger(args.sns_arn, None)
 
+    _L.info("Fetching runs from database...")
     with connect_db(args.database_url) as conn:
         with db_cursor(conn) as db:
             set = read_latest_set(db, args.owner, args.repository)
             runs = read_completed_runs_to_date(db, set.id)
+            _L.info("Using set %s with %d runs.", set.id, len(runs))
 
     mbtiles_filenames = list()
 
     # Prepare 14 temporary files for use in preparing and cutting MBTiles output.
     for i in range(14):
         handle, mbtiles_filename = mkstemp(prefix='oa-{:02d}-'.format(i), suffix='.mbtiles')
+        _L.info("Added %s as temp mbtiles filename", mbtiles_filename)
         mbtiles_filenames.append(mbtiles_filename)
         close(handle)
 
     # Stream all features to two tilesets: high-zoom and low-zoom.
+    _L.info("Instantiating tippecanoes")
     tippecanoe_hi = call_tippecanoe(mbtiles_filenames[0], True)
     tippecanoe_lo = call_tippecanoe(mbtiles_filenames[1], False)
     results = iterate_local_processed_files(runs)
 
+    _L.info("Streaming all features")
     for feature in stream_all_features(results):
         line = json.dumps(feature).encode('utf8') + b'\n'
         tippecanoe_hi.stdin.write(line)
         tippecanoe_lo.stdin.write(line)
 
+    _L.info("Finished streaming features")
     tippecanoe_hi.stdin.close()
     tippecanoe_lo.stdin.close()
     tippecanoe_hi.wait()
     tippecanoe_lo.wait()
 
     status_hi, status_lo = tippecanoe_hi.returncode, tippecanoe_lo.returncode
+    _L.info("Tippecanoes are finished. Highzoom status: %s, Lowzoom status: %s", status_hi, status_lo)
 
     if status_hi != 0 and status_lo != 0:
         raise RuntimeError('High- and low-zoom Tippecanoe commands returned {} and {}'.format(status_hi, status_lo))
@@ -286,6 +293,9 @@ def main():
         tileset_name = '{}-{}'.format(args.name_prefix, quadrant).lstrip('-')
         tileset_id = '{}.{}'.format(args.mapbox_user, tileset_name)
         mapbox_upload(mbtiles_filename, tileset_id, args.mapbox_user, args.mapbox_key)
+        _L.info("Uploaded %s to mapbox", mbtiles_filename)
+
+    _L.info("Done updating dotmap.")
 
 def stream_all_features(results):
     ''' Generate a stream of all locations as GeoJSON features.
