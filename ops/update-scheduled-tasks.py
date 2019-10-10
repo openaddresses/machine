@@ -30,7 +30,7 @@ def first_file(paths):
 def main():
     with open(first_file(version_paths)) as file:
         version = file.read().strip()
-    
+
     print('Found version', version)
 
     rules = {
@@ -39,14 +39,15 @@ def main():
             description = 'Enqueue sources, Mondays and Fridays at 21:00 UTC (1pm PST)',
             input = {
                 "command": ["openaddr-enqueue-sources"],
-                "hours": 60, "instance-type": "t2.nano",
+                "hours": 60, "instance-type": "t3.small",
                 "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
                 }),
         COLLECT_RULE: dict(
             cron = 'cron(0 15 ? * wed,sun *)',
             description = 'Archive collection, Wednesdays and Sundays at 15:00 UTC (7am PST)',
             input = {
-                "command": ["openaddr-collect-extracts"], "hours": 20,
+                "command": ["openaddr-collect-extracts"],
+                "hours": 20, "instance-type": "m5.large",
                 "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
                 }),
         CALCULATE_RULE: dict(
@@ -54,7 +55,7 @@ def main():
             description = 'Update coverage page data, every third day at 15:00 UTC (7am PST)',
             input = {
                 "command": ["openaddr-calculate-coverage"],
-                "hours": 3, "instance-type": "t2.micro",
+                "hours": 3, "instance-type": "t3.small",
                 "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
                 }),
         DOTMAP_RULE: dict(
@@ -62,20 +63,21 @@ def main():
             description = 'Generate OpenAddresses dot map, every tenth day at 15:00 UTC (7am PST)',
             input = {
                 "command": ["openaddr-update-dotmap"],
-                "hours": 48, "instance-type": "r3.large", "temp-size": 256,
+                "hours": 48, "instance-type": "r5.large", "temp-size": 300,
                 "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
                 }),
         TILEINDEX_RULE: dict(
             cron = 'cron(0 15 */7 * ? *)',
             description = 'Index into tiles, every seventh day at 15:00 UTC (7am PST)',
             input = {
-                "command": ["openaddr-index-tiles"], "hours": 16,
+                "command": ["openaddr-index-tiles"],
+                "hours": 16, "instance-type": "m5.large",
                 "bucket": LOG_BUCKET, "sns-arn": SNS_ARN, "version": version
                 }),
         }
-    
+
     client = boto3.client('events', region_name='us-east-1')
-    
+
     for (rule_name, details) in rules.items():
         print('Updating rule', rule_name, 'with target', EC2_RUN_TARGET_ID, '...', file=sys.stderr)
         rule = client.describe_rule(Name=rule_name)
@@ -85,7 +87,7 @@ def main():
             Description = details['description'],
             ScheduleExpression = details['cron'], State = 'ENABLED',
             )
-    
+
         client.put_targets(
             Rule = rule_name,
             Targets = [dict(
