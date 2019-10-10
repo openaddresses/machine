@@ -1,3 +1,6 @@
+2019-10-10: 7.2.17
+- Add connection timeout to postgres connection, more logging to dotmap update (#755)
+
 2019-10-10: 7.2.16
 - Update instance types used by jobs (#754)
 - Tell tippecanoe to drop densest points (#753)
