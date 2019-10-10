@@ -44,9 +44,16 @@ def call_tippecanoe(mbtiles_filename, include_properties=True):
     '''
     base_zoom = 15
 
-    cmd = 'tippecanoe', '--drop-rate', '2', '--layer', 'openaddresses', \
-          '--name', 'OpenAddresses {}'.format(str(date.today())), '--force', \
-          '--temporary-directory', gettempdir(), '--output', mbtiles_filename
+    cmd = (
+        'tippecanoe',
+        '--drop-rate', '2',
+        '--layer', 'openaddresses',
+        '--name', 'OpenAddresses {}'.format(str(date.today())),
+        '--force',
+        '--drop-densest-as-needed',
+        '--temporary-directory', gettempdir(),
+        '--output', mbtiles_filename,
+    )
 
     if include_properties:
         full_cmd = cmd + (
