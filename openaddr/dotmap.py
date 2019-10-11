@@ -248,6 +248,7 @@ def main():
     with connect_db(args.database_url) as conn:
         with db_cursor(conn) as db:
             set = read_latest_set(db, args.owner, args.repository)
+            _L.info("Got latest set %s", set.id)
             runs = read_completed_runs_to_date(db, set.id)
             _L.info("Using set %s with %d runs.", set.id, len(runs))
 
