@@ -34,7 +34,7 @@ function shutdown_with_log
 
 # Prepare temp volume, if applicable
 if [ -b /dev/nvme1n1 ]; then
-    mkfs.ext3 /dev/nvme1n1
+    mkfs.xfs /dev/nvme1n1
     mount /dev/nvme1n1 /tmp
 fi
 
