@@ -18,14 +18,14 @@ function shutdown_with_log
     else
         notify_sns "Failed {command_name} - `uptime --pretty`"
     fi
-    
+
     mkdir /tmp/task
     gzip -c /var/log/cloud-init-output.log > /tmp/task/cloud-init-output.log.gz
     echo {command} > /tmp/task/command
     echo $1 > /tmp/task/status
-    
+
     aws s3 cp /tmp/task s3://{bucket}/{log_prefix}/ --recursive --acl private
-    
+
     shutdown -h now
 }}
 
@@ -33,9 +33,9 @@ function shutdown_with_log
 ( sleep {lifespan}; shutdown_with_log 2 ) &
 
 # Prepare temp volume, if applicable
-if [ -b /dev/xvdb ]; then
-    mkfs.ext3 /dev/xvdb
-    mount /dev/xvdb /tmp
+if [ -b /dev/nvme1n1 ]; then
+    mkfs.ext3 /dev/nvme1n1
+    mount /dev/nvme1n1 /tmp
 fi
 
 # Install machine
