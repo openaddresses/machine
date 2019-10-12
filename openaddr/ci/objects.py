@@ -518,13 +518,10 @@ def read_completed_runs_to_date(db, starting_set_id):
         return None
 
     # Get IDs for latest successful source runs of any run in the requested set.
-    db.execute('''SELECT MAX(id), source_path FROM runs
-                  WHERE source_path IN (
-                      -- Get all source paths for successful runs in this set.
-                      SELECT source_path FROM runs
-                      WHERE set_id = %s
-                    )
-                    -- Get only successful, merged runs.
+    db.execute('''SELECT MAX(id), source_path
+                  FROM runs
+                  WHERE
+                    set_id = %s
                     AND status = true
                     AND (is_merged = true OR is_merged IS NULL)
                   GROUP BY source_path''',
@@ -533,13 +530,10 @@ def read_completed_runs_to_date(db, starting_set_id):
     run_path_ids = {path: run_id for (run_id, path) in db.fetchall()}
 
     # Get IDs for latest unsuccessful source runs of any run in the requested set.
-    db.execute('''SELECT MAX(id), source_path FROM runs
-                  WHERE source_path IN (
-                      -- Get all source paths for failed runs in this set.
-                      SELECT source_path FROM runs
-                      WHERE set_id = %s
-                    )
-                    -- Get only unsuccessful, merged runs.
+    db.execute('''SELECT MAX(id), source_path
+                  FROM runs
+                  WHERE
+                    set_id = %s
                     AND status = false
                     AND (is_merged = true OR is_merged IS NULL)
                   GROUP BY source_path''',
@@ -571,19 +565,19 @@ def mark_runs_for_index_page(db, runs):
     ''' Update runs.for_index_page boolean column from list of provided runs.
     '''
     run_ids = tuple([run.id for run in runs])
-    
+
     db.execute('''
         UPDATE runs SET for_index_page = false
         WHERE for_index_page
           AND id NOT IN %s
         ''', (run_ids, ))
-    
+
     db.execute('''
         UPDATE runs SET for_index_page = true
         WHERE NOT for_index_page
           AND id IN %s
         ''', (run_ids, ))
-    
+
 def read_latest_run(db, source_path):
     '''
     '''
