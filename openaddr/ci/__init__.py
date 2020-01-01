@@ -615,12 +615,18 @@ def enqueue_sources(queue, the_set, sources):
         with queue as db:
             _L.info(u'Sending {path} to task queue, {remain} more to go'.format(**source))
 
-            task = queuedata.Task(job_id=None, url=None, set_id=the_set.id,
-                                  name=source['path'],
-                                  content_b64=source['content'],
-                                  commit_sha=source['commit_sha'],
-                                  file_id=source['blob_sha'],
-                                  render_preview=False)
+            task = queuedata.Task(
+                job_id=None,
+                url=None,
+                set_id=the_set.id,
+                name=source['path'],
+                layer=None,
+                layersource=None,
+                content_b64=source['content'],
+                commit_sha=source['commit_sha'],
+                file_id=source['blob_sha'],
+                render_preview=False
+            )
 
             task_id = queue.put(task.asdata())
             expected_paths.add(source['path'])
@@ -768,10 +774,18 @@ def add_files_to_queue(queue, job_id, job_url, files, commit_sha, rerun):
     tasks = {}
 
     for (file_name, (content_b64, file_id)) in files.items():
-        task = queuedata.Task(job_id=job_id, url=job_url, name=file_name,
-                              content_b64=content_b64, file_id=file_id,
-                              commit_sha=commit_sha, rerun=rerun,
-                              render_preview=True)
+        task = queuedata.Task(
+            job_id=job_id,
+            url=job_url,
+            name=file_name,
+            layer=None,
+            layersource=None,
+            content_b64=content_b64,
+            file_id=file_id,
+            commit_sha=commit_sha,
+            rerun=rerun,
+            render_preview=True
+        )
 
         # Spread tasks out over time.
         delay = timedelta(seconds=len(tasks))
@@ -946,7 +960,7 @@ def pop_task_from_taskqueue(s3, task_queue, done_queue, due_queue, heartbeat_que
 
         taskdata = queuedata.Task(**task.data)
         _L.info(u'Got file {} from task queue'.format(taskdata.name))
-        passed_on_keys = 'job_id', 'file_id', 'name', 'url', 'content_b64', 'commit_sha', 'set_id', 'rerun'
+        passed_on_keys = 'job_id', 'file_id', 'name', 'layer', 'layersource', 'url', 'content_b64', 'commit_sha', 'set_id', 'rerun'
         passed_on_kwargs = {k: getattr(taskdata, k) for k in passed_on_keys}
         passed_on_kwargs['worker_id'] = _worker_id()
 

@@ -3576,8 +3576,16 @@ class TestQueue (unittest.TestCase):
     def test_task_queue(self, do_work):
         do_work.return_value = {str(uuid4()): str(uuid4())}
 
-        task_data = dict(job_id='j', url='u', name='sources/xx/f.json',
-                         content_b64='Li4u', file_id='iii', commit_sha='sss')
+        task_data = dict(
+            job_id='j',
+            url='u',
+            name='sources/xx/f.json',
+            layer=None,
+            layersource=None,
+            content_b64='Li4u',
+            file_id='iii',
+            commit_sha='sss'
+        )
 
         with db_connect(self.database_url) as conn:
             task_Q = db_queue(conn, TASK_QUEUE)

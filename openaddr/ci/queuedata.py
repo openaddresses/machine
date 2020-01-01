@@ -48,7 +48,7 @@ class Due:
     def __init__(self, job_id, url, name, layer, layersource, content_b64, commit_sha, file_id,
                  rerun, set_id, worker_id, run_id, **junk):
         self.job_id, self.url = job_id, url
-        self.name, self.layer, self.layersource = name, layer layersource
+        self.name, self.layer, self.layersource = name, layer, layersource
         self.content_b64, self.commit_sha = content_b64, commit_sha
         self.file_id, self.rerun, self.set_id = file_id, rerun, set_id
         self.worker_id, self.run_id = worker_id, run_id
@@ -58,7 +58,7 @@ class Due:
             job_id=self.job_id,
             url=self.url,
             name=self.name,
-            layer=self.layer
+            layer=self.layer,
             layersource=self.layersource,
             content_b64=self.content_b64,
             file_id=self.file_id,
@@ -71,7 +71,7 @@ class Due:
 
 class Done:
 
-    def __init__(self, job_id, url, name, content_b64, commit_sha, file_id,
+    def __init__(self, job_id, url, name, layer, layersource, content_b64, commit_sha, file_id,
                  run_id, result, rerun=None, set_id=None, worker_id=None,
                  **junk):
         self.job_id, self.url = job_id, url
@@ -86,7 +86,7 @@ class Done:
             job_id=self.job_id,
             url=self.url,
             name=self.name,
-            layer=self.layer
+            layer=self.layer,
             layersource=self.layersource,
             content_b64=self.content_b64,
             file_id=self.file_id,
