@@ -29,7 +29,7 @@ jobs:
 
       # Perform tests, but don't keep images around
       - run: docker-compose up -d && sleep 15
-      - run: docker-compose run machine python3 /usr/local/src/openaddr/test.py --logall
+      - run: docker-compose run machine python3 /usr/local/src/openaddr/test.py
 
   # Package Docker images and upload to S3 for use in production.
   Package:

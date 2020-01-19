@@ -11,6 +11,7 @@ from dateutil.tz import tzutc
 from csv import DictWriter
 import json, os, base64
 import hashlib, hmac, time
+import traceback
 
 import memcache, requests, psycopg2
 from jinja2 import Environment, FileSystemLoader
@@ -420,18 +421,22 @@ def nice_size(size):
 def slippymap_preview_url(runstate):
     '''
     '''
-    if runstate.run_id:
-        run_id = runstate.run_id
+    try:
+        if runstate.run_id:
+            run_id = runstate.run_id
 
-    elif runstate.slippymap:
-        # Old hack-ass way to get the run ID
-        parsed_url = urlparse(runstate.slippymap)
-        run_id = int(os.path.basename(os.path.dirname(parsed_url.path)))
+        elif runstate.slippymap:
+            # Old hack-ass way to get the run ID
+            parsed_url = urlparse(runstate.slippymap)
+            run_id = int(os.path.basename(os.path.dirname(parsed_url.path)))
 
-    else:
-        raise ValueError()
+        else:
+            raise ValueError()
 
-    return url_for('dots.dotmap_preview', run_id=run_id)
+        return url_for('dots.dotmap_preview', run_id=run_id)
+    except Exception as e:
+        traceback.print_exc()
+        raise
 
 def apply_webhooks_blueprint(app):
     '''
