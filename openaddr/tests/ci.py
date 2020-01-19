@@ -2285,7 +2285,6 @@ class TestHook (unittest.TestCase):
 
         got2 = self.client.get('/jobs/abc')
         body2 = got2.data.decode('utf8')
-        print(body2)
         self.assertEqual(got2.status_code, 200)
 
         self.assertIn('http://example.com/998/log.txt', body2)

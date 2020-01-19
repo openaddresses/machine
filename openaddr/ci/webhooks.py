@@ -420,6 +420,7 @@ def nice_size(size):
 def slippymap_preview_url(runstate):
     '''
     '''
+    print(runstate)
     if runstate.run_id:
         run_id = str(runstate.run_id)
 
