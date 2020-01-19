@@ -54,13 +54,11 @@
             <a href="{{ file_runstate.preview|nice_domain }}">image preview</a>
         {% endif %}
         </td>
-        {% if dotmaps_base_url %}
-            <td>
-            {% if file_runstate and file_runstate.slippymap %}
-                <a href="{{ file_runstate|slippymap_preview_url }}">slippy map preview</a>
-            {% endif %}
-            </td>
+        <td>
+        {% if file_runstate and file_runstate.slippymap %}
+            <a href="{{ file_runstate|slippymap_preview_url }}">slippy map preview</a>
         {% endif %}
+        </td>
     </tr>
 
 {% endfor %}

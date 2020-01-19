@@ -1240,7 +1240,6 @@ class TestHook (unittest.TestCase):
         os.environ['WEBHOOK_SECRETS'] = 'hello,world'
         os.environ['AWS_ACCESS_KEY_ID'] = '12345'
         os.environ['AWS_SECRET_ACCESS_KEY'] = '67890'
-        os.environ['DOTMAPS_BASE_URL'] = 'https://dotmaps.example.com/yo/'
 
         self.app = Flask(__name__)
         self.app.config.update(load_config(), MINIMUM_LOGLEVEL=logging.CRITICAL)

@@ -213,8 +213,7 @@ def app_get_job(job_id):
     job = dict(status=job.status, task_files=ordered_files, file_states=job.states,
                file_results=job.file_results, github_status_url=job.github_status_url)
 
-    return render_template('job.html', job=job,
-                           dotmaps_base_url=current_app.config['DOTMAPS_BASE_URL'])
+    return render_template('job.html', job=job)
 
 @webhooks.route('/sets/', methods=['GET'])
 @log_application_errors
@@ -432,7 +431,7 @@ def slippymap_preview_url(runstate):
     else:
         raise ValueError()
 
-    return urljoin(current_app.config['DOTMAPS_BASE_URL'], run_id)
+    return url_for('dots.dotmap_preview', run_id=run_id)
 
 def apply_webhooks_blueprint(app):
     '''
