@@ -420,14 +420,13 @@ def nice_size(size):
 def slippymap_preview_url(runstate):
     '''
     '''
-    print(runstate)
     if runstate.run_id:
-        run_id = str(runstate.run_id)
+        run_id = runstate.run_id
 
     elif runstate.slippymap:
         # Old hack-ass way to get the run ID
         parsed_url = urlparse(runstate.slippymap)
-        run_id = os.path.basename(os.path.dirname(parsed_url.path))
+        run_id = int(os.path.basename(os.path.dirname(parsed_url.path)))
 
     else:
         raise ValueError()
