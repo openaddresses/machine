@@ -2293,13 +2293,13 @@ class TestHook (unittest.TestCase):
         self.assertIn('http://example.com/998/sample.json', body2)
         self.assertIn('http://example.com/998/stuff.zip', body2)
         self.assertIn('http://example.com/998/preview.png', body2)
-        self.assertIn('/998/dotmaps/index.html', body2)
+        self.assertIn('/runs/998/dotmap/index.html', body2)
 
         self.assertIn('http://example.com/999/log.txt', body2)
         self.assertIn('http://example.com/999/sample.json', body2)
         self.assertIn('http://example.com/999/stuff.zip', body2)
         self.assertIn('http://example.com/999/preview.png', body2)
-        self.assertIn('/998/dotmaps/index.html', body2)
+        self.assertIn('/runs/999/dotmap/index.html', body2)
 
 class TestRuns (unittest.TestCase):
 
