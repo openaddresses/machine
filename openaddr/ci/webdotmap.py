@@ -212,6 +212,12 @@ def get_one_tile(run_id, zoom, col, row):
 def apply_dotmap_blueprint(app):
     '''
     '''
+    @dots.after_request
+    def cache_everything(response):
+        response.cache_control.max_age = 31556952  # 1 year
+        response.cache_control.public = True
+        return response
+
     app.register_blueprint(dots)
 
     @app.before_first_request
