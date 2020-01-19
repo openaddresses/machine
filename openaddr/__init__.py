@@ -5,7 +5,7 @@ from tempfile import mkdtemp, mkstemp
 from os.path import realpath, join, splitext, exists, dirname, abspath, relpath
 from shutil import copy, move, rmtree
 from os import close, utime, remove
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from datetime import datetime, date
 from calendar import timegm
 import requests

@@ -3,33 +3,54 @@ from __future__ import division
 import logging; _L = logging.getLogger('openaddr.ci.webhooks')
 
 from functools import wraps
-from operator import itemgetter, attrgetter
-from urllib.parse import urlparse, urljoin
+from operator import attrgetter
+from urllib.parse import urlparse
 from collections import OrderedDict
 from datetime import datetime
 from dateutil.tz import tzutc
-from csv import DictWriter
-import json, os, base64
-import hashlib, hmac, time
-import traceback
+import json
+import os
+import base64
+import hashlib
+import hmac
 
-import memcache, requests, psycopg2
-from jinja2 import Environment, FileSystemLoader
+import memcache
+import requests
+import psycopg2
 from flask import (
-    Flask, Blueprint, request, Response, current_app, jsonify, render_template,
-    redirect, url_for
-    )
+    Blueprint,
+    current_app,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    Response,
+    url_for
+)
 
 from . import (
-    load_config, setup_logger, db_connect, db_queue, db_cursor, TASK_QUEUE, process_github_payload
-    )
+    db_connect,
+    db_cursor,
+    db_queue,
+    process_github_payload,
+    setup_logger,
+    TASK_QUEUE,
+)
 
 from .objects import (
-    read_job, read_jobs, read_sets, read_set, read_latest_set, RunState,
-    read_run, read_completed_set_runs, read_completed_runs_to_date_cheaply,
-    load_collection_zips_dict, read_latest_run, read_completed_source_runs,
-    read_completed_set_runs_count
-    )
+    load_collection_zips_dict,
+    read_completed_runs_to_date_cheaply,
+    read_completed_set_runs_count,
+    read_completed_set_runs,
+    read_completed_source_runs,
+    read_job,
+    read_jobs,
+    read_latest_run,
+    read_latest_set,
+    read_run,
+    read_set,
+    read_sets,
+)
 
 from ..summarize import summarize_runs, GLASS_HALF_FULL, GLASS_HALF_EMPTY, nice_integer, break_state
 from .webcommon import log_application_errors, monitor_execution_time, nice_domain, flask_log_level
@@ -176,7 +197,6 @@ def app_get_jobs():
             except ValueError:
                 return Response('Invalid past {}'.format(repr(request.args.get('past', ''))), 400)
 
-
     try:
         n = int(request.args.get('n', '1'))
     except ValueError:
@@ -206,10 +226,9 @@ def app_get_job(job_id):
                     return Response('Job {} not found'.format(job_id), 404)
 
     statuses = False, None, True
-    key_func = lambda _path: (statuses.index(job.states[_path[1]]), _path[1])
     file_tuples = [(sha, path) for (sha, path) in job.task_files.items()]
 
-    ordered_files = OrderedDict(sorted(file_tuples, key=key_func))
+    ordered_files = OrderedDict(sorted(file_tuples, key=lambda _path: (statuses.index(job.states[_path[1]]), _path[1])))
 
     job = dict(status=job.status, task_files=ordered_files, file_states=job.states,
                file_results=job.file_results, github_status_url=job.github_status_url)
@@ -405,13 +424,13 @@ def nice_size(size):
     if size < KB:
         size, suffix = size, 'B'
     elif size < MB:
-        size, suffix = size/KB, 'KB'
+        size, suffix = size / KB, 'KB'
     elif size < GB:
-        size, suffix = size/MB, 'MB'
+        size, suffix = size / MB, 'MB'
     elif size < TB:
-        size, suffix = size/GB, 'GB'
+        size, suffix = size / GB, 'GB'
     else:
-        size, suffix = size/TB, 'TB'
+        size, suffix = size / TB, 'TB'
 
     if size < 10:
         return '{:.1f}{}'.format(size, suffix)
@@ -421,22 +440,18 @@ def nice_size(size):
 def slippymap_preview_url(runstate):
     '''
     '''
-    try:
-        if runstate.run_id:
-            run_id = runstate.run_id
+    if runstate.run_id:
+        run_id = runstate.run_id
 
-        elif runstate.slippymap:
-            # Old hack-ass way to get the run ID
-            parsed_url = urlparse(runstate.slippymap)
-            run_id = int(os.path.basename(os.path.dirname(parsed_url.path)))
+    elif runstate.slippymap:
+        # Old hack-ass way to get the run ID
+        parsed_url = urlparse(runstate.slippymap)
+        run_id = int(os.path.basename(os.path.dirname(parsed_url.path)))
 
-        else:
-            raise ValueError()
+    else:
+        raise ValueError()
 
-        return url_for('dots.dotmap_preview', run_id=run_id)
-    except Exception as e:
-        traceback.print_exc()
-        raise
+    return url_for('dots.dotmap_preview', run_id=run_id)
 
 def apply_webhooks_blueprint(app):
     '''

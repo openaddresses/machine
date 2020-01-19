@@ -13,7 +13,7 @@ import simplejson as json
 from os import mkdir
 from hashlib import md5
 from os.path import join, basename, exists, abspath, splitext
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from subprocess import check_output
 from tempfile import mkstemp
 from hashlib import sha1
