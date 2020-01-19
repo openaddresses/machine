@@ -26,10 +26,10 @@ jobs:
     steps:
       - checkout
       - run: .circleci/prepare-docker-images.sh
-      
+
       # Perform tests, but don't keep images around
       - run: docker-compose up -d && sleep 15
-      - run: docker-compose run machine python3 /usr/local/src/openaddr/test.py
+      - run: docker-compose run machine python3 /usr/local/src/openaddr/test.py --logall
 
   # Package Docker images and upload to S3 for use in production.
   Package:
@@ -44,7 +44,7 @@ jobs:
       - run: docker tag openaddr/machine:`cat /tmp/P/MAJOR` openaddr/machine:`cat /tmp/P/FULL`
       - run: docker save openaddr/machine:`cat /tmp/P/FULL` | gzip -c --fast > /tmp/images/openaddr-machine-`cat /tmp/P/FULL`.tar.gz
       - run: aws s3 cp --quiet --recursive --acl public-read /tmp/images/ s3://data.openaddresses.io/docker/
-  
+
   # Deploy new version of Machine to EC2 and Lambda
   Deploy:
     docker:
