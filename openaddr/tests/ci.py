@@ -58,6 +58,7 @@ from ..ci.tileindex import (
 from ..jobs import JOB_TIMEOUT
 from ..ci.work import make_source_filename, assemble_runstate, MAGIC_OK_MESSAGE
 from ..ci.webhooks import apply_webhooks_blueprint
+from ..ci.webdotmap import apply_dotmap_blueprint
 from ..ci.webapi import apply_webapi_blueprint
 from .. import LocalProcessedResult
 from . import FakeS3
@@ -1244,6 +1245,7 @@ class TestHook (unittest.TestCase):
         self.app = Flask(__name__)
         self.app.config.update(load_config(), MINIMUM_LOGLEVEL=logging.CRITICAL)
         apply_webhooks_blueprint(self.app)
+        apply_dotmap_blueprint(self.app)
         webcoverage.apply_coverage_blueprint(self.app)
 
         recreate_db.recreate(self.app.config['DATABASE_URL'])
