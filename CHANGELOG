@@ -1,3 +1,6 @@
+2020-01-19: 7.4.0
+- Add support for viewing CI-generated dotmaps to results.openaddresses.io (#761)
+
 2019-10-16: 7.3.1
 - Update tippecanoe (#758)
 - Mounts are at /dev/nvme1 (#757)
