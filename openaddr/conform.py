@@ -6,16 +6,13 @@ import logging; _L = logging.getLogger('openaddr.conform')
 import os
 import errno
 import tempfile
-import itertools
 import mimetypes
 import json
 import copy
-import sys
 import csv
 import re
 
 from zipfile import ZipFile
-from argparse import ArgumentParser
 from locale import getpreferredencoding
 from os.path import splitext
 from hashlib import sha1
@@ -335,7 +332,7 @@ class ExcerptDataTask(object):
             data_path = ExcerptDataTask._sample_geojson_file(data_path)
 
         format_string = conform.get('format')
-    
+
         # GDAL has issues with weird input CSV data, so use Python instead.
         if format_string == 'csv':
             return ExcerptDataTask._excerpt_csv_file(data_path, encoding, csvsplit)
@@ -380,7 +377,7 @@ class ExcerptDataTask(object):
     @staticmethod
     def _get_known_paths(source_paths, workdir, conform, known_types):
         format_string = conform.get('format')
-    
+
         if format_string != 'csv' or 'file' not in conform:
             paths = [source_path for source_path in source_paths
                      if os.path.splitext(source_path)[1].lower() in known_types]
@@ -482,7 +479,7 @@ def find_source_path(source_definition, source_paths):
 
     format_string = conform.get('format')
     protocol_string = source_definition.get('protocol')
-    
+
     if format_string in ("shapefile", "shapefile-polygon"):
         # TODO this code is too complicated; see XML variant below for simpler option
         # Shapefiles are named *.shp
@@ -800,7 +797,7 @@ def csv_source_to_csv(source_definition, source_path, dest_path):
         num_fields = len(reader.fieldnames)
 
         protocol_string = source_definition['protocol']
-    
+
         # Construct headers for the extracted CSV file
         if protocol_string == "ESRI":
             # ESRI sources: just copy what the downloader gave us. (Already has OA:x and OA:y)
@@ -878,7 +875,7 @@ def row_extract_and_reproject(source_definition, source_row):
     '''
     format_string = source_definition["conform"].get('format')
     protocol_string = source_definition['protocol']
-    
+
     # Ignore any lat/lon names for natively geographic sources.
     ignore_conform_names = bool(format_string != 'csv')
 
@@ -1265,7 +1262,7 @@ def extract_to_source_csv(source_definition, source_path, extract_path):
     """
     format_string = source_definition["conform"]['format']
     protocol_string = source_definition['protocol']
-    
+
     if format_string in ("shapefile", "shapefile-polygon", "xml", "gdb"):
         ogr_source_path = normalize_ogr_filename_case(source_path)
         ogr_source_to_csv(source_definition, ogr_source_path, extract_path)
@@ -1313,7 +1310,7 @@ def conform_cli(source_definition, source_path, dest_path):
         return 1
 
     format_string = source_definition["conform"].get('format')
-    
+
     if not format_string in ["shapefile", "shapefile-polygon", "geojson", "csv", "xml", "gdb"]:
         _L.warning("Skipping file with unknown conform: %s", source_path)
         return 1

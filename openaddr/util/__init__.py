@@ -6,11 +6,14 @@ from os.path import join, basename, splitext, dirname, exists
 from operator import attrgetter
 from tempfile import mkstemp
 from os import close, getpid
-import glob, collections
-import ftplib, httmock
-import io, zipfile
-import json, time
-import shlex, re
+import glob
+import collections
+import ftplib
+import httmock
+import io
+import zipfile
+import time
+import re
 
 RESOURCE_LOG_INTERVAL = timedelta(seconds=30)
 RESOURCE_LOG_FORMAT = 'Resource usage: {{ user: {user:.0f}%, system: {system:.0f}%, ' \

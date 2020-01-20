@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Run {{ run_id }}</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://www.nextzen.org/js/nextzen.css">
+    <script src="https://www.nextzen.org/js/nextzen.min.js"></script>
+    <style>
+      #map {
+        height: 100%;
+        width: 100%;
+        position: absolute;
+      }
+      #address {
+        top: 1em;
+        left: 1em;
+        padding: .5em;
+        background-color: rgba(255, 255, 255, .95);
+        border-radius: 3px;
+        border: 1px solid black;
+        position: absolute;
+        z-index: 999;
+        display: none;
+        font-family: monospace;
+        font-size: 9pt;
+      }
+      html, body { margin: 0; padding: 0 }
+  </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <div id="address">
+        <table>
+            <tr><td>Number</td><td id="address-number">Yo</td></tr>
+            <tr><td>Street</td><td id="address-street">Yo</td></tr>
+            <tr><td>Unit</td><td id="address-unit">Yo</td></tr>
+            <tr><td>City</td><td id="address-city">Yo</td></tr>
+            <tr><td>Region</td><td id="address-region">Yo</td></tr>
+            <tr><td>Postcode</td><td id="address-postcode">Yo</td></tr>
+            <tr><td>Hash</td><td id="address-hash">Yo</td></tr>
+            <tr><td>Source</td><td id="address-source_path">Yo</td></tr>
+        </table>
+    </div>
+    <script>
+
+      function onLoaded(event)
+      {
+        event.tangramLayer.setSelectionEvents({ hover: onHover, click: onClick });
+      }
+
+      function onHover(selection)
+      {
+        var fields = ['number', 'street', 'unit', 'city', 'region', 'postcode', 'hash', 'source_path'],
+            label = document.getElementById('address'),
+            map = document.getElementById('map'),
+            key, i, props = {};
+
+        if(selection.feature)
+        {
+            for(key in selection.feature.properties)
+            {
+                props[key.toLowerCase()] = selection.feature.properties[key];
+            }
+
+            if('number' in props && 'street' in props)
+            {
+                for(i in fields)
+                {
+                    key = fields[i];
+                    document.getElementById('address-' + key).innerText = (props[key] || '');
+                }
+
+                map.style.cursor = 'pointer';
+                label.style.display = 'block';
+                label.style.left = (selection.pixel.x - 20) + 'px';
+                label.style.top = (selection.pixel.y - label.clientHeight - 10) + 'px';
+
+                return;
+            }
+        }
+
+        map.style.cursor = '';
+        label.style.display = 'none';
+      }
+
+      function onClick(selection)
+      {
+      }
+
+      L.Nextzen.apiKey = '2fbIR01VTFuSyPuvdkBSfQ';
+      var map = L.Nextzen.map('map', {
+        center: [{{lat}}, {{lon}}],
+        zoom: {{zoom}},
+        scene: "{{ scene_url|escape }}",
+        tangramOptions: {
+          apiKey: L.Nextzen.apiKey,
+        }
+      });
+
+      // Move zoom control to the top right corner of the map
+      map.zoomControl.setPosition('topright');
+
+      // URL hash
+      L.Nextzen.hash({map: map});
+
+      // Set up interactivity
+      map.on('tangramloaded', onLoaded);
+
+    </script>
+  </body>
+</html>

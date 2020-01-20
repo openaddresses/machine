@@ -4,7 +4,6 @@ import logging; _L = logging.getLogger('openaddr.cache')
 import os
 import errno
 import math
-import socket
 import mimetypes
 import shutil
 import re

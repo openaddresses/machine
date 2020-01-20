@@ -70,11 +70,11 @@ setup(
         # http://flask-cors.corydolphin.com
         'Flask-Cors == 3.0.8',
 
-        # https://www.palletsproject.com/projects/werkzeug/
-        'Werkzeug == 0.15.6',
+        # https://www.palletsprojects.com/p/werkzeug/
+        'Werkzeug == 0.16.0',
 
         # http://gunicorn.org
-        'gunicorn == 19.9.0',
+        'gunicorn == 19.10.0',
 
         # http://www.voidspace.org.uk/python/mock/
         'mock == 3.0.5',
@@ -86,7 +86,7 @@ setup(
         'pq == 1.8.1',
 
         # http://initd.org/psycopg/
-        'psycopg2 == 2.8.3',
+        'psycopg2-binary == 2.8.4',
 
         # http://docs.python-requests.org/en/master/
         'requests == 2.22.0',
@@ -95,14 +95,18 @@ setup(
         'httmock == 1.3.0',
 
         # https://boto3.readthedocs.org
-        'boto3 == 1.9.180',
+        'boto3 == 1.11.5',
 
         # https://github.com/openaddresses/pyesridump
         'esridump == 1.6.0',
 
         # Used in openaddr.parcels
-        'Shapely == 1.5.17',
-        'Fiona == 1.7.0.post2',
+        'Shapely == 1.7b1',
+        'Fiona == 1.8.13',
+
+        # Used in dotmaps preview to support S3-backed SQLite mbtiles
+        # https://rogerbinns.github.io/apsw/
+        'apsw == 3.9.2.post1',
 
         # http://pythonhosted.org/itsdangerous/
         'itsdangerous == 1.1.0',

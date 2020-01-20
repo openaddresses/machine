@@ -58,6 +58,7 @@ from ..ci.tileindex import (
 from ..jobs import JOB_TIMEOUT
 from ..ci.work import make_source_filename, assemble_runstate, MAGIC_OK_MESSAGE
 from ..ci.webhooks import apply_webhooks_blueprint
+from ..ci.webdotmap import apply_dotmap_blueprint
 from ..ci.webapi import apply_webapi_blueprint
 from .. import LocalProcessedResult
 from . import FakeS3
@@ -1240,11 +1241,11 @@ class TestHook (unittest.TestCase):
         os.environ['WEBHOOK_SECRETS'] = 'hello,world'
         os.environ['AWS_ACCESS_KEY_ID'] = '12345'
         os.environ['AWS_SECRET_ACCESS_KEY'] = '67890'
-        os.environ['DOTMAPS_BASE_URL'] = 'https://dotmaps.example.com/yo/'
 
         self.app = Flask(__name__)
         self.app.config.update(load_config(), MINIMUM_LOGLEVEL=logging.CRITICAL)
         apply_webhooks_blueprint(self.app)
+        apply_dotmap_blueprint(self.app)
         webcoverage.apply_coverage_blueprint(self.app)
 
         recreate_db.recreate(self.app.config['DATABASE_URL'])
@@ -2292,13 +2293,13 @@ class TestHook (unittest.TestCase):
         self.assertIn('http://example.com/998/sample.json', body2)
         self.assertIn('http://example.com/998/stuff.zip', body2)
         self.assertIn('http://example.com/998/preview.png', body2)
-        self.assertIn('https://dotmaps.example.com/yo/998', body2)
+        self.assertIn('/runs/998/dotmap/index.html', body2)
 
         self.assertIn('http://example.com/999/log.txt', body2)
         self.assertIn('http://example.com/999/sample.json', body2)
         self.assertIn('http://example.com/999/stuff.zip', body2)
         self.assertIn('http://example.com/999/preview.png', body2)
-        self.assertIn('https://dotmaps.example.com/yo/999', body2)
+        self.assertIn('/runs/999/dotmap/index.html', body2)
 
 class TestRuns (unittest.TestCase):
 

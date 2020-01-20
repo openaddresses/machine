@@ -1,0 +1,47 @@
+import: https://www.nextzen.org/carto/refill-style/12/refill-style.zip
+
+sources:
+    _dots:
+        type: MVT
+        url: "{{ tile_url|escape }}"
+        max_zoom: 14
+
+styles:
+    # Set up style aliases so that overlapping points can be drawn.
+    # https://mapzen.com/documentation/tangram/styles/#styles
+    _kirby_whites:
+        base: points
+    _kirby_outlines:
+        base: points
+
+layers:
+    _dots:
+        # order - https://mapzen.com/documentation/cartography/api-reference/#overlay
+        # collide - https://mapzen.com/documentation/tangram/draw/#collide
+        data: { source: _dots, layer: dots }
+        draw:
+            # Blue dot fills.
+            points:
+                order: global.sdk_order_over_everything_but_text_1
+                collide: false
+                color: "#25bffc"
+                size: [[10, 2px], [11, 2px], [12, 3px], [13, 4px], [14, 5px], [15, 6px]]
+        _dot_whites:
+            # White dot outlines, also used as a mouse hit area.
+            # interactive - https://mapzen.com/documentation/tangram/draw/#interactive
+            filter: { $zoom: { min: 15 } }
+            draw:
+                _kirby_whites:
+                    order: global.sdk_order_over_everything_but_text_2
+                    interactive: true
+                    collide: false
+                    color: "#fff"
+                    size: 12px
+        _dot_outlines:
+            filter: { $zoom: { min: 17 } }
+            draw:
+                _kirby_outlines:
+                    order: global.sdk_order_over_everything_but_text_3
+                    collide: false
+                    color: "#ccc"
+                    size: 14px
