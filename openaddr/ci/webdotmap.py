@@ -149,7 +149,7 @@ def dotmap_preview(run_id):
     '''
     '''
     if not run_id:
-        abort(404)
+        return 'invalid run_id', 404
 
     try:
         bucket = "data.openaddresses.io"
@@ -174,7 +174,7 @@ def dotmap_preview(run_id):
 @log_application_errors
 def get_scene(run_id):
     if not run_id:
-        abort(404)
+        return 'invalid run_id', 404
 
     tile_args = dict(run_id=run_id, zoom=123, col=456, row=789)
     tile_url = url_for('dots.get_one_tile', **tile_args).replace('123/456/789', '{z}/{x}/{y}')
@@ -191,7 +191,7 @@ def get_one_tile(run_id, zoom, col, row):
     '''
     '''
     if not run_id:
-        abort(404)
+        return 'invalid run_id', 404
 
     bucket = "data.openaddresses.io"
     key = "runs/{run_id}/slippymap.mbtiles".format(run_id=run_id)
@@ -199,7 +199,7 @@ def get_one_tile(run_id, zoom, col, row):
     body = get_mbtiles_tile(bucket, key, row, col, zoom, mc)
 
     if not body:
-        abort(404)
+        return 'tile not found', 404
 
     headers = {
         'Content-Type': 'application/vnd.mapbox-vector-tile',
