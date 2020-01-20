@@ -1,3 +1,6 @@
+2020-01-19: 7.4.1
+- Don't use abort() to send back a 404 because it's too noisy with our SNS-based exception handling system (#762)
+
 2020-01-19: 7.4.0
 - Add support for viewing CI-generated dotmaps to results.openaddresses.io (#761)
 
@@ -112,10 +115,10 @@
 2018-10-20: 6.8.9
 - Bumped collection time limit to 20 hours.
 
-2018-05-25: 6.8.8 
+2018-05-25: 6.8.8
 - Started deploying continuously from Circle CI. (#703)
 
-2018-05-24: 6.8.7 
+2018-05-24: 6.8.7
 - Switched to Circle CI 2.0. (#702)
 
 2018-04-17: 6.8.6
