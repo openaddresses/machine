@@ -149,6 +149,7 @@ def guess_url_file_extension(url):
     '''
     scheme, _, path, _, query, _ = urlparse(url)
     mimetypes.add_type('application/x-zip-compressed', '.zip', False)
+    mimetypes.add_type('application/vnd.geo+json', '.json', False)
 
     _, likely_ext = os.path.splitext(path)
     bad_extensions = '', '.cgi', '.php', '.aspx', '.asp', '.do'
