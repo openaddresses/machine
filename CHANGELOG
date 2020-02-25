@@ -1,3 +1,6 @@
+2020-02-25: 7.4.2
+- Support 'application/vnd.geo+json' content type (as GeoJSON) (#763)
+
 2020-01-19: 7.4.1
 - Don't use abort() to send back a 404 because it's too noisy with our SNS-based exception handling system (#762)
 
