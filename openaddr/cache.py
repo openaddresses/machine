@@ -305,8 +305,24 @@ class EsriRestDownloadTask(DownloadTask):
 
         return os.path.join(dir_path, name_base + path_ext)
 
-    @staticmethod
-    def field_names_to_request(conform):
+    @classmethod
+    def fields_from_conform_function(cls, v):
+        fxn = v.get('function')
+        if fxn:
+            if fxn in ('join', 'format'):
+                return set(v['fields'])
+            elif fxn == 'chain':
+                fields = set()
+                user_vars = set([v['variable']])
+                for func in v['functions']:
+                    if isinstance(func, dict) and 'function' in func:
+                        fields |= cls.fields_from_conform_function(func) - user_vars
+                return fields
+            else:
+                return set([v.get('field')])
+
+    @classmethod
+    def field_names_to_request(cls, conform):
         ''' Return list of fieldnames to request based on conform, or None.
         '''
         if not conform:
@@ -318,10 +334,7 @@ class EsriRestDownloadTask(DownloadTask):
                 if isinstance(v, dict):
                     # It's a function of some sort?
                     if 'function' in v:
-                        if v['function'] in ('join', 'format'):
-                            fields |= set(v['fields'])
-                        else:
-                            fields.add(v.get('field'))
+                        fields |= cls.fields_from_conform_function(v)
                 elif isinstance(v, list):
                     # It's a list of field names
                     fields |= set(v)

@@ -1005,6 +1005,17 @@ def row_transform_and_convert(sd, row):
     row5 = row_calculate_hash(cache_fingerprint, row4)
     return row5
 
+def fxn_smash_case(fxn):
+    if "field" in fxn:
+        fxn["field"] = fxn["field"].lower()
+    if "fields" in fxn:
+        fxn["fields"] = [s.lower() for s in fxn["fields"]]
+    if "field_to_remove" in fxn:
+        fxn["field_to_remove"] = fxn["field_to_remove"].lower()
+    if "functions" in fxn:
+        for sub_fxn in fxn["functions"]:
+            fxn_smash_case(sub_fxn)
+
 def conform_smash_case(source_definition):
     "Convert all named fields in source_definition object to lowercase. Returns new object."
     new_sd = copy.deepcopy(source_definition)
@@ -1013,16 +1024,9 @@ def conform_smash_case(source_definition):
         if v not in (X_FIELDNAME, Y_FIELDNAME) and getattr(v, 'lower', None):
             conform[k] = v.lower()
         if type(conform[k]) is list:
-           conform[k] = [s.lower() for s in conform[k]]
+            conform[k] = [s.lower() for s in conform[k]]
         if type(conform[k]) is dict:
-            if "field" in conform[k]:
-                conform[k]["field"] = conform[k]["field"].lower()
-
-            if "fields" in conform[k]:
-                conform[k]["fields"] = [s.lower() for s in conform[k]["fields"]]
-
-            if "field_to_remove" in conform[k]:
-                conform[k]["field_to_remove"] = conform[k]["field_to_remove"].lower()
+            fxn_smash_case(conform[k])
 
             if "functions" in conform[k] and type(conform[k]["functions"]) is list:
                 for function in conform[k]["functions"]:
