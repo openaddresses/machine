@@ -1,3 +1,6 @@
+2020-02-29: 7.4.3
+- Fix bug in calculating fields to request when using the chain function (#764)
+
 2020-02-25: 7.4.2
 - Support 'application/vnd.geo+json' content type (as GeoJSON) (#763)
 
