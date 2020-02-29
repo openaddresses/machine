@@ -307,10 +307,11 @@ class EsriRestDownloadTask(DownloadTask):
 
     @classmethod
     def fields_from_conform_function(cls, v):
-        if 'function' in v:
-            if v['function'] in ('join', 'format'):
+        fxn = v.get('function')
+        if fxn:
+            if fxn in ('join', 'format'):
                 return set(v['fields'])
-            elif v['function'] == 'chain':
+            elif fxn == 'chain':
                 fields = set()
                 user_vars = set([v['variable']])
                 for func in v['functions']:
