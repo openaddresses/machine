@@ -131,3 +131,7 @@ class TestCacheEsriDownload (unittest.TestCase):
         conform9 = dict(street=['Number', 'Street'])
         fields9 = EsriRestDownloadTask.field_names_to_request(conform9)
         self.assertEqual(fields9, ['Number', 'Street'])
+
+        conform10 = dict(street=dict(function='chain', variable='foo', functions=[dict(function='postfixed_street', field='Street'), dict(function='remove_postfix', field='foo')]))
+        fields10 = EsriRestDownloadTask.field_names_to_request(conform10)
+        self.assertEqual(fields10, ['Street'])
