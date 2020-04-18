@@ -966,13 +966,11 @@ def row_function(sd, row, key, fxn):
         row = row_fxn_chain(sd, row, key, fxn)
     elif function == "first_non_empty":
         row = row_fxn_first_non_empty(sd, row, key, fxn)
+    elif function == "get":
+        row = row_fxn_get(sd, row, key, fxn)
 
     return row
 
-
-
-### Row-level conform code. Inputs and outputs are individual rows in a CSV file.
-### The input row may or may not be modified in place. The output row is always returned.
 
 def row_transform_and_convert(sd, row):
     "Apply the full conform transform and extract operations to a row"
@@ -1004,6 +1002,11 @@ def row_transform_and_convert(sd, row):
     row4 = row_round_lat_lon(sd, row3)
     row5 = row_calculate_hash(cache_fingerprint, row4)
     return row5
+
+
+
+### Row-level conform code. Inputs and outputs are individual rows in a CSV file.
+### The input row may or may not be modified in place. The output row is always returned.
 
 def fxn_smash_case(fxn):
     if "field" in fxn:
@@ -1195,6 +1198,12 @@ def row_fxn_first_non_empty(sd, row, key, fxn):
         if row[field] and row[field].strip():
             row[var_types[key]] = row[field]
             break
+
+    return row
+
+def row_fxn_get(sd, row, key, fxn):
+    "Get single value from a field with many values"
+    row[var_types[key]] = row[fxn['field']][fxn['index']]
 
     return row
 
