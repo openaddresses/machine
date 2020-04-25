@@ -1388,7 +1388,7 @@ class TestConformTransforms (unittest.TestCase):
                     "index": 1
                 }
             }}
-        d = {"jednostkaAdministracyjna": ["Polska", "kujawsko-pomorskie", "brodnicki", "Bartnicza"]}
+        d = {"jednostkaAdministracyjna": "['Polska', 'kujawsko-pomorskie','brodnicki', 'Bartnicza']" }
         e = copy.deepcopy(d)
 
         e.update({"OA:region": "kujawsko-pomorskie"})
