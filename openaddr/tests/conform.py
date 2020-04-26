@@ -1378,8 +1378,8 @@ class TestConformTransforms (unittest.TestCase):
         d = row_fxn_first_non_empty(c, d, "street", c["conform"]["street"])
         self.assertEqual(e, d)
 
-    def test_row_fxn_get(self):
-        "New fxn get"
+    def test_row_fxn_get_from_array_string(self):
+        "New fxn get_from_array_string"
         c = {
             "conform": {
                 "region": {
@@ -1392,7 +1392,7 @@ class TestConformTransforms (unittest.TestCase):
         e = copy.deepcopy(d)
 
         e.update({"OA:region": "kujawsko-pomorskie"})
-        d = row_fxn_get(c, d, "region", c["conform"]["region"])
+        d = row_fxn_get_from_array_string(c, d, "region", c["conform"]["region"])
         self.assertEqual(e, d)
 
 class TestConformCli (unittest.TestCase):
