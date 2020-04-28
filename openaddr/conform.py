@@ -966,8 +966,8 @@ def row_function(sd, row, key, fxn):
         row = row_fxn_chain(sd, row, key, fxn)
     elif function == "first_non_empty":
         row = row_fxn_first_non_empty(sd, row, key, fxn)
-    elif function == "get":
-        row = row_fxn_get(sd, row, key, fxn)
+    elif function == "get_from_array_string":
+        row = row_fxn_get_from_array_string(sd, row, key, fxn)
 
     return row
 
@@ -1201,9 +1201,9 @@ def row_fxn_first_non_empty(sd, row, key, fxn):
 
     return row
 
-def row_fxn_get(sd, row, key, fxn):
+def row_fxn_get_from_array_string(sd, row, key, fxn):
     "Get single value from a field with many values"
-    row[var_types[key]] = row[fxn['field']][fxn['index']]
+    row[var_types[key]] = row[fxn['field']].split(',').replace('[', '').replace(']', '').replace("'", '')[fxn['index']]
 
     return row
 
