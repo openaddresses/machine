@@ -21,7 +21,7 @@ from ..conform import (
     row_fxn_postfixed_unit,
     row_fxn_remove_prefix, row_fxn_remove_postfix, row_fxn_chain,
     row_fxn_first_non_empty,
-    row_fxn_get,
+    row_fxn_get_from_array_string,
     row_canonicalize_unit_and_number, conform_smash_case, conform_cli,
     convert_regexp_replace, conform_license,
     conform_attribution, conform_sharealike, normalize_ogr_filename_case,
