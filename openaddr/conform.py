@@ -1203,7 +1203,12 @@ def row_fxn_first_non_empty(sd, row, key, fxn):
 
 def row_fxn_get_from_array_string(sd, row, key, fxn):
     "Get single value from a field with many values"
-    row[var_types[key]] = row[fxn['field']].replace('[', '').replace(']', '').replace("'", '').split(',')[fxn['index']]
+    row[var_types[key]] = row[fxn['field']].\
+        replace('[', '').\
+        replace(']', '').\
+        replace("'", '').\
+        replace(", ", ',').\
+        split(',')[fxn['index']]
 
     return row
 
