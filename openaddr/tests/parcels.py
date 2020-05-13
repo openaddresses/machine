@@ -36,14 +36,14 @@ class TestParcelsUtils (unittest.TestCase):
 
     def test_scrape_fiona_metadata(self):
         with fiona.open(filename('parcels/data/us/ca/berkeley/Parcels.shp')) as data:
-            obj = next(data)
+            obj = next(iter(data))
             scraped = utils.scrape_fiona_metadata(obj, 'us/ca/berkeley.json')
 
         self.assertEqual(scraped, {'CITY': 'BERKELEY', 'ID': '055 183213100', 'REGION': None, 'STREET': 'DANA ST', 'NUMBER': '2550', 'DISTRICT': None, 'LON': None, 'LAT': None, 'UNIT': '', 'POSTCODE': '94704', 'HASH': 'a9bab15763bb9f03'})
 
     def test_to_shapely_obj(self):
         with fiona.open(filename('parcels/data/us/ca/berkeley/Parcels.shp')) as data:
-            obj = next(data)
+            obj = next(iter(data))
             shaped = utils.to_shapely_obj(obj)
 
         self.assertAlmostEqual( 565007.068900000, shaped.bounds[0])
