@@ -109,7 +109,7 @@ def import_with_fiona(fpath, source):
     shapes = []
 
     try:
-        with fiona.drivers():
+        with fiona.Env():
             data = fiona.open(fpath)
             for obj in data:
                 try:

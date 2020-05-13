@@ -1379,7 +1379,7 @@ class TestConformTransforms (unittest.TestCase):
         self.assertEqual(e, d)
 
     def test_row_fxn_get_from_array_string(self):
-        "New fxn get_from_array_string"
+        "Parse array value from GDAL that arrives as an encoded string"
         c = {
             "conform": {
                 "region": {
