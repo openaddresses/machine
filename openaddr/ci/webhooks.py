@@ -120,7 +120,10 @@ def app_index():
 
     if runs:
         good_runs = [run for run in runs if (run.state or {}).get('processed')]
-        last_modified = sorted(good_runs, key=attrgetter('datetime_tz'))[-1].datetime_tz
+
+        # It's possible for none of the reults to be processed
+        if good_runs:
+            last_modified = sorted(good_runs, key=attrgetter('datetime_tz'))[-1].datetime_tz
 
     mc = get_memcache_client(current_app.config)
     summary_data = summarize_runs(mc, good_runs, last_modified, set and set.owner,
