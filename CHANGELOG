@@ -1,3 +1,9 @@
+2020-08-24: 7.5.0
+- Default to addresses layer when processing V2 sources (#775)
+- Revert slow query change (#774)
+- Handle no processed runs case (#773)
+- Fixing bugs in get conform function (#768, #769, #770, #771)
+
 2020-04-19: 7.4.4
 - Add get conform function (#767)
 
