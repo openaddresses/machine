@@ -88,15 +88,10 @@ def process(source, destination, layer, layersource, do_preview, mapbox_key=None
                     layer = 'addresses'
                     layersource = 'primary'
 
-                if type(layer) is not str:
-                    layer = ''
-                if type(layersource) is not str:
-                    layersource = ''
-
-                if len(layer) == 0:
+                if not layer:
                     _L.error('explicit --layer arg is required for v2 sources')
                     raise ValueError('explicit --layer arg is required for v2 sources')
-                elif len(layersource) == 0:
+                if not layersource:
                     _L.error('explicit --layersource arg is required for v2 sources')
                     raise ValueError('explicit --layersource arg is required for v2 sources')
 

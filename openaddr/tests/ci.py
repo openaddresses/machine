@@ -3078,7 +3078,9 @@ class TestWorker (unittest.TestCase):
             os.path.join(self.output_dir, u'work/so--exalté.txt'),
             os.path.join(self.output_dir, 'work/out'),
             '--render-preview',
-            '--mapbox-key', 'mapbox-XXXX'
+            '--mapbox-key', 'mapbox-XXXX',
+            '--layer', 'addresses',
+            '--layersource', 'primary',
             ))
 
         self.assertEqual(check_output.mock_calls[-1][2]['timeout'],
@@ -3136,7 +3138,9 @@ class TestWorker (unittest.TestCase):
             os.path.join(self.output_dir, 'work/logfile.txt'),
             os.path.join(self.output_dir, 'work/angry.txt'),
             os.path.join(self.output_dir, 'work/out'),
-            '--skip-preview'
+            '--skip-preview',
+            '--layer', 'addresses',
+            '--layersource', 'primary',
             ))
 
         self.assertEqual(check_output.mock_calls[-1][2]['timeout'],
@@ -3182,7 +3186,9 @@ class TestWorker (unittest.TestCase):
             os.path.join(self.output_dir, u'work/so--exalté.txt'),
             os.path.join(self.output_dir, 'work/out'),
             '--render-preview',
-            '--mapbox-key', 'mapbox-XXXX'
+            '--mapbox-key', 'mapbox-XXXX',
+            '--layer', 'addresses',
+            '--layersource', 'primary',
             ))
 
         self.assertEqual(check_output.mock_calls[-1][2]['timeout'],
