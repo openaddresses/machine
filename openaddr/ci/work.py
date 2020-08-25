@@ -106,6 +106,10 @@ def do_work(s3, run_id, source_name, job_contents_b64, render_preview, output_di
     else:
         cmd += ('--skip-preview', )
 
+    # For now, assume 'addresses' layer for V2 sources
+    cmd += ('--layer', 'addresses')
+    cmd += ('--layersource', 'primary')
+
     try:
         known_error, cmd_status = False, 0
         timeout_seconds = JOB_TIMEOUT.seconds + JOB_TIMEOUT.days * 86400
