@@ -11,6 +11,7 @@ import json
 import copy
 import csv
 import re
+import osgeo
 
 from zipfile import ZipFile
 from locale import getpreferredencoding
@@ -709,6 +710,10 @@ def ogr_source_to_csv(source_definition, source_path, dest_path):
     # Set up a transformation from the source SRS to EPSG:4326
     outSpatialRef = osr.SpatialReference()
     outSpatialRef.ImportFromEPSG(4326)
+    if int(osgeo.__version__[0]) >= 3:
+        # GDAL 3 changes axis order: https://github.com/OSGeo/gdal/issues/1546
+        outSpatialRef.SetAxisMappingStrategy(osgeo.osr.OAMS_TRADITIONAL_GIS_ORDER)
+
     coordTransform = osr.CoordinateTransformation(inSpatialRef, outSpatialRef)
 
     # Write a CSV file with one row per feature in the OGR source
