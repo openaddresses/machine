@@ -83,34 +83,23 @@ def process(source, destination, layer, layersource, do_preview, mapbox_key=None
                 source = json.load(file)
 
                 # Update a v1 source to v2 and set required flags to process it
-                if source.get('schema', None) == None and source.get('layers', None) == None:
+                if source.get('schema') is None and source.get('layers') is None:
                     source = upgrade_source_schema(source)
                     layer = 'addresses'
                     layersource = 'primary'
 
-                if not layer:
-                    _L.error('explicit --layer arg is required for v2 sources')
-                    raise ValueError('explicit --layer arg is required for v2 sources')
-                if not layersource:
-                    _L.error('explicit --layersource arg is required for v2 sources')
-                    raise ValueError('explicit --layersource arg is required for v2 sources')
+                layers = source.get('layers')
 
                 # Only Address Layers are supported right now
-                if (layer != 'addresses'):
-                    _L.error('Nothing processed: \'{}\' layer not currently supported'.format(layer))
-                    raise ValueError('Nothing processed: \'{}\' layer not currently supported')
-                elif source['layers'].get(layer, None) == None:
-                    _L.error('Nothing processed: \'{}\' layer does not exist in source'.format(layer))
-                    raise ValueError('Nothing processed: \'{}\' layer does not exist in source')
+                address_layers = layers.get('addresses')
+                if address_layers is None:
+                    _L.error('Nothing processed: No address layer specified')
+                    raise ValueError('Nothing processed: No address layer specified')
 
-                for ds in source['layers'][layer]:
-                    if ds.get('name', None) == layersource:
-                        data_source = ds
-                        break
+                if len(address_layers) > 0:
+                    _L.warning('More than one address layer specified. Only processing the first one.')
 
-                if data_source == False:
-                    _L.error('Nothing processed: \'{}\' layersource not found in \'{}\' layer '.format(layersource, layer))
-                    raise ValueError('Nothing processed: \'{}\' layersource not found in \'{}\' layer')
+                data_source = address_layers[0]
 
                 if data_source.get('skip', None):
                     raise SourceSaysSkip()
@@ -190,7 +179,7 @@ def upgrade_source_schema(schema):
     v2 = { 'layers': { 'addresses': [{ 'name': 'primary' }] } }
 
     for k, v in schema.items():
-        if (k == 'coverage'):
+        if k == 'coverage':
             v2['coverage'] = v
         else:
             v2['layers']['addresses'][0][k] = v
