@@ -1,6 +1,8 @@
+2020-12-09: 7.5.2
+- Adjust name of the 'get' function name (#779)
+
 2020-12-09: 7.5.1
 - Fix machine processing for V2 sources (#780)
-- Adjust name of the 'get' function name (#779)
 
 2020-08-24: 7.5.0
 - Default to addresses layer when processing V2 sources (#775)
