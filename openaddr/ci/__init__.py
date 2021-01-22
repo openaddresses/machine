@@ -1149,6 +1149,8 @@ class SnsHandler(logging.Handler):
 class CloudwatchHandler(logging.Handler):
     ''' Logs to the given Amazon Cloudwatch log stream; meant for all logs.
     '''
+    THROTTLED = 'ThrottlingException'
+
     def __init__(self, group_name, stream_name, *args, **kwargs):
         super(CloudwatchHandler, self).__init__(*args, **kwargs)
         self.group, self.stream = group_name, stream_name
@@ -1162,7 +1164,7 @@ class CloudwatchHandler(logging.Handler):
             events = self.events[-10:]
             response = self.logs.put_log_events(self.group, self.stream, events, self.token)
         except boto.exception.JSONResponseError as e:
-            if e.body['message'] == 'Rate exceeded':
+            if e.error_code == self.THROTTLED:
                 # Try this log message again another time
                 return
             raise
