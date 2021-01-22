@@ -1,3 +1,6 @@
+2021-01-22: 7.5.3
+- Better handling of CloudWatch log rate limit (14dd0ca)
+
 2020-12-09: 7.5.2
 - Adjust name of the 'get' function name (#779)
 
