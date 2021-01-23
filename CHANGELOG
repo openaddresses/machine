@@ -1,3 +1,6 @@
+2021-01-23: 7.5.5
+- Handle invalid sequence token response from CloudWatch Logs (#783)
+
 2021-01-22: 7.5.4
 - Work around a Ubuntu Python packaging bug (#782)
 
