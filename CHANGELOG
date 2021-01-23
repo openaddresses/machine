@@ -1,3 +1,6 @@
+2021-01-22: 7.5.4
+- Work around a Ubuntu Python packaging bug (#782)
+
 2021-01-22: 7.5.3
 - Better handling of CloudWatch log rate limit (14dd0ca)
 
