@@ -1150,6 +1150,7 @@ class CloudwatchHandler(logging.Handler):
     ''' Logs to the given Amazon Cloudwatch log stream; meant for all logs.
     '''
     THROTTLED = 'ThrottlingException'
+    INVALID_TOKEN = 'InvalidSequenceTokenException'
 
     def __init__(self, group_name, stream_name, *args, **kwargs):
         super(CloudwatchHandler, self).__init__(*args, **kwargs)
@@ -1160,6 +1161,7 @@ class CloudwatchHandler(logging.Handler):
 
     def _send(self, message):
         self.events.append(dict(timestamp=int(time()*1000), message=message))
+
         try:
             events = self.events[-10:]
             response = self.logs.put_log_events(self.group, self.stream, events, self.token)
@@ -1167,7 +1169,11 @@ class CloudwatchHandler(logging.Handler):
             if e.error_code == self.THROTTLED:
                 # Try this log message again another time
                 return
-            raise
+            elif e.error_code == self.INVALID_TOKEN:
+                self.token = e['expectedSequenceToken']
+                return
+            else:
+                raise
         else:
             self.events = []
             self.token = response['nextSequenceToken']
