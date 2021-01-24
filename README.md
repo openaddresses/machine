@@ -18,6 +18,8 @@ basis, with output visible at [results.openaddresses.io](https://results.openadd
 
 Usage
 -----
+NOTE: machine's use for CI has been deprecated and it is currenty serving a static version of sources processed up to August, 2020.
+All CI and weekly source functionality is disabled. For current data please see the [batch service](https://batch.openaddresses.io)
 
 Machine is an integral of the OpenAddresses project. When new sources
 [are added in Github](https://github.com/openaddresses/openaddresses#contributing-addresses),
