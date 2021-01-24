@@ -1,4 +1,4 @@
-<h1 align="center">OA Machine</h1>
+<h1 align="center">OA Machine [Deprecated]</h1>
 
 
 Legacy scripts for running OpenAddresses on a complete data set and publishing
