@@ -1,12 +1,15 @@
 <h1 align="center">OA Machine</h1>
 
 
-Scripts for running OpenAddresses on a complete data set and publishing
+Legacy scripts for running OpenAddresses on a complete data set and publishing
 the results. Uses [OpenAddresses](https://github.com/openaddresses/openaddresses)
 data sources to work.
 
 Status
 ------
+
+README: This code powers the legacy https://results.openaddresses.io/ site. Current development efforts should be focused on the batch service
+at https://batch.openaddresses.io/data. This service is powered by a fork of the machine code found https://github.com/openaddresses/batch-machine. Changes made to this code **will not** affect the newer, batch service.
 
 This code is being used to process the complete OA dataset on a weekly and on-demand
 basis, with output visible at [results.openaddresses.io](https://results.openaddresses.io).
