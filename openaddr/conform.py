@@ -264,7 +264,7 @@ class ZipDecompressTask(DecompressionTask):
 class ExcerptDataTask(object):
     ''' Task for sampling three rows of data from datasource.
     '''
-    known_types = ('.shp', '.json', '.geojson', '.csv', '.kml', '.gml', '.gdb')
+    known_types = ('.shp', '.json', '.geojson', '.csv', '.kml', '.gml', '.xml', '.gdb')
 
     def excerpt(self, source_paths, workdir, conform):
         '''
@@ -575,9 +575,9 @@ def find_source_path(source_definition, source_paths):
         else:
             for fn in source_paths:
                 _, ext = os.path.splitext(fn)
-                if ext == ".gml":
+                if ext in (".gml", ".xml"):
                     return fn
-            _L.warning("Could not find a .gml file")
+            _L.warning("Could not find a .gml or .xml file")
             return None
     else:
         _L.warning("Unknown source conform format %s", format_string)
