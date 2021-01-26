@@ -5,6 +5,8 @@ Legacy scripts for running OpenAddresses on a complete data set and publishing
 the results. Uses [OpenAddresses](https://github.com/openaddresses/openaddresses)
 data sources to work.
 
+
+
 Status
 ------
 
@@ -39,6 +41,6 @@ files, maps, and other resources available via [results.openaddresses.io](https:
 Development
 -----------
 
-[Documentation for Machine internals](docs/README.md) can help point you in the
-right direction for development. Follow the [installation instructions](docs/install.md)
+[Documentation for Machine internals](https://docs.contour.so/openaddresses/machine) can help point you in the
+right direction for development. Follow the [installation instructions](https://docs.contour.so/openaddresses/machine/manual-2oq7vh5jlns0000000000)
 to use and modify Machine code locally.
