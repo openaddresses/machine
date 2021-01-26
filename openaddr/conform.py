@@ -40,7 +40,8 @@ gdal.PushErrorHandler(gdal_error_handler)
 
 # The canonical output schema for conform
 OPENADDR_CSV_SCHEMA = ['LON', 'LAT', 'NUMBER', 'STREET', 'UNIT', 'CITY',
-                       'DISTRICT', 'REGION', 'POSTCODE', 'ID', 'HASH']
+                       'DISTRICT', 'REGION', 'POSTCODE', 'ID', 'ADDRTYPE',
+                       'NOTES' 'HASH']
 
 # Field names for use in cached CSV files.
 # We add columns to the extracted CSV with our own data with these names.
@@ -54,7 +55,9 @@ attrib_types = {
     'postcode': 'OA:postcode',
     'district': 'OA:district',
     'region':   'OA:region',
-    'id':       'OA:id'
+    'id':       'OA:id',
+    'addrtype': 'OA:addrtype',
+    'notes':    'OA:notes'
 }
 
 var_types = attrib_types.copy()
