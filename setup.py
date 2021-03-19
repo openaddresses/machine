@@ -62,7 +62,7 @@ setup(
         'boto == 2.49.0', 'dateutils == 0.6.6', 'ijson == 2.4',
 
         # http://jinja.pocoo.org/docs/2.10/
-        'Jinja2 == 2.10.1',
+        'Jinja2 == 2.11.3',
 
         # http://flask.pocoo.org
         'Flask == 1.1.1',
