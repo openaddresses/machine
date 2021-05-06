@@ -68,7 +68,7 @@ setup(
         'Flask == 1.1.1',
 
         # http://flask-cors.corydolphin.com
-        'Flask-Cors == 3.0.8',
+        'Flask-Cors == 3.0.9',
 
         # https://www.palletsprojects.com/p/werkzeug/
         'Werkzeug == 0.16.0',
