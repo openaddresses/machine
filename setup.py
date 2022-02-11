@@ -117,7 +117,7 @@ setup(
         # https://github.com/tilezen/mapbox-vector-tile
         'mapbox-vector-tile==1.2.0',
         'future==0.16.0',
-        'protobuf==3.5.1',
+        'protobuf==3.15.0',
         'pyclipper==1.1.0',
         'six==1.11.0',
 
